@@ -10716,7 +10716,12 @@ try {
   if (m || API_LINK) history.replaceState(null, '', location.pathname);
 } catch (e) { /* bỏ qua */ }
 if (!IS_DEMO && 'serviceWorker' in navigator && (/^https:/.test(location.protocol) || location.hostname === 'localhost')) {
-  navigator.serviceWorker.register('sw.js').then((r) => {
+  // Có bản app mới (service worker mới nhận quyền): tải lại trang một lần để dùng ngay, không phải tắt mở app
+  let daTai = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (daTai || !hadSW) return; daTai = true; location.reload(); });
+  const hadSW = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => {
+    r.update().catch(() => {});
     r.addEventListener('updatefound', () => { const w = r.installing; if (w) w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) toast(t('newVersion')); }); });
   }).catch(() => {});
 }

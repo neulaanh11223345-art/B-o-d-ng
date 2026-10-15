@@ -1,7 +1,7 @@
 // Service worker: cho app mở được khi mất mạng (iPhone thêm vào màn hình chính).
 // Trang app: lấy bản mới khi có mạng (chờ tối đa 4 giây), mất mạng thì dùng bản đã lưu.
 // Thư viện / font từ CDN: dùng bản đã lưu, cập nhật ngầm. Không bao giờ lưu lời gọi máy chủ Apps Script.
-const VER = 'cmms-2.5.1-242f98e7';
+const VER = 'cmms-2.5.1-8d3f9858';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 const CDN = /^https:\/\/(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 
@@ -21,7 +21,8 @@ self.addEventListener('fetch', (e) => {
     e.respondWith((async () => {
       const c = await caches.open(VER);
       try {
-        const res = await Promise.race([fetch(req), timeout(4000)]);
+        // no-cache: luôn hỏi lại máy chủ (GitHub Pages cho trình duyệt giữ trang 10 phút), mất mạng mới dùng bản đã lưu
+        const res = await Promise.race([fetch(req, { cache: 'no-cache' }), timeout(4000)]);
         if (res && res.ok) c.put(req, res.clone());
         return res;
       } catch (x) {
