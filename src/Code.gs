@@ -1,5 +1,5 @@
 /**
- * CREDIBLE CMMS — BẢO DƯỠNG · ĐIỆN NƯỚC · KHO LINH KIỆN · 设备管理 — máy chủ (Google Apps Script)
+ * CREDIBLE CMMS — BẢO DƯỠNG · SỬA CHỮA · ĐIỆN NƯỚC · KHO LINH KIỆN · 设备管理 — máy chủ (Google Apps Script)
  * Dữ liệu lưu trong chính Google Sheet chứa script này (mỗi bảng một trang).
  *
  * Cài đặt lần đầu:
@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.0.0';
+var PHIEN_BAN = '2.1.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -44,9 +44,18 @@ var BANG = {
     'KyTruoc', 'CSTruoc', 'TieuThuKy', 'TieuThu', 'LucGhi', 'Anh', 'NgoaiLe', 'NguoiSua', 'Nguon'],
   KhoLK: ['Ma', 'Ten', 'QuyCach', 'Dv', 'Nhom', 'Ton', 'ViTri', 'Nguon', 'ConFile', 'CapNhat', 'GhiChu', 'GopVao', 'An', 'TonMin'],
   // Nhật ký sửa đổi (audit): giá trị trước / sau, người sửa, thời gian, lý do
-  NhatKy: ['ID', 'ThoiGian', 'UID', 'Nguoi', 'HanhDong', 'Bang', 'Khoa', 'Truoc', 'Sau', 'LyDo']
+  NhatKy: ['ID', 'ThoiGian', 'UID', 'Nguoi', 'HanhDong', 'Bang', 'Khoa', 'Truoc', 'Sau', 'LyDo'],
+  // Phiếu sửa chữa (báo hỏng). ID do máy báo hỏng tạo (để ghi tiếp được khi chưa có mạng); So: số phiếu 1, 2, 3…
+  // TrangThai: CHO_SUA (mới báo) · DANG_SUA · CHO_LK (chờ linh kiện) · XONG (sửa xong, chờ nghiệm thu) · DONG (đã nghiệm thu) · HUY
+  // MucDo: DUNG (máy dừng) · HAN_CHE (chạy hạn chế) · KHONG (không ảnh hưởng sản xuất)
+  // LucHong: lúc máy hỏng · LucChay: lúc máy chạy lại · PhutDung: số phút dừng máy (chỉ tính khi MucDo = DUNG)
+  // LinhKien (JSON): [{id, ten, quyCach, dv, sl, loai, maKho}] · NhatKy (JSON): các bước [{b, luc, uid, nguoi, gc, op}]
+  SuaChua: ['ID', 'So', 'Ma', 'TenMay', 'TrangThai', 'MucDo', 'MoTa', 'LucHong', 'NguoiBao', 'UIDBao', 'LucBao',
+    'NguoiSua', 'LucNhan', 'NguyenNhan', 'XuLy', 'LinhKien', 'LucXong', 'LucChay', 'PhutDung', 'NguoiNghiemThu', 'LucNghiemThu',
+    'AnhBao', 'AnhSua', 'OpId', 'CapNhat', 'NhatKy']
 };
-var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [] };
+var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
+  SuaChua: ['So', 'PhutDung'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
 
@@ -71,15 +80,17 @@ var QUYEN = {
   caidat: ['admin'],
   thongso: ['admin'],
   khoaky: ['admin', 'quanly'],      // khoá / mở lại kỳ điện, duyệt ngoại lệ, sửa số kỳ đã khoá
-  nhatky: ['admin', 'quanly']
+  nhatky: ['admin', 'quanly'],
+  nghiemthu: ['admin', 'quanly']    // nghiệm thu / trả lại phiếu sửa chữa, huỷ phiếu của người khác
 };
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
-  'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg'];
+  'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg', 'reportRepair', 'updateRepair'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
   mailBat: false, baoXong: false, linkApp: '',
+  baoHong: true,                     // báo ngay lên Telegram khi có báo hỏng / sửa xong
   nguongTang: 50, nguongGiam: 50     // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
 };
 
@@ -222,6 +233,8 @@ function dieuHuong(a, p, req) {
     case 'catalog': return layKho();
     case 'importKho': canQuyen(u, 'may'); return nhapKho(u, p);
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
+    case 'reportRepair': canQuyen(u, 'xacnhan'); return baoHong(u, p, s(req.opId));
+    case 'updateRepair': canQuyen(u, 'xacnhan'); return capNhatSuaChua(u, p, s(req.opId));
   }
   throw loi('KHONG_HIEU', 'Máy chủ chưa hiểu yêu cầu này: ' + a);
 }
@@ -417,6 +430,7 @@ function layDuLieu(u) {
     chiSo: docChiSo().filter(function (x) { return x.ky >= tu && x.trangThai !== 'HUY'; }).map(sachCS),
     caiDat: { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam },
     khoaKy: docKhoaKy(),
+    suaChua: docSuaChua().filter(function (x) { return SC_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG' || x.lucBao >= tu; }).map(sachSC),
     kho: khoTomTat(),
     me: congKhai(u),
     phienBan: PHIEN_BAN
@@ -444,23 +458,7 @@ function xacNhan(u, p, opId) {
   ls.forEach(function (x) { if (x.ma === m.ma && x.trangThai !== 'HUY' && x.ngay > cuoi) cuoi = x.ngay; });
   var moiNhat = !cuoi || ngay > cuoi;
   var chiTiet = sachChiTiet(p.chiTiet);
-  if (chiTiet) {
-    // Linh kiện gõ tên tay nhưng máy đã có (trùng tên): dùng mã sẵn có để thống kê không bị tách đôi
-    var theoId = {}, theoTen = {};
-    (m.linhKien || []).forEach(function (k) { theoId[k.id] = 1; theoTen[k.ten.toLowerCase()] = k.id; });
-    chiTiet.lk.forEach(function (k) { if (!theoId[k.id] && theoTen[k.ten.toLowerCase()]) k.id = theoTen[k.ten.toLowerCase()]; });
-  }
-  var kho = null, lkMay = {}, ganMay = false;
-  (m.linhKien || []).forEach(function (k) { lkMay[k.id] = k; });
-  if (chiTiet && chiTiet.lk.length) {
-    // Mã kho lấy theo linh kiện của máy (linh kiện cũ chưa gắn thì gắn luôn); linh kiện gõ tay chưa có trong kho thì tự thêm vào kho
-    kho = khoNap();
-    var cu = [];
-    chiTiet.lk.forEach(function (k) { var c = lkMay[k.id]; if (c && !c.maKho && cu.indexOf(c) < 0) cu.push(c); });
-    if (cu.length) { ganKho(cu, ghiChuThem(m.ma, u), kho); ganMay = true; }
-    chiTiet.lk.forEach(function (k) { var c = lkMay[k.id]; if (c) k.maKho = c.maKho; });
-    ganKho(chiTiet.lk.filter(function (k) { return !lkMay[k.id]; }), ghiChuThem(m.ma, u), kho);
-  }
+  var gan = ganLKDaDung(m, chiTiet ? chiTiet.lk : [], u, ngay, 'Thêm khi bảo dưỡng · 保养时添加');
   var x = {
     id: 'LS' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900),
     ma: m.ma, tenMay: m.ten, ngay: ngay, denHan: moiNhat ? m.hanKeTiep : '',
@@ -468,27 +466,43 @@ function xacNhan(u, p, opId) {
     thoiGian: thoiGianStr(), trangThai: 'OK', opId: opId, uid: u.id, huy: '', chiTiet: chiTiet
   };
   themDong('LichSu', lsThanhDong(x));
-  // Linh kiện mới dùng khi bảo dưỡng: thêm vào bảng linh kiện của máy
-  var themLK = false;
-  if (x.chiTiet && x.chiTiet.lk.length) {
-    m.linhKien = m.linhKien || [];
-    var co = {};
-    m.linhKien.forEach(function (k) { co[k.id] = 1; });
-    x.chiTiet.lk.forEach(function (k) {
-      if (co[k.id] || m.linhKien.length >= TOI_DA_DS) return;
-      co[k.id] = 1; themLK = true;
-      var o = { id: k.id, ten: k.ten, quyCach: k.quyCach, dv: k.dv, sl: '', ghiChu: 'Thêm khi bảo dưỡng · 保养时添加 ' + ngayVN(ngay) + ' · ' + u.ten };
-      if (k.maKho) o.maKho = k.maKho;
-      m.linhKien.push(o);
-    });
-  }
   if (moiNhat) m.hanKeTiep = congNgay(ngay, m.chuKy);
-  if (moiNhat || themLK || ganMay) {
+  if (moiNhat || gan.doiMay) {
     m.capNhat = x.thoiGian;
     suaDong('May', m._r, mayThanhDong(m));
   }
   TIN_CHO.push({ loai: 'xong', may: m, ban: x });
-  return { ban: sachLS(x), may: sachMay(m), kho: kho ? khoLuuMoi(kho) : null };
+  return { ban: sachLS(x), may: sachMay(m), kho: gan.kho ? khoLuuMoi(gan.kho) : null };
+}
+
+// Linh kiện đã dùng khi bảo dưỡng / sửa chữa (lk đã qua sachChiTiet, bị sửa tại chỗ):
+// - gõ tên tay nhưng máy đã có linh kiện trùng tên → dùng mã sẵn có để thống kê không bị tách đôi
+// - mã kho lấy theo linh kiện của máy (linh kiện cũ chưa gắn thì gắn luôn); linh kiện chưa có trong kho thì tự thêm vào kho
+// - linh kiện mới thì thêm vào bảng linh kiện của máy
+// Trả { kho: kho đã nạp (null nếu không dùng), doiMay: true nếu phải ghi lại dòng máy }
+function ganLKDaDung(m, lk, u, ngay, nguon) {
+  var r = { kho: null, doiMay: false };
+  if (!lk || !lk.length) return r;
+  var lkMay = {}, theoTen = {};
+  (m.linhKien || []).forEach(function (k) { lkMay[k.id] = k; theoTen[k.ten.toLowerCase()] = k.id; });
+  lk.forEach(function (k) { if (!lkMay[k.id] && theoTen[k.ten.toLowerCase()]) k.id = theoTen[k.ten.toLowerCase()]; });
+  r.kho = khoNap();
+  var cu = [];
+  lk.forEach(function (k) { var c = lkMay[k.id]; if (c && !c.maKho && cu.indexOf(c) < 0) cu.push(c); });
+  if (cu.length) { ganKho(cu, ghiChuThem(m.ma, u), r.kho); r.doiMay = true; }
+  lk.forEach(function (k) { var c = lkMay[k.id]; if (c) k.maKho = c.maKho; });
+  ganKho(lk.filter(function (k) { return !lkMay[k.id]; }), ghiChuThem(m.ma, u), r.kho);
+  m.linhKien = m.linhKien || [];
+  var co = {};
+  m.linhKien.forEach(function (k) { co[k.id] = 1; });
+  lk.forEach(function (k) {
+    if (co[k.id] || m.linhKien.length >= TOI_DA_DS) return;
+    co[k.id] = 1; r.doiMay = true;
+    var o = { id: k.id, ten: k.ten, quyCach: k.quyCach, dv: k.dv, sl: '', ghiChu: nguon + ' ' + ngayVN(ngay) + ' · ' + u.ten };
+    if (k.maKho) o.maKho = k.maKho;
+    m.linhKien.push(o);
+  });
+  return r;
 }
 
 function huyXacNhan(u, p) {
@@ -514,6 +528,158 @@ function huyXacNhan(u, p) {
     }
   }
   return { ban: sachLS(x), may: m ? sachMay(m) : null };
+}
+
+// ===================== Sửa chữa (báo hỏng) =====================
+var SC_MO = ['CHO_SUA', 'DANG_SUA', 'CHO_LK'];        // phiếu đang mở (máy chưa sửa xong)
+var MUC_DO_SC = ['DUNG', 'HAN_CHE', 'KHONG'];
+var TEN_TT_SC = { CHO_SUA: 'Chờ sửa · 待维修', DANG_SUA: 'Đang sửa · 维修中', CHO_LK: 'Chờ linh kiện · 等配件',
+  XONG: 'Sửa xong, chờ nghiệm thu · 已修好待验收', DONG: 'Đã nghiệm thu · 已验收', HUY: 'Đã huỷ · 已取消' };
+var TEN_MD_SC = { DUNG: 'Dừng máy · 停机', HAN_CHE: 'Chạy hạn chế · 限制运行', KHONG: 'Không ảnh hưởng · 不影响生产' };
+var SC_ANH_TOI_DA = 4;
+function scTuDong(r, i) {
+  return {
+    id: s(r[0]), so: Math.round(Number(r[1])) || 0, ma: s(r[2]), tenMay: s(r[3]), trangThai: s(r[4]) || 'CHO_SUA', mucDo: s(r[5]) || 'KHONG',
+    moTa: s(r[6]), lucHong: tgStr(r[7]), nguoiBao: s(r[8]), uidBao: s(r[9]), lucBao: tgStr(r[10]),
+    nguoiSua: s(r[11]), lucNhan: tgStr(r[12]), nguyenNhan: s(r[13]), xuLy: s(r[14]), linhKien: docJson(r[15], []),
+    lucXong: tgStr(r[16]), lucChay: tgStr(r[17]), phutDung: s(r[18]) === '' ? '' : Math.round(Number(r[18])) || 0,
+    nguoiNghiemThu: s(r[19]), lucNghiemThu: tgStr(r[20]), anhBao: docJson(r[21], []), anhSua: docJson(r[22], []),
+    opId: s(r[23]), capNhat: tgStr(r[24]), nhatKy: docJson(r[25], []), _r: i + 2
+  };
+}
+function scThanhDong(x) {
+  return [x.id, x.so, x.ma, anToan(x.tenMay), x.trangThai, x.mucDo, anToan(x.moTa), x.lucHong, anToan(x.nguoiBao), x.uidBao, x.lucBao,
+    anToan(x.nguoiSua), x.lucNhan, anToan(x.nguyenNhan), anToan(x.xuLy), x.linhKien.length ? JSON.stringify(x.linhKien) : '',
+    x.lucXong, x.lucChay, x.phutDung, anToan(x.nguoiNghiemThu), x.lucNghiemThu,
+    x.anhBao.length ? JSON.stringify(x.anhBao) : '', x.anhSua.length ? JSON.stringify(x.anhSua) : '', x.opId, x.capNhat, catJson(x.nhatKy)];
+}
+function docSuaChua() { return docTho('SuaChua').map(scTuDong).filter(function (x) { return x.id && x.ma; }); }
+function sachSC(x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; }); return o; }
+// 'yyyy-MM-dd HH:mm[:ss]' hoặc 'yyyy-MM-ddTHH:mm' (ô chọn giờ của iPhone) → 'yyyy-MM-dd HH:mm:ss'; sai → ''
+function tgHopLe(v) {
+  var m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(s(v));
+  if (!m || !hopLeNgay(m[1]) || +m[2] > 23 || +m[3] > 59 || (m[4] && +m[4] > 59)) return '';
+  return m[1] + ' ' + m[2] + ':' + m[3] + ':' + (m[4] || '00');
+}
+function msTG(t) { return Date.parse(t.replace(' ', 'T') + 'Z'); }
+function phutGiua(a, b) { return Math.max(0, Math.round((msTG(b) - msTG(a)) / 60000)); }
+// Thời điểm do người dùng nhập: không ở tương lai (cho lệch đồng hồ 10 phút), không lùi quá LUI_TOI_DA ngày
+function scKiemTG(v, macDinh) {
+  var t = v === undefined || v === null || s(v) === '' ? macDinh : tgHopLe(v);
+  if (!t) throw loi('TG_SAI', 'Thời gian không hợp lệ · 时间无效');
+  var bay = thoiGianStr();
+  if (msTG(t) > msTG(bay) + 10 * 60000) throw loi('NGAY_TUONG_LAI', 'Thời gian ở tương lai · 时间不能晚于现在');
+  if (msTG(bay) - msTG(t) > LUI_TOI_DA * 86400000) throw loi('NGAY_QUA_XA', 'Ngày quá xa · 日期太久');
+  return t;
+}
+function idSC(v) { v = s(v).toUpperCase(); return /^SC[A-Z0-9]{6,24}$/.test(v) ? v : ''; }
+function anhSC(anh, ten, loai) {
+  return sachAnh((Array.isArray(anh) ? anh : []).slice(0, SC_ANH_TOI_DA).map(function (a) {
+    return a ? { loai: loai, data: a.data, id: a.id } : null;
+  }), ten);
+}
+
+// Báo hỏng: tạo phiếu CHO_SUA. Gửi lại cùng opId (mạng chập chờn) thì trả phiếu đã tạo, không tạo trùng.
+function baoHong(u, p, opId) {
+  var ds = docSuaChua();
+  if (opId) {
+    var cu = ds.filter(function (x) { return x.opId === opId; })[0];
+    if (cu) return { dup: true, suaChua: sachSC(cu) };
+  }
+  var m = timMay(p.ma);
+  if (!m) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
+  if (!m.hoatDong) throw loi('MAY_NGUNG', 'Máy đã ngừng theo dõi · 设备已停用');
+  var moTa = catNhieuDong(p.moTa, 1000).trim();
+  if (!moTa) throw loi('CAN_MO_TA', 'Cần ghi hiện tượng hỏng · 请填写故障现象');
+  var bay = thoiGianStr(), lucHong = scKiemTG(p.lucHong, bay);
+  var id = idSC(p.id);
+  if (id && ds.some(function (x) { return x.id === id; })) throw loi('TRUNG_ID', 'Trùng mã phiếu, hãy báo lại · 维修单编号重复，请重新报修');
+  if (!id) id = 'SC' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900);
+  capNhatTieuDe('SuaChua');
+  var so = 0;
+  ds.forEach(function (x) { if (x.so > so) so = x.so; });
+  so++;
+  var x = {
+    id: id, so: so, ma: m.ma, tenMay: m.ten, trangThai: 'CHO_SUA', mucDo: MUC_DO_SC.indexOf(p.mucDo) >= 0 ? p.mucDo : 'KHONG',
+    moTa: moTa, lucHong: lucHong, nguoiBao: u.ten, uidBao: u.id, lucBao: bay,
+    nguoiSua: '', lucNhan: '', nguyenNhan: '', xuLy: '', linhKien: [], lucXong: '', lucChay: '', phutDung: '',
+    nguoiNghiemThu: '', lucNghiemThu: '', anhBao: anhSC(p.anh, 'sc' + so, 'TRUOC'), anhSua: [], opId: opId, capNhat: bay,
+    nhatKy: [{ b: 'bao', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: opId }]
+  };
+  themDong('SuaChua', scThanhDong(x));
+  TIN_CHO.push({ loai: 'hong', may: m, sc: x });
+  return { suaChua: sachSC(x) };
+}
+
+// Các bước của phiếu: nhan (nhận sửa) · cholk (chờ linh kiện) · tiep (sửa tiếp) · xong (sửa xong)
+//   · nghiemthu / tralai (Quản lý) · huy (người báo khi chưa ai nhận, hoặc Quản lý)
+// Quản lý tự ghi "sửa xong" thì phiếu đóng luôn (không cần nghiệm thu lần nữa).
+function capNhatSuaChua(u, p, opId) {
+  var ds = docSuaChua(), id = s(p.id).toUpperCase();
+  var x = ds.filter(function (r) { return r.id === id; })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy phiếu sửa chữa · 找不到维修单');
+  if (opId && x.nhatKy.some(function (n) { return n.op === opId; })) return { dup: true, suaChua: sachSC(x) };
+  var b = s(p.buoc), bay = thoiGianStr(), gc = catChu(p.ghiChu, 300), m = timMay(x.ma), tra = {};
+  function phai(tt) {
+    if (tt.indexOf(x.trangThai) < 0) throw loiDL('SAI_TRANG_THAI', TEN_TT_SC[x.trangThai] || x.trangThai, { suaChua: sachSC(x) });
+  }
+  capNhatTieuDe('SuaChua');
+  if (b === 'nhan') {
+    if (x.trangThai === 'DANG_SUA') throw loiDL('DA_NHAN', x.nguoiSua, { suaChua: sachSC(x) });
+    phai(['CHO_SUA', 'CHO_LK']);
+    x.trangThai = 'DANG_SUA'; x.nguoiSua = catChu(p.nguoi, 150) || u.ten;
+    if (!x.lucNhan) x.lucNhan = bay;
+  } else if (b === 'cholk') {
+    phai(['CHO_SUA', 'DANG_SUA']);
+    if (!gc) throw loi('CAN_LY_DO', 'Ghi linh kiện đang chờ · 请填写等待的配件');
+    x.trangThai = 'CHO_LK';
+    if (!x.nguoiSua) x.nguoiSua = u.ten;
+    if (!x.lucNhan) x.lucNhan = bay;
+  } else if (b === 'tiep') {
+    phai(['CHO_LK']);
+    x.trangThai = 'DANG_SUA';
+  } else if (b === 'xong') {
+    phai(SC_MO);
+    var xuLy = catNhieuDong(p.xuLy, 1000).trim();
+    if (!xuLy) throw loi('CAN_XU_LY', 'Cần ghi cách xử lý · 请填写处理方法');
+    var lucXong = scKiemTG(p.lucXong, bay), lucChay = scKiemTG(p.lucChay, lucXong);
+    if (lucXong < x.lucHong || lucChay < x.lucHong) throw loi('TG_TRUOC_HONG', 'Phải sau lúc máy hỏng · 须晚于故障时间');
+    var ct = sachChiTiet({ lk: p.linhKien }), lk = ct ? ct.lk : [];
+    var gan = m ? ganLKDaDung(m, lk, u, lucXong.slice(0, 10), 'Thêm khi sửa chữa · 维修时添加') : { kho: null, doiMay: false };
+    x.nguoiSua = catChu(p.nguoiSua, 150) || x.nguoiSua || u.ten;
+    x.nguyenNhan = catNhieuDong(p.nguyenNhan, 500).trim();
+    x.xuLy = xuLy; x.linhKien = lk; x.lucXong = lucXong; x.lucChay = lucChay;
+    if (!x.lucNhan) x.lucNhan = lucXong;
+    x.phutDung = x.mucDo === 'DUNG' ? phutGiua(x.lucHong, lucChay) : '';
+    x.anhSua = anhSC(p.anh, 'sc' + x.so, 'SAU');
+    x.trangThai = coQuyen(u, 'nghiemthu') ? 'DONG' : 'XONG';
+    if (x.trangThai === 'DONG') { x.nguoiNghiemThu = u.ten; x.lucNghiemThu = bay; }
+    if (gan.doiMay) { m.capNhat = bay; suaDong('May', m._r, mayThanhDong(m)); tra.may = sachMay(m); }
+    if (gan.kho) tra.kho = khoLuuMoi(gan.kho);
+    TIN_CHO.push({ loai: 'scxong', may: m || { ma: x.ma, ten: x.tenMay }, sc: x });
+  } else if (b === 'nghiemthu') {
+    canQuyen(u, 'nghiemthu'); phai(['XONG']);
+    x.trangThai = 'DONG'; x.nguoiNghiemThu = u.ten; x.lucNghiemThu = bay;
+  } else if (b === 'tralai') {
+    canQuyen(u, 'nghiemthu'); phai(['XONG']);
+    if (!gc) throw loi('CAN_LY_DO', 'Cần ghi lý do trả lại · 请填写退回原因');
+    x.trangThai = 'DANG_SUA';
+  } else if (b === 'huy') {
+    var cuaMinh = x.uidBao === u.id && x.trangThai === 'CHO_SUA';
+    if (!cuaMinh && !coQuyen(u, 'nghiemthu')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+    phai(SC_MO.concat(['XONG']));
+    if (!gc && !cuaMinh) throw loi('CAN_LY_DO', 'Cần ghi lý do huỷ · 请填写取消原因');
+    ghiNhatKy(u, 'huy', 'SuaChua', x.id, { trangThai: x.trangThai }, { trangThai: 'HUY' }, gc);
+    x.trangThai = 'HUY';
+  } else {
+    throw loi('KHONG_HIEU', 'Bước không hợp lệ: ' + b);
+  }
+  x.capNhat = bay;
+  x.nhatKy.push({ b: b, luc: bay, uid: u.id, nguoi: u.ten, gc: gc, op: opId });
+  if (b === 'xong' && x.trangThai === 'DONG') x.nhatKy.push({ b: 'nghiemthu', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: '' });
+  suaDong('SuaChua', x._r, scThanhDong(x));
+  tra.suaChua = sachSC(x);
+  return tra;
 }
 
 // ===================== Danh mục máy =====================
@@ -1670,7 +1836,7 @@ function layCaiDatBaoTin() {
   var lich = ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'nhacHangNgay'; }).length > 0;
   return {
     nhacTruoc: c.nhacTruoc, gio: c.gio, tgBat: c.tgBat, tgCo: !!c.tgToken, tgDuoi: c.tgToken ? c.tgToken.slice(-4) : '',
-    tgChat: c.tgChat, tgTen: c.tgTen, mailBat: c.mailBat, baoXong: c.baoXong, linkApp: c.linkApp, lichBat: lich,
+    tgChat: c.tgChat, tgTen: c.tgTen, mailBat: c.mailBat, baoXong: c.baoXong, baoHong: c.baoHong, linkApp: c.linkApp, lichBat: lich,
     loi: docLoiBaoTin(),
     nhanMail: dsNguoiDung().filter(function (x) { return x.hoatDong && x.email; }).map(function (x) { return x.ten + ' <' + x.email + '>'; })
   };
@@ -1687,7 +1853,7 @@ function luuCaiDatBaoTin(p) {
     if (!(g >= 0 && g <= 23)) throw loi('SO_SAI', 'Giờ 0–23');
     c.gio = g;
   }
-  ['tgBat', 'mailBat', 'baoXong'].forEach(function (k) { if (p[k] !== undefined) c[k] = !!p[k]; });
+  ['tgBat', 'mailBat', 'baoXong', 'baoHong'].forEach(function (k) { if (p[k] !== undefined) c[k] = !!p[k]; });
   if (p.xoaTg) { c.tgToken = ''; c.tgChat = ''; c.tgTen = ''; c.tgBat = false; }
   if (s(p.tgToken)) c.tgToken = s(p.tgToken);
   if (p.tgChat !== undefined) { c.tgChat = s(p.tgChat); c.tgTen = catChu(p.tgTen, 80); }
@@ -1754,9 +1920,12 @@ function tomTat(homNay, nhacTruoc) {
   t.sap.sort(function (a, b) { return a.d - b.d; });
   t.dien = thieuSoDien(homNay);
   t.choDuyet = docChiSo().filter(function (x) { return x.trangThai === 'CHO_DUYET'; }).length;
+  t.sc = docSuaChua().filter(function (x) { return SC_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG'; })
+    .sort(function (a, b) { return a.so - b.so; })
+    .map(function (x) { return { so: x.so, ten: x.tenMay, mucDo: x.mucDo, tt: x.trangThai }; });
   return t;
 }
-function coNhac(t) { return !!(t.qua.length || t.nay.length || t.sap.length || t.dien || t.choDuyet); }
+function coNhac(t) { return !!(t.qua.length || t.nay.length || t.sap.length || t.dien || t.choDuyet || (t.sc && t.sc.length)); }
 function noiDungNhac(t, homNay, c, thu) {
   var TOI_DA = 30;
   function dong(o, loai) {
@@ -1771,7 +1940,8 @@ function noiDungNhac(t, homNay, c, thu) {
   ];
   var tieuDe = (thu ? '[Gửi thử · 测试] ' : '') + 'Nhắc bảo dưỡng · 保养提醒 ' + ngayVN(homNay) +
     ' — ' + t.qua.length + ' quá hạn, ' + t.nay.length + ' hôm nay' +
-    (t.dien ? ', số điện còn ' + t.dien.thieu.length + ' công tơ' : '');
+    (t.dien ? ', số điện còn ' + t.dien.thieu.length + ' công tơ' : '') +
+    (t.sc && t.sc.length ? ', ' + t.sc.length + ' phiếu sửa chữa chưa xong' : '');
   var tg = '<b>' + (thu ? '[Gửi thử · 测试] ' : '') + '🔧 NHẮC BẢO DƯỠNG · 保养提醒</b>\n' + ngayVN(homNay) + '\n';
   var text = tieuDe + '\n';
   var html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#16211F">' +
@@ -1812,6 +1982,22 @@ function noiDungNhac(t, homNay, c, thu) {
     coGi = true;
     var cd = '⚠ ' + t.choDuyet + ' số điện/nước ngoại lệ chờ Quản lý duyệt · ' + t.choDuyet + '条抄表异常待审核';
     tg += '\n<b>' + escH(cd) + '</b>\n'; text += '\n' + cd + '\n'; html += '<h3 style="margin:14px 0 4px;color:#C8372D">' + escH(cd) + '</h3>';
+  }
+  if (t.sc && t.sc.length) {
+    coGi = true;
+    var dung = t.sc.filter(function (o) { return o.mucDo === 'DUNG' && o.tt !== 'XONG'; }).length;
+    var sh = '🛠 Sửa chữa chưa xong · 未完成维修 (' + t.sc.length + (dung ? ' · ' + dung + ' máy dừng · ' + dung + '台停机' : '') + ')';
+    tg += '\n<b>' + escH(sh) + '</b>\n'; text += '\n' + sh + '\n';
+    html += '<h3 style="margin:14px 0 4px;color:#C8372D">' + escH(sh) + '</h3><ul style="margin:0;padding-left:18px">';
+    t.sc.slice(0, 20).forEach(function (o) {
+      var d = '#' + o.so + ' ' + o.ten + ' — ' + TEN_TT_SC[o.tt] + (o.mucDo === 'DUNG' && o.tt !== 'XONG' ? ' · ' + TEN_MD_SC.DUNG : '');
+      tg += '• ' + escH(d) + '\n'; text += '- ' + d + '\n'; html += '<li>' + escH(d) + '</li>';
+    });
+    if (t.sc.length > 20) {
+      var conSC = '… và ' + (t.sc.length - 20) + ' phiếu khác · 等' + (t.sc.length - 20) + '张';
+      tg += escH(conSC) + '\n'; text += conSC + '\n'; html += '<li>' + escH(conSC) + '</li>';
+    }
+    html += '</ul>';
   }
   if (!coGi) {
     var khong = 'Không có máy nào đến hạn · 没有到期的设备';
@@ -1869,18 +2055,47 @@ function guiTinCho() {
   var ds = TIN_CHO; TIN_CHO = [];
   var c;
   try { c = docCaiDat(); } catch (e) { return; }
-  if (!c.baoXong || !c.tgBat || !c.tgToken || !c.tgChat) return;
+  if (!c.tgBat || !c.tgToken || !c.tgChat) return;
   var loiDs = [];
   ds.forEach(function (tin) {
-    if (tin.loai !== 'xong') return;
-    var b = tin.ban;
-    var txt = '✅ <b>Đã bảo dưỡng · 已保养</b>: ' + escH(tin.may.ten) + '\n' +
-      'Ngày · 日期: ' + ngayVN(b.ngay) + ' · Người làm · 执行人: ' + escH(b.nguoi) + '\n' +
-      (b.ghiChu ? 'Ghi chú · 备注: ' + escH(b.ghiChu) + '\n' : '') + tomTatChiTiet(b.chiTiet) +
-      'Hạn kế tiếp · 下次: ' + ngayVN(tin.may.hanKeTiep);
+    var txt = '';
+    if (tin.loai === 'xong' && c.baoXong) {
+      var b = tin.ban;
+      txt = '✅ <b>Đã bảo dưỡng · 已保养</b>: ' + escH(tin.may.ten) + '\n' +
+        'Ngày · 日期: ' + ngayVN(b.ngay) + ' · Người làm · 执行人: ' + escH(b.nguoi) + '\n' +
+        (b.ghiChu ? 'Ghi chú · 备注: ' + escH(b.ghiChu) + '\n' : '') + tomTatChiTiet(b.chiTiet) +
+        'Hạn kế tiếp · 下次: ' + ngayVN(tin.may.hanKeTiep);
+    } else if ((tin.loai === 'hong' || tin.loai === 'scxong') && c.baoHong) {
+      txt = tinSuaChua(tin, c);
+    }
+    if (!txt) return;
     try { guiTelegram(c, txt); } catch (e) { loiDs.push(String(e.message || e)); }
   });
   ghiLoiBaoTin(loiDs);
+}
+function gioPhut(p) {
+  if (p === '' || p === null || p === undefined) return '';
+  var h = Math.floor(p / 60), m = p % 60;
+  return (h ? h + ' giờ ' : '') + m + ' phút · ' + (h ? h + '小时' : '') + m + '分钟';
+}
+function tinSuaChua(tin, c) {
+  var x = tin.sc, may = escH(tin.may.ten) + ' (' + escH(x.ma) + ')', t;
+  if (tin.loai === 'hong') {
+    t = (x.mucDo === 'DUNG' ? '🔴' : x.mucDo === 'HAN_CHE' ? '🟠' : '🟡') + ' <b>BÁO HỎNG · 报修 #' + x.so + '</b>\n' + may + '\n' +
+      'Mức độ · 影响: ' + escH(TEN_MD_SC[x.mucDo]) + '\n' +
+      'Hiện tượng · 故障现象: ' + escH(x.moTa) + '\n' +
+      'Người báo · 报修人: ' + escH(x.nguoiBao) + ' · ' + x.lucHong.slice(11, 16) + ' ' + ngayVN(x.lucHong.slice(0, 10)).slice(0, 5);
+  } else {
+    t = '🛠 <b>ĐÃ SỬA XONG · 已修好 #' + x.so + '</b>\n' + may + '\n' +
+      'Người sửa · 维修人: ' + escH(x.nguoiSua) + '\n' +
+      (x.nguyenNhan ? 'Nguyên nhân · 原因: ' + escH(x.nguyenNhan) + '\n' : '') +
+      'Xử lý · 处理: ' + escH(x.xuLy) + '\n' +
+      (x.linhKien.length ? 'Linh kiện · 零件: ' + x.linhKien.map(function (k) { return escH(k.ten) + ' ×' + soGon(k.sl) + (k.dv ? ' ' + escH(k.dv) : ''); }).join('; ') + '\n' : '') +
+      (x.phutDung !== '' ? 'Dừng máy · 停机: ' + gioPhut(x.phutDung) + '\n' : '') +
+      (x.trangThai === 'XONG' ? 'Chờ Quản lý nghiệm thu · 待主管验收' : 'Đã nghiệm thu · 已验收');
+  }
+  if (c.linkApp) t += '\n👉 <a href="' + escH(c.linkApp) + '">Mở app · 打开应用</a>';
+  return t;
 }
 
 // ===================== Mục kiểm tra, linh kiện MẪU (chỉ bản xem thử) =====================
@@ -1970,7 +2185,7 @@ function mauKiemTra() {
 // ===================== Cài đặt lần đầu =====================
 // Chạy hàm này một lần trong trình soạn Apps Script (nó cũng hỏi cấp quyền).
 function caiDatBanDau() {
-  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy'].forEach(trang);
+  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'SuaChua'].forEach(trang);
   thuocTinh('SALT'); thuocTinh('TOKEN_KEY');
   if (!dsNguoiDung().length) {
     var bay = thoiGianStr();

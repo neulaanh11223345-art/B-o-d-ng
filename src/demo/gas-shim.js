@@ -214,7 +214,7 @@ var Utilities = (function () {
     // Múi giờ cố định theo __tz.off (mặc định +07:00 = Asia/Ho_Chi_Minh)
     formatDate: function (d, tz, f) {
       var x = new Date(d.getTime() + __tz.off);
-      return f.replace('yyyy', x.getUTCFullYear()).replace('MM', pad(x.getUTCMonth() + 1))
+      return f.replace('yyyy', x.getUTCFullYear()).replace('yy', String(x.getUTCFullYear()).slice(2)).replace('MM', pad(x.getUTCMonth() + 1))
         .replace('dd', pad(x.getUTCDate())).replace('HH', pad(x.getUTCHours()))
         .replace('mm', pad(x.getUTCMinutes())).replace('ss', pad(x.getUTCSeconds()));
     },

@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.0.0');
+  assert.equal(d.phienBan, '2.1.0');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -256,4 +256,110 @@ test('kho: tồn tối thiểu từ file ERP hoặc đặt trong app; liên kế
   assert.deepEqual([lk.maKho, lk.viTriMay, lk.mucDo], ['605010022', 'Motor chính', 'cao']);
   const nk = ok(b.call('audit', {}, ql)).ds.map((a) => a.hanhDong);
   assert.ok(nk.includes('DOI_MA_ERP') || nk.includes('LIEN_KET_ERP'), nk.join(','));
+});
+
+// ===================== Sửa chữa =====================
+function setupSC() {
+  const b = loadBackend({ now: '2026-10-05T03:00:00Z' });      // 10:00 giờ Việt Nam
+  b.ctx.PropertiesService.getScriptProperties().setProperty('NHAP_EXCEL', 'test');
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333'), ad = b.login('NV001', '111111');
+  return Object.assign(b, { ql, kt, ad });
+}
+const bao = (b, tk, more, opId) => b.call('reportRepair', Object.assign({ ma: 'M001', mucDo: 'DUNG', moTa: 'Không chạy', lucHong: '2026-10-05T08:00' }, more || {}), tk, opId);
+const buoc = (b, tk, id, bc, more, opId) => b.call('updateRepair', Object.assign({ id, buoc: bc }, more || {}), tk, opId);
+
+test('sửa chữa: báo hỏng → nhận → chờ linh kiện → sửa xong → trả lại → nghiệm thu; thời gian dừng; gửi lại không trùng', () => {
+  const b = setupSC();
+  const x = ok(bao(b, b.kt, { id: 'SCTEST0001' }, 'op1')).suaChua;
+  assert.deepEqual([x.id, x.so, x.trangThai, x.lucHong, x.nguoiBao, x.tenMay], ['SCTEST0001', 1, 'CHO_SUA', '2026-10-05 08:00:00', 'Kỹ thuật', '喷印机 VKY01']);
+  // Gửi lại cùng opId (mất mạng giữa chừng) → trả phiếu cũ
+  assert.equal(ok(bao(b, b.kt, { id: 'SCTEST0001' }, 'op1')).dup, true);
+  assert.equal(b.ctx.docSuaChua().length, 1);
+  err(bao(b, b.kt, { id: 'SCTEST0001' }, 'opKhac'), 'TRUNG_ID');
+  err(bao(b, b.kt, { moTa: '  ' }), 'CAN_MO_TA');
+  err(bao(b, b.kt, { ma: 'M999' }), 'KHONG_CO_MAY');
+  err(bao(b, b.kt, { lucHong: '2026-10-05 11:00' }), 'NGAY_TUONG_LAI');
+  err(bao(b, b.kt, { lucHong: '2026-13-05 08:00' }), 'TG_SAI');
+  // Máy khách cũ không gửi id → máy chủ tự tạo; số phiếu tăng dần
+  const x2 = ok(bao(b, b.ql, { ma: 'M002', mucDo: 'HAN_CHE' })).suaChua;
+  assert.match(x2.id, /^SC\d+/); assert.equal(x2.so, 2);
+
+  const id = x.id;
+  assert.equal(ok(buoc(b, b.kt, id, 'nhan', {}, 'op2')).suaChua.trangThai, 'DANG_SUA');
+  const daNhan = err(buoc(b, b.ad, id, 'nhan'), 'DA_NHAN');
+  assert.equal(daNhan.message, 'Kỹ thuật');
+  err(buoc(b, b.kt, id, 'cholk'), 'CAN_LY_DO');
+  assert.equal(ok(buoc(b, b.kt, id, 'cholk', { ghiChu: 'Chờ vòng bi 6205' })).suaChua.trangThai, 'CHO_LK');
+  err(buoc(b, b.kt, id, 'cholk', { ghiChu: 'x' }), 'SAI_TRANG_THAI');
+  assert.equal(ok(buoc(b, b.kt, id, 'tiep')).suaChua.trangThai, 'DANG_SUA');
+
+  b.setNow('2026-10-05T05:00:00Z');                               // 12:00
+  err(buoc(b, b.kt, id, 'xong', { xuLy: '' }), 'CAN_XU_LY');
+  err(buoc(b, b.kt, id, 'xong', { xuLy: 'Thay vòng bi', lucXong: '2026-10-05 07:00' }), 'TG_TRUOC_HONG');
+  const xong = ok(buoc(b, b.kt, id, 'xong', {
+    xuLy: 'Thay vòng bi, căn chỉnh', nguyenNhan: 'Vòng bi mòn', nguoiSua: 'Lê Minh Tiến, Nguyễn tuấn',
+    lucXong: '2026-10-05T10:15', lucChay: '2026-10-05T10:30',
+    linhKien: [{ id: 'LKX1', ten: 'Vòng bi 6205', dv: 'cái', sl: 2, loai: 'THAY' }, { ten: '', sl: 1 }]
+  }, 'op3'));
+  assert.deepEqual([xong.suaChua.trangThai, xong.suaChua.phutDung, xong.suaChua.nguoiSua, xong.suaChua.linhKien.length],
+    ['XONG', 150, 'Lê Minh Tiến, Nguyễn tuấn', 1]);
+  // Linh kiện mới dùng khi sửa được thêm vào danh sách linh kiện của máy
+  assert.ok(xong.may.linhKien.some((k) => k.ten === 'Vòng bi 6205' && /sửa chữa/.test(k.ghiChu)));
+  assert.equal(ok(buoc(b, b.kt, id, 'xong', { xuLy: 'x' }, 'op3')).dup, true);
+  err(buoc(b, b.kt, id, 'nghiemthu'), 'KHONG_QUYEN');
+  err(buoc(b, b.ql, id, 'tralai'), 'CAN_LY_DO');
+  assert.equal(ok(buoc(b, b.ql, id, 'tralai', { ghiChu: 'Còn kêu' })).suaChua.trangThai, 'DANG_SUA');
+  ok(buoc(b, b.kt, id, 'xong', { xuLy: 'Thay lại vòng bi', lucXong: '2026-10-05 11:00', lucChay: '2026-10-05 11:10' }));
+  const dong = ok(buoc(b, b.ql, id, 'nghiemthu')).suaChua;
+  assert.deepEqual([dong.trangThai, dong.nguoiNghiemThu, dong.phutDung], ['DONG', 'Quản lý', 190]);
+  assert.deepEqual(dong.nhatKy.map((n) => n.b), ['bao', 'nhan', 'cholk', 'tiep', 'xong', 'tralai', 'xong', 'nghiemthu']);
+  err(buoc(b, b.ql, id, 'huy', { ghiChu: 'x' }), 'SAI_TRANG_THAI');
+  // Dữ liệu tải về có phiếu; cột trên sheet đọc được trực tiếp
+  const d = ok(b.call('data', {}, b.kt));
+  assert.equal(d.suaChua.find((r) => r.id === id).trangThai, 'DONG');
+  const H = b.ctx.BANG.SuaChua, row = b.ctx.docTho('SuaChua').find((r) => r[0] === id);
+  assert.equal(row[H.indexOf('PhutDung')], 190);
+  assert.equal(row[H.indexOf('TrangThai')], 'DONG');
+});
+
+test('sửa chữa: quyền huỷ; Quản lý sửa xong thì đóng luôn; chạy hạn chế không tính dừng máy; báo Telegram', () => {
+  const b = setupSC();
+  ok(b.call('notifySave', { tgToken: '123:abc', tgChat: '-100123', tgBat: true }, b.ad));
+  b.ctx.__net.log.length = 0;
+  const a = ok(bao(b, b.kt, { id: 'SCTEST000A' })).suaChua;
+  const tg = b.ctx.__net.log.filter((l) => /sendMessage/.test(l.url));
+  assert.equal(tg.length, 1);
+  assert.match(String(tg[0].opt.payload), /BÁO HỎNG/);
+  // Người báo tự huỷ khi chưa ai nhận, không cần lý do
+  ok(buoc(b, b.kt, a.id, 'huy'));
+  const c = ok(bao(b, b.ql, { id: 'SCTEST000C', mucDo: 'HAN_CHE' })).suaChua;
+  err(buoc(b, b.kt, c.id, 'huy'), 'KHONG_QUYEN');                  // phiếu người khác báo
+  ok(buoc(b, b.kt, c.id, 'nhan'));
+  err(buoc(b, b.ql, c.id, 'huy'), 'CAN_LY_DO');
+  b.setNow('2026-10-05T04:00:00Z');
+  const cx = ok(buoc(b, b.ql, c.id, 'xong', { xuLy: 'Vệ sinh' })).suaChua;
+  assert.deepEqual([cx.trangThai, cx.phutDung, cx.lucXong, cx.nhatKy.slice(-2).map((n) => n.b)], ['DONG', '', '2026-10-05 11:00:00', ['xong', 'nghiemthu']]);
+  assert.ok(b.ctx.__net.log.some((l) => /ĐÃ SỬA XONG/.test(String(l.opt && l.opt.payload))));
+  const nk = ok(b.call('audit', { bang: 'SuaChua' }, b.ql)).ds;
+  assert.equal(nk[0].hanhDong, 'huy');
+  // Tắt báo hỏng thì không gửi
+  ok(b.call('notifySave', { baoHong: false }, b.ad));
+  b.ctx.__net.log.length = 0;
+  ok(bao(b, b.kt, { ma: 'M003' }));
+  assert.equal(b.ctx.__net.log.filter((l) => /sendMessage/.test(l.url)).length, 0);
+  // Nhắc hằng ngày có mục sửa chữa chưa xong
+  const t = b.ctx.tomTat('2026-10-05', 3);
+  assert.equal(t.sc.length, 1);
+  assert.match(b.ctx.noiDungNhac(t, '2026-10-05', b.ctx.docCaiDat(), false).tg, /Sửa chữa chưa xong/);
+});
+
+test('xác nhận bảo dưỡng vẫn gắn linh kiện vào máy và kho như trước (sau khi tách hàm dùng chung)', () => {
+  const b = setupSC();
+  ok(b.call('saveLists', { ma: 'M001', linhKien: [{ id: 'LK01', ten: 'Lọc gió', dv: 'cái', sl: 1 }] }, b.ql));
+  const r = ok(b.call('confirm', { ma: 'M001', ngay: '2026-10-05', nguoi: 'A', chiTiet: { lk: [
+    { id: 'zzz', ten: 'lọc gió', sl: 1 }, { id: 'LKN1', ten: 'Dây curoa A42', dv: 'sợi', sl: 1 }] } }, b.kt));
+  assert.deepEqual(r.ban.chiTiet.lk.map((k) => k.id), ['LK01', 'LKN1']);       // trùng tên → dùng mã sẵn có
+  assert.deepEqual(r.may.linhKien.map((k) => k.ten), ['Lọc gió', 'Dây curoa A42']);
+  assert.match(r.may.linhKien[1].ghiChu, /bảo dưỡng/);
+  assert.ok(r.kho && r.kho.ds.some((k) => k.ten === 'Dây curoa A42'), 'linh kiện mới được thêm vào kho');
 });

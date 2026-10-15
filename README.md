@@ -1,6 +1,6 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.0.0
+# Credible Việt Nam CMMS · 设备管理 — v2.1.0
 
-App quản lý bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
+App quản lý bảo dưỡng và sửa chữa thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
 - **iPhone:** chạy dạng PWA — mở bằng Safari rồi "Thêm vào Màn hình chính", dùng như một app.
 - **Máy tính:** cùng địa chỉ đó, mở bằng trình duyệt. Màn rộng tự chuyển sang giao diện có thanh bên và bảng dữ liệu.
@@ -11,10 +11,10 @@ App quản lý bảo dưỡng thiết bị, ghi số điện/nước và kho lin
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.0.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.1.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.0.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.0.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.1.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.1.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý bảo dưỡng thiết bị, ghi số điện/nước và kho lin
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.0.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.1.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò |
 |---|---|---|
@@ -34,14 +34,14 @@ Mở `docs/demo.html` (hoặc `demo-v2.0.0.html`) bằng trình duyệt. Tài kh
 
 Muốn thử cảnh mất mạng: vào **Cá nhân → Giả lập mất mạng**.
 
-## Nâng cấp máy chủ từ v1.6.0 (giữ nguyên link)
+## Nâng cấp máy chủ từ v1.6.0 hoặc v2.0.0 (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.0.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.1.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
-   - thêm các cột mới vào các trang;
+   - thêm các cột mới vào các trang và tạo trang mới `SuaChua`;
    - tính và lưu tiêu thụ cho mọi kỳ điện đã ghi.
 
    Việc này chỉ chạy một lần. Muốn chạy lại bằng tay: trong Apps Script chọn hàm `tinhLaiTatCa` → **Chạy**.
@@ -71,11 +71,37 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
+## Điểm mới của v2.1.0: Sửa chữa và Bảo dưỡng thành mục riêng
+
+### Sửa chữa (báo hỏng)
+- **Quy trình một phiếu:** Báo hỏng → Nhận sửa → (Chờ linh kiện) → Sửa xong → Quản lý nghiệm thu.
+  - Quản lý / Quản trị tự ghi "Sửa xong" thì phiếu đóng luôn.
+  - Quản lý có thể **trả lại** (ghi lý do còn lỗi gì) hoặc **huỷ phiếu** (ghi lý do). Người báo tự huỷ được khi chưa ai nhận sửa.
+- **Báo hỏng:** từ nút đỏ trên trang chủ, trong hồ sơ thiết bị, hoặc ngay trong bảng xác nhận bảo dưỡng sau khi quét QR.
+  - Chọn máy, chọn **mức ảnh hưởng**: Dừng máy / Chạy hạn chế / Không ảnh hưởng.
+  - Ghi hiện tượng (có nút chọn nhanh: không chạy, kêu to, rò rỉ, quá nóng…), lúc phát hiện hỏng, ảnh hiện trường.
+  - Nếu máy đang có phiếu chưa xong, app hiện phiếu đó để tránh báo trùng.
+- **Sửa xong:** người sửa, nguyên nhân (chọn nhanh), cách xử lý, **linh kiện đã thay** (chọn từ linh kiện của máy hoặc tìm trong kho ERP), ảnh sau sửa, lúc sửa xong, lúc máy chạy lại.
+  - **Thời gian dừng máy** = lúc chạy lại − lúc hỏng, chỉ tính khi mức là "Dừng máy". Phiếu đang mở thì đếm đến hiện tại.
+  - Linh kiện mới dùng khi sửa được thêm vào danh sách linh kiện của máy (giống khi bảo dưỡng).
+- **Mất mạng vẫn dùng được:** báo hỏng và các bước sau đều vào hàng chờ, gửi lại không tạo trùng, gửi đúng thứ tự khi có mạng.
+- **Màn Sửa chữa:** ô tóm tắt (máy đang dừng, phiếu đang mở, chờ nghiệm thu, giờ dừng máy trong tháng), lọc Đang mở / Chờ nghiệm thu / Đã xong / Đã huỷ, tìm kiếm. Trên máy tính là bảng có tiêu đề và phân trang.
+- **Trang chủ:** ô "Sửa chữa" và các cảnh báo *Máy đang dừng do hỏng*, *Báo hỏng chưa có người nhận sửa*, *Sửa xong chờ nghiệm thu* (Quản lý).
+- **Hồ sơ thiết bị:** nhãn "Đang hỏng, dừng máy" / "Đang sửa chữa", hai nút **Báo hỏng** và **Xác nhận bảo dưỡng**, tab **Sửa chữa** (số lần hỏng 12 tháng, tổng giờ dừng), tab **Lịch sử** gộp bảo dưỡng và sửa chữa.
+- **Quét QR** máy đang có phiếu sửa chữa thì mở hồ sơ máy (thấy ngay phiếu), không tự bật bảng xác nhận bảo dưỡng.
+- **Telegram:** báo ngay khi có báo hỏng và khi sửa xong (bật/tắt ở **Quản trị → Báo tin**). Tin nhắc hằng ngày có thêm danh sách phiếu chưa xong.
+- **Trên Google Sheet:** trang mới `SuaChua`, mỗi dòng một phiếu: số phiếu, máy, trạng thái, mức ảnh hưởng, hiện tượng, các mốc thời gian, người báo / sửa / nghiệm thu, nguyên nhân, cách xử lý, linh kiện, số phút dừng máy, quá trình xử lý.
+
+### Bảo dưỡng dễ thấy hơn
+- **Thanh tab dưới (iPhone):** Trang chủ · Thiết bị · **[Quét QR]** · **Sửa chữa** · Điện/Nước. Mục **Cá nhân** chuyển lên nút tròn có chữ cái đầu tên ở góc trên bên phải.
+- **Thanh bên (máy tính):** Trang chủ · Thiết bị · **Sửa chữa** · **Bảo dưỡng** · Lịch sử bảo dưỡng · Điện/Nước · Kho linh kiện · Quét QR · Cá nhân.
+- **Trang Bảo dưỡng** (trước gọi là "Lịch"): thêm ô tóm tắt Quá hạn / Hôm nay / Sắp đến / Đã làm trong tháng, bấm vào mở danh sách máy đã lọc; bên dưới vẫn là lịch năm/tháng và xuất Excel.
+
 ## Điểm mới của v2.0.0
 
 ### Giao diện (theo bản thiết kế)
 - **Màu và bố cục:** màu xanh dương, ô tổng quan nhiều màu. Màu đỏ chỉ dùng cho cảnh báo.
-- **Thanh tab dưới:** Trang chủ · Thiết bị · **[Quét QR]** · Điện/Nước · Cá nhân.
+- **Thanh tab dưới:** Trang chủ · Thiết bị · **[Quét QR]** · Điện/Nước · Cá nhân (bản 2.1.0 đổi Cá nhân thành Sửa chữa, xem ở trên).
 - **Trên máy tính:** thanh bên trái, ô tìm chung, bảng có tiêu đề cố định, phân trang và tổng số kết quả.
 - **Trang chủ:**
   - **Việc cần làm** đặt ở trên: máy quá hạn / đến hạn / sắp đến, công tơ chưa ghi kỳ hiện tại, ngoại lệ chờ duyệt, tiêu thụ bất thường, linh kiện dưới tồn tối thiểu, việc chờ gửi hoặc gửi lỗi, kỳ chưa khoá, file kho ERP cũ.
@@ -172,9 +198,12 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 | Xem trước khi xuất Excel | ✅ |
 | Cảnh báo trang chủ mở đúng danh sách | ✅ |
 
-**Chưa làm trong đợt này (giai đoạn sau, cần vẽ màn và chốt quy trình trước):**
-- Công việc / Sửa chữa / Báo hỏng
+| Báo hỏng / sửa chữa có trạng thái, người sửa, thời gian dừng máy, nghiệm thu | ✅ (v2.1.0) |
+
+**Chưa làm (giai đoạn sau, cần vẽ màn và chốt quy trình trước):**
+- Công việc chung (giao việc không gắn với hỏng hóc hay bảo dưỡng định kỳ)
 - Nhật ký ca
+- Báo cáo sửa chữa xuất Excel (số lần hỏng, thời gian dừng theo máy)
 - Quản lý nhân viên ngoài tài khoản đăng nhập
 
 **Các câu hỏi ở mục 6 của checklist đã có chỗ cấu hình**, chỉ cần chốt giá trị:
@@ -187,6 +216,6 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 14 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
-node tests/e2e.mjs                      # 9 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
+node --test tests/backend.test.mjs      # 17 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node tests/e2e.mjs                      # 12 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```
