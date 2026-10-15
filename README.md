@@ -105,6 +105,7 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
   - Quản lý sửa được thông tin chuyền (**Sửa thông tin**). Google Sheet có trang mới `Chuyen`, trang `May` thêm cột `Chuyen` ở cuối.
 - **Bảo dưỡng · Tổng quan** (mặc định): máy quá hạn, đến hạn hôm nay, sắp đến hạn mỗi loại gom thành một dòng, bấm vào mới hiện danh sách. Dưới là các chuyền dạng ô (đỏ = có máy quá hạn) và thiết bị khác gom theo nhóm. Lịch năm / tháng vẫn còn ở hai nút bên cạnh.
 - **Thiết bị:** khi không tìm, không lọc thì cũng hiện gọn như trên.
+- **Xuất Excel việc đang giao** (nút trong Công việc, Quản lý): trang "Tat ca" liệt kê mọi việc chưa xong (chờ giao, đã giao, đang làm, tạm hoãn) theo hạn; mỗi người một trang riêng (phiếu giao việc) có cột ghi chú / kết quả và dòng ký nhận, để in ra đưa cho từng người. Việc quá hạn tô đỏ ở cột Hạn.
 - Nâng cấp: dán `Code.gs-v2.5.1.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Lần mở app đầu tiên máy chủ tự tạo trang `Chuyen` và xếp máy in phun.
 
 ## Điểm mới của v2.4.0: tự dịch Việt ↔ Trung trong Công việc

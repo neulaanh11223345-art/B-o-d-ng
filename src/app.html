@@ -6407,6 +6407,8 @@ Object.assign(TX, {
   bcTongDung: ['Tổng dừng máy {h} giờ', '共停机{h}小时'], bcTrong: ['Tháng này chưa có việc sửa chữa nào xong', '本月暂无完成的维修'],
   bcXuat: ['Xuất Excel tháng {m}', '导出{m}月Excel'], bcKhongNV: ['Chưa có việc giao trong tháng', '本月暂无派工'],
   thNgayXong: ['Ngày xong', '完成日期'], thMay: ['Thiết bị', '设备'], thNoiDung: ['Nội dung', '内容'], thNN: ['Nguyên nhân', '原因'], thXuLy: ['Cách xử lý / kết quả', '处理/结果'],
+  xlsGiaoBtn: ['Xuất Excel việc đang giao', '导出在办工作Excel'], thLamCung: ['Làm cùng', '协助人'], thNgayGiao: ['Ngày giao', '派工日期'],
+  thGhiKQ: ['Ghi chú / kết quả', '备注/结果'], thKy: ['Ký nhận', '签收'], xlsGiaoTong: ['Việc đang giao', '在办工作'], xlsGiaoTrong: ['Không có việc nào đang giao', '暂无在办工作'],
   thLK: ['Linh kiện', '零件'], thDungGio: ['Dừng máy (giờ)', '停机（小时）'], thNV: ['Nhân viên', '员工']
 });
 Object.assign(ERR, {
@@ -6597,7 +6599,7 @@ VIEWS.cv = {
       ${kstHtml('k-red', 'cvKQua', null, all.filter(cvQua).length, 'data-act="cvLoc" data-v="qua"')}${kstHtml('k-green', 'cvKKT', null, all.filter((x) => x.trangThai === 'XONG').length, 'data-act="cvLoc" data-v="kt"')}</div>`;
     o += `<div class="btns cvbtns">${can('confirm') ? `<button class="btn" data-act="cvNew">${IC.plus} ${t('cvGhi')}</button>` : ''}
       ${ql && nCho ? `<button class="btn y" data-act="go" data-v="cvGiao">${IC.user} ${t('cvGiaoN', { n: nCho })}</button>` : ''}
-      ${ql ? `<button class="btn ghost" data-act="go" data-v="cvLap">${IC.refresh} ${t('cvLapBtn')}</button><button class="btn ghost" data-act="go" data-v="cvBC">${IC.dl} ${t('cvBCBtn')}</button>` : ''}</div>`;
+      ${ql ? `<button class="btn ghost" data-act="go" data-v="cvLap">${IC.refresh} ${t('cvLapBtn')}</button><button class="btn ghost" data-act="go" data-v="cvBC">${IC.dl} ${t('cvBCBtn')}</button><button class="btn ghost" data-act="xlsGiao">${IC.dl} ${t('xlsGiaoBtn')}</button>` : ''}</div>`;
     const bang = isWide() && ql;
     if (bang) o += `<div class="seg" style="margin-bottom:12px"><button class="${f.cvXem !== 'nguoi' ? 'on' : ''}" data-act="cvXem" data-v="ds">${tv('xemDS')} ${tz('xemDS')}</button><button class="${f.cvXem === 'nguoi' ? 'on' : ''}" data-act="cvXem" data-v="nguoi">${tv('xemNguoi')} ${tz('xemNguoi')}</button></div>`;
     if (bang && f.cvXem === 'nguoi') return o + cvBoard();
@@ -7098,7 +7100,52 @@ function bcWorkbook(ym) {
   const s3 = { name: 'Tat ca viec', rows: r3, cols: [7, 34, 14, 12, 8, 18, 11, 16, 11, 34], merges: ['A1:J1'], freeze: { r: 4, c: 0 }, landscape: true };
   return XW.build([s1, s2, s3]);
 }
+// Việc đang giao (chờ giao, đã giao, đang làm, tạm hoãn): trang tổng hợp + mỗi người một trang để in ra đưa cho từng người
+const KHONG_DAU = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+function giaoWorkbook() {
+  const today = TODAY(), B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const T = (txt) => [{ v: txt, s: { b: 1, sz: 14 } }], hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const ngay = (d, x) => (d ? c(excelSerial(d.slice(0, 10)), Object.assign({ fmt: 'dd/mm/yyyy', align: 'center' }, x || {})) : c(''));
+  const UU = { GAP: 0, CAO: 1, TB: 2 };
+  const ds = S.V.cv.filter((x) => CV_MO.indexOf(x.trangThai) >= 0)
+    .sort((a, b) => ((a.han || '9999') < (b.han || '9999') ? -1 : (a.han || '9999') > (b.han || '9999') ? 1 : 0) || (UU[a.uuTien] || 2) - (UU[b.uuTien] || 2) || (+a.so || 0) - (+b.so || 0));
+  const xuat = [{ v: tp('xlsExported') + ': ' + fmtD(today), s: { i: 1, color: '#55625F' } }];
+  const may = (x) => (x.ma ? x.ma + (S.V.byMa[x.ma] ? ' · ' + S.V.byMa[x.ma].ten : '') : '');
+  const han = (x) => ngay(x.han, cvQua(x) ? { color: '#C62828', b: 1 } : {});
+  const phu = (x) => (x.uidPhu || []).map(nvTen).filter(Boolean).join(', ');
+  // Trang 1: tất cả
+  const r1 = [T('Việc đang giao · 在办工作 — ' + fmtD(today)), xuat, [], hd(['stt', 'thSo', 'thViec', 'thLoaiCV', 'thUu', 'thMay', 'thNguoiLam', 'thLamCung', 'thNgayGiao', 'thHanCV', 'thTT'])];
+  ds.forEach((x, i) => r1.push([c(i + 1, { align: 'center' }), c(x.so ? '#' + x.so : ''), c(sv1(x.tieuDe, x.tieuDeDich, '\n')), c(tp('lv_' + x.loai)), c(tp('uu_' + x.uuTien)), c(may(x)),
+    c(x.nguoiLam || tp('cv_CHO_GIAO'), x.nguoiLam ? {} : { color: '#C25E00' }), c(phu(x)), ngay(x.lucGiao), han(x), c(tp('cv_' + x.trangThai))]));
+  if (!ds.length) r1.push([c(tp('xlsGiaoTrong'))]);
+  const sheets = [{ name: 'Tat ca', rows: r1, cols: [5, 7, 40, 14, 11, 22, 18, 18, 11, 11, 16], merges: ['A1:K1'], freeze: { r: 4, c: 0 }, landscape: true }];
+  // Mỗi người một trang: việc mình làm chính và việc làm cùng
+  const ten = {};
+  nvDS().forEach((n) => {
+    const a = ds.filter((x) => x.uidLam === n.id || (x.uidPhu || []).indexOf(n.id) >= 0);
+    if (!a.length) return;
+    let nm = (n.maNV ? n.maNV + ' ' : '') + KHONG_DAU(n.ten).replace(/[^A-Za-z0-9 ._-]/g, '').trim();
+    nm = nm.slice(0, 28).trim() || n.id; let k = nm, i = 2; while (ten[k]) k = nm.slice(0, 26) + ' ' + i++; ten[k] = 1;
+    const r = [T('Phiếu giao việc · 工作派工单 — ' + n.ten + (n.tenZh && n.tenZh !== n.ten ? ' · ' + n.tenZh : '')), [{ v: (n.maNV ? tp('meMa') + ': ' + n.maNV + ' · ' : '') + tp('xlsExported') + ': ' + fmtD(today), s: { i: 1, color: '#55625F' } }], [],
+      hd(['stt', 'thSo', 'thViec', 'thUu', 'thMay', 'thLamCung', 'thHanCV', 'thTT', 'thGhiKQ'])];
+    a.forEach((x, j) => {
+      const cung = x.uidLam === n.id ? phu(x) : [x.nguoiLam].concat((x.uidPhu || []).filter((id) => id !== n.id).map(nvTen)).filter(Boolean).join(', ');
+      r.push([c(j + 1, { align: 'center' }), c(x.so ? '#' + x.so : ''), c(sv1(x.tieuDe, x.tieuDeDich, '\n') + (x.moTa ? '\n— ' + sv1(x.moTa, x.moTaDich, '\n') : '')), c(tp('uu_' + x.uuTien)), c(may(x)), c(cung), han(x), c(tp('cv_' + x.trangThai)), c('')]);
+    });
+    r.push([], [{ v: tp('thKy') + ': ____________________', s: { b: 1 } }]);
+    sheets.push({ name: k, rows: r, cols: [5, 7, 46, 11, 20, 18, 11, 16, 30], merges: ['A1:I1'], freeze: { r: 4, c: 0 }, landscape: true });
+  });
+  return XW.build(sheets);
+}
 Object.assign(ACT, {
+  xlsGiao: async () => {
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try { blob = giaoWorkbook(); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'Viec-dang-giao-' + TODAY() + '.xlsx');
+  },
   cxNNChon: (el) => { const a = $('#cxNN'); a.value = tv(el.dataset.k); topV().p.nn = a.value; },
   bcStep: (el) => { let [y, m] = bcThangNay().split('-').map(Number); m += +el.dataset.d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; } S.f.bcThang = y + '-' + pad2(m); render(); },
   bcXuat: async () => {

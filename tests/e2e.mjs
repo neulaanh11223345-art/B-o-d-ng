@@ -241,6 +241,7 @@ assert.match(await text('#main'), /Máy hút bụi VKY03 không chạy/);
 await shot('14-bao-cao-thang');
 const blob = await page.evaluate(() => bcWorkbook(bcThangNay()).size);
 assert.ok(blob > 2000, 'tạo được file Excel');
+assert.ok(await page.evaluate(() => giaoWorkbook().size) > 2000, 'tạo được file Excel việc đang giao');
 // Giao bảo dưỡng máy có tên tiếng Trung: Google không dịch chữ lẫn hai thứ tiếng, nên app điền sẵn bản tiếng Trung
 await page.evaluate(() => go('may', { ma: 'M001', tab: 'bd' })); await wait();
 await page.click('[data-act="cvNewBD"]'); await wait();
