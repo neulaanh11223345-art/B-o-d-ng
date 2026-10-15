@@ -7,6 +7,7 @@
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const rd = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -53,7 +54,8 @@ wr('docs/manifest.webmanifest', JSON.stringify({
     { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
   ]
 }, null, 2) + '\n');
-wr('docs/sw.js', rd('src/sw.js').replace('@@VER@@', ver));
+// Bộ nhớ đệm của app đổi theo nội dung trang (sửa giao diện mà không đổi số phiên bản, iPhone vẫn nhận bản mới)
+wr('docs/sw.js', rd('src/sw.js').replace('@@VER@@', ver + '-' + createHash('sha1').update(live).digest('hex').slice(0, 8)));
 if (existsSync(join(ROOT, 'src/icons'))) {
   mkdirSync(join(ROOT, 'docs/icons'), { recursive: true });
   readdirSync(join(ROOT, 'src/icons')).forEach((f) => copyFileSync(join(ROOT, 'src/icons', f), join(ROOT, 'docs/icons', f)));

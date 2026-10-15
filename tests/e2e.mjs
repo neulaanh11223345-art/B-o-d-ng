@@ -148,6 +148,10 @@ await page.click('.chtile[data-ma="VKY01"]'); await wait();
 assert.match(await text('#barTitle'), /Chuyền sản xuất/);
 assert.match(await text('#main'), /喷印机 VKY01/);
 assert.match(await text('#main'), /HNJX-HD2000/);
+// Linh kiện của chuyền: đối chiếu tồn ERP, xuất Excel
+await page.click('.gaph[data-k="lkch:VKY01"]'); await wait();
+assert.ok(await page.locator('.lkch .dctag').count() > 0, 'mỗi linh kiện có kết quả đối chiếu ERP');
+assert.ok(await page.evaluate(() => lkChXlsx(chDangDung()).size) > 2000, 'xuất được Excel linh kiện các chuyền');
 ok('Xác nhận bảo dưỡng từ hồ sơ thiết bị; Bảo dưỡng gọn (quá hạn bấm mới hiện), xem máy theo chuyền');
 
 // 9. Kỹ thuật thấy máy hỏng: tự ghi việc sửa chữa (mất mạng vẫn ghi được), ghi nguyên nhân + giờ dừng máy
@@ -241,6 +245,7 @@ assert.match(await text('#main'), /Máy hút bụi VKY03 không chạy/);
 await shot('14-bao-cao-thang');
 const blob = await page.evaluate(() => bcWorkbook(bcThangNay()).size);
 assert.ok(blob > 2000, 'tạo được file Excel');
+assert.ok(await page.evaluate(() => giaoWorkbook().size) > 2000, 'tạo được file Excel việc đang giao');
 // Giao bảo dưỡng máy có tên tiếng Trung: Google không dịch chữ lẫn hai thứ tiếng, nên app điền sẵn bản tiếng Trung
 await page.evaluate(() => go('may', { ma: 'M001', tab: 'bd' })); await wait();
 await page.click('[data-act="cvNewBD"]'); await wait();
