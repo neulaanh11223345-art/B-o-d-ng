@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.8.0');
+  assert.equal(d.phienBan, '2.9.0');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -587,4 +587,133 @@ test('bản ghi sửa chữa: đánh dấu nguồn SC (cả bản ghi cũ 2.6.0)
   // Bản ghi cũ (chưa có cột Nguon) vẫn được nhận là bản ghi sửa chữa
   const cu = Object.assign({}, x, { nguon: '', trangThai: 'DONG' });
   assert.equal(b.ctx.sachCV(cu).nguon, 'SC');
+});
+
+test('sao lưu: lịch tự động 2 giờ sáng, sao lưu tay, giữ 30 bản, chỉ quản trị; khôi phục đưa dữ liệu về và tự sao lưu bản hiện tại trước', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ad = b.login('NV001', '111111'), ql = b.login('NV002', '222222');
+  ok(b.call('data', {}, ad));
+  assert.ok(b.ctx.ScriptApp.getProjectTriggers().some((t) => t.getHandlerFunction() === 'saoLuuTuDong' && t.hour === 2), 'nâng cấp tự đặt lịch sao lưu');
+  err(b.call('backupInfo', {}, ql), 'KHONG_QUYEN');
+  let info = ok(b.call('backupInfo', {}, ad));
+  assert.equal(info.bat, true); assert.equal(info.ds.length, 0);
+  info = ok(b.call('backupNow', {}, ad));
+  assert.equal(info.ds.length, 1); assert.match(info.ds[0].ten, /^Sao lưu CMMS 2026-10-14 10:00 · Sao lưu tay/);
+  const banTay = info.ds[0];
+  const book = b.ctx.SpreadsheetApp.openById(banTay.id);
+  assert.ok(book.getSheetByName('May') && book.getSheetByName('CongViec'), 'bản sao có đủ các trang');
+  assert.equal(book.getSheets().some((sh) => /^Trang tính|^Bản sao/.test(sh.getName())), false, 'không còn trang thừa');
+  // Sửa dữ liệu sau khi sao lưu, rồi khôi phục
+  const d = ok(b.call('data', {}, ad)), m = d.may[0];
+  ok(b.call('saveMachine', { ma: m.ma, ten: 'Tên đã sửa sau sao lưu', nhom: m.nhom, chuKy: m.chuKy, hanKeTiep: m.hanKeTiep }, ad));
+  err(b.call('backupRestore', { id: banTay.id }, ad), 'CAN_DONG_Y');
+  err(b.call('backupRestore', { id: 'khong-co-file', dongY: true }, ad), 'KHONG_CO');
+  const kq = ok(b.call('backupRestore', { id: banTay.id, dongY: true }, ad));
+  assert.ok(kq.bang.indexOf('May') >= 0);
+  assert.match(kq.banAnToan.ten, /Trước khi khôi phục/);
+  assert.equal(ok(b.call('data', {}, ad)).may[0].ten, m.ten, 'tên máy về như lúc sao lưu');
+  // Bản an toàn có tên đã sửa (để quay lại được)
+  assert.equal(b.ctx.SpreadsheetApp.openById(kq.banAnToan.id).getSheetByName('May').getRange(2, 2).getValue(), 'Tên đã sửa sau sao lưu');
+  // Chạy tự động 35 đêm: chỉ giữ 30 bản
+  for (let i = 0; i < 35; i++) b.ctx.saoLuuTuDong();
+  info = ok(b.call('backupInfo', {}, ad));
+  assert.equal(info.ds.length, 30); assert.equal(info.cuoi.lyDo, 'Tự động');
+  // Tắt sao lưu tự động thì đêm không sao lưu nữa
+  ok(b.call('backupCfg', { bat: false }, ad));
+  const truoc = info.cuoi.id; b.ctx.saoLuuTuDong();
+  assert.equal(ok(b.call('backupInfo', {}, ad)).cuoi.id, truoc);
+});
+
+test('lưu trữ: chuyển lịch sử, việc đã đóng, nhật ký của một năm cũ sang file riêng; năm gần đây không chuyển được', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ad = b.login('NV001', '111111');
+  ok(b.call('data', {}, ad));
+  const sh = (t) => b.ctx.SpreadsheetApp.getActive().getSheetByName(t);
+  // Thêm vài dòng cũ năm 2023 và 2024
+  const ls = b.ctx.BANG.LichSu, cv = b.ctx.BANG.CongViec;
+  const rowLS = (id, ngay) => ls.map((k) => ({ ID: id, Ma: 'M001', TenMay: 'Máy cũ', Ngay: ngay, TrangThai: 'OK', ThoiGian: ngay + ' 08:00:00' }[k] || ''));
+  const rowCV = (id, tt, luc) => cv.map((k) => ({ ID: id, So: 900, TieuDe: 'Việc cũ', Loai: 'SUA', TrangThai: tt, LucTao: luc, LucXong: tt === 'DONG' ? luc : '' }[k] || ''));
+  sh('LichSu').appendRow(rowLS('LSOLD1', '2024-03-05')); sh('LichSu').appendRow(rowLS('LSOLD2', '2023-11-20'));
+  sh('CongViec').appendRow(rowCV('CVOLD1', 'DONG', '2024-05-01 09:00:00')); sh('CongViec').appendRow(rowCV('CVOLD2', 'DANG_LAM', '2024-05-02 09:00:00'));
+  const info = ok(b.call('archiveInfo', {}, ad));
+  assert.deepEqual(info.nam['2024'], { LichSu: 1, CongViec: 1 });
+  assert.deepEqual(info.nam['2023'], { LichSu: 1 });
+  assert.equal(info.nam['2025'], undefined, 'năm ngoái chưa được chuyển');
+  err(b.call('archiveRun', { nam: 2025 }, ad), 'NAM_SAI');
+  const kq = ok(b.call('archiveRun', { nam: 2024 }, ad));
+  assert.deepEqual(kq.dem, { LichSu: 1, CongViec: 1 });
+  assert.match(kq.banAnToan.ten, /Trước khi lưu trữ năm 2024/);
+  const f = b.ctx.SpreadsheetApp.openById(kq.luuTru['2024'].id);
+  assert.equal(f.getSheetByName('LichSu').getRange(2, 1).getValue(), 'LSOLD1');
+  assert.equal(f.getSheetByName('CongViec').getRange(2, 1).getValue(), 'CVOLD1');
+  const ids = (t) => b.ctx.docTho(t).map((r) => r[0]);
+  assert.equal(ids('LichSu').includes('LSOLD1'), false); assert.equal(ids('LichSu').includes('LSOLD2'), true);
+  assert.equal(ids('CongViec').includes('CVOLD1'), false); assert.equal(ids('CongViec').includes('CVOLD2'), true, 'việc đang làm không bị chuyển');
+  // Xem lịch sử năm 2024: báo đã lưu trữ
+  const h = ok(b.call('history', { nam: 2024 }, ad));
+  assert.equal(h.lichSu.length, 0); assert.deepEqual(h.luuTru.dem, { LichSu: 1, CongViec: 1 });
+  // Chuyển tiếp năm 2023 vào file riêng
+  const k2 = ok(b.call('archiveRun', { nam: 2023 }, ad));
+  assert.notEqual(k2.luuTru['2023'].id, k2.luuTru['2024'].id);
+  assert.equal(ok(b.call('archiveInfo', {}, ad)).nam['2023'], undefined);
+});
+
+test('tài liệu máy: tải tệp, ảnh có ảnh nhỏ và ảnh đại diện, liên kết, chặn loại tệp nguy hiểm và tệp quá lớn, xoá; tài liệu của chuyền', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  ok(b.call('data', {}, ql));
+  const pdf = 'data:application/pdf;base64,' + Buffer.from('%PDF-1.4 sach huong dan may in phun').toString('base64');
+  const jpg = 'data:image/jpeg;base64,' + Buffer.from('x'.repeat(400)).toString('base64');
+  let r = ok(b.call('docUpload', { ma: 'm001', ten: 'Sách hướng dẫn 喷印机', nhom: 'HDSD', data: pdf }, kt));
+  assert.equal(r.ma, 'M001'); assert.equal(r.taiLieu.length, 1);
+  const tep = r.moi;
+  assert.deepEqual([tep.kieu, tep.nhom, tep.mime, tep.nguoiTao], ['TEP', 'HDSD', 'application/pdf', 'Kỹ thuật']);
+  const g = ok(b.call('docGet', { id: tep.id }, kt));
+  assert.equal(Buffer.from(g.data.split(',')[1], 'base64').toString(), '%PDF-1.4 sach huong dan may in phun');
+  // Ảnh: kèm ảnh nhỏ, đặt làm ảnh đại diện; ảnh thứ hai làm đại diện thì ảnh đầu bỏ cờ
+  const a1 = ok(b.call('docUpload', { ma: 'M001', ten: 'Ảnh máy', data: jpg, anhNho: jpg, daiDien: true }, kt)).moi;
+  assert.deepEqual([a1.kieu, a1.nhom, a1.daiDien, !!a1.anhNho], ['ANH', 'ANH', true, true]);
+  ok(b.call('photo', { id: a1.anhNho }, kt));
+  const a2 = ok(b.call('docUpload', { ma: 'M001', ten: 'Ảnh tủ điện', data: jpg, daiDien: true }, ql)).moi;
+  r = ok(b.call('data', {}, ql));
+  const ds = r.taiLieu.filter((x) => x.ma === 'M001');
+  assert.deepEqual(ds.filter((x) => x.daiDien).map((x) => x.id), [a2.id]);
+  r = ok(b.call('docCover', { id: a1.id }, kt));
+  assert.deepEqual(r.taiLieu.filter((x) => x.daiDien).map((x) => x.id), [a1.id]);
+  err(b.call('docCover', { id: tep.id }, kt), 'KHONG_PHAI_ANH');
+  // Liên kết
+  const lk = ok(b.call('docLink', { ma: 'VKY01', ten: 'Bản vẽ điện chuyền 01', nhom: 'BANVE', url: 'https://drive.google.com/file/d/abc/view' }, kt)).moi;
+  assert.deepEqual([lk.kieu, lk.ma, lk.url], ['LINK', 'VKY01', 'https://drive.google.com/file/d/abc/view']);
+  err(b.call('docLink', { ma: 'VKY01', ten: 'x', url: 'javascript:alert(1)' }, kt), 'LINK_SAI');
+  err(b.call('docGet', { id: lk.id }, kt), 'KHONG_CO');
+  // Chặn tệp nguy hiểm, tệp quá lớn, máy không có
+  err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:text/html;base64,PGI+eDwvYj4=' }, kt), 'TEP_KHONG_HO_TRO');
+  err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:image/svg+xml;base64,PHN2Zy8+' }, kt), 'TEP_KHONG_HO_TRO');
+  err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:application/pdf;base64,' + Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64') }, kt), 'TEP_QUA_LON');
+  err(b.call('docUpload', { ma: 'M999', ten: 'x', data: pdf }, kt), 'KHONG_CO_MAY');
+  // Xoá: kỹ thuật chỉ xoá tài liệu mình tải; quản lý xoá được mọi tài liệu
+  err(b.call('docDelete', { id: a2.id }, kt), 'KHONG_QUYEN');
+  ok(b.call('docDelete', { id: tep.id }, kt));
+  ok(b.call('docDelete', { id: a2.id }, ql));
+  err(b.call('docGet', { id: tep.id }, kt), 'KHONG_CO');
+  r = ok(b.call('data', {}, kt));
+  assert.deepEqual(r.taiLieu.map((x) => x.id).sort(), [a1.id, lk.id].sort());
+});
+
+test('giá điện: mặc định giá EVN 22 kV, sửa theo ngày áp dụng, VAT, sản lượng tháng; chỉ quản lý thấy và sửa', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  let d = ok(b.call('data', {}, ql));
+  assert.deepEqual(d.caiDat.giaDien, [{ tu: '2025-05-10', bt: 1833, cd: 3398, td: 1190 }]);
+  assert.equal(d.caiDat.vatDien, 8);
+  assert.equal(ok(b.call('data', {}, kt)).caiDat.giaDien, undefined, 'kỹ thuật không nhận giá điện');
+  err(b.call('saveGiaDien', { giaDien: [{ tu: '2026-01-01', bt: 2000, cd: 3500, td: 1300 }], vatDien: 8 }, kt), 'KHONG_QUYEN');
+  const r = ok(b.call('saveGiaDien', { giaDien: [{ tu: '2026-11-01', bt: '1 950', cd: 3600, td: 1250 }, { tu: '2025-05-10', bt: 1833, cd: 3398, td: 1190 }], vatDien: 10, dvSanLuong: 'miếng' }, ql));
+  assert.deepEqual(r.caiDat.giaDien.map((x) => x.tu), ['2025-05-10', '2026-11-01']);
+  assert.equal(r.caiDat.giaDien[1].bt, 1950); assert.equal(r.caiDat.vatDien, 10); assert.equal(r.caiDat.dvSanLuong, 'miếng');
+  err(b.call('saveGiaDien', { giaDien: [{ tu: '2026-11-01', bt: 0, cd: 3600, td: 1250 }], vatDien: 8 }, ql), 'GIA_SAI');
+  err(b.call('saveGiaDien', { giaDien: [{ tu: '2026-11-01', bt: 1, cd: 2, td: 3 }, { tu: '2026-11-01', bt: 1, cd: 2, td: 3 }], vatDien: 8 }, ql), 'GIA_TRUNG');
+  assert.deepEqual(ok(b.call('saveSanLuong', { thang: '2026-09', sl: '12 500 000' }, ql)).caiDat.sanLuong, { '2026-09': 12500000 });
+  assert.deepEqual(ok(b.call('saveSanLuong', { thang: '2026-09', sl: '' }, ql)).caiDat.sanLuong, {});
+  err(b.call('saveSanLuong', { thang: '2026-13', sl: 5 }, ql), 'SO_SAI');
 });

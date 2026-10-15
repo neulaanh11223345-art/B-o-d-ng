@@ -41,6 +41,16 @@ var SpreadsheetApp = (function () {
   Sheet.prototype.getDataRange = function () {
     return this.getRange(1, 1, Math.max(1, this.getLastRow()), this.maxCols);
   };
+  Sheet.prototype.setName = function (n) { this.name = n; return this; };
+  Sheet.prototype.clearContents = function () { this.data = []; return this; };
+  Sheet.prototype.clear = Sheet.prototype.clearContents;
+  // Chép trang sang file khác (giống Google: tên "Bản sao của …")
+  Sheet.prototype.copyTo = function (book) {
+    var t = book.insertSheet('Bản sao của ' + this.name);
+    t.data = this.data.map(function (r) { return (r || []).map(function (v) { return v instanceof Date ? new Date(v.getTime()) : v; }); });
+    t.fmt = Object.assign({}, this.fmt); t.maxRows = this.maxRows; t.maxCols = this.maxCols; t.frozen = this.frozen;
+    return t;
+  };
 
   function Range(sh, r, c, nr, nc) { this.sh = sh; this.r = r; this.c = c; this.nr = nr; this.nc = nc; }
   Range.prototype.getValues = function () {
@@ -57,6 +67,10 @@ var SpreadsheetApp = (function () {
     return out;
   };
   Range.prototype.getValue = function () { return this.getValues()[0][0]; };
+  Range.prototype.clearContent = function () {
+    for (var i = 0; i < this.nr; i++) { var row = this.sh.data[this.r - 1 + i]; if (!row) continue; for (var j = 0; j < this.nc; j++) row[this.c - 1 + j] = ''; }
+    return this;
+  };
   Range.prototype.setValues = function (vals) {
     if (vals.length !== this.nr) throw new Error('Row count mismatch');
     for (var i = 0; i < this.nr; i++) {
@@ -93,19 +107,27 @@ var SpreadsheetApp = (function () {
     Range.prototype[k] = function () { return this; };
   });
 
-  var ss = {
-    sheets: [],
-    getSheetByName: function (n) { for (var i = 0; i < this.sheets.length; i++) if (this.sheets[i].name === n) return this.sheets[i]; return null; },
-    insertSheet: function (n) { var s = new Sheet(n); this.sheets.push(s); return s; },
-    getSheets: function () { return this.sheets.slice(); },
-    getName: function () { return 'Lịch Bảo Dưỡng'; },
-    getId: function () { return 'demo-sheet'; },
-    getUrl: function () { return 'https://docs.google.com/spreadsheets/d/demo'; }
-  };
+  function Book(id, name) { this.id = id; this.nm = name; this.sheets = []; }
+  Book.prototype.getSheetByName = function (n) { for (var i = 0; i < this.sheets.length; i++) if (this.sheets[i].name === n) return this.sheets[i]; return null; };
+  Book.prototype.insertSheet = function (n) { var s = new Sheet(n); this.sheets.push(s); return s; };
+  Book.prototype.getSheets = function () { return this.sheets.slice(); };
+  Book.prototype.deleteSheet = function (sh) { if (this.sheets.length < 2) throw new Error('Cannot delete the only sheet'); this.sheets = this.sheets.filter(function (x) { return x !== sh; }); };
+  Book.prototype.getName = function () { return this.nm; };
+  Book.prototype.getId = function () { return this.id; };
+  Book.prototype.getUrl = function () { return 'https://docs.google.com/spreadsheets/d/' + this.id; };
+  var ss = new Book('demo-sheet', 'Lịch Bảo Dưỡng'), books = {};
   return {
     getActive: function () { return ss; },
     getActiveSpreadsheet: function () { return ss; },
-    __reset: function () { ss.sheets = []; }
+    create: function (name) {
+      var id = 'SS' + Math.random().toString(36).slice(2, 14), b = new Book(id, name);
+      b.insertSheet('Trang tính1'); books[id] = b;
+      DriveApp.__addFile(id, name, 'application/vnd.google-apps.spreadsheet');
+      return b;
+    },
+    openById: function (id) { if (!books[id]) throw new Error('Spreadsheet not found'); return books[id]; },
+    __books: books,
+    __reset: function () { ss.sheets = []; Object.keys(books).forEach(function (k) { delete books[k]; }); }
   };
 })();
 
@@ -299,20 +321,36 @@ var Session = {
 };
 var DriveApp = (function () {
   var folders = {}, files = {};
-  function File(id, name, bytes, parent) { this.id = id; this.nm = name; this.bytes = bytes; this.shared = false; this.parent = parent; }
+  function File(id, name, bytes, parent, mime) {
+    this.id = id; this.nm = name; this.bytes = bytes; this.shared = false; this.parent = parent; this.mime = mime || 'image/jpeg';
+    this.created = new Date(Date.now() + __clock.off + (__seq++)); this.trashed = false;
+  }
+  var __seq = 0;
   File.prototype.getId = function () { return this.id; };
   File.prototype.getParents = function () { var a = this.parent ? [this.parent] : [], i = 0; return { hasNext: function () { return i < a.length; }, next: function () { return a[i++]; } }; };
-  File.prototype.getBlob = function () { return Utilities.newBlob(this.bytes, 'image/jpeg', this.nm); };
+  File.prototype.getBlob = function () { return Utilities.newBlob(this.bytes, this.mime, this.nm); };
+  File.prototype.getMimeType = function () { return this.mime; };
+  File.prototype.getSize = function () { return (this.bytes || []).length; };
+  File.prototype.getDateCreated = function () { return this.created; };
+  File.prototype.isTrashed = function () { return this.trashed; };
+  File.prototype.setTrashed = function (v) { this.trashed = !!v; return this; };
+  File.prototype.moveTo = function (folder) { this.parent = folder; return this; };
   File.prototype.getName = function () { return this.nm; };
   File.prototype.setName = function (n) { this.nm = n; return this; };
   File.prototype.setSharing = function () { this.shared = true; return this; };
   File.prototype.getUrl = function () { return 'https://drive.google.com/file/d/' + this.id + '/view'; };
   function Folder(id, name) { this.id = id; this.nm = name; }
   Folder.prototype.getId = function () { return this.id; };
+  Folder.prototype.getName = function () { return this.nm; };
+  Folder.prototype.getUrl = function () { return 'https://drive.google.com/drive/folders/' + this.id; };
   Folder.prototype.createFile = function (blob) {
     var id = 'DF' + Math.random().toString(36).slice(2, 14);
-    var f = new File(id, blob.getName ? blob.getName() : 'anh.jpg', blob.getBytes ? blob.getBytes() : [], this);
+    var f = new File(id, blob.getName ? blob.getName() : 'anh.jpg', blob.getBytes ? blob.getBytes() : [], this, blob.getContentType ? blob.getContentType() : '');
     files[id] = f; return f;
+  };
+  Folder.prototype.getFiles = function () {
+    var me = this, a = Object.keys(files).map(function (k) { return files[k]; }).filter(function (f) { return f.parent === me; }), i = 0;
+    return { hasNext: function () { return i < a.length; }, next: function () { return a[i++]; } };
   };
   return {
     createFolder: function (name) { var id = 'FL' + Math.random().toString(36).slice(2, 10); var f = new Folder(id, name); folders[id] = f; return f; },
@@ -320,6 +358,7 @@ var DriveApp = (function () {
     getFileById: function (id) { if (!files[id]) throw new Error('file not found'); return files[id]; },
     Access: { ANYONE_WITH_LINK: 'ANYONE_WITH_LINK', PRIVATE: 'PRIVATE' },
     Permission: { VIEW: 'VIEW', EDIT: 'EDIT' },
+    __addFile: function (id, name, mime) { files[id] = new File(id, name, [], null, mime); return files[id]; },
     __files: files, __reset: function () { folders = {}; files = {}; }
   };
 })();
