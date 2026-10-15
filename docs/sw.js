@@ -1,7 +1,7 @@
 // Service worker: cho app mở được khi mất mạng (iPhone thêm vào màn hình chính).
 // Trang app: lấy bản mới khi có mạng (chờ tối đa 4 giây), mất mạng thì dùng bản đã lưu.
 // Thư viện / font từ CDN: dùng bản đã lưu, cập nhật ngầm. Không bao giờ lưu lời gọi máy chủ Apps Script.
-const VER = 'cmms-2.9.0-70765e2e';
+const VER = 'cmms-2.9.1-eb81728f';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 const CDN = /^https:\/\/(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 

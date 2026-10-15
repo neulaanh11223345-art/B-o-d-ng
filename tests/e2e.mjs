@@ -166,9 +166,13 @@ await page.click('.cta2'); await wait();
 assert.match(await text('#barTitle'), /Ghi việc/);
 await page.fill('#cvTD', 'Máy hút bụi VKY03 không chạy');
 await page.check('#cvTuLam'); await wait();
-await page.selectOption('#cvMa', 'M020');
+// Việc sửa chữa chỉ chọn chuyền (máy chính) hoặc máy ngoài chuyền: máy hút bụi VKY03 thuộc chuyền VKY03 nên không có trong danh sách
+assert.equal(await page.locator('#cvMa option[value="M020"]').count(), 0, 'máy thuộc chuyền không chọn riêng khi sửa chữa');
+assert.equal(await page.locator('#cvMa option[value="M038"]').count(), 1, 'máy ngoài chuyền vẫn chọn được');
+await page.selectOption('#cvMa', 'VKY03');
 await page.click('#cvOk'); await wait(900);
 assert.match(await text('.schead'), /Đã giao/);
+assert.match(await text('.scmayl'), /Chuyền VKY03/);
 await page.click('[data-act="cvXong"]'); await wait();
 await page.fill('#cxKQ', 'Thay chổi than motor');
 await page.click('[data-act="cxNNChon"][data-k="nn_mon"]');

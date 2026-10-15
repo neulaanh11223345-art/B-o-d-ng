@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.9.0';
+var PHIEN_BAN = '2.9.1';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -843,7 +843,8 @@ function cvTruong(p, nvs) {
   var tieuDe = catChu(p.tieuDe, 200);
   if (!tieuDe) throw loi('CAN_TIEU_DE', 'Cần ghi tên việc · 请填写工作名称');
   var ma = s(p.ma).toUpperCase();
-  if (ma && !timMay(ma)) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
+  // Thiết bị: mã máy, hoặc mã chuyền sản xuất (việc sửa chữa ghi theo chuyền = máy chính)
+  if (ma && !timMay(ma) && !dsChuyen().some(function (c) { return c.ma === ma; })) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
   var lam = s(p.uidLam) ? timNV(p.uidLam, nvs) : null;
   if (s(p.uidLam) && !lam) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
   var phu = [];

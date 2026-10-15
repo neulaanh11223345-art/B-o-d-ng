@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.9.0');
+  assert.equal(d.phienBan, '2.9.1');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -716,4 +716,17 @@ test('giá điện: mặc định giá EVN 22 kV, sửa theo ngày áp dụng, V
   assert.deepEqual(ok(b.call('saveSanLuong', { thang: '2026-09', sl: '12 500 000' }, ql)).caiDat.sanLuong, { '2026-09': 12500000 });
   assert.deepEqual(ok(b.call('saveSanLuong', { thang: '2026-09', sl: '' }, ql)).caiDat.sanLuong, {});
   err(b.call('saveSanLuong', { thang: '2026-13', sl: 5 }, ql), 'SO_SAI');
+});
+
+test('sửa chữa ghi theo chuyền: thiết bị là mã chuyền (máy chính) hoặc máy ngoài chuyền; mã lạ báo lỗi', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222');
+  ok(b.call('data', {}, ql));
+  const r = ok(b.call('saveRepair', { moTa: 'Chuyền 01 dừng do kẹt vật liệu ở cụm cắt', ketQua: 'Gỡ kẹt, chỉnh dao cắt', ma: 'vky01', gioDung: 0.5 }, ql)).congViec;
+  assert.deepEqual([r.ma, r.trangThai, r.nguon], ['VKY01', 'DONG', 'SC']);
+  const v = ok(b.call('saveTask', { tieuDe: 'Kiểm tra cụm dán keo chuyền 16', loai: 'SUA', ma: 'VKY16' }, ql)).congViec;
+  assert.equal(v.ma, 'VKY16');
+  err(b.call('saveRepair', { moTa: 'x', ketQua: 'y', ma: 'VKY99' }, ql), 'KHONG_CO_MAY');
+  // Máy ngoài chuyền vẫn chọn được
+  assert.equal(ok(b.call('saveRepair', { moTa: 'Máy nén khí kêu to', ketQua: 'Siết bu lông', ma: 'M038' }, ql)).congViec.ma, 'M038');
 });
