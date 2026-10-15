@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.6.0');
+  assert.equal(d.phienBan, '2.7.0');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -543,4 +543,29 @@ test('ghi sửa chữa: lưu luôn thành việc đã xong, 3 mục nhiều dòn
   err(b.call('saveRepair', { ketQua: 'y' }, b.kt), 'CAN_MO_TA');
   err(b.call('saveRepair', { moTa: 'x' }, b.kt), 'CAN_KET_QUA');
   err(b.call('saveRepair', { moTa: 'x', ketQua: 'y', ngay: '2026-12-01' }, b.kt), 'NGAY_SAI');
+});
+
+test('mã hiển thị: tự đặt cho chuyền và máy, không trùng, đổi lại hoặc xoá được; mã hệ thống giữ nguyên', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222');
+  let d = ok(b.call('data', {}, ql));
+  const ch = ok(b.call('saveLine', { ma: 'VKY01', maHT: 'H2506' }, ql)).chuyen;
+  assert.equal(ch.ma, 'VKY01'); assert.equal(ch.maHT, 'H2506');
+  const m = d.may.find((x) => x.ten === '喷印机 VKY16');
+  const sua = (maHT, x = m) => b.call('saveMachine', { ma: x.ma, ten: x.ten, nhom: x.nhom, chuKy: x.chuKy, hanKeTiep: x.hanKeTiep, maHT }, ql);
+  assert.equal(ok(sua('QTN-16')).may.maHT, 'QTN-16');
+  const khac = d.may.find((x) => x.ma !== m.ma);
+  err(sua('h2506', khac), 'MA_HT_TRUNG');
+  err(sua('qtn-16', khac), 'MA_HT_TRUNG');
+  err(sua(m.ma, khac), 'MA_HT_TRUNG');
+  err(b.call('saveLine', { ma: 'VKY02', maHT: 'QTN-16' }, ql), 'MA_HT_TRUNG');
+  err(sua('<b>', khac), 'MA_HT_SAI');
+  assert.equal(ok(sua('QTN-16')).may.maHT, 'QTN-16', 'lưu lại chính mã của mình không báo trùng');
+  d = ok(b.call('data', {}, ql));
+  const m2 = d.may.find((x) => x.ma === m.ma);
+  assert.equal(m2.maHT, 'QTN-16'); assert.equal(m2.chuyen, 'VKY16');
+  assert.equal(d.chuyen.find((c) => c.ma === 'VKY01').maHT, 'H2506');
+  // Sửa máy mà không gửi maHT (app cũ) thì giữ nguyên
+  assert.equal(ok(b.call('saveMachine', { ma: m.ma, ten: m.ten, nhom: m.nhom, chuKy: m.chuKy, hanKeTiep: m.hanKeTiep }, ql)).may.maHT, 'QTN-16');
+  assert.equal(ok(sua('')).may.maHT, '', 'xoá mã hiển thị');
 });
