@@ -148,6 +148,10 @@ await page.click('.chtile[data-ma="VKY01"]'); await wait();
 assert.match(await text('#barTitle'), /Chuyền sản xuất/);
 assert.match(await text('#main'), /喷印机 VKY01/);
 assert.match(await text('#main'), /HNJX-HD2000/);
+// Linh kiện của chuyền: đối chiếu tồn ERP, xuất Excel
+await page.click('.gaph[data-k="lkch:VKY01"]'); await wait();
+assert.ok(await page.locator('.lkch .dctag').count() > 0, 'mỗi linh kiện có kết quả đối chiếu ERP');
+assert.ok(await page.evaluate(() => lkChXlsx(chDangDung()).size) > 2000, 'xuất được Excel linh kiện các chuyền');
 ok('Xác nhận bảo dưỡng từ hồ sơ thiết bị; Bảo dưỡng gọn (quá hạn bấm mới hiện), xem máy theo chuyền');
 
 // 9. Kỹ thuật thấy máy hỏng: tự ghi việc sửa chữa (mất mạng vẫn ghi được), ghi nguyên nhân + giờ dừng máy

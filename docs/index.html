@@ -135,6 +135,9 @@ main{max-width:1240px;margin:0 auto;padding:16px 16px calc(var(--tab-h) + 28px +
 .chtile.t-nay{border-left-color:var(--orange)} .chtile.t-nay .cst{color:var(--orange)}
 .chtile.t-sap{border-left-color:var(--blue)} .chtile.t-sap .cst{color:var(--blue)}
 .chtile.t-ok{border-left-color:var(--green)} .chtile.t-ok .cst{color:var(--green)}
+.dctag{display:inline-block;font-size:12px;font-weight:700;border-radius:8px;padding:3px 8px;text-align:right;max-width:170px}
+.dc-ok{background:var(--green-bg,#E3F4EA);color:var(--green)} .dc-canh{background:var(--orange-bg);color:var(--orange)} .dc-loi{background:var(--red-bg);color:var(--red)} .dc-chua{background:var(--soft);color:var(--ink2)}
+.lkch .qc{font-size:12px;color:var(--ink2)}
 .chhead .sub{color:var(--ink2);margin-top:6px}
 .pill{display:inline-flex;flex-direction:column;align-items:flex-end;justify-content:center;border-radius:9px;padding:4px 9px;font-size:12px;font-weight:600;line-height:1.2;white-space:nowrap;text-align:right}
 .pill .zi{margin:0;font-weight:500;font-size:11px;color:inherit;opacity:.85}
@@ -1791,9 +1794,9 @@ function shell() {
 }
 const TITLES = { dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
-  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit' };
+  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen' };
 const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv'];
-const TAB_OF = { chuyen: 'list', chEdit: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv',
+const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
@@ -1829,7 +1832,7 @@ function render() {
 }
 // Vẽ lại nhưng không phá ô đang gõ
 // Chỉ vẽ lại các màn hiển thị dữ liệu; màn đang nhập liệu (sửa máy, báo tin…) giữ nguyên
-const LIVE_VIEWS = ['home', 'cal', 'list', 'chuyen', 'hist', 'may', 'queue', 'sync', 'dien', 'me', 'duyet', 'cv', 'cvView', 'cvLap'];
+const LIVE_VIEWS = ['home', 'cal', 'list', 'chuyen', 'lkChuyen', 'hist', 'may', 'queue', 'sync', 'dien', 'me', 'duyet', 'cv', 'cvView', 'cvLap'];
 function softRender() {
   const a = document.activeElement, cur = topV();
   if (!cur || LIVE_VIEWS.indexOf(cur.v) < 0) { renderSync(); return; }
@@ -2433,10 +2436,99 @@ function chTile(c, today) {
   return `<button class="chtile t-${k}" data-act="chuyen" data-ma="${esc(c.ma)}"><b>${esc(c.ma)}</b>${c.tenZh ? `<span class="zi" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}
     <span class="sub">${esc(xuongNgan(c.viTri))}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}</span>${st ? `<span class="cst">${st}</span>` : ''}</button>`;
 }
+// ---------- Linh kiện của chuyền: gom linh kiện các máy trong chuyền, đối chiếu tồn ERP ----------
+function lkCuaCh(ma) {
+  const out = [];
+  mayCuaCh(ma).forEach((m) => lkOf(m).forEach((x) => out.push({ m, x, dc: lkDoiChieu(x) })));
+  return out;
+}
+// k: ok · canh (cảnh báo) · loi · chua (chưa nhập file ERP) · ds: các mã lỗi/cảnh báo
+function lkDoiChieu(x) {
+  if (!S.kho.ds.length) return { k: 'chua', ds: ['dcChuaERP'] };
+  let g = x.maKho ? khoGet(x.maKho) : null;
+  if (x.maKho && !g) return { k: 'loi', ds: ['dcKhongMa'] };
+  if (!g) {
+    const qc = norm(x.quyCach);
+    g = qc ? S.kho.ds.find((k) => !k.an && !k.gop && (norm(k.qc) === qc || norm(k.ma) === qc)) : null;
+    return g && tonOf(g) !== null ? { k: 'canh', kx: g, ds: ['dcChuaLK'] } : { k: 'loi', ds: ['dcKhongERP'] };
+  }
+  const n = tonOf(g);
+  if (n === null) return { k: 'loi', kx: g, ds: ['dcKhongERP'] };       // chỉ có trong app, file ERP không có
+  const ds = [];
+  if (x.quyCach && g.qc && norm(x.quyCach).replace(/\s/g, '') !== norm(g.qc).replace(/\s/g, '')) ds.push('dcSaiQC');
+  if (n <= 0) ds.push('dcHet'); else if (+x.sl > 0 && n < +x.sl) ds.push('dcIt'); else if (khoThap(g)) ds.push('dcMin');
+  return { k: ds.some((d) => d === 'dcSaiQC' || d === 'dcHet') ? 'loi' : ds.length ? 'canh' : 'ok', kx: g, ds };
+}
+const dcTag = (dc) => `<span class="dctag dc-${dc.k}">${dc.k === 'ok' ? tv('dcOk') : dc.ds.map((d) => tv(d)).join(' · ')}</span>`;
+function lkChHtml(ma) {
+  const a = lkCuaCh(ma);
+  if (!a.length) return `<div class="card empty">${t('lkChTrong')}</div>`;
+  return `<div class="list lkch">${a.map(({ m, x, dc }) => `<div class="row" data-act="lkChSua" data-ma="${esc(m.ma)}" role="button" tabindex="0"><div class="main">
+    <div class="nm">${esc(x.ten)}${x.quyCach ? ` <span class="mono qc">${esc(x.quyCach)}</span>` : ''}</div>
+    <div class="sub">${esc(m.ten)} · ${tv('slMay')} ${esc(soG(x.sl) || '—')}${dc.kx ? ` · ERP <span class="code">${esc(dc.kx.ma)}</span>${tonOf(dc.kx) !== null ? ` · ${tv('tonKho')} <b class="mono">${esc(soG(tonOf(dc.kx)))}</b>` : ''}` : ''}</div></div>
+    <div class="end">${dcTag(dc)}</div></div>`).join('')}</div>`;
+}
+const lkLoiN = (a) => a.filter((r) => r.dc.k === 'loi').length;
+function lkChXlsx(dsCh) {
+  const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const MAU = { loi: { fill: '#FDE7E7', color: '#B71C1C' }, canh: { fill: '#FFF3E0', color: '#A65400' }, ok: { color: '#1B5E20' }, chua: {} };
+  const cols = ['stt', 'thMay', 'code', 'lkTen', 'quyCach', 'dv', 'slMay', 'xMaERP', 'xTenERP', 'xQcERP', 'tonKho', 'xViTriKho', 'xDoiChieu'];
+  const dong = (r, i) => {
+    const k = r.dc.kx, n = k ? tonOf(k) : null, st = MAU[r.dc.k] || {};
+    return [c(i + 1, { align: 'center' }), c(r.m.ten), c(r.m.ma), c(r.x.ten), c(r.x.quyCach || ''), c(dvTxt(r.x.dv || '')), c(+r.x.sl || r.x.sl || '', { align: 'right' }),
+      c(k ? k.ma : (r.x.maKho || '')), c(k ? k.ten : ''), c(k ? k.qc || '' : ''), c(n === null ? '' : n, { align: 'right' }), c(k ? khoBinTxt(k, false).join(', ') : ''),
+      c(r.dc.k === 'ok' ? tp('dcOk') : r.dc.ds.map((d) => tp(d)).join('\n'), Object.assign({ b: r.dc.k !== 'ok' }, st))];
+  };
+  const W = [5, 22, 8, 26, 18, 8, 8, 14, 26, 18, 10, 18, 26], today = fmtD(TODAY());
+  const tong = [[{ v: 'Linh kiện theo chuyền · 产线零件 — ' + today, s: { b: 1, sz: 14 } }], [{ v: tp('xlsExported') + ': ' + today + ' · ERP: ' + (S.kho.nhap && S.kho.nhap.luc ? fmtD(String(S.kho.nhap.luc).slice(0, 10)) : '—'), s: { i: 1, color: '#55625F' } }], [],
+    hd(['chuyen', 'xSoMay', 'xSoLK', 'xLoi', 'xCanh'])];
+  const sheets = [{ name: 'Tong hop', rows: tong, cols: [30, 10, 12, 12, 12], merges: ['A1:E1'], freeze: { r: 4, c: 0 } }];
+  const loiAll = [];
+  dsCh.forEach((ch) => {
+    const a = lkCuaCh(ch.ma), nl = lkLoiN(a), nc = a.filter((r) => r.dc.k === 'canh').length;
+    tong.push([c(ch.ma + (ch.tenZh ? ' · ' + ch.tenZh : '')), c(mayCuaCh(ch.ma).length, { align: 'center' }), c(a.length, { align: 'center' }), c(nl, Object.assign({ align: 'center' }, nl ? MAU.loi : {})), c(nc, Object.assign({ align: 'center' }, nc ? MAU.canh : {}))]);
+    a.forEach((r) => { if (r.dc.k === 'loi' || r.dc.k === 'canh') loiAll.push(Object.assign({ ch: ch.ma }, r)); });
+    const rows = [[{ v: 'Linh kiện chuyền ' + ch.ma + (ch.tenZh ? ' · ' + ch.tenZh : '') + ' — ' + today, s: { b: 1, sz: 14 } }], [{ v: ch.ten || '', s: { i: 1, color: '#55625F' } }], [], hd(cols)];
+    a.forEach((r, i) => rows.push(dong(r, i)));
+    if (!a.length) rows.push([c(tp('lkChTrong'))]);
+    sheets.push({ name: ch.ma.replace(/[^A-Za-z0-9 ._()-]/g, '').slice(0, 30) || 'Chuyen', rows, cols: W, merges: ['A1:M1', 'A2:M2'], freeze: { r: 4, c: 0 }, landscape: true });
+  });
+  if (dsCh.length > 1 && loiAll.length) {
+    const rows = [[{ v: 'Linh kiện cần xử lý (không khớp ERP) · 需处理零件', s: { b: 1, sz: 14 } }], [], [], [{ v: tp('chuyen').replace(' · ', '\n'), s: H }].concat(hd(cols).slice(1))];
+    loiAll.forEach((r) => { const d = dong(r, 0); d[0] = c(r.ch); rows.push(d); });
+    sheets.splice(1, 0, { name: 'Can xu ly', rows, cols: [8].concat(W.slice(1)), merges: ['A1:M1'], freeze: { r: 4, c: 0 }, landscape: true });
+  }
+  return XW.build(sheets);
+}
+async function lkChXuat(ma) {
+  toast(t('exporting')); await sleep(30);
+  let blob;
+  const ds = ma ? [S.V.chByMa[ma]].filter(Boolean) : chDangDung();
+  try { blob = lkChXlsx(ds); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+  const tt = $('.toast'); if (tt) tt.remove();
+  await saveFile(blob, 'Linh-kien-' + (ma || 'cac-chuyen') + '-' + TODAY() + '.xlsx');
+}
+// Mục riêng: Linh kiện theo chuyền
+VIEWS.lkChuyen = {
+  html() {
+    const chs = chDangDung();
+    let o = `<div class="card pad"><div class="help">${t('lkChHelp')}</div>${!S.kho.ds.length ? `<div class="note" style="margin-top:8px">${t('dcChuaERP')}</div>` : ''}
+      <div class="btns" style="margin-top:10px"><button class="btn sm" data-act="lkChXuat" data-ma="">${IC.dl} ${t('lkChXuatAll')}</button></div></div>`;
+    o += `<div class="list" style="margin-top:12px">${chs.map((c) => {
+      const a = lkCuaCh(c.ma), nl = lkLoiN(a), nc = a.filter((r) => r.dc.k === 'canh').length;
+      return `<div class="row" data-act="lkChMo" data-ma="${esc(c.ma)}" role="button" tabindex="0"><div class="main"><div class="nm">${esc(c.ma)}${c.tenZh ? ` <span class="zi" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}</div>
+        <div class="sub">${tv('chSoMay', { n: mayCuaCh(c.ma).length })} · ${tv('xSoLKn', { n: a.length })}</div></div>
+        <div class="end">${nl ? `<span class="pill p-qua">${tv('xLoiN', { n: nl })}</span>` : nc ? `<span class="pill p-nay">${tv('xCanhN', { n: nc })}</span>` : a.length ? `<span class="pill p-ok">${tv('dcOk')}</span>` : ''}</div></div>`;
+    }).join('')}</div>`;
+    return o;
+  }
+};
 const chDangDung = () => (S.V.ch || []).filter((c) => c.hoatDong !== false);
 function chSecHtml(today) {
   const chs = chDangDung();
-  return chs.length ? sec('chSec', chs.length) + `<div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>` : '';
+  return chs.length ? sec('chSec', chs.length) + `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div><div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>` : '';
 }
 // Máy không thuộc chuyền, gom theo nhóm; mỗi nhóm một dòng, bấm mới hiện máy
 function nhomGonHtml(list, today, pre) {
@@ -2469,6 +2561,9 @@ VIEWS.chuyen = {
       <div class="sub">${esc(c.viTri || '')}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}${s.qua ? ` · <b class="warnx">${tv('chQua', { n: s.qua })}</b>` : ''}</div></div>`;
     o += sec('chMay', a.length) + (a.length ? dsMayRows(a, today) : `<div class="card empty">${t('chChuaMay')}</div>`);
     if (can('may')) o += `<div class="btns" style="margin:10px 0 4px"><button class="btn ghost sm" data-act="chThemMay" data-ma="${esc(c.ma)}">${IC.plus} ${t('chThemMay')}</button><button class="btn ghost sm" data-act="chSua" data-ma="${esc(c.ma)}">${IC.edit} ${t('chSua')}</button></div>`;
+    const lk = lkCuaCh(c.ma), nl = lkLoiN(lk);
+    o += sec('lkChSec', lk.length) + gap('lkch:' + c.ma, nl ? `<b class="warnx">${tv('xLoiN', { n: nl })}</b> ${tz('xLoiN', { n: nl })}` : t('lkChXem'), lk.length, nl ? 'g-qua' : '', () => lkChHtml(c.ma));
+    o += `<div class="btns" style="margin:4px 0 10px">${can('may') && a.length ? `<button class="btn ghost sm" data-act="lkChThem" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkChThem')}</button>` : ''}<button class="btn ghost sm" data-act="lkChXuat" data-ma="${esc(c.ma)}">${IC.dl} ${t('lkChXuat')}</button></div>`;
     const tt = ['maTaiSan', 'quyCach', 'nhaSX', 'tinhNang', 'tocDoChuan', 'tocDoThucTe', 'viTri', 'soXuatXuong', 'ngaySX', 'ngayCaiTao', 'ngayVN', 'ghiChu'].filter((k) => c[k]);
     if (tt.length) o += sec('chTT') + `<div class="card pad"><dl class="kv kvwide">${tt.map((k) => `<dt>${t('ch_' + k)}</dt><dd>${esc(c[k])}</dd>`).join('')}</dl></div>`;
     return o;
@@ -2621,8 +2716,31 @@ function listBody() {
   list = findMay(f.q, list);
   if (!list.length) return `<div class="card empty">${t('notFound')}</div>`;
   if (f.st) list.sort((a, b) => stOf(a, today).d - stOf(b, today).d);
+  const gon = !f.q && !f.grp && !f.st;
+  if (isWide() && gon) {
+    const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
+    return chSecHtml(today) + (khac.length ? sec('chKhac', khac.length) + byGroup(khac).map(([g, a]) => {
+      const nq = a.filter((m) => stOf(m, today).k === 'qua').length;
+      return gap('lg:' + g, esc(grpLabel(g)), `${a.length}${nq ? ` · <b class="warnx">${tv('chQua', { n: nq })}</b>` : ''}`, '', () => mayBang(theoHan(a, today)));
+    }).join('') : '');
+  }
   if (isWide()) {
     const { p } = pageOf('may', list.length), rows = (f.st ? list : byGroup(list).flatMap(([, a]) => a)).slice(p * PER_PAGE, (p + 1) * PER_PAGE);
+    return mayBang(rows) + pager('may', list.length);
+  }
+  if (f.st) return sec('st_' + f.st, list.length) + `<div class="list">${list.map((m) => mRow(m, stOf(m), true)).join('')}</div>`;
+  // Mặc định (không tìm, không lọc): mỗi chuyền một dòng, thiết bị khác gom theo nhóm, bấm mới hiện máy
+  if (gon) {
+    const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
+    return chSecHtml(today) + (khac.length ? sec('chKhac', khac.length) + nhomGonHtml(khac, today, 'lg:') : '');
+  }
+  return byGroup(list).map(([g, arr]) => sec('group', arr.length).replace(t('group'), esc(g || '—')) +
+    `<div class="list">${arr.map((m) => mRow(m, stOf(m), false)).join('')}</div>`).join('');
+}
+// Bảng máy cho màn rộng
+function mayBang(rows) {
+  const today = TODAY();
+  {
     const tr = rows.map((m) => {
       const last = (S.V.lsMa[m.ma] || [])[0], st = stOf(m, today);
       return `<tr class="${st.k === 'qua' ? 'tr-qua' : ''}"><td class="mono"><button class="cellnm" data-act="may" data-ma="${esc(m.ma)}">${esc(m.ma)}</button></td>
@@ -2631,16 +2749,8 @@ function listBody() {
         <td class="num">${last ? fmtD(last.ngay) : '—'}</td><td class="num"><b>${m.hoatDong ? fmtD(m.hanKeTiep) : '—'}</b></td>
         <td>${pill(st)}</td><td>${can('confirm') && m.hoatDong ? `<button class="okbtn sm" data-act="xn" data-ma="${esc(m.ma)}" aria-label="${esc(tp('confirmDone'))}">${IC.check}</button>` : ''}</td></tr>`;
     }).join('');
-    return dtable([['thCode'], ['thTen'], ['thNhom'], ['thViTri'], ['thChuKy', '', 'num'], ['thGanNhat', '', 'num'], ['thHan', '', 'num'], ['thTT'], ['confirm']], tr) + pager('may', list.length);
+    return dtable([['thCode'], ['thTen'], ['thNhom'], ['thViTri'], ['thChuKy', '', 'num'], ['thGanNhat', '', 'num'], ['thHan', '', 'num'], ['thTT'], ['confirm']], tr);
   }
-  if (f.st) return sec('st_' + f.st, list.length) + `<div class="list">${list.map((m) => mRow(m, stOf(m), true)).join('')}</div>`;
-  // Mặc định (không tìm, không lọc): mỗi chuyền một dòng, thiết bị khác gom theo nhóm, bấm mới hiện máy
-  if (!f.q && !f.grp) {
-    const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
-    return chSecHtml(today) + (khac.length ? sec('chKhac', khac.length) + nhomGonHtml(khac, today, 'lg:') : '');
-  }
-  return byGroup(list).map(([g, arr]) => sec('group', arr.length).replace(t('group'), esc(g || '—')) +
-    `<div class="list">${arr.map((m) => mRow(m, stOf(m), false)).join('')}</div>`).join('');
 }
 
 // ---------- Sửa / thêm máy ----------
@@ -3254,6 +3364,16 @@ const ACT = {
   newMay: () => go('mayEdit', {}),
   gap: (el) => { S.f.mo = S.f.mo || {}; S.f.mo[el.dataset.k] = !S.f.mo[el.dataset.k]; softRender(); },
   chuyen: (el) => go('chuyen', { ma: el.dataset.ma }),
+  lkChXuat: (el) => lkChXuat(el.dataset.ma || ''),
+  lkChMo: (el) => { S.f.mo = S.f.mo || {}; S.f.mo['lkch:' + el.dataset.ma] = true; go('chuyen', { ma: el.dataset.ma }); },
+  lkChSua: (el) => { if (can('may')) go('dsEdit', { ma: el.dataset.ma, k: 'lk' }); else go('may', { ma: el.dataset.ma, tab: 'lk' }); },
+  lkChThem: (el) => {
+    const a = mayCuaCh(el.dataset.ma);
+    if (a.length === 1) { go('dsEdit', { ma: a[0].ma, k: 'lk' }); return; }
+    openSheet(`<div class="grab"></div><h3>${tv('chonMay')}<span class="zi">${tz('chonMay')}</span></h3><div class="list" style="margin-top:10px">${a.map((m) => `<button class="row" data-act="lkChThemMay" data-ma="${esc(m.ma)}"><div class="main"><div class="nm">${esc(m.ten)}</div><div class="sub"><span class="code">${esc(m.ma)}</span> · ${lkOf(m).length} ${esc(tp('lkHead'))}</div></div>${IC.chev}</button>`).join('')}</div>
+      <div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="closeSheet">${t('close')}</button></div>`);
+  },
+  lkChThemMay: (el) => { closeSheet(); go('dsEdit', { ma: el.dataset.ma, k: 'lk' }); },
   chSua: (el) => go('chEdit', { ma: el.dataset.ma }),
   chThemMay: (el) => go('mayEdit', { chuyen: el.dataset.ma }),
   editMay: (el) => go('mayEdit', { ma: el.dataset.ma }),
@@ -6381,7 +6501,15 @@ Object.assign(TX, {
   doneViec: ['Báo vào Telegram khi giao việc', '派工时通知Telegram群'],
   thViec: ['Việc', '工作'], thLoaiCV: ['Loại', '类型'], thUu: ['Ưu tiên', '优先'], thNguoiLam: ['Người làm', '执行人'], thHanCV: ['Hạn', '期限'],
   srvMissCh: ['Bản 2.5: chuyền sản xuất (xếp máy theo chuyền).', '2.5版：生产线（按产线管理设备）。'],
-  t_chuyen: ['Chuyền sản xuất', '生产线'], t_chEdit: ['Sửa thông tin chuyền', '编辑产线信息'],
+  t_chuyen: ['Chuyền sản xuất', '生产线'], t_lkChuyen: ['Linh kiện theo chuyền', '产线零件'],
+  lkChSec: ['Linh kiện của chuyền', '产线零件'], lkChXem: ['Xem linh kiện và đối chiếu ERP', '查看零件及ERP核对'], lkChTrong: ['Chưa có linh kiện. Thêm linh kiện cho từng máy trong chuyền.', '暂无零件。请为产线内各设备添加零件。'],
+  lkChThem: ['Thêm / sửa linh kiện', '添加/编辑零件'], lkChXuat: ['Xuất Excel linh kiện chuyền này', '导出本产线零件Excel'], lkChXuatAll: ['Xuất Excel linh kiện tất cả chuyền', '导出全部产线零件Excel'],
+  lkChHelp: ['Linh kiện của các máy trong mỗi chuyền, đối chiếu với tồn kho trong file ERP đã nhập: mã có trong ERP không, quy cách có khớp không, còn hàng không.', '各产线设备零件，与已导入的ERP库存核对：编号是否存在、规格是否一致、是否有库存。'],
+  dcOk: ['Khớp ERP', '与ERP一致'], dcChuaERP: ['Chưa nhập file tồn ERP (Kho linh kiện → Nhập file ERP)', '尚未导入ERP库存文件（备件库→导入ERP）'],
+  dcKhongMa: ['Mã không có trong ERP', 'ERP中无此编号'], dcKhongERP: ['Không có trong ERP', 'ERP中没有'], dcChuaLK: ['Chưa liên kết mã ERP (có mã cùng quy cách)', '未关联ERP编号（有同规格编号）'],
+  dcSaiQC: ['Quy cách khác ERP', '规格与ERP不符'], dcHet: ['Hết hàng', '无库存'], dcIt: ['Tồn ít hơn số lắp', '库存少于安装数'], dcMin: ['Dưới tồn tối thiểu', '低于最低库存'],
+  xMaERP: ['Mã ERP', 'ERP编号'], xTenERP: ['Tên trong ERP', 'ERP名称'], xQcERP: ['Quy cách ERP', 'ERP规格'], xViTriKho: ['Vị trí kho', '库位'], xDoiChieu: ['Đối chiếu ERP', 'ERP核对'],
+  xSoMay: ['Số máy', '设备数'], xSoLK: ['Số linh kiện', '零件数'], xSoLKn: ['{n} linh kiện', '{n}个零件'], xLoi: ['Lỗi', '错误'], xCanh: ['Cảnh báo', '警告'], xLoiN: ['{n} lỗi ERP', '{n}项ERP错误'], xCanhN: ['{n} cảnh báo', '{n}项警告'], t_chEdit: ['Sửa thông tin chuyền', '编辑产线信息'],
   bdTong: ['Tổng quan', '概览'], chSec: ['Chuyền sản xuất', '生产线'], chKhac: ['Thiết bị khác', '其他设备'],
   chQua: ['{n} máy quá hạn', '{n}台逾期'], chSap: ['{n} máy sắp đến hạn', '{n}台即将到期'], chOk: ['Đúng hạn', '正常'],
   chSoMay: ['{n} máy', '{n}台'], chMay: ['Máy trong chuyền', '产线设备'], chTT: ['Thông tin chuyền (sổ cái)', '产线信息（台帐）'],

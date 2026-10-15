@@ -105,6 +105,12 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
   - Quản lý sửa được thông tin chuyền (**Sửa thông tin**). Google Sheet có trang mới `Chuyen`, trang `May` thêm cột `Chuyen` ở cuối.
 - **Bảo dưỡng · Tổng quan** (mặc định): máy quá hạn, đến hạn hôm nay, sắp đến hạn mỗi loại gom thành một dòng, bấm vào mới hiện danh sách. Dưới là các chuyền dạng ô (đỏ = có máy quá hạn) và thiết bị khác gom theo nhóm. Lịch năm / tháng vẫn còn ở hai nút bên cạnh.
 - **Thiết bị:** khi không tìm, không lọc thì cũng hiện gọn như trên.
+- **Thiết bị trên máy tính** cũng hiện gọn: các chuyền dạng ô, thiết bị khác mỗi nhóm một dòng, bấm mới hiện bảng.
+- **Linh kiện của chuyền:** trang chuyền có mục "Linh kiện của chuyền" gom linh kiện của mọi máy trong chuyền, mỗi linh kiện được đối chiếu với tồn kho trong file ERP đã nhập:
+  - **Lỗi (đỏ):** mã không có trong ERP, linh kiện chỉ có trong app (ERP không có), quy cách khác ERP, hết hàng.
+  - **Cảnh báo (cam):** chưa liên kết mã ERP nhưng ERP có mã cùng quy cách, tồn ít hơn số lắp trên máy, dưới tồn tối thiểu.
+  - Thêm / sửa linh kiện: chọn máy trong chuyền rồi tìm linh kiện trong kho ERP như ở hồ sơ máy.
+  - **Mục riêng "Linh kiện theo chuyền"** (nút ở đầu phần Chuyền sản xuất): mỗi chuyền một dòng kèm số lỗi; **Xuất Excel** cho một chuyền hoặc tất cả chuyền (trang Tổng hợp, trang "Can xu ly" gom các linh kiện lỗi / cảnh báo, mỗi chuyền một trang).
 - **Xuất Excel việc đang giao** (nút trong Công việc, Quản lý): trang "Tat ca" liệt kê mọi việc chưa xong (chờ giao, đã giao, đang làm, tạm hoãn) theo hạn; mỗi người một trang riêng (phiếu giao việc) có cột ghi chú / kết quả và dòng ký nhận, để in ra đưa cho từng người. Việc quá hạn tô đỏ ở cột Hạn.
 - Nâng cấp: dán `Code.gs-v2.5.1.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Lần mở app đầu tiên máy chủ tự tạo trang `Chuyen` và xếp máy in phun.
 
