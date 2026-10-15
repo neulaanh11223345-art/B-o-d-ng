@@ -56,7 +56,17 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 
    Quản trị nên vào **Cá nhân → Quản trị → Người dùng** để đặt mã nhân viên (NV001…) và tên tiếng Trung cho từng người.
 
-Cài mới từ đầu: tạo Google Sheet mới → dán mã → chạy hàm `caiDatBanDau` một lần để cấp quyền → **Triển khai → Tùy chọn triển khai mới → Ứng dụng web**, đặt "Thực thi với: Tôi" và "Người có quyền truy cập: Bất kỳ ai". Sau đó chép link `/exec` vào `src/config.json` (`apiUrl`) rồi build lại.
+## Cài mới từ đầu (chưa có bản cũ)
+
+1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.4.0.txt` → **Lưu**.
+3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
+4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
+5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
+6. Mở app lần đầu: app hỏi link máy chủ, dán link `/exec` vào. Mỗi máy chỉ làm một lần.
+   - Gửi cho nhân viên link có sẵn máy chủ để họ khỏi phải dán: `https://<link-app>/?api=<link /exec>`.
+   - Hoặc ghi link vào `src/config.json` (`apiUrl`) rồi chạy `node tools/build.mjs`: app sẽ không hỏi nữa.
+7. Đăng nhập NV001 / 111111 → **Cá nhân → Quản trị → Người dùng**: đổi PIN mặc định, thêm nhân viên (mã NV, tên tiếng Trung).
 
 ## Đăng app lên web để cài vào iPhone
 

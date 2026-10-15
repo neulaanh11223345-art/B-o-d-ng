@@ -3062,7 +3062,15 @@ function startApp() {
   openDeep(false);
   if (S.Q.some((q) => q.st === 'cho')) flush();
 }
+// Link cài sẵn: …/?api=<link /exec> — Quản lý gửi một link, nhân viên mở là có sẵn máy chủ, không phải dán
+let API_LINK = '';
+function apiTuLink() {
+  const m = API_LINK.replace(/\s+/g, '').match(/^https:\/\/script\.google\.com\/[^"'<>]+?\/exec$/i);
+  if (m && !(typeof API_URL === 'string' && API_URL)) store.set('bd_api', m[0]);
+  API_LINK = '';
+}
 function boot() {
+  if (!IS_DEMO) apiTuLink();
   if (!IS_DEMO && !apiUrl()) { renderSetup(); return; }
   const tk = store.get('bd_tk', null), me = store.get('bd_me', null), snap = store.get('bd_snap', null);
   S.Q = store.get('bd_q', []);
@@ -6967,8 +6975,10 @@ Object.assign(ACT, {
 });
 // Link từ tem QR: ...?m=M001
 try {
-  const m = new URLSearchParams(location.search).get('m');
-  if (m) { S.deepMa = m.toUpperCase(); history.replaceState(null, '', location.pathname); }
+  const q = new URLSearchParams(location.search), m = q.get('m');
+  API_LINK = q.get('api') || '';
+  if (m) S.deepMa = m.toUpperCase();
+  if (m || API_LINK) history.replaceState(null, '', location.pathname);
 } catch (e) { /* bỏ qua */ }
 if (!IS_DEMO && 'serviceWorker' in navigator && (/^https:/.test(location.protocol) || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').then((r) => {
