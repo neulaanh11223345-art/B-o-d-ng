@@ -117,6 +117,25 @@ main{max-width:1240px;margin:0 auto;padding:16px 16px calc(var(--tab-h) + 28px +
 .empty{padding:22px 16px;text-align:center;color:var(--ink2);font-size:14px}
 
 /* ---------- nhãn trạng thái ---------- */
+.gap{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.gaph{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:10px 14px;background:none;border:0;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.gaph .gt{flex:1;font-weight:600;min-width:0}
+.gaph .gt .zi{display:block;font-weight:500;font-size:.82em;color:var(--ink2)}
+.gaph .gn{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.gaph .chev{flex:none;color:var(--ink3);transition:transform .15s}
+.gap.mo .gaph .chev{transform:rotate(90deg)}
+.gap.g-qua{border-color:color-mix(in srgb,var(--red) 35%,var(--line))} .gap.g-qua .gn{color:var(--red)}
+.gap.g-nay .gn{color:var(--orange)} .gap.g-sap .gn{color:var(--blue)}
+.gapb{border-top:1px solid var(--line)} .gapb .list{border:0;border-radius:0;margin:0}
+.chgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:12px}
+.chtile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;text-align:left;cursor:pointer;border-left:4px solid var(--line)}
+.chtile b{font-size:16px} .chtile .zi{font-size:12px;color:var(--ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chtile .sub{font-size:12px;color:var(--ink2)} .chtile .cst{font-size:12px;font-weight:700;margin-top:2px}
+.chtile.t-qua{border-left-color:var(--red)} .chtile.t-qua .cst{color:var(--red)}
+.chtile.t-nay{border-left-color:var(--orange)} .chtile.t-nay .cst{color:var(--orange)}
+.chtile.t-sap{border-left-color:var(--blue)} .chtile.t-sap .cst{color:var(--blue)}
+.chtile.t-ok{border-left-color:var(--green)} .chtile.t-ok .cst{color:var(--green)}
+.chhead .sub{color:var(--ink2);margin-top:6px}
 .pill{display:inline-flex;flex-direction:column;align-items:flex-end;justify-content:center;border-radius:9px;padding:4px 9px;font-size:12px;font-weight:600;line-height:1.2;white-space:nowrap;text-align:right}
 .pill .zi{margin:0;font-weight:500;font-size:11px;color:inherit;opacity:.85}
 .p-qua{background:var(--red-bg);color:var(--red)}
@@ -1483,7 +1502,7 @@ const LOGO = '<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" heigh
 // ===================== Trạng thái =====================
 const S = {
   tk: null, me: null, base: null, V: null, Q: [], stack: [], offline: false, simOff: false,
-  f: { grp: '', calGrp: '', q: '', calMode: 'year', calYear: +localToday().slice(0, 4), calMonth: +localToday().slice(5, 7), histMonth: localToday().slice(0, 7), histGrp: '', histQ: '', lblSize: 's24' },
+  f: { grp: '', calGrp: '', q: '', calMode: 'tong', calYear: +localToday().slice(0, 4), calMonth: +localToday().slice(5, 7), histMonth: localToday().slice(0, 7), histGrp: '', histQ: '', lblSize: 's24' },
   oldHist: {}, oldCS: {}, scanner: null, lastLoad: 0, lastSync: 0
 };
 S.lastSync = store.get('bd_sync', 0);
@@ -1658,7 +1677,9 @@ function rebuild() {
   Object.values(lsMa).forEach((a) => a.sort((p, q) => (q.ngay > p.ngay ? 1 : q.ngay < p.ngay ? -1 : 0)));
   const groups = [];
   may.forEach((m) => { const g = m.nhom || ''; if (groups.indexOf(g) < 0) groups.push(g); });
-  S.V = { may, byMa, ls, lsMa, groups };
+  const ch = (S.base.chuyen || []).slice().sort((a, b) => (a.ma > b.ma ? 1 : -1)), chByMa = {};
+  ch.forEach((c) => { chByMa[c.ma] = c; });
+  S.V = { may, byMa, ls, lsMa, groups, ch, chByMa };
   rebuildDien();
   rebuildCV();
 }
@@ -1767,9 +1788,9 @@ function shell() {
 }
 const TITLES = { dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
-  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC' };
+  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit' };
 const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv'];
-const TAB_OF = { cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv',
+const TAB_OF = { chuyen: 'list', chEdit: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
@@ -1805,7 +1826,7 @@ function render() {
 }
 // Vẽ lại nhưng không phá ô đang gõ
 // Chỉ vẽ lại các màn hiển thị dữ liệu; màn đang nhập liệu (sửa máy, báo tin…) giữ nguyên
-const LIVE_VIEWS = ['home', 'cal', 'list', 'hist', 'may', 'queue', 'sync', 'dien', 'me', 'duyet', 'cv', 'cvView', 'cvLap'];
+const LIVE_VIEWS = ['home', 'cal', 'list', 'chuyen', 'hist', 'may', 'queue', 'sync', 'dien', 'me', 'duyet', 'cv', 'cvView', 'cvLap'];
 function softRender() {
   const a = document.activeElement, cur = topV();
   if (!cur || LIVE_VIEWS.indexOf(cur.v) < 0) { renderSync(); return; }
@@ -2257,6 +2278,7 @@ VIEWS.may = {
         <dt>${t('maTB')}</dt><dd class="mono">${esc(m.ma)}</dd>
         <dt>${t('name')}</dt><dd>${esc(m.ten)}${m.tenPhu ? `<span class="zi" lang="zh-CN">${esc(m.tenPhu)}</span>` : ''}</dd>
         <dt>${t('loaiNhom')}</dt><dd>${esc(grpLabel(m.nhom))}</dd>
+        ${m.chuyen && S.V.chByMa[m.chuyen] ? `<dt>${t('chuyen')}</dt><dd><button class="lnk" data-act="chuyen" data-ma="${esc(m.chuyen)}">${esc(m.chuyen)}${S.V.chByMa[m.chuyen].tenZh ? ' · ' + esc(S.V.chByMa[m.chuyen].tenZh) : ''}</button></dd>` : ''}
         ${m.viTri ? `<dt>${t('location')}</dt><dd>${esc(m.viTri)}</dd>` : ''}
         ${m.ngayDuaVao ? `<dt>${t('ngayDuaVao')}</dt><dd>${fmtD(m.ngayDuaVao)}</dd>` : ''}
         ${m.phuTrach ? `<dt>${t('phuTrach')}</dt><dd>${esc(m.phuTrach)}</dd>` : ''}
@@ -2386,13 +2408,101 @@ function byGroup(list) {
   return out;
 }
 const SYM = { xong: '✓', qua: '!', nay: '!', kh: '•' };
+// ---------- Gọn: khối bấm để mở / đóng (trạng thái giữ trong S.f.mo) ----------
+function gap(k, tieuDe, n, cls, inner) {
+  const mo = !!(S.f.mo || {})[k];
+  return `<div class="gap ${cls || ''}${mo ? ' mo' : ''}"><button class="gaph" data-act="gap" data-k="${esc(k)}" aria-expanded="${mo}"><span class="gt">${tieuDe}</span><span class="gn">${n}</span>${IC.chev}</button>${mo ? `<div class="gapb">${inner()}</div>` : ''}</div>`;
+}
+const theoHan = (a, today) => a.slice().sort((x, y) => stOf(x, today).d - stOf(y, today).d);
+const dsMayRows = (a, today) => `<div class="list">${theoHan(a, today).map((m) => mRow(m, stOf(m, today), true)).join('')}</div>`;
+// ---------- Chuyền sản xuất ----------
+const mayCuaCh = (ma) => activeMay().filter((m) => m.chuyen === ma);
+function chTomTat(ma, today) {
+  const o = { n: 0, qua: 0, nay: 0, sap: 0, gan: '' };
+  mayCuaCh(ma).forEach((m) => { o.n++; const k = stOf(m, today).k; if (o[k] !== undefined) o[k]++; if (m.hanKeTiep && (!o.gan || m.hanKeTiep < o.gan)) o.gan = m.hanKeTiep; });
+  return o;
+}
+const xuongNgan = (v) => String(v || '').split(' · ')[0];
+// Ô gọn cho lưới chuyền: mã lớn, tên Trung một dòng, số máy, trạng thái
+function chTile(c, today) {
+  const s = chTomTat(c.ma, today), k = s.qua ? 'qua' : s.nay ? 'nay' : s.sap ? 'sap' : s.n ? 'ok' : 'trong';
+  const st = s.qua ? tv('chQua', { n: s.qua }) : s.nay ? tv('d_nay') : s.sap ? tv('chSap', { n: s.sap }) : s.n ? tv('chOk') : '';
+  return `<button class="chtile t-${k}" data-act="chuyen" data-ma="${esc(c.ma)}"><b>${esc(c.ma)}</b>${c.tenZh ? `<span class="zi" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}
+    <span class="sub">${esc(xuongNgan(c.viTri))}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}</span>${st ? `<span class="cst">${st}</span>` : ''}</button>`;
+}
+const chDangDung = () => (S.V.ch || []).filter((c) => c.hoatDong !== false);
+function chSecHtml(today) {
+  const chs = chDangDung();
+  return chs.length ? sec('chSec', chs.length) + `<div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>` : '';
+}
+// Máy không thuộc chuyền, gom theo nhóm; mỗi nhóm một dòng, bấm mới hiện máy
+function nhomGonHtml(list, today, pre) {
+  return byGroup(list).map(([g, a]) => {
+    const nq = a.filter((m) => stOf(m, today).k === 'qua').length;
+    return gap(pre + g, esc(grpLabel(g)), `${a.length}${nq ? ` · <b class="warnx">${tv('chQua', { n: nq })}</b>` : ''}`, '', () => dsMayRows(a, today));
+  }).join('');
+}
+// Bảo dưỡng · Tổng quan: quá hạn / hôm nay / sắp đến hạn gom lại, bấm mới hiện; rồi đến các chuyền, thiết bị khác
+function bdTong() {
+  const today = TODAY(), all = activeMay(), by = { qua: [], nay: [], sap: [] };
+  all.forEach((m) => { const k = stOf(m, today).k; if (by[k]) by[k].push(m); });
+  let o = '';
+  if (by.qua.length) o += gap('qua', t('st_qua'), by.qua.length, 'g-qua', () => dsMayRows(by.qua, today));
+  if (by.nay.length) o += gap('nay', t('st_nay'), by.nay.length, 'g-nay', () => dsMayRows(by.nay, today));
+  if (by.sap.length) o += gap('sap', t('sapN', { n: nhacTruoc() }), by.sap.length, 'g-sap', () => dsMayRows(by.sap, today));
+  if (!by.qua.length && !by.nay.length) o += `<div class="card empty">${t('bdOkHet')}</div>`;
+  o += chSecHtml(today);
+  const khac = all.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
+  if (khac.length) o += sec('chKhac', khac.length) + nhomGonHtml(khac, today, 'bg:');
+  return o;
+}
+VIEWS.chuyen = {
+  html(p) {
+    const c = S.V.chByMa[p.ma];
+    if (!c) return `<div class="card empty">${t('notFound')}</div>`;
+    const today = TODAY(), a = mayCuaCh(c.ma), s = chTomTat(c.ma, today);
+    let o = `<div class="card pad chhead"><span class="code">${esc(c.ma)}</span>${c.maTaiSan && c.maTaiSan !== c.ma ? ` <span class="code">${esc(c.maTaiSan)}</span>` : ''}
+      <h1 class="cvh">${esc(c.ten || c.ma)}${c.tenZh ? `<span class="zh2" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}</h1>
+      <div class="sub">${esc(c.viTri || '')}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}${s.qua ? ` · <b class="warnx">${tv('chQua', { n: s.qua })}</b>` : ''}</div></div>`;
+    o += sec('chMay', a.length) + (a.length ? dsMayRows(a, today) : `<div class="card empty">${t('chChuaMay')}</div>`);
+    if (can('may')) o += `<div class="btns" style="margin:10px 0 4px"><button class="btn ghost sm" data-act="chThemMay" data-ma="${esc(c.ma)}">${IC.plus} ${t('chThemMay')}</button><button class="btn ghost sm" data-act="chSua" data-ma="${esc(c.ma)}">${IC.edit} ${t('chSua')}</button></div>`;
+    const tt = ['maTaiSan', 'quyCach', 'nhaSX', 'tinhNang', 'tocDoChuan', 'tocDoThucTe', 'viTri', 'soXuatXuong', 'ngaySX', 'ngayCaiTao', 'ngayVN', 'ghiChu'].filter((k) => c[k]);
+    if (tt.length) o += sec('chTT') + `<div class="card pad"><dl class="kv kvwide">${tt.map((k) => `<dt>${t('ch_' + k)}</dt><dd>${esc(c[k])}</dd>`).join('')}</dl></div>`;
+    return o;
+  }
+};
+const CH_SUA = ['ten', 'tenZh', 'maTaiSan', 'quyCach', 'nhaSX', 'tinhNang', 'tocDoChuan', 'tocDoThucTe', 'viTri', 'soXuatXuong', 'ngaySX', 'ngayCaiTao', 'ngayVN', 'ghiChu'];
+VIEWS.chEdit = {
+  html(p) {
+    const c = S.V.chByMa[p.ma] || {};
+    return `<form id="chForm" class="card pad" autocomplete="off"><p style="margin:0 0 12px"><span class="code">${esc(p.ma)}</span></p>
+      ${CH_SUA.map((k) => `<label class="fld"><span>${t('ch_' + k)}</span>${k === 'ghiChu' ? `<textarea class="inp" id="ch_${k}" rows="2" maxlength="500">${esc(c[k] || '')}</textarea>` : `<input class="inp" id="ch_${k}" value="${esc(c[k] || '')}" maxlength="200">`}</label>`).join('')}
+      <div class="err" id="chErr" hidden></div>
+      <div class="btns" style="margin-top:12px"><button type="button" class="btn ghost" data-act="back">${t('cancel')}</button><button type="submit" class="btn" id="chOk">${t('save')}</button></div></form>`;
+  },
+  after(p) {
+    $('#chForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pl = { ma: p.ma }; CH_SUA.forEach((k) => { pl[k] = $('#ch_' + k).value.trim(); });
+      const b = $('#chOk'); b.disabled = true;
+      try {
+        const d = await api('saveLine', pl);
+        S.base.chuyen = (S.base.chuyen || []).filter((x) => x.ma !== d.chuyen.ma).concat([d.chuyen]);
+        rebuild(); toast(t('saved')); back();
+      } catch (x) { b.disabled = false; const fe = $('#chErr'); fe.innerHTML = x.code === 'MANG' ? t('needNet') : errMsg(x); fe.hidden = false; }
+    });
+  }
+};
 VIEWS.cal = {
   html() {
     const f = S.f, y = f.calYear, today = TODAY();
     const list = calFilter();
     const legend = `<div class="legend"><span><i class="c-xong"></i>${t('st_xong')}</span><span><i class="c-nay"></i>${t('st_nay')}</span><span><i class="c-qua"></i>${t('st_qua')}</span><span><i class="c-kh"></i>${t('planned')}</span></div>`;
+    const segM = `<div class="seg" role="tablist">${[['tong', 'bdTong'], ['year', 'year'], ['month', 'month']].map(([m, k]) =>
+      `<button class="${f.calMode === m ? 'on' : ''}" data-act="calMode" data-m="${m}">${tv(k)} ${tz(k)}</button>`).join('')}</div>`;
+    if (f.calMode === 'tong') return listSeg('cal') + bdTomTat() + `<div class="caltools">${segM}</div>` + bdTong();
     let o = listSeg('cal') + bdTomTat() + `<div class="caltools">
-      <div class="seg" role="tablist"><button class="${f.calMode === 'year' ? 'on' : ''}" data-act="calMode" data-m="year">${tv('year')} ${tz('year')}</button><button class="${f.calMode === 'month' ? 'on' : ''}" data-act="calMode" data-m="month">${tv('month')} ${tz('month')}</button></div>
+      ${segM}
       <div class="stepper"><button data-act="calStep" data-d="-1" aria-label="-">${IC.left}</button><b>${f.calMode === 'year' ? t('yearN', { y }) : t('monthN', { m: f.calMonth }) + ' / ' + y}</b><button data-act="calStep" data-d="1" aria-label="+">${IC.right}</button></div>
       <button class="btn ghost sm" data-act="export">${IC.dl} ${t('exportXls')}</button></div>`;
     o += grpChips(f.calGrp, 'calGrp') + legend;
@@ -2521,6 +2631,11 @@ function listBody() {
     return dtable([['thCode'], ['thTen'], ['thNhom'], ['thViTri'], ['thChuKy', '', 'num'], ['thGanNhat', '', 'num'], ['thHan', '', 'num'], ['thTT'], ['confirm']], tr) + pager('may', list.length);
   }
   if (f.st) return sec('st_' + f.st, list.length) + `<div class="list">${list.map((m) => mRow(m, stOf(m), true)).join('')}</div>`;
+  // Mặc định (không tìm, không lọc): mỗi chuyền một dòng, thiết bị khác gom theo nhóm, bấm mới hiện máy
+  if (!f.q && !f.grp) {
+    const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
+    return chSecHtml(today) + (khac.length ? sec('chKhac', khac.length) + nhomGonHtml(khac, today, 'lg:') : '');
+  }
   return byGroup(list).map(([g, arr]) => sec('group', arr.length).replace(t('group'), esc(g || '—')) +
     `<div class="list">${arr.map((m) => mRow(m, stOf(m), false)).join('')}</div>`).join('');
 }
@@ -2529,12 +2644,14 @@ function listBody() {
 VIEWS.mayEdit = {
   html(p) {
     const m = p.ma ? S.V.byMa[p.ma] : null;
-    const v = m || { ten: '', tenPhu: '', nhom: S.f.grp && S.f.grp !== '__stop' ? S.f.grp : '', viTri: '', chuKy: 30, hanKeTiep: TODAY(), noiDung: '', hoatDong: true, phuTrach: '', ngayDuaVao: '' };
+    const v = m || { ten: '', tenPhu: '', nhom: S.f.grp && S.f.grp !== '__stop' ? S.f.grp : '', viTri: '', chuKy: 30, hanKeTiep: TODAY(), noiDung: '', hoatDong: true, phuTrach: '', ngayDuaVao: '', chuyen: p.chuyen || '' };
+    const chOpt = (S.V.ch || []).length ? `<label class="fld"><span>${t('chuyen')}</span><select class="inp" id="eCh"><option value="">${esc(tp('chKhong'))}</option>${S.V.ch.map((c) => `<option value="${esc(c.ma)}"${(v.chuyen || '') === c.ma ? ' selected' : ''}>${esc(c.ma + (c.tenZh ? ' · ' + c.tenZh : ''))}</option>`).join('')}</select></label>` : '';
     return `<form id="mayForm" class="card pad" autocomplete="off">
       ${m ? `<p style="margin:0 0 12px"><span class="code">${esc(m.ma)}</span></p>` : ''}
       <label class="fld"><span>${t('name')}</span><input class="inp" id="eTen" value="${esc(v.ten)}" maxlength="120" required><div class="help">${t('mNameHelp')}</div></label>
       <label class="fld"><span>${t('name2')}</span><input class="inp" id="eTenPhu" value="${esc(v.tenPhu)}" maxlength="120"></label>
       <label class="fld"><span>${t('group')}</span><input class="inp" id="eNhom" value="${esc(v.nhom)}" maxlength="60" list="grpList"><datalist id="grpList">${S.V.groups.filter(Boolean).map((g) => `<option value="${esc(g)}"></option>`).join('')}</datalist></label>
+      ${chOpt}
       <label class="fld"><span>${t('location')}</span><input class="inp" id="eViTri" value="${esc(v.viTri)}" maxlength="120"></label>
       <div class="tsgrid"><label class="fld"><span>${t('phuTrach')}</span><input class="inp" id="ePT" value="${esc(v.phuTrach || '')}" maxlength="120" list="ptList"><datalist id="ptList">${(S.base.nguoiDung || []).map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist></label>
       <label class="fld"><span>${t('ngayDuaVao')}</span><input class="inp" id="eNDV" type="date" value="${esc(v.ngayDuaVao || '')}"></label></div>
@@ -2562,6 +2679,7 @@ async function saveMay(ma) {
   const p = { ma: ma || '', ten: $('#eTen').value.trim(), tenPhu: $('#eTenPhu').value.trim(), nhom: $('#eNhom').value.trim(),
     viTri: $('#eViTri').value.trim(), chuKy: Math.round(+$('#eChuKy').value), hanKeTiep: $('#eHan').value, noiDung: $('#eNoiDung').value.trim(),
     hoatDong: $('#eHD') ? $('#eHD').checked : true, phuTrach: $('#ePT').value.trim(), ngayDuaVao: $('#eNDV').value };
+  if ($('#eCh')) p.chuyen = $('#eCh').value;
   const fe = $('#eErr'), show = (h) => { fe.innerHTML = h; fe.hidden = false; };
   if (!p.ten) return show(t('THIEU_TEN'));
   if (!(p.chuKy >= 1 && p.chuKy <= 3650)) return show(t('CHU_KY_SAI'));
@@ -3131,6 +3249,10 @@ const ACT = {
   exportGo: (el) => exportExcel(+el.dataset.y),
   shareFile: async () => { try { await navigator.share({ files: [S.shareFile], title: S.shareFile.name }); } catch (e) { /* người dùng huỷ */ } },
   newMay: () => go('mayEdit', {}),
+  gap: (el) => { S.f.mo = S.f.mo || {}; S.f.mo[el.dataset.k] = !S.f.mo[el.dataset.k]; softRender(); },
+  chuyen: (el) => go('chuyen', { ma: el.dataset.ma }),
+  chSua: (el) => go('chEdit', { ma: el.dataset.ma }),
+  chThemMay: (el) => go('mayEdit', { chuyen: el.dataset.ma }),
   editMay: (el) => go('mayEdit', { ma: el.dataset.ma }),
   recalc: () => { const p = topV().p; S.hanTouched = false; recalcHan(p.ma); },
   labels: () => go('labels', {}),
@@ -3404,14 +3526,14 @@ Object.assign(ERR, {
 });
 
 // Máy chủ cũ hơn bản app cần (ví dụ triển khai chưa lên Phiên bản mới): báo rõ cách sửa
-const SRV_CAN = '2.4.0';
+const SRV_CAN = '2.5.0';
 function verLt(a, b) {
   const x = String(a || '0').split('.').map((n) => +n || 0), y = String(b).split('.').map((n) => +n || 0);
   for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0);
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.0', 'srvMissCh']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -6255,6 +6377,21 @@ Object.assign(TX, {
   lapTrong: ['Chưa có việc lặp lại', '暂无重复工作'], lapCanNgay: ['Chọn ít nhất một ngày.', '请至少选择一天。'], lapNgayN: ['ngày {n}', '{n}号'],
   doneViec: ['Báo vào Telegram khi giao việc', '派工时通知Telegram群'],
   thViec: ['Việc', '工作'], thLoaiCV: ['Loại', '类型'], thUu: ['Ưu tiên', '优先'], thNguoiLam: ['Người làm', '执行人'], thHanCV: ['Hạn', '期限'],
+  srvMissCh: ['Bản 2.5: chuyền sản xuất (xếp máy theo chuyền).', '2.5版：生产线（按产线管理设备）。'],
+  t_chuyen: ['Chuyền sản xuất', '生产线'], t_chEdit: ['Sửa thông tin chuyền', '编辑产线信息'],
+  bdTong: ['Tổng quan', '概览'], chSec: ['Chuyền sản xuất', '生产线'], chKhac: ['Thiết bị khác', '其他设备'],
+  chQua: ['{n} máy quá hạn', '{n}台逾期'], chSap: ['{n} máy sắp đến hạn', '{n}台即将到期'], chOk: ['Đúng hạn', '正常'],
+  chSoMay: ['{n} máy', '{n}台'], chMay: ['Máy trong chuyền', '产线设备'], chTT: ['Thông tin chuyền (sổ cái)', '产线信息（台帐）'],
+  chChuaMay: ['Chưa có máy nào trong chuyền. Mở một máy → Sửa → chọn Chuyền.', '该产线暂无设备。打开设备→编辑→选择产线。'],
+  chuyen: ['Chuyền sản xuất', '所属产线'], chKhong: ['— Không thuộc chuyền nào —', '— 不属于任何产线 —'],
+  bdOkHet: ['Không có máy quá hạn hay đến hạn hôm nay.', '没有逾期或今天到期的设备。'], chSua: ['Sửa thông tin', '编辑信息'],
+  chThemMay: ['Thêm máy vào chuyền', '添加设备到产线'], chTatCa: ['Xem tất cả máy', '查看全部设备'],
+  ch_maTaiSan: ['Mã số thiết bị', '设施编号'], ch_quyCach: ['Quy cách', '型号规格'], ch_nhaSX: ['Nhà sản xuất', '生产厂家'],
+  ch_tinhNang: ['Tính năng sản phẩm', '产品特性'], ch_tocDoChuan: ['Tốc độ tiêu chuẩn', '标准速度'], ch_tocDoThucTe: ['Tốc độ thực tế', '实际速度'],
+  ch_viTri: ['Vị trí', '位置'], ch_soXuatXuong: ['Mã số xuất xưởng', '出厂编号'], ch_ngaySX: ['Ngày sản xuất', '制造日期'],
+  ch_ngayCaiTao: ['Ngày cải tạo', '改造日期'], ch_ngayVN: ['Ngày về Việt Nam', 'VN日期'], ch_ghiChu: ['Ghi chú', '备注'],
+  ch_ten: ['Tên chuyền', '产线名称'], ch_tenZh: ['Tên tiếng Trung', '中文名称'],
+  KHONG_CO_CHUYEN: ['Không tìm thấy chuyền', '找不到产线'],
   srvMissCV: ['Bản 2.4: công việc, giao việc, việc lặp lại, báo cáo tháng, tự dịch Việt ↔ Trung.', '2.4版：工作、派工、重复工作、月度报表、中越自动翻译。'],
   cvTuDich: ['Lưu xong app tự dịch sang tiếng Trung (gõ tiếng Trung thì dịch sang tiếng Việt).', '保存后自动翻译成越南语或中文。'],
   cvBanDich: ['Bản dịch (tự động, sửa được nếu sai)', '译文（自动翻译，如有错误可修改）'],

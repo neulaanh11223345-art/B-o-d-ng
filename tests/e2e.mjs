@@ -138,7 +138,17 @@ await page.click('#listBody .row >> nth=0'); await wait();
 await page.click('.bigbtn[data-act="xn"]'); await wait();
 if (await page.isVisible('[data-act="ktAll"]')) await page.click('[data-act="ktAll"]');
 await page.click('#fOk'); await wait(900);
-ok('Xác nhận bảo dưỡng từ hồ sơ thiết bị');
+// Bảo dưỡng · Tổng quan: máy quá hạn gom lại, bấm mới hiện; mỗi chuyền một ô, mở ra thấy máy trong chuyền
+await page.evaluate(() => tab('cal')); await wait();
+assert.ok(await page.isVisible('.gaph[data-k="qua"]'), 'có dòng Quá hạn');
+assert.equal(await page.locator('.gap .gapb').count(), 0, 'mặc định thu gọn');
+await page.click('.gaph[data-k="qua"]'); await wait();
+assert.ok(await page.locator('.gapb .row').count() > 0, 'bấm vào hiện danh sách máy quá hạn');
+await page.click('.chtile[data-ma="VKY01"]'); await wait();
+assert.match(await text('#barTitle'), /Chuyền sản xuất/);
+assert.match(await text('#main'), /喷印机 VKY01/);
+assert.match(await text('#main'), /HNJX-HD2000/);
+ok('Xác nhận bảo dưỡng từ hồ sơ thiết bị; Bảo dưỡng gọn (quá hạn bấm mới hiện), xem máy theo chuyền');
 
 // 9. Kỹ thuật thấy máy hỏng: tự ghi việc sửa chữa (mất mạng vẫn ghi được), ghi nguyên nhân + giờ dừng máy
 await page.click('.tabs .tab[data-v="home"]'); await wait();

@@ -17,15 +17,19 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.4.0';
+var PHIEN_BAN = '2.5.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
 
 // Cột mới luôn thêm vào CUỐI mỗi trang để sheet cũ vẫn đọc đúng (capNhatTieuDe tự ghi lại dòng tiêu đề).
 var BANG = {
+  // Chuyen: mã chuyền sản xuất máy này thuộc về (vd VKY01), để trống nếu không thuộc chuyền nào
   May: ['Ma', 'Ten', 'TenPhu', 'Nhom', 'ViTri', 'ChuKy', 'HanKeTiep', 'NoiDung', 'HoatDong', 'CapNhat', 'HangMuc', 'LinhKien',
-    'PhuTrach', 'NgayDuaVao'],
+    'PhuTrach', 'NgayDuaVao', 'Chuyen'],
+  // Chuyền sản xuất (theo Sổ cái quản lý cơ sở vật chất VKY-PR-E01-03). Sửa trực tiếp trên sheet hoặc trong app (Quản lý)
+  Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
+    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat'],
   LichSu: ['ID', 'Ma', 'TenMay', 'Ngay', 'DenHan', 'NguoiLam', 'GhiChu', 'NguoiXacNhan', 'ThoiGian', 'TrangThai', 'OpId', 'UID', 'Huy', 'ChiTiet'],
   NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh'],
   // Loai: cao (cao áp, nhiều mã OBIS) · ha (tủ tổng hạ áp) · nhanh (công tơ nhánh) · nuoc (đồng hồ nước, m³)
@@ -88,7 +92,7 @@ var QUYEN = {
   nhatky: ['admin', 'quanly'],
   giaoviec: ['admin', 'quanly']     // giao việc, kiểm tra việc xong, việc lặp lại
 };
-var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveUser', 'changePin', 'notifySave',
+var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring'];
@@ -220,6 +224,7 @@ function dieuHuong(a, p, req) {
     case 'confirm': canQuyen(u, 'xacnhan'); return xacNhan(u, p, s(req.opId));
     case 'undo': return huyXacNhan(u, p);
     case 'saveMachine': canQuyen(u, 'may'); return luuMay(u, p);
+    case 'saveLine': canQuyen(u, 'may'); return luuChuyen(u, p);
     case 'saveLists': canQuyen(u, 'may'); return luuDanhSach(u, p);
     case 'users': canQuyen(u, 'nguoidung'); return { users: dsNguoiDung().map(congKhaiAdmin) };
     case 'saveUser': canQuyen(u, 'nguoidung'); return luuNguoiDung(u, p);
@@ -329,14 +334,14 @@ function mayTuDong(r, i) {
     ma: s(r[0]), ten: s(r[1]), tenPhu: s(r[2]), nhom: s(r[3]), viTri: s(r[4]),
     chuKy: Math.round(Number(r[5])) || 0, hanKeTiep: ngayStr(r[6]), noiDung: s(r[7]),
     hoatDong: hd(r[8]), capNhat: tgStr(r[9]), hangMuc: docJson(r[10], []), linhKien: docJson(r[11], []),
-    phuTrach: s(r[12]), ngayDuaVao: ngayStr(r[13]), _r: i + 2
+    phuTrach: s(r[12]), ngayDuaVao: ngayStr(r[13]), chuyen: s(r[14]).toUpperCase(), _r: i + 2
   };
 }
 function mayThanhDong(m) {
   return [m.ma, anToan(m.ten), anToan(m.tenPhu), anToan(m.nhom), anToan(m.viTri), m.chuKy, m.hanKeTiep,
     anToan(m.noiDung), m.hoatDong ? 1 : 0, m.capNhat,
     m.hangMuc && m.hangMuc.length ? JSON.stringify(m.hangMuc) : '', m.linhKien && m.linhKien.length ? JSON.stringify(m.linhKien) : '',
-    anToan(m.phuTrach || ''), m.ngayDuaVao || ''];
+    anToan(m.phuTrach || ''), m.ngayDuaVao || '', m.chuyen || ''];
 }
 function docJson(v, macDinh) {
   var t = s(v); if (!t) return macDinh;
@@ -347,7 +352,52 @@ function timMay(ma) { ma = s(ma).toUpperCase(); return dsMay().filter(function (
 function sachMay(m) {
   return { ma: m.ma, ten: m.ten, tenPhu: m.tenPhu, nhom: m.nhom, viTri: m.viTri, chuKy: m.chuKy,
     hanKeTiep: m.hanKeTiep, noiDung: m.noiDung, hoatDong: m.hoatDong, capNhat: m.capNhat,
-    hangMuc: m.hangMuc || [], linhKien: m.linhKien || [], phuTrach: m.phuTrach || '', ngayDuaVao: m.ngayDuaVao || '' };
+    hangMuc: m.hangMuc || [], linhKien: m.linhKien || [], phuTrach: m.phuTrach || '', ngayDuaVao: m.ngayDuaVao || '', chuyen: m.chuyen || '' };
+}
+// ----- Chuyền sản xuất -----
+var CH_KHOA = ['ma', 'ten', 'tenZh', 'maTaiSan', 'quyCach', 'nhaSX', 'tinhNang', 'tocDoChuan', 'tocDoThucTe', 'viTri', 'soXuatXuong',
+  'ngaySX', 'ngayCaiTao', 'ngayVN', 'ghiChu'];
+function chTuDong(r, i) {
+  var o = { _r: i + 2 };
+  CH_KHOA.forEach(function (k, j) { o[k] = s(r[j]); });
+  o.ma = o.ma.toUpperCase(); o.hoatDong = s(r[15]) === '' ? true : hd(r[15]); o.capNhat = tgStr(r[16]);
+  return o;
+}
+function chThanhDong(o) { return CH_KHOA.map(function (k) { return anToan(o[k] || ''); }).concat([o.hoatDong === false ? 0 : 1, o.capNhat || '']); }
+function dsChuyen() { return docTho('Chuyen').map(chTuDong).filter(function (x) { return x.ma; }); }
+function sachCh(o) { var x = {}; CH_KHOA.forEach(function (k) { x[k] = o[k] || ''; }); x.hoatDong = o.hoatDong !== false; return x; }
+// Lần đầu: tạo 16 chuyền từ sổ cái, xếp máy in phun (喷印机 VKYxx) vào chuyền cùng số. Chạy lại không trùng, không đè máy đã xếp.
+function napChuyen() {
+  if (typeof DL_CHUYEN === 'undefined') return 0;
+  trang('Chuyen'); capNhatTieuDe('Chuyen'); capNhatTieuDe('May');
+  var co = {}, moi = [], bay = thoiGianStr();
+  dsChuyen().forEach(function (x) { co[x.ma] = 1; });
+  DL_CHUYEN.forEach(function (r) {
+    if (co[r[0]]) return;
+    var o = {}; CH_KHOA.forEach(function (k, j) { o[k] = r[j] === undefined || r[j] === null ? '' : String(r[j]); });
+    o.hoatDong = true; o.capNhat = bay; moi.push(chThanhDong(o)); co[r[0]] = 1;
+  });
+  if (moi.length) themNhieu('Chuyen', moi);
+  var n = 0;
+  dsMay().forEach(function (m) {
+    var k = /喷印机\s*VKY\s*0*(\d+)/i.exec(m.ten);
+    if (!k || m.chuyen) return;
+    var ma = 'VKY' + ('0' + k[1]).slice(-2);
+    if (!co[ma]) return;
+    m.chuyen = ma; suaDong('May', m._r, mayThanhDong(m)); n++;
+  });
+  return moi.length + n;
+}
+function luuChuyen(u, p) {
+  var ma = s(p.ma).toUpperCase(), ds = dsChuyen(), x = ds.filter(function (c) { return c.ma === ma; })[0];
+  if (!/^[A-Z0-9._()-]{1,20}$/.test(ma)) throw loi('MA_SAI', 'Mã chuyền không hợp lệ · 产线编号无效');
+  capNhatTieuDe('Chuyen');
+  var moi = !x; if (moi) x = { ma: ma };
+  CH_KHOA.forEach(function (k) { if (k !== 'ma' && p[k] !== undefined) x[k] = catChu(p[k], k === 'ghiChu' ? 500 : 200); });
+  if (p.hoatDong !== undefined) x.hoatDong = p.hoatDong !== false;
+  x.capNhat = thoiGianStr();
+  if (moi) themDong('Chuyen', chThanhDong(x)); else suaDong('Chuyen', x._r, chThanhDong(x));
+  return { chuyen: sachCh(x) };
 }
 
 // ----- Lịch sử -----
@@ -440,6 +490,7 @@ function layDuLieu(u) {
     homNay: homNay,
     thoiGian: thoiGianStr(),
     may: dsMay().map(sachMay),
+    chuyen: dsChuyen().map(sachCh),
     lichSu: docLichSu().filter(function (x) { return x.ngay >= tu; }).map(sachLS),
     nguoiDung: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) { return x.ten; }),
     congTo: dsCongTo().map(sachCT),
@@ -1015,6 +1066,11 @@ function luuMay(u, p) {
   m.chuKy = chuKy; m.hanKeTiep = han; m.noiDung = catNhieuDong(p.noiDung, 1000); m.hoatDong = hoatDong;
   if (p.phuTrach !== undefined) m.phuTrach = catChu(p.phuTrach, 120);
   if (p.ngayDuaVao !== undefined) { var nd = ngayStr(p.ngayDuaVao); m.ngayDuaVao = hopLeNgay(nd) ? nd : ''; }
+  if (p.chuyen !== undefined) {
+    var ch = s(p.chuyen).toUpperCase();
+    if (ch && !dsChuyen().some(function (c) { return c.ma === ch; })) throw loi('KHONG_CO_CHUYEN', 'Không tìm thấy chuyền · 找不到产线');
+    m.chuyen = ch;
+  }
   m.capNhat = thoiGianStr();
   if (moi) themDong('May', mayThanhDong(m)); else suaDong('May', m._r, mayThanhDong(m));
   return { may: sachMay(m), moi: moi };
@@ -2007,6 +2063,7 @@ function nangCapLanDau() {
     var n = tinhLaiTatCa();
     // Việc ghi từ bản trước chưa có bản dịch: đánh dấu để dịch dần (dichBu, mỗi lần tải dữ liệu vài việc)
     if (!pr.getProperty('DICH_THIEU')) pr.setProperty('DICH_THIEU', '2000-01-01 00:00:00');
+    napChuyen();
     pr.setProperty('NANG_CAP', PHIEN_BAN);
     return 'Đã nâng cấp lên ' + PHIEN_BAN + ' · tính lại ' + n + ' kỳ';
   } finally { lock.releaseLock(); }
@@ -2554,7 +2611,7 @@ function mauKiemTra() {
 // ===================== Cài đặt lần đầu =====================
 // Chạy hàm này một lần trong trình soạn Apps Script (nó cũng hỏi cấp quyền).
 function caiDatBanDau() {
-  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'CongViec', 'ViecLap'].forEach(trang);
+  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'CongViec', 'ViecLap', 'Chuyen'].forEach(trang);
   thuocTinh('SALT'); thuocTinh('TOKEN_KEY');
   if (!dsNguoiDung().length) {
     var bay = thoiGianStr();
@@ -2577,6 +2634,7 @@ function caiDatBanDau() {
       }));
     }
   }
+  napChuyen();
   var c = docCaiDat();
   ghiCaiDat(c);
   try { datLichNhac(c.gio); } catch (e) { /* chạy lại sau khi cấp quyền */ }
@@ -2635,6 +2693,26 @@ var DL_EXCEL = {"nguon":"Sổ điện Credible T1–T10/2026 (đến kỳ 10/10)
   ["PCCC · 消防","nhanh",1,1,"",[null,null,null,null,null,null,null,null,null,null,null,null,954.54,989.9,995.34,1000.25,1003.04,1004.54,1007.59,null,null,1023.65,1041.34,1269.65,1288.65,1291.34,1292.4,1294.3,1295.09]]
 ]};
 // [DL_EXCEL] hết
+
+// [DL_CHUYEN] 16 chuyền theo Sổ cái quản lý cơ sở vật chất (VKY-PR-E01-03 Rev.1), thứ tự cột như CH_KHOA
+var DL_CHUYEN = [
+  ["VKY01", "Dây chuyền sản xuất miếng lót toàn bộ điều khiển bằng servo", "全伺服护垫生产线", "VKY-B-VKY01", "HNJX-HD2000", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "150/175", "2000", "1700/1500", "Xưởng 2 · 2#车间", "H2506", "09/2025", "", "24/10/2025", ""],
+  ["VKY02", "Dây chuyền sản xuất băng vệ sinh toàn bộ điều khiển bằng servo", "全伺服卫生巾生产线", "VKY-B-VKY02", "HNJX-WSJ1200", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "240/280", "1200", "1000", "Xưởng 2 · 2#车间", "H2507", "09/2025", "", "01/10/2025", ""],
+  ["VKY03", "Dây chuyền sản xuất băng vệ sinh điều khiển toàn bộ bằng servo", "全伺服卫生巾生产线", "VKY-B-VKY03", "HNJX-WSJ1200", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "280/320", "1000", "850/750", "Xưởng 2 · 2#车间", "H2508", "09/2025", "", "01/10/2025", ""],
+  ["VKY04", "Dây chuyền sản xuất băng vệ sinh điều khiển toàn bộ bằng servo", "全伺服卫生巾生产线", "VKY-B-VKY04", "HNJX-WSJ1200", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "320/400", "900", "900/750", "Xưởng 2 · 2#车间", "H2509", "10/2025", "", "01/10/2025", ""],
+  ["VKY06", "Thiết bị sản xuất băng vệ sinh điều khiển toàn bộ bằng servo", "全伺服控制卫生巾生产设备", "KY-B-VKY06", "FS-AE-500", "Công ty TNHH Chế tạo Cơ khí Hằng Xương An Khánh · 安庆恒昌机械制造有限公司", "238/278", "600/700", "", "Xưởng 1 · 1#车间", "38412", "05/2005", "05/2019", "", "Được cải tạo bởi Haina · 已由海纳改造"],
+  ["VKY08", "Thiết bị sản xuất băng vệ sinh điều khiển hoàn toàn bằng servo", "全伺服控制卫生巾生产设备", "KY-B-VKY08", "FS-AE-440", "Công ty TNHH Chế tạo Cơ khí Hằng Xương An Khánh · 安庆恒昌机械制造有限公司", "238/278", "700", "700", "Xưởng 1 · 1#车间", "38412", "05/2005", "11/2020", "30/06/2025", "Được cải tạo bởi Haina · 已由海纳改造"],
+  ["VKY09", "Dây chuyền sản xuất lót vệ sinh điều khiển toàn bộ bằng động cơ servo", "全伺服护垫生产线", "VKY-B-VKY09", "HNJX-HD2000", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "150/175", "2000", "1700/1500", "Xưởng 2 · 2#车间", "H2516", "12/2025", "", "01/03/2026", ""],
+  ["VKY10", "Dây chuyền sản xuất băng vệ sinh toàn bộ điều khiển bằng servo", "全伺服卫生巾生产线", "VKY-B-VKY10", "HNJX-WSJ1200", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "280/320", "1000", "850/750", "Xưởng 2 · 2#车间", "H2521", "12/2025", "", "01/03/2026", ""],
+  ["VKY12", "Thiết bị sản xuất băng vệ sinh điều khiển hoàn toàn bằng servo", "全伺服控制卫生巾生产设备", "KY-B-VKY12", "HNJX-WSJ600-GZ009", "Công ty TNHH Sản xuất Máy móc Anqing Hengchang · 安庆恒昌机械制造有限公司", "235/255", "", "", "Xưởng 1 · 1#车间", "38353", "05/2005", "09/2020", "", "Được cải tạo bởi Haina · 已由海纳改造"],
+  ["VKY13", "Thiết bị sản xuất tã quần cho trẻ em", "婴儿拉拉裤设备", "VKY-B-VKY13", "HNJX-H2520", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "Tã quần trẻ em · 婴儿拉拉裤", "800", "500/450", "Xưởng 1 · 1#车间", "H2520", "08/2026", "", "09/09/2026", ""],
+  ["VKY15", "Dây chuyền sản xuất băng vệ sinh toàn servo", "全伺服抓心包卫生巾生产线", "VKY-B-VKY15", "CSG-SN1000EP", "Công ty TNHH Cơ khí Tân Dư Hồng Hàng Châu · 杭州新余宏机械有限公司", "190/240", "800", "", "Xưởng sản xuất · 生产车间", "H21013", "07/2021", "07/2026", "01/10/2025", "Được cải tạo bởi Haina · 已由海纳改造"],
+  ["VKY16", "Dây chuyền sản xuất tã quần người lớn điều khiển toàn bộ bằng servo (VKYC4)", "全伺服驱动成人拉拉裤生产线", "VKYC4(16)", "HNJX-H2407", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "Tã quần người lớn · 成人拉拉裤", "350 miếng/phút · 350片/分钟", "300", "Xưởng 1 · 1#车间", "", "05/2023", "", "01/10/2025", ""],
+  ["VKY17", "Dây chuyền sản xuất băng vệ sinh hoàn toàn điều khiển bằng servo", "全伺服快易包护垫生产线", "VKY-B-VKY17", "HNJX-WSJ1000", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "190/215", "800", "900", "Xưởng 1 · 1#车间", "", "01/2018", "", "28/04/2025", ""],
+  ["VKY18", "Dây chuyền sản xuất băng vệ sinh toàn bộ điều khiển servo tốc độ cao", "全伺服快易包护垫生产线", "KY-B-VKY18", "HNJX-WSJ1000-H1806", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "190/215", "800", "900", "Xưởng 1 · 1#车间", "H1806", "10/2018", "", "01/09/2025", ""],
+  ["VKY21", "Dây chuyền sản xuất băng vệ sinh đóng gói tiện lợi, điều khiển toàn bộ bằng servo", "全伺服驱动快易包护垫生产线", "KY-B-VKY21", "HNJX-H1907", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "150/175", "1500", "", "Xưởng 2 · 2#车间", "H1907", "10/2019", "", "", ""],
+  ["VKY23", "Dây chuyền sản xuất miếng nhỏ điều khiển hoàn toàn bằng servo", "全伺服驱动尿失禁巾生产线", "KY-B-VKY23", "HNJX-H2113", "Công ty TNHH thiết bị Haina Hàng Châu · 杭州海纳机械有限公司", "215", "850", "1000", "Xưởng 1 · 1#车间", "H2113", "06/2022", "", "08/07/2025", ""]
+];
 
 // Công việc cũ từ Excel của nhà máy: nv [khoá, mã NV, tên, tên Trung, vai trò]; cv [STT, việc, người làm (người đầu là người chính), ngày bắt đầu, hạn, trạng thái, loại];
 // sc (Bảng ghi chép sửa chữa) [ngày, vị trí, sự cố, cách sửa, từ, đến, phụ tùng, quy cách, người sửa]

@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.4.0');
+  assert.equal(d.phienBan, '2.5.0');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -496,4 +496,30 @@ test('nhập dữ liệu cũ: tạo tài khoản theo bảng phân công, nhập
   b.ctx.nhapSoDienExcel(true);
   const d2 = ok(b.call('data', {}, b.ql));
   assert.ok(d2.chiSo.some((x) => x.ky === '2026-10-10'), 'có số điện kỳ 10/10');
+});
+test('chuyền sản xuất: nâng cấp tạo 16 chuyền từ sổ cái, xếp máy in phun vào đúng chuyền; đổi chuyền của máy; sửa thông tin chuyền', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  let d = ok(b.call('data', {}, ql));
+  assert.equal(d.chuyen.length, 16);
+  const v16 = d.chuyen.find((c) => c.ma === 'VKY16');
+  assert.equal(v16.maTaiSan, 'VKYC4(16)');
+  assert.match(v16.ngaySX, /05\/2023/);
+  const may = (ten) => d.may.find((m) => m.ten === ten);
+  assert.equal(may('喷印机 VKY01').chuyen, 'VKY01');
+  assert.equal(may('喷印机 VKY16').chuyen, 'VKY16');
+  assert.equal(may('Máy hút bụi VKY01').chuyen, '', 'chỉ xếp máy in phun');
+  // Đổi chuyền của một máy; mã chuyền sai thì báo lỗi
+  const hb = may('Máy hút bụi VKY01');
+  const sua = (more) => b.call('saveMachine', Object.assign({ ma: hb.ma, ten: hb.ten, nhom: hb.nhom, chuKy: hb.chuKy, hanKeTiep: hb.hanKeTiep }, more), ql);
+  assert.equal(ok(sua({ chuyen: 'VKY01' })).may.chuyen, 'VKY01');
+  err(sua({ chuyen: 'VKY99' }), 'KHONG_CO_CHUYEN');
+  // Sửa thông tin chuyền: Quản lý được, kỹ thuật không
+  assert.equal(ok(b.call('saveLine', { ma: 'VKY01', ghiChu: 'Thay dao cắt 10/2026' }, ql)).chuyen.ghiChu, 'Thay dao cắt 10/2026');
+  err(b.call('saveLine', { ma: 'VKY01', ghiChu: 'x' }, kt), 'KHONG_QUYEN');
+  // Chạy lại không tạo trùng, không đè máy đã xếp
+  b.ctx.napChuyen();
+  d = ok(b.call('data', {}, ql));
+  assert.equal(d.chuyen.length, 16);
+  assert.equal(d.chuyen.find((c) => c.ma === 'VKY01').ghiChu, 'Thay dao cắt 10/2026');
 });
