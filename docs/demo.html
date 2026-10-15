@@ -2293,7 +2293,8 @@ function luuCongViec(u, p, opId) {
   capNhatTieuDe('CongViec');
   if (!x) {
     id = idCV(id, 'CV') || 'CV' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900);
-    var so = soLonNhat(ds) + 1, td = songNgu(f.tieuDe), mt = songNgu(f.moTa);
+    // Bản dịch gửi kèm (vd app điền sẵn khi giao bảo dưỡng máy có tên tiếng Trung) thì dùng luôn, không thì tự dịch
+    var so = soLonNhat(ds) + 1, td = dichKhiSua(f.tieuDe, '', '', p.tieuDeDich), mt = dichKhiSua(f.moTa, '', '', p.moTaDich);
     x = { id: id, so: so, tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], ketQuaDich: '', nguyenNhanDich: '',
       loai: f.loai, uuTien: f.uuTien, ma: f.ma, han: han, trangThai: 'CHO_GIAO',
       uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay,
@@ -4268,7 +4269,8 @@ __dichMau.push(
   ['Lỗi khí nén / thuỷ lực', '气动/液压故障'], ['Chờ vật tư', '等待材料'], ['Chờ bóng đèn', '等灯泡'], ['Chờ dừng máy', '等待停机'],
   ['Còn 1 bóng chập chờn', '还有1个灯时亮时不亮'], ['Thay bóng đèn', '更换灯泡'], ['Vệ sinh máy', '清洁设备'], ['Kiểm tra', '检查'],
   ['Kiểm tra bình chữa cháy', '检查灭火器'], ['Vệ sinh nhà ăn', '清洁食堂'], ['Sửa máy', '修理设备'], ['Thay dầu máy nén khí', '更换空压机机油'],
-  ['Thay vòi nước xưởng 1', '更换一车间水龙头'], ['Lắp quạt', '安装风扇'], ['Không cần nữa', '不需要了']
+  ['Thay vòi nước xưởng 1', '更换一车间水龙头'], ['Lắp quạt', '安装风扇'], ['Không cần nữa', '不需要了'],
+  ['Kiểm tra mức dầu máy nén khí', '检查空压机油位'], ['Dầu xuống dưới vạch, cần châm thêm', '油位低于刻度线，需要加油']
 );
 
 // Thêm 3 kỹ thuật viên mẫu và công việc mẫu (đủ trạng thái), việc lặp lại mẫu
@@ -4336,9 +4338,9 @@ function mauCongViec() {
       lk: [{ id: 'LKCV01', ten: 'Công tắc hành trình · 行程开关', quyCach: 'TZ-8108', dv: 'cái · 个', sl: 1, loai: 'THAY' }] }),
     viec({ t: 'Vệ sinh tủ điện xưởng 1 · 清洁一车间电柜', l: 'VS', ma: 'M039', han: -1, tu: -3, lam: 'NV006',
       buoc: [['batdau', -1, '13:30'], ['xong', -1, '15:00', 'Thổi bụi, siết lại đầu cốt · 吹灰，紧固接线端子']] }),
-    viec({ t: 'Bảo dưỡng định kỳ ' + (m1 ? m1.ten : 'M001') + ' · 定期保养', l: 'BD', ma: 'M001', han: 0, lam: 'NV003' }),
+    viec({ t: 'Bảo dưỡng định kỳ ' + (m1 ? m1.ten : 'M001') + ' · 定期保养 ' + (m1 ? m1.ten : 'M001'), l: 'BD', ma: 'M001', han: 0, lam: 'NV003' }),
     viec({ t: 'Máy nén khí số 2 báo nhiệt độ cao, tự dừng · 2号空压机高温停机', l: 'SUA', u: 'GAP', ma: 'M038', han: -9, tu: -9, lam: 'NV005', phu: ['NV004'],
-      buoc: [['batdau', -9, '08:20'], ['xong', -9, '10:40', 'Vệ sinh két làm mát, thay lọc gió, chạy thử ổn định · 清洁冷却器，更换空气滤芯']],
+      buoc: [['batdau', -9, '08:45'], ['xong', -9, '10:40', 'Vệ sinh két làm mát, thay lọc gió, chạy thử ổn định · 清洁冷却器，更换空气滤芯']],
       nn: 'Két làm mát bám bụi dày · 冷却器积尘', dung: 150, kt: true, dong: true,
       lk: [{ id: 'LK01', ten: 'Lọc gió · 空气滤芯', quyCach: '', dv: 'cái · 个', sl: 1, loai: 'THAY' }] }),
     viec({ t: 'Máy in VKY16 in mờ, mất nét · 喷印机VKY16喷印模糊', l: 'SUA', u: 'CAO', ma: 'M005', han: -6, tu: -6, lam: 'NV003',
@@ -9730,7 +9732,7 @@ VIEWS.cvNew = {
       p.init = 1;
       const x = p.id ? S.V.cvById[p.id] : null;
       if (x) Object.assign(p, { sua: true, tieuDe: x.tieuDe, moTa: x.moTa || '', dTD: x.tieuDeDich || '', dMT: x.moTaDich || '', dGoc: { td: x.tieuDeDich || '', mt: x.moTaDich || '' }, loai: x.loai, uu: x.uuTien, ma: x.ma || '', han: x.han || '', kt: x.canKiemTra, ktSua: true, sel: { lam: x.uidLam || '', phu: (x.uidPhu || []).slice() } });
-      else Object.assign(p, { id: 'CV' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase(), tieuDe: p.tieuDe || '', moTa: '', loai: p.loai || 'SUA',
+      else Object.assign(p, { id: 'CV' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase(), tieuDe: p.tieuDe || '', tdGoc: p.tieuDe || '', moTa: '', loai: p.loai || 'SUA',
         uu: 'TB', ma: p.ma || '', han: p.han === undefined ? '' : p.han, sel: { lam: '', phu: [] } });
       p.anh = [];
     }
@@ -9770,6 +9772,7 @@ async function cvLuu(p, tiep) {
   // Bản dịch chỉ gửi khi người sửa đã đổi nó (sửa tay, hoặc xoá trống để dịch lại)
   if (p.sua && p.dTD !== p.dGoc.td) pl.tieuDeDich = (p.dTD || '').trim();
   if (p.sua && p.dMT !== p.dGoc.mt) pl.moTaDich = (p.dMT || '').trim();
+  if (!p.sua && p.tdTu && pl.tieuDe === p.tdGoc.trim()) pl.tieuDeDich = p.tdTu;   // tên điền sẵn, chưa sửa
   if (can('giaoviec')) { pl.uidLam = p.sel.lam; pl.uidPhu = p.sel.phu; } else if (p.tuLam && !p.sua) pl.tuLam = true;
   $$('#cvF .bigbtn').forEach((b) => { b.disabled = true; });
   const r = await send('saveTask', pl);
@@ -10031,7 +10034,11 @@ Object.assign(ACT, {
   cvXem: (el) => { S.f.cvXem = el.dataset.v; render(); },
   cvView: (el) => { if (topV().v === 'cvView' && topV().p.id === el.dataset.id) { closeSheet(); return; } go('cvView', { id: el.dataset.id }); },
   cvNew: (el) => go('cvNew', el.dataset.ma ? { ma: el.dataset.ma } : {}),
-  cvNewBD: (el) => { const m = S.V.byMa[el.dataset.ma]; if (m) go('cvNew', { ma: m.ma, loai: 'BD', han: m.hanKeTiep || '', tieuDe: tv('lv_BD') + ' ' + m.ten }); },
+  cvNewBD: (el) => {
+    const m = S.V.byMa[el.dataset.ma]; if (!m) return;
+    // Tên máy có chữ Trung (vd 喷印机 VKY01): chữ lẫn hai thứ tiếng không được tự dịch, nên điền sẵn bản tiếng Trung
+    go('cvNew', { ma: m.ma, loai: 'BD', han: m.hanKeTiep || '', tieuDe: tv('lv_BD') + ' ' + m.ten, tdTu: demKy(m.ten, CJK_G) ? tz('lv_BD') + ' ' + m.ten : '' });
+  },
   cvEdit: (el) => go('cvNew', { id: el.dataset.id }),
   cvLoaiChon: (el) => { const p = topV().p; cvSync(p); p.loai = el.dataset.v; render(); },
   cvUuChon: (el) => { const p = topV().p; cvSync(p); p.uu = el.dataset.v; render(); },

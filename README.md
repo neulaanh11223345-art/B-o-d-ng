@@ -35,7 +35,7 @@ Mở `docs/demo.html` (hoặc `demo-v2.4.0.html`) bằng trình duyệt. Tài kh
 
 Muốn thử cảnh mất mạng: vào **Cá nhân → Giả lập mất mạng**.
 
-Bản xem thử không gọi Google Dịch thật, chỉ dịch được các câu mẫu (ví dụ "Thay vòi nước nhà vệ sinh xưởng 1", "Máy hút bụi VKY03 không chạy", "Thay chổi than motor"). Câu khác sẽ hiện dòng "（演示版：正式系统会自动翻译这句话）" thay cho bản dịch.
+Bản xem thử không gọi Google Dịch thật, chỉ dịch được các câu mẫu, ví dụ "Thay vòi nước nhà vệ sinh xưởng 1", "Máy hút bụi VKY03 không chạy", "Thay chổi than motor", hoặc gõ tiếng Trung "检查空压机油位". Câu khác sẽ hiện dòng "（演示版：正式系统会自动翻译这句话）" thay cho bản dịch.
 
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
@@ -85,7 +85,10 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
   - lý do tạm hoãn, trả lại, huỷ việc;
   - kết quả tự ghi khi xác nhận bảo dưỡng ("Đã xác nhận bảo dưỡng ngày…" · "已确认保养…").
 
-  Không dịch: chữ chỉ có mã và số (ví dụ "M001 - 2026"). Chữ đã viết sẵn hai thứ tiếng dạng `Việt · 中文` thì app tách làm hai, không gọi dịch.
+  Không dịch:
+  - chữ chỉ có mã và số (ví dụ "M001 - 2026");
+  - chữ đã viết sẵn hai thứ tiếng dạng `Việt · 中文`: app tách làm hai;
+  - chữ lẫn cả tiếng Việt và tiếng Trung (ví dụ "Bảo dưỡng 喷印机 VKY01"), vì có thể đã là song ngữ. Riêng nút **Giao bảo dưỡng cho người làm** ở hồ sơ máy có tên tiếng Trung, app điền sẵn bản tiếng Trung ("保养 喷印机 VKY01").
 - **Sửa bản dịch:** khi sửa một việc, dưới ô Tên việc (và Mô tả) có ô **Bản dịch**. Quản lý sửa được; người ghi việc sửa được khi việc còn chờ giao.
   - Sửa tay thì app giữ nguyên, không dịch đè.
   - Xoá trống ô Bản dịch rồi lưu thì app dịch lại.

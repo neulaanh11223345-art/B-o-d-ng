@@ -6546,7 +6546,7 @@ VIEWS.cvNew = {
       p.init = 1;
       const x = p.id ? S.V.cvById[p.id] : null;
       if (x) Object.assign(p, { sua: true, tieuDe: x.tieuDe, moTa: x.moTa || '', dTD: x.tieuDeDich || '', dMT: x.moTaDich || '', dGoc: { td: x.tieuDeDich || '', mt: x.moTaDich || '' }, loai: x.loai, uu: x.uuTien, ma: x.ma || '', han: x.han || '', kt: x.canKiemTra, ktSua: true, sel: { lam: x.uidLam || '', phu: (x.uidPhu || []).slice() } });
-      else Object.assign(p, { id: 'CV' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase(), tieuDe: p.tieuDe || '', moTa: '', loai: p.loai || 'SUA',
+      else Object.assign(p, { id: 'CV' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase(), tieuDe: p.tieuDe || '', tdGoc: p.tieuDe || '', moTa: '', loai: p.loai || 'SUA',
         uu: 'TB', ma: p.ma || '', han: p.han === undefined ? '' : p.han, sel: { lam: '', phu: [] } });
       p.anh = [];
     }
@@ -6586,6 +6586,7 @@ async function cvLuu(p, tiep) {
   // Bản dịch chỉ gửi khi người sửa đã đổi nó (sửa tay, hoặc xoá trống để dịch lại)
   if (p.sua && p.dTD !== p.dGoc.td) pl.tieuDeDich = (p.dTD || '').trim();
   if (p.sua && p.dMT !== p.dGoc.mt) pl.moTaDich = (p.dMT || '').trim();
+  if (!p.sua && p.tdTu && pl.tieuDe === p.tdGoc.trim()) pl.tieuDeDich = p.tdTu;   // tên điền sẵn, chưa sửa
   if (can('giaoviec')) { pl.uidLam = p.sel.lam; pl.uidPhu = p.sel.phu; } else if (p.tuLam && !p.sua) pl.tuLam = true;
   $$('#cvF .bigbtn').forEach((b) => { b.disabled = true; });
   const r = await send('saveTask', pl);
@@ -6847,7 +6848,11 @@ Object.assign(ACT, {
   cvXem: (el) => { S.f.cvXem = el.dataset.v; render(); },
   cvView: (el) => { if (topV().v === 'cvView' && topV().p.id === el.dataset.id) { closeSheet(); return; } go('cvView', { id: el.dataset.id }); },
   cvNew: (el) => go('cvNew', el.dataset.ma ? { ma: el.dataset.ma } : {}),
-  cvNewBD: (el) => { const m = S.V.byMa[el.dataset.ma]; if (m) go('cvNew', { ma: m.ma, loai: 'BD', han: m.hanKeTiep || '', tieuDe: tv('lv_BD') + ' ' + m.ten }); },
+  cvNewBD: (el) => {
+    const m = S.V.byMa[el.dataset.ma]; if (!m) return;
+    // Tên máy có chữ Trung (vd 喷印机 VKY01): chữ lẫn hai thứ tiếng không được tự dịch, nên điền sẵn bản tiếng Trung
+    go('cvNew', { ma: m.ma, loai: 'BD', han: m.hanKeTiep || '', tieuDe: tv('lv_BD') + ' ' + m.ten, tdTu: demKy(m.ten, CJK_G) ? tz('lv_BD') + ' ' + m.ten : '' });
+  },
   cvEdit: (el) => go('cvNew', { id: el.dataset.id }),
   cvLoaiChon: (el) => { const p = topV().p; cvSync(p); p.loai = el.dataset.v; render(); },
   cvUuChon: (el) => { const p = topV().p; cvSync(p); p.uu = el.dataset.v; render(); },

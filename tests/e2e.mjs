@@ -231,7 +231,14 @@ assert.match(await text('#main'), /Máy hút bụi VKY03 không chạy/);
 await shot('14-bao-cao-thang');
 const blob = await page.evaluate(() => bcWorkbook(bcThangNay()).size);
 assert.ok(blob > 2000, 'tạo được file Excel');
-ok('Công việc: ghi và giao, giao nhiều việc, nhân viên làm xong, Quản lý kiểm tra; báo cáo tháng + Excel');
+// Giao bảo dưỡng máy có tên tiếng Trung: Google không dịch chữ lẫn hai thứ tiếng, nên app điền sẵn bản tiếng Trung
+await page.evaluate(() => go('may', { ma: 'M001', tab: 'bd' })); await wait();
+await page.click('[data-act="cvNewBD"]'); await wait();
+assert.equal(await page.inputValue('#cvTD'), 'Bảo dưỡng 喷印机 VKY01');
+await page.click('.nvc:has-text("Nguyễn Tuấn")'); await wait();
+await page.click('#cvOk'); await wait(900);
+assert.match(await text('.schead'), /保养 喷印机 VKY01/);
+ok('Công việc: ghi và giao, giao nhiều việc, nhân viên làm xong, Quản lý kiểm tra; báo cáo tháng + Excel; giao bảo dưỡng có sẵn tiếng Trung');
 
 // 11. Máy tính: sidebar, bảng có tiêu đề, phân trang
 await page.setViewportSize({ width: 1440, height: 900 });

@@ -774,7 +774,8 @@ function luuCongViec(u, p, opId) {
   capNhatTieuDe('CongViec');
   if (!x) {
     id = idCV(id, 'CV') || 'CV' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900);
-    var so = soLonNhat(ds) + 1, td = songNgu(f.tieuDe), mt = songNgu(f.moTa);
+    // Bản dịch gửi kèm (vd app điền sẵn khi giao bảo dưỡng máy có tên tiếng Trung) thì dùng luôn, không thì tự dịch
+    var so = soLonNhat(ds) + 1, td = dichKhiSua(f.tieuDe, '', '', p.tieuDeDich), mt = dichKhiSua(f.moTa, '', '', p.moTaDich);
     x = { id: id, so: so, tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], ketQuaDich: '', nguyenNhanDich: '',
       loai: f.loai, uuTien: f.uuTien, ma: f.ma, han: han, trangThai: 'CHO_GIAO',
       uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay,

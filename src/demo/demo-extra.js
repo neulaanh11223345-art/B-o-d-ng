@@ -189,7 +189,8 @@ __dichMau.push(
   ['Lỗi khí nén / thuỷ lực', '气动/液压故障'], ['Chờ vật tư', '等待材料'], ['Chờ bóng đèn', '等灯泡'], ['Chờ dừng máy', '等待停机'],
   ['Còn 1 bóng chập chờn', '还有1个灯时亮时不亮'], ['Thay bóng đèn', '更换灯泡'], ['Vệ sinh máy', '清洁设备'], ['Kiểm tra', '检查'],
   ['Kiểm tra bình chữa cháy', '检查灭火器'], ['Vệ sinh nhà ăn', '清洁食堂'], ['Sửa máy', '修理设备'], ['Thay dầu máy nén khí', '更换空压机机油'],
-  ['Thay vòi nước xưởng 1', '更换一车间水龙头'], ['Lắp quạt', '安装风扇'], ['Không cần nữa', '不需要了']
+  ['Thay vòi nước xưởng 1', '更换一车间水龙头'], ['Lắp quạt', '安装风扇'], ['Không cần nữa', '不需要了'],
+  ['Kiểm tra mức dầu máy nén khí', '检查空压机油位'], ['Dầu xuống dưới vạch, cần châm thêm', '油位低于刻度线，需要加油']
 );
 
 // Thêm 3 kỹ thuật viên mẫu và công việc mẫu (đủ trạng thái), việc lặp lại mẫu
@@ -257,9 +258,9 @@ function mauCongViec() {
       lk: [{ id: 'LKCV01', ten: 'Công tắc hành trình · 行程开关', quyCach: 'TZ-8108', dv: 'cái · 个', sl: 1, loai: 'THAY' }] }),
     viec({ t: 'Vệ sinh tủ điện xưởng 1 · 清洁一车间电柜', l: 'VS', ma: 'M039', han: -1, tu: -3, lam: 'NV006',
       buoc: [['batdau', -1, '13:30'], ['xong', -1, '15:00', 'Thổi bụi, siết lại đầu cốt · 吹灰，紧固接线端子']] }),
-    viec({ t: 'Bảo dưỡng định kỳ ' + (m1 ? m1.ten : 'M001') + ' · 定期保养', l: 'BD', ma: 'M001', han: 0, lam: 'NV003' }),
+    viec({ t: 'Bảo dưỡng định kỳ ' + (m1 ? m1.ten : 'M001') + ' · 定期保养 ' + (m1 ? m1.ten : 'M001'), l: 'BD', ma: 'M001', han: 0, lam: 'NV003' }),
     viec({ t: 'Máy nén khí số 2 báo nhiệt độ cao, tự dừng · 2号空压机高温停机', l: 'SUA', u: 'GAP', ma: 'M038', han: -9, tu: -9, lam: 'NV005', phu: ['NV004'],
-      buoc: [['batdau', -9, '08:20'], ['xong', -9, '10:40', 'Vệ sinh két làm mát, thay lọc gió, chạy thử ổn định · 清洁冷却器，更换空气滤芯']],
+      buoc: [['batdau', -9, '08:45'], ['xong', -9, '10:40', 'Vệ sinh két làm mát, thay lọc gió, chạy thử ổn định · 清洁冷却器，更换空气滤芯']],
       nn: 'Két làm mát bám bụi dày · 冷却器积尘', dung: 150, kt: true, dong: true,
       lk: [{ id: 'LK01', ten: 'Lọc gió · 空气滤芯', quyCach: '', dv: 'cái · 个', sl: 1, loai: 'THAY' }] }),
     viec({ t: 'Máy in VKY16 in mờ, mất nét · 喷印机VKY16喷印模糊', l: 'SUA', u: 'CAO', ma: 'M005', han: -6, tu: -6, lam: 'NV003',

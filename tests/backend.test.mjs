@@ -390,6 +390,11 @@ test('tự dịch: dịch khi lưu (Việt → Trung, Trung → Việt), tách "
   assert.deepEqual([h.tieuDe, h.tieuDeDich, b.ctx.__dich.goi], ['Lắp quạt', '安装风扇', goi]);
   // Chỉ có mã / số → không dịch
   assert.equal(ok(viec(b, b.ql, { tieuDe: 'M001 - 2026' })).congViec.tieuDeDich, '');
+  // Chữ lẫn hai thứ tiếng (tên máy tiếng Trung) không tự dịch; app gửi kèm bản dịch điền sẵn thì dùng
+  goi = b.ctx.__dich.goi;
+  assert.equal(ok(viec(b, b.ql, { tieuDe: 'Bảo dưỡng 喷印机 VKY01', loai: 'BD' })).congViec.tieuDeDich, '');
+  const bd = ok(viec(b, b.ql, { tieuDe: 'Bảo dưỡng 喷印机 VKY01', tieuDeDich: '保养 喷印机 VKY01', loai: 'BD' })).congViec;
+  assert.deepEqual([bd.tieuDe, bd.tieuDeDich, b.ctx.__dich.goi], ['Bảo dưỡng 喷印机 VKY01', '保养 喷印机 VKY01', goi]);
   // Sửa hạn, không đổi chữ → giữ bản dịch, không gọi Google lại
   goi = b.ctx.__dich.goi;
   const sua = (more) => ok(viec(b, b.ql, Object.assign({ id: a.id, tieuDe: 'Thay đèn xưởng 2', moTa: 'Đèn xưởng 2 bị cháy', loai: 'SUA' }, more))).congViec;
