@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.7.0');
+  assert.equal(d.phienBan, '2.8.0');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -568,4 +568,23 @@ test('mã hiển thị: tự đặt cho chuyền và máy, không trùng, đổi
   // Sửa máy mà không gửi maHT (app cũ) thì giữ nguyên
   assert.equal(ok(b.call('saveMachine', { ma: m.ma, ten: m.ten, nhom: m.nhom, chuKy: m.chuKy, hanKeTiep: m.hanKeTiep }, ql)).may.maHT, 'QTN-16');
   assert.equal(ok(sua('')).may.maHT, '', 'xoá mã hiển thị');
+});
+
+test('bản ghi sửa chữa: đánh dấu nguồn SC (cả bản ghi cũ 2.6.0); xoá: Quản lý xoá mọi bản ghi, người khác chỉ xoá bản mình ghi; việc thường không xoá kiểu này', () => {
+  const b = setupSC();
+  const a = ok(b.call('saveRepair', { moTa: 'Máy kêu to', ketQua: 'Siết bu lông' }, b.kt)).congViec;
+  const q = ok(b.call('saveRepair', { moTa: 'Băng tải lệch', ketQua: 'Căn chỉnh', ma: 'M001' }, b.ql)).congViec;
+  assert.equal(a.nguon, 'SC');
+  err(b.call('deleteRepair', { id: q.id }, b.kt), 'KHONG_QUYEN');
+  assert.equal(ok(b.call('deleteRepair', { id: a.id, lyDo: 'Ghi nhầm' }, b.kt)).congViec.trangThai, 'HUY');
+  assert.equal(ok(b.call('deleteRepair', { id: q.id }, b.ql)).congViec.trangThai, 'HUY');
+  const d = ok(b.call('data', {}, b.ql));
+  const x = d.congViec.find((v) => v.id === a.id);
+  assert.equal(x.trangThai, 'HUY'); assert.equal(x.nhatKy.at(-1).b, 'xoa');
+  const viec = ok(b.call('saveTask', { tieuDe: 'Thay bóng đèn', loai: 'SUA' }, b.ql)).congViec;
+  assert.notEqual(viec.nguon, 'SC');
+  err(b.call('deleteRepair', { id: viec.id }, b.ql), 'KHONG_CO');
+  // Bản ghi cũ (chưa có cột Nguon) vẫn được nhận là bản ghi sửa chữa
+  const cu = Object.assign({}, x, { nguon: '', trangThai: 'DONG' });
+  assert.equal(b.ctx.sachCV(cu).nguon, 'SC');
 });

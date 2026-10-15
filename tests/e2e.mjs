@@ -225,6 +225,8 @@ assert.match(await text('.chip[data-act="cvLoc"][data-v="cho"]'), /Chờ giao.*2
 await logout();
 await login('NV004', '444444');
 assert.match(await text('#main'), /Việc của tôi/);
+assert.equal(await page.locator('.gap.g-toi .scrow').count(), 0, 'trang chủ: Việc của tôi gọn một ô, chưa mở');
+await page.click('.gap.g-toi .gaph'); await wait();
 await page.click('.scrow:has-text("Thay vòi nước")'); await wait();
 await page.click('[data-act="cvB"][data-b="batdau"]'); await wait(900);
 assert.match(await text('.schead'), /Đang làm/);
