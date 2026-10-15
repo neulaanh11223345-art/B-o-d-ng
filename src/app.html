@@ -126,6 +126,9 @@ main{max-width:1240px;margin:0 auto;padding:16px 16px calc(var(--tab-h) + 28px +
 .gap.mo .gaph .chev{transform:rotate(90deg)}
 .gap.g-qua{border-color:color-mix(in srgb,var(--red) 35%,var(--line))} .gap.g-qua .gn{color:var(--red)}
 .gap.g-nay .gn{color:var(--orange)} .gap.g-sap .gn{color:var(--blue)}
+.gap.g-toi .gt{display:flex;align-items:center;gap:10px}
+.gap.g-toi .gti{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--blue) 12%,transparent);color:var(--blue);flex:none}
+.gap.g-toi .gn{color:var(--blue)} .gap.g-toi.g-qua .gn{color:var(--red)}
 .gapb{border-top:1px solid var(--line)} .gapb .list{border:0;border-radius:0;margin:0}
 .chgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:12px}
 .chtile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;text-align:left;cursor:pointer;border-left:4px solid var(--line)}
@@ -1810,9 +1813,9 @@ function shell() {
 }
 const TITLES = { dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
-  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi' };
+  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi', scDS: 't_scDS' };
 const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv'];
-const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv',
+const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
@@ -2032,18 +2035,19 @@ VIEWS.home = {
     let left = `<div class="hello card"><span class="av">${esc(initials(me.ten))}</span><div class="hm"><b>${esc(me.ten || '')}</b>${me.tenZh ? `<span class="zi" lang="zh-CN">${esc(me.tenZh)}</span>` : ''}
       <div class="sub">${t('r_' + me.vaiTro)}${me.maNV ? ` · <span class="mono">${esc(me.maNV)}</span>` : ''}</div></div>
       <div class="hd"><b>${fmtD(today)}</b><small>${WD_VI_F[w]} · ${WD_ZH_F[w]}</small></div></div>`;
+    // iPhone: Tổng quan ngay dưới lời chào; Việc của tôi gọn thành một ô, bấm mới mở. Quét QR đã có nút giữa thanh dưới
+    const tq = `<div class="sec"><h2>${t('tongQuan')}</h2></div><div class="mtiles">${modTiles()}</div>`;
+    if (!isWide()) left += tq;
+    left += viecToiO();
     if (can('confirm')) {
-      left += `<button class="cta" data-act="tab" data-v="scan"><span class="ic">${IC.scan}</span><span>${tv('scanCta')}<span class="zi">${tz('scanCta')}</span></span></button>`;
       left += `<button class="cta2 blue" data-act="cvNew"><span class="ic">${IC.plus}</span><span>${tv(can('giaoviec') ? 'ctaGiao' : 'ctaGhi')}<span class="zi">${tz(can('giaoviec') ? 'ctaGiao' : 'ctaGhi')}</span></span>${IC.chev}</button>`;
     }
     if (can('may')) left += srvWarn();
-    left += cvCuaToiHtml();
     left += `<div class="sec"><h2>${t('viecCanLam')}</h2></div>` + (al.length ? `<div class="alerts">${al.map(alertRow).join('')}</div>` : `<div class="card empty">${t('khongCoViec')}</div>`);
     const block = (k, arr, lbl) => arr.length ? `<div id="sec-${k}">${lbl}<div class="list">${arr.map((o) => mRow(o.m, o.st, true)).join('')}</div></div>` : '';
     let lists = block('qua', g.qua, sec('st_qua', g.qua.length)) + block('nay', g.nay, sec('st_nay', g.nay.length)) + block('sap', g.sap, sec('sapN', g.sap.length, { n: nhacTruoc() }));
     if (doneT.length) lists += `<div id="sec-xong">${sec('doneToday', doneT.length)}<div class="list">${doneT.map((x) => hRow(x, true)).join('')}</div></div>`;
-    const right = `<div class="sec"><h2>${t('tongQuan')}</h2></div><div class="mtiles">${modTiles()}</div>`;
-    return `<div class="homegrid"><div class="hcol">${left}${isWide() ? lists : ''}</div><div class="hcol">${right}${isWide() ? '' : lists}</div></div>`;
+    return `<div class="homegrid"><div class="hcol">${left}${isWide() ? lists : ''}</div><div class="hcol">${isWide() ? tq : lists}</div></div>`;
   }
 };
 // Danh sách ngoại lệ chờ duyệt (đã tải)
@@ -2286,11 +2290,11 @@ function mayHead(m) {
 // ---------- Lịch sử sự cố (việc sửa chữa) của máy / chuyền ----------
 const scNgay = (x) => (x.lucXong || x.lucTao || '').slice(0, 10);
 function scCuaMay(ma) {
-  return (S.V.cv || []).filter((x) => x.loai === 'SUA' && x.trangThai !== 'HUY' && x.ma === ma).sort((a, b) => (scNgay(b) > scNgay(a) ? 1 : scNgay(b) < scNgay(a) ? -1 : 0));
+  return (S.V.cvAll || []).filter((x) => x.loai === 'SUA' && x.trangThai !== 'HUY' && x.ma === ma).sort((a, b) => (scNgay(b) > scNgay(a) ? 1 : scNgay(b) < scNgay(a) ? -1 : 0));
 }
 function scCuaCh(ch) {
   const ms = new Set(mayCuaCh(ch).map((m) => m.ma));
-  return (S.V.cv || []).filter((x) => x.loai === 'SUA' && x.trangThai !== 'HUY' && ms.has(x.ma)).sort((a, b) => (scNgay(b) > scNgay(a) ? 1 : scNgay(b) < scNgay(a) ? -1 : 0));
+  return (S.V.cvAll || []).filter((x) => x.loai === 'SUA' && x.trangThai !== 'HUY' && ms.has(x.ma)).sort((a, b) => (scNgay(b) > scNgay(a) ? 1 : scNgay(b) < scNgay(a) ? -1 : 0));
 }
 function scRow(x, coMay) {
   const m = coMay && S.V.byMa[x.ma], dung = x.phutDung !== '' && x.phutDung !== undefined && x.phutDung !== null;
@@ -2310,7 +2314,7 @@ VIEWS.may = {
   html(p) {
     const m = S.V.byMa[p.ma];
     if (!m) return `<div class="card empty">${t('notFound')}</div>`;
-    const h = histOf(m.ma), tb = p.tab || 'tt', cvDs = S.V.cv.filter((x) => x.ma === m.ma && x.trangThai !== 'HUY');
+    const h = histOf(m.ma), tb = p.tab || 'tt', cvDs = S.V.cvAll.filter((x) => x.ma === m.ma && x.trangThai !== 'HUY');
     let o = mayHead(m);
     const cvM = cvDs.filter(cvMo);
     if (cvM.length) o += `<div class="alerts" style="margin-top:10px">${cvM.map(cvAlert).join('')}</div>`;
@@ -3588,6 +3592,35 @@ const ACT = {
   mayTab: (el) => { topV().p.tab = el.dataset.t; render(); },
   scXem: (el) => { closeSheet(); const v = topV(); if (v.v === 'may' && v.p.ma === el.dataset.ma) { v.p.tab = 'sc'; render(); } else go('may', { ma: el.dataset.ma, tab: 'sc' }); },
   scGhiMay: (el) => go('scGhi', { scMa: el.dataset.ma }),
+  scKy: (el) => { S.f.scKy = el.dataset.v === 'all' ? 'all' : TODAY().slice(0, 7); render(); },
+  scStep: (el) => { const k = S.f.scKy && S.f.scKy !== 'all' ? S.f.scKy : TODAY().slice(0, 7); const [y, m] = k.split('-').map(Number), d = new Date(Date.UTC(y, m - 1 + +el.dataset.d, 1)); S.f.scKy = d.toISOString().slice(0, 7); render(); },
+  scXuat: async () => {
+    const ds = scLoc().slice().reverse(), ky = S.f.scKy || TODAY().slice(0, 7), all = ky === 'all';
+    if (!ds.length) { toast(t('scChuaCo'), true); return; }
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try {
+      const [y, mo] = (all ? TODAY().slice(0, 7) : ky).split('-').map(Number);
+      blob = XW.build([scSheet(ds, all ? '全部' : y + '年' + mo + '月', all ? 'tất cả' : 'tháng ' + mo + '/' + y)]);
+    } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    await saveFile(blob, 'Sua-chua-' + (all ? 'tat-ca' : ky) + '_' + TODAY() + '.xlsx');
+  },
+  scXoa: (el) => {
+    const x = S.V.cvById[el.dataset.id]; if (!x) return;
+    openSheet(`<div class="grab"></div><h3>${tv('scXoa')}<span class="zi">${tz('scXoa')}</span></h3>
+      <div class="who"><b>${svH(x.tieuDe, x.tieuDeDich)}</b>${x.ma ? ` <span class="code">${esc(mh(x.ma))}</span>` : ''}<br><span class="mono">${esc(fmtD(scNgay(x)))}</span></div>
+      <p class="help">${t('scXoaHelp')}</p>
+      <label class="fld"><span>${t('scLyDoTuy')}</span><textarea class="inp" id="sbGC" rows="2" maxlength="200"></textarea></label>
+      <div class="err" id="sbErr" hidden></div>
+      <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="scXoaGo" data-id="${esc(x.id)}">${t('scXoa')}</button></div>`);
+  },
+  scXoaGo: async (el) => {
+    el.disabled = true;
+    const r = await send('deleteRepair', { id: el.dataset.id, lyDo: (($('#sbGC') || {}).value || '').trim() });
+    if (r.err) { el.disabled = false; const fe = $('#sbErr'); fe.innerHTML = cvLoi(r.err); fe.hidden = false; return; }
+    closeSheet(); toast(r.queued ? t('savedLocal') : t('scDaXoa'));
+    if (topV().v === 'cvView') back(); else render();
+  },
   listSt2: (el) => { S.f.st = el.dataset.st; S.f.pg = Object.assign(S.f.pg || {}, { may: 0 }); render(); },
   pg: (el) => { S.f.pg = S.f.pg || {}; S.f.pg[el.dataset.k] = Math.max(0, +el.dataset.p); render(); const w = $('.dtwrap'); if (w) w.scrollTop = 0; }
 };
@@ -3834,14 +3867,14 @@ Object.assign(ERR, {
 });
 
 // Máy chủ cũ hơn bản app cần (ví dụ triển khai chưa lên Phiên bản mới): báo rõ cách sửa
-const SRV_CAN = '2.7.0';
+const SRV_CAN = '2.8.0';
 function verLt(a, b) {
   const x = String(a || '0').split('.').map((n) => +n || 0), y = String(b).split('.').map((n) => +n || 0);
   for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0);
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -6720,6 +6753,11 @@ Object.assign(TX, {
   KHONG_CO_CHUYEN: ['Không tìm thấy chuyền', '找不到产线'],
   srvMissSC: ['Bản 2.6: Ghi sửa chữa theo bảng 疑难故障.', '2.6版：按疑难故障表记录维修。'],
   srvMissMaHT: ['Bản 2.7: tự đặt mã hiển thị cho máy và chuyền.', '2.7版：自定义设备和产线显示编号。'],
+  srvMissSCXoa: ['Bản 2.8: xoá bản ghi sửa chữa.', '2.8版：删除维修记录。'],
+  t_scDS: ['Lịch sử sửa chữa', '维修记录'], scDSBtn: ['Lịch sử sửa chữa', '维修记录'], scTatCa: ['Tất cả', '全部'],
+  scTimPh: ['Tìm máy, mã, nội dung, người sửa', '搜索设备、编号、内容、维修人'], scXuatBtn: ['Xuất Excel (gộp mọi máy)', '导出Excel（所有设备）'],
+  scXoa: ['Xoá bản ghi sửa chữa', '删除维修记录'], scDaXoa: ['Đã xoá', '已删除'],
+  scXoaHelp: ['Bản ghi sẽ không còn trong lịch sử và file Excel. Quản lý vẫn tra được trong nhật ký.', '删除后不再显示在记录和Excel中，管理员仍可在日志中查到。'],
   maHT: ['Mã hiển thị (tự đặt)', '显示编号（自定义）'], maHTTuDong: ['Để trống: dùng mã tự cấp', '留空：使用系统编号'],
   maHTHelp: ['Mã nhà máy hay dùng, vd H2506. Hiện ở bảng công việc, tem QR, Excel, tìm kiếm. Để trống thì dùng mã hệ thống. Tem QR đã in vẫn quét được.', '工厂常用编号，如H2506。显示在工作表、二维码标签、Excel和搜索中。留空则用系统编号。已打印的二维码仍可扫描。'],
   maHeThong: ['mã hệ thống', '系统编号'], chuyenNgan: ['Chuyền', '产线'],
@@ -6837,6 +6875,7 @@ function cvApDung(x, p, luc, nguoi, op) {
   else if (b === 'huy') x.trangThai = 'HUY';
   x.nhatKy.push({ b, luc, nguoi, gc: p.ghiChu || '', op });
 }
+const laSC = (x) => x.nguon === 'SC' || (x.loai === 'SUA' && x.nhatKy && x.nhatKy[0] && x.nhatKy[0].gc === 'Ghi sửa chữa');
 function rebuildCV() {
   const b = S.base, me = S.me || {}, nv = b.nhanVien || [], nvById = {};
   nv.forEach((n) => { nvById[n.id] = n; });
@@ -6854,10 +6893,11 @@ function rebuildCV() {
         nguyenNhan: p0.nguyenNhan, nguyenNhanDich: '', ketQua: p0.ketQua, ketQuaDich: '', uidLam: p0.uidLam || '', nguoiLam: p0.uidLam ? nvTen(p0.uidLam) : '', uidPhu: (p0.uidPhu || []).filter((id) => id !== p0.uidLam),
         nguoiTao: me.ten || '', uidTao: q.uid, lucTao: q.t, lucBatDau: luc, lucXong: luc, phutDung: p0.gioDung === '' ? '' : Math.round(p0.gioDung * 60), canKiemTra: false,
         linhKien: String(p0.linhKien || '').split('\n').map((t0) => t0.trim()).filter(Boolean).map((t0, i) => ({ id: 'LKSC' + (i + 1), ten: t0, sl: '' })), anhTao: [], anhXong: [],
-        nhatKy: [{ b: 'tao', luc: q.t, nguoi: me.ten || '', op: q.opId }, { b: 'xong', luc, nguoi: me.ten || '' }], cho: true };
+        nhatKy: [{ b: 'tao', luc: q.t, nguoi: me.ten || '', op: q.opId }, { b: 'xong', luc, nguoi: me.ten || '' }], cho: true, nguon: 'SC' };
       list.push(x); byId[x.id] = x;
       return;
     }
+    if (q.action === 'deleteRepair') { const x = byId[q.p.id]; if (x) { x.trangThai = 'HUY'; x.cho = true; } return; }
     if (q.action === 'saveTask') {
       let x = byId[q.p.id];
       if (x && daCo(x, q)) return;
@@ -6887,7 +6927,8 @@ function rebuildCV() {
       list.forEach((x) => { if (x.loai === 'BD' && x.ma === q.p.ma && cvMo(x)) { x.trangThai = 'DONG'; x.ketQua = tv('cvXacNhanBD') + ' ' + fmtD(q.p.ngay); x.ketQuaDich = tz('cvXacNhanBD') + ' ' + fmtD(q.p.ngay); x.cho = true; } });
     }
   });
-  Object.assign(S.V, { cv: list, cvById: byId, vl: b.viecLap || [] });
+  // Bản ghi "Ghi sửa chữa" chỉ là lịch sử: không vào danh sách / bảng / thống kê công việc, xem ở Lịch sử sửa chữa
+  Object.assign(S.V, { cv: list.filter((x) => !laSC(x)), cvAll: list, cvById: byId, vl: b.viecLap || [] });
 }
 
 // ---------- Chọn người làm (dùng ở màn giao việc, ghi việc, bảng nhỏ) ----------
@@ -6921,11 +6962,14 @@ function cvAlert(x) {
   return `<button class="alert ${cvQua(x) ? 'a-red' : 'a-blue'}" data-act="cvView" data-id="${esc(x.id)}"><span class="aic">${IC.list}</span>
     <span class="atx">${svH(x.tieuDe, x.tieuDeDich)}<small>${esc(tv('cv_' + x.trangThai))}${x.nguoiLam ? ' · ' + esc(x.nguoiLam) : ''}${x.han ? ' · ' + esc(tv('cvHanNgay', { d: fmtDM(x.han) })) : ''}</small></span>${IC.chev}</button>`;
 }
-function cvCuaToiHtml() {
-  const ds = viecCuaToi();
-  if (!ds.length) return '';
-  return `<div class="sec"><h2>${t('cvCuaToi')}<span class="cnt">${ds.length}</span></h2><button class="lnk" data-act="cvLoc" data-v="toi">${t('cvXemHet')}${IC.chev}</button></div>
-    <div class="list">${ds.slice(0, 8).map((o) => cvRow(o.x, false)).join('')}</div>`;
+// Ô "Việc của tôi" ở trang chủ: gọn một dòng, bấm mở danh sách
+function viecToiO() {
+  if (!can('confirm')) return '';
+  const ds = viecCuaToi(), qua = ds.filter((o) => cvQua(o.x)).length;
+  const td = `<span class="gti">${IC.list}</span><span><b>${esc(tv('cvCuaToi'))}</b> <span class="zi">${esc(tz('cvCuaToi'))}</span>${qua ? `<br><small class="warnx">${esc(tv('mCvQua', { n: qua }))} · ${esc(tz('mCvQua', { n: qua }))}</small>` : ''}</span>`;
+  return gap('home:toi', td, ds.length, 'g-toi' + (qua ? ' g-qua' : ''), () => (ds.length
+    ? `<div class="list">${ds.slice(0, 10).map((o) => cvRow(o.x, false)).join('')}</div><button class="lnkbtn" data-act="cvLoc" data-v="toi" style="margin:8px 12px 12px">${t('cvXemHet')} ${IC.chev}</button>`
+    : `<div class="empty">${t('khongCoViec')}</div>`));
 }
 
 // ---------- Danh sách việc ----------
@@ -6952,7 +6996,7 @@ VIEWS.cv = {
     let o = ql ? srvWarn('cv') : '';
     o += `<div class="kstrip">${kstHtml('k-orange', 'cvKCho', null, nCho, 'data-act="cvLoc" data-v="cho"')}${kstHtml('k-blue', 'cvKMo', null, all.filter((x) => cvLocOf(x, 'mo')).length, 'data-act="cvLoc" data-v="mo"')}
       ${kstHtml('k-red', 'cvKQua', null, all.filter(cvQua).length, 'data-act="cvLoc" data-v="qua"')}${kstHtml('k-green', 'cvKKT', null, all.filter((x) => x.trangThai === 'XONG').length, 'data-act="cvLoc" data-v="kt"')}</div>`;
-    o += `<div class="btns cvbtns">${can('confirm') ? `<button class="btn" data-act="cvNew">${IC.plus} ${t('cvGhi')}</button><button class="btn ghost" data-act="go" data-v="scGhi">${IC.wrench || IC.edit} ${t('scGhiBtn')}</button>` : ''}
+    o += `<div class="btns cvbtns">${can('confirm') ? `<button class="btn" data-act="cvNew">${IC.plus} ${t('cvGhi')}</button><button class="btn ghost" data-act="go" data-v="scGhi">${IC.wrench || IC.edit} ${t('scGhiBtn')}</button>` : ''}<button class="btn ghost" data-act="go" data-v="scDS">${IC.hist} ${t('scDSBtn')}</button>
       ${ql && nCho ? `<button class="btn y" data-act="go" data-v="cvGiao">${IC.user} ${t('cvGiaoN', { n: nCho })}</button>` : ''}
       ${ql ? `<button class="btn ghost" data-act="go" data-v="cvLap">${IC.refresh} ${t('cvLapBtn')}</button><button class="btn ghost" data-act="go" data-v="cvBC">${IC.dl} ${t('cvBCBtn')}</button><button class="btn ghost" data-act="xlsGiao">${IC.dl} ${t('xlsGiaoBtn')}</button>` : ''}</div>`;
     const bang = isWide() && ql;
@@ -7152,6 +7196,7 @@ function cvActions(x) {
   if (ql && CV_LAM.indexOf(st) >= 0) lnk.push(`<button class="lnkbtn" data-act="cvGiao1" data-id="${esc(x.id)}">${IC.user} ${t('cvGiaoLai')}</button>`);
   if ((ql && (cvMo(x) || st === 'XONG')) || (x.uidTao === me.id && st === 'CHO_GIAO')) lnk.push(`<button class="lnkbtn" data-act="cvEdit" data-id="${esc(x.id)}">${IC.edit} ${t('cvSua')}</button>`);
   if ((ql && (cvMo(x) || st === 'XONG')) || (x.uidTao === me.id && st === 'CHO_GIAO')) lnk.push(`<button class="lnkbtn red" data-act="cvB" data-id="${esc(x.id)}" data-b="huy">${IC.out} ${t('cvHuy')}</button>`);
+  if (laSC(x) && st !== 'HUY' && !srvOld('scxoa') && (ql || x.uidTao === me.id)) lnk.push(`<button class="lnkbtn red" data-act="scXoa" data-id="${esc(x.id)}">${IC.out} ${t('scXoa')}</button>`);
   if (lnk.length) o += `<div class="scact2">${lnk.join('')}</div>`;
   return o;
 }
@@ -7272,6 +7317,30 @@ VIEWS.scGhi = {
   }
 };
 
+// ---------- Lịch sử sửa chữa: mọi lần sửa của mọi máy, lọc theo tháng / tìm, xuất Excel chung một bảng ----------
+function scTatCa() {
+  return (S.V.cvAll || []).filter((x) => x.loai === 'SUA' && x.trangThai !== 'HUY' && (laSC(x) || xongCV(x)))
+    .sort((a, b) => (scNgay(b) > scNgay(a) ? 1 : scNgay(b) < scNgay(a) ? -1 : (b.lucTao || '') > (a.lucTao || '') ? 1 : -1));
+}
+function scLoc() {
+  const ky = S.f.scKy || TODAY().slice(0, 7), n = norm(S.f.scQ || '');
+  return scTatCa().filter((x) => (ky === 'all' || scNgay(x).slice(0, 7) === ky) && (!n || norm([x.tieuDe, x.tieuDeDich, x.moTa, x.nguyenNhan, x.nguyenNhanDich, x.ketQua, x.ketQuaDich,
+    x.ma, x.ma ? mh(x.ma) : '', S.V.byMa[x.ma] ? S.V.byMa[x.ma].ten : '', S.V.byMa[x.ma] && S.V.byMa[x.ma].chuyen ? mh(S.V.byMa[x.ma].chuyen) : '', x.nguoiLam, x.nguoiTao].join(' ')).indexOf(n) >= 0));
+}
+VIEWS.scDS = {
+  html() {
+    const ky = S.f.scKy || TODAY().slice(0, 7), all = ky === 'all', [y, mo] = (all ? TODAY().slice(0, 7) : ky).split('-').map(Number);
+    return `<div class="caltools"><div class="seg"><button class="${all ? '' : 'on'}" data-act="scKy" data-v="thang">${tv('month')} ${tz('month')}</button><button class="${all ? 'on' : ''}" data-act="scKy" data-v="all">${tv('scTatCa')} ${tz('scTatCa')}</button></div>
+      ${all ? '' : `<div class="stepper"><button data-act="scStep" data-d="-1" aria-label="-">${IC.left}</button><b>${t('monthN', { m: mo })} / ${y}</b><button data-act="scStep" data-d="1" aria-label="+">${IC.right}</button></div>`}</div>
+      <div class="searchbox">${IC.search}<input class="inp" id="scQ" type="search" value="${esc(S.f.scQ || '')}" placeholder="${esc(tp('scTimPh'))}" autocomplete="off"></div>
+      <div class="btns" style="margin:12px 0">${can('confirm') && !srvOld('sc') ? `<button class="btn" data-act="go" data-v="scGhi">${IC.plus} ${t('scGhiBtn')}</button>` : ''}<button class="btn ghost" data-act="scXuat">${IC.dl} ${t('scXuatBtn')}</button></div>
+      <div id="scBody">${scLichSu(scLoc(), true)}</div>`;
+  },
+  after() {
+    const i = $('#scQ'); if (!i) return;
+    i.addEventListener('input', () => { S.f.scQ = i.value; $('#scBody').innerHTML = scLichSu(scLoc(), true); });
+  }
+};
 // ---------- Xong việc ----------
 VIEWS.cvXong = {
   html(p) {
@@ -7450,7 +7519,7 @@ function bcThanh(r) {
   return `<div class="pbar" title="${r.xong}/${r.giao}"><i style="width:${p || 0}%"></i></div><small class="pnum">${p === null ? '—' : p + '%'} · ${r.xong}/${r.giao}</small>`;
 }
 function bcSuaDS(ym) {
-  return S.V.cv.filter((x) => x.loai === 'SUA' && xongCV(x) && (x.lucXong || '').slice(0, 7) === ym).sort((a, b) => (a.lucXong > b.lucXong ? 1 : -1));
+  return S.V.cvAll.filter((x) => x.loai === 'SUA' && xongCV(x) && (x.lucXong || '').slice(0, 7) === ym).sort((a, b) => (a.lucXong > b.lucXong ? 1 : -1));
 }
 const bcThangNay = () => S.f.bcThang || TODAY().slice(0, 7);
 VIEWS.cvBC = {
@@ -7476,18 +7545,16 @@ VIEWS.cvBC = {
     return o;
   }
 };
-function bcWorkbook(ym) {
-  const [y, mo] = ym.split('-').map(Number);
+// Trang Sửa chữa theo mẫu 可悦设备疑难故障处理过程及分析: gộp mọi máy vào một bảng, mỗi ô tiếng Trung trên, tiếng Việt dưới
+function scSheet(sua, kyZh, kyVi) {
   const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
-  const T = (txt) => [{ v: txt, s: { b: 1, sz: 14 } }], hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
   const ngay = (d) => (d ? c(excelSerial(d.slice(0, 10)), { fmt: 'dd/mm/yyyy', align: 'center' }) : c(''));
-  const sua = bcSuaDS(ym), dung = sua.reduce((a, x) => a + (+x.phutDung || 0), 0);
-  // Trang Sửa chữa theo mẫu 可悦设备疑难故障处理过程及分析: mỗi ô tiếng Trung trên, tiếng Việt dưới
+  const dung = sua.reduce((a, x) => a + (+x.phutDung || 0), 0);
   const zv = (goc, dich, so) => { const [vi, zh] = hai(goc, dich), f = so ? soDong : (v) => v; return zh ? f(zh) + '\n' + f(vi) : f(vi); };
   const H2 = (zh, vi) => ({ v: zh + '\n' + vi, s: H });
-  const r1 = [[{ v: '可悦设备疑难故障处理过程及分析（' + y + '年' + mo + '月）', s: { b: 1, sz: 16, align: 'center' } }],
-    [{ v: 'Phân tích xử lý sự cố thiết bị Credible · tháng ' + mo + '/' + y + ' · ' + tp('xlsExported') + ': ' + fmtD(TODAY()), s: { i: 1, color: '#55625F', align: 'center' } }], [],
+  const r1 = [[{ v: '可悦设备疑难故障处理过程及分析（' + kyZh + '）', s: { b: 1, sz: 16, align: 'center' } }],
+    [{ v: 'Phân tích xử lý sự cố thiết bị Credible · ' + kyVi + ' · ' + tp('xlsExported') + ': ' + fmtD(TODAY()), s: { i: 1, color: '#55625F', align: 'center' } }], [],
     [H2('序号', 'STT'), H2('设备编号', 'Mã thiết bị'), H2('日期', 'Ngày'), H2('问题描述', 'Mô tả sự cố'), H2('分析原因', 'Phân tích nguyên nhân'), H2('处理结果', 'Kết quả xử lý'), H2('维修人', 'Người xử lý'), H2('停机（小时）', 'Dừng máy (giờ)')]];
   sua.forEach((x, i) => {
     const m = S.V.byMa[x.ma], ma = m ? (m.maHT || (m.chuyen ? mh(m.chuyen) : m.ma)) : (x.ma || '');
@@ -7498,6 +7565,15 @@ function bcWorkbook(ym) {
   });
   r1.push([c(''), c(''), c(''), c('合计 · Tổng: ' + sua.length, { b: 1 }), c(''), c(''), c(''), c(Math.round(dung / 6) / 10, { fmt: '0.0', b: 1, align: 'center' })]);
   const s1 = { name: 'Sua chua', rows: r1, cols: [6, 16, 12, 40, 40, 40, 18, 11], merges: ['A1:H1', 'A2:H2'], heights: { 1: 30, 4: 34 }, freeze: { r: 4, c: 0 }, landscape: true };
+  return s1;
+}
+function bcWorkbook(ym) {
+  const [y, mo] = ym.split('-').map(Number);
+  const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const T = (txt) => [{ v: txt, s: { b: 1, sz: 14 } }], hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const ngay = (d) => (d ? c(excelSerial(d.slice(0, 10)), { fmt: 'dd/mm/yyyy', align: 'center' }) : c(''));
+  const s1 = scSheet(bcSuaDS(ym), y + '年' + mo + '月', 'tháng ' + mo + '/' + y);
   const r2 = [T('Tỉ lệ hoàn thành công việc tháng ' + mo + '/' + y + ' · ' + y + '年' + mo + '月完成率'), [{ v: tp('bcCach'), s: { i: 1, color: '#55625F', wrap: 1 } }], [],
     hd(['thNV', 'meMa', 'bcGiao', 'bcXong', 'bcPct', 'bcDungHan', 'bcQua', 'bcDang'])];
   nvDS().forEach((n) => {

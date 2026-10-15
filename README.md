@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.7.0
+# Credible Việt Nam CMMS · 设备管理 — v2.8.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.7.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.8.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.7.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.7.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.8.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.8.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.7.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.8.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò |
 |---|---|---|
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.7.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.8.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.7.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.8.0.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -96,6 +96,19 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Việc chờ gửi chỉ được gửi khi app đang mở và có mạng. iOS không có gửi ngầm.
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
+
+## Điểm mới của v2.8.0: trang chủ iPhone gọn hơn, Lịch sử sửa chữa
+
+- **Trang chủ iPhone:**
+  - **Tổng quan** nằm ngay dưới lời chào.
+  - **Việc của tôi** gọn thành một ô có số việc, bấm vào mới mở danh sách.
+  - Bỏ nút "Quét QR" ở đầu trang, vì nút quét đã có ở giữa thanh dưới.
+- **Ghi sửa chữa chỉ lưu làm lịch sử:** bản ghi sửa chữa không còn hiện trong danh sách, bảng và thống kê Công việc.
+  - Xem ở **Công việc → Lịch sử sửa chữa**: lọc theo tháng hoặc tất cả, tìm theo máy, mã, nội dung, người sửa.
+  - Thẻ **Sự cố** trong hồ sơ máy vẫn có các bản ghi này.
+- **Xoá bản ghi sửa chữa:** mở bản ghi → **Xoá bản ghi sửa chữa**. Quản lý xoá được mọi bản ghi, nhân viên chỉ xoá bản mình ghi. Dòng trên sheet được đánh dấu `HUY` và ghi vào nhật ký, không mất hẳn.
+- **Xuất Excel gộp mọi máy:** nút **Xuất Excel (gộp mọi máy)** ở trang Lịch sử sửa chữa xuất các bản ghi đang lọc vào một bảng duy nhất theo mẫu 疑难故障.
+- Nâng cấp: dán `Code.gs-v2.8.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự thêm cột `Nguon` vào trang `CongViec`; bản ghi cũ của v2.6–2.7 vẫn được nhận ra.
 
 ## Điểm mới của v2.7.0: mã hiển thị tự đặt, quét QR xem lịch sử sự cố
 

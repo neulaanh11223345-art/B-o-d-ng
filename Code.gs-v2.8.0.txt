@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.7.0';
+var PHIEN_BAN = '2.8.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -58,7 +58,7 @@ var BANG = {
   CongViec: ['ID', 'So', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Han', 'TrangThai', 'UIDLam', 'NguoiLam', 'UIDPhu',
     'NguoiGiao', 'UIDGiao', 'LucGiao', 'NguoiTao', 'UIDTao', 'LucTao', 'LucBatDau', 'LucXong', 'KetQua', 'LinhKien',
     'AnhTao', 'AnhXong', 'CanKiemTra', 'NguoiKiemTra', 'LucKiemTra', 'LapLai', 'OpId', 'CapNhat', 'NhatKy', 'NguyenNhan', 'PhutDung',
-    'TieuDeDich', 'MoTaDich', 'KetQuaDich', 'NguyenNhanDich'],
+    'TieuDeDich', 'MoTaDich', 'KetQuaDich', 'NguyenNhanDich', 'Nguon'],
   // Việc lặp lại: mỗi ngày (khi app tải dữ liệu và lúc nhắc hằng ngày) tự sinh việc vào CongViec
   // Kieu: ngay (hằng ngày) · tuan (Ngay = các thứ 0–6, 0 = Chủ nhật) · thang (Ngay = các ngày trong tháng) · TaoDen: đã sinh việc đến ngày
   ViecLap: ['ID', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Kieu', 'Ngay', 'UIDLam', 'CanKiemTra', 'HoatDong', 'TaoDen', 'NguoiTao', 'CapNhat',
@@ -93,7 +93,7 @@ var QUYEN = {
   nhatky: ['admin', 'quanly'],
   giaoviec: ['admin', 'quanly']     // giao việc, kiểm tra việc xong, việc lặp lại
 };
-var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'saveUser', 'changePin', 'notifySave',
+var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'deleteRepair', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring'];
@@ -250,6 +250,7 @@ function dieuHuong(a, p, req) {
     case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
     case 'saveRepair': canQuyen(u, 'xacnhan'); return luuSuaChua(u, p, s(req.opId));
+    case 'deleteRepair': canQuyen(u, 'xacnhan'); return xoaSuaChua(u, p);
     case 'assignTasks': canQuyen(u, 'giaoviec'); return giaoNhieuViec(u, p, s(req.opId));
     case 'saveRecurring': canQuyen(u, 'giaoviec'); return luuViecLap(u, p);
   }
@@ -763,7 +764,8 @@ var TEN_TT_CV = { CHO_GIAO: 'Chờ giao · 待派工', DA_GIAO: 'Đã giao · �
 var CV_KHOA = ['id', 'so', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'han', 'trangThai', 'uidLam', 'nguoiLam', 'uidPhu',
   'nguoiGiao', 'uidGiao', 'lucGiao', 'nguoiTao', 'uidTao', 'lucTao', 'lucBatDau', 'lucXong', 'ketQua', 'linhKien',
   'anhTao', 'anhXong', 'canKiemTra', 'nguoiKiemTra', 'lucKiemTra', 'lapLai', 'opId', 'capNhat', 'nhatKy', 'nguyenNhan', 'phutDung',
-  'tieuDeDich', 'moTaDich', 'ketQuaDich', 'nguyenNhanDich'];
+  'tieuDeDich', 'moTaDich', 'ketQuaDich', 'nguyenNhanDich', 'nguon'];
+// nguon: 'SC' = bản ghi sửa chữa (Ghi sửa chữa), chỉ lưu làm lịch sử, không hiện trong danh sách công việc
 var VL_KHOA = ['id', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'kieu', 'ngay', 'uidLam', 'canKiemTra', 'hoatDong', 'taoDen', 'nguoiTao', 'capNhat',
   'tieuDeDich', 'moTaDich'];
 var CV_JSON = { uidPhu: 1, linhKien: 1, anhTao: 1, anhXong: 1, nhatKy: 1 };
@@ -795,7 +797,13 @@ function cvThanhDong(x) { return obThanhDong(CV_KHOA, x); }
 function vlThanhDong(x) { return obThanhDong(VL_KHOA, x); }
 function docCongViec() { return docTho('CongViec').map(function (r, i) { return obTuDong(CV_KHOA, r, i); }).filter(function (x) { return x.id; }); }
 function docViecLap() { return docTho('ViecLap').map(function (r, i) { return obTuDong(VL_KHOA, r, i); }).filter(function (x) { return x.id; }); }
-function sachCV(x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; }); return o; }
+function sachCV(x) {
+  var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; });
+  if (!o.nguon && o.trangThai && laBanGhiSC(x)) o.nguon = 'SC';
+  return o;
+}
+// Bản ghi từ "Ghi sửa chữa" (bản 2.6.0 chưa có cột Nguon: nhận theo dòng nhật ký đầu)
+function laBanGhiSC(x) { return x.nguon === 'SC' || (x.loai === 'SUA' && x.nhatKy && x.nhatKy[0] && x.nhatKy[0].gc === 'Ghi sửa chữa'); }
 function timNV(id, ds) {
   id = s(id); if (!id) return null;
   return (ds || dsNguoiDung()).filter(function (n) { return n.id === id && n.hoatDong; })[0] || null;
@@ -1007,12 +1015,27 @@ function luuSuaChua(u, p, opId) {
   var x = { id: id, so: soLonNhat(ds) + 1, tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], loai: 'SUA', uuTien: 'TB', ma: f.ma, han: ngay,
     trangThai: 'DONG', uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay,
     lucBatDau: luc, lucXong: luc, ketQua: kqD[0], ketQuaDich: kqD[1], nguyenNhan: nnD[0], nguyenNhanDich: nnD[1], linhKien: lk, anhTao: [], anhXong: anhSC(p.anh, 'sc', 'SAU'),
-    canKiemTra: false, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: opId, capNhat: bay,
+    canKiemTra: false, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: opId, capNhat: bay, nguon: 'SC',
     phutDung: gio !== '' && gio >= 0 && gio <= 24 * 60 ? Math.round(gio * 60) : '',
     nhatKy: [{ b: 'tao', luc: bay, uid: u.id, nguoi: u.ten, gc: 'Ghi sửa chữa', gcDich: '记录维修', op: opId }] };
   if (f.lam) { x.uidLam = f.lam.id; x.nguoiLam = f.lam.ten; x.uidPhu = f.phu.map(function (n) { return n.id; }); x.nguoiGiao = u.ten; x.uidGiao = u.id; x.lucGiao = bay; }
   x.nhatKy.push({ b: 'xong', luc: luc, uid: u.id, nguoi: u.ten, gc: '', op: '' });
   themDong('CongViec', cvThanhDong(x));
+  return { congViec: sachCV(x) };
+}
+
+// Xoá bản ghi sửa chữa: Quản lý xoá được mọi bản ghi, người khác chỉ xoá bản mình ghi. Đánh dấu HUY, giữ dòng trên sheet để tra lại.
+function xoaSuaChua(u, p) {
+  var x = docCongViec().filter(function (r) { return r.id === s(p.id); })[0];
+  if (!x || !laBanGhiSC(x)) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  if (x.trangThai === 'HUY') return { congViec: sachCV(x) };
+  if (!coQuyen(u, 'giaoviec') && x.uidTao !== u.id) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  capNhatTieuDe('CongViec');
+  var bay = thoiGianStr();
+  x.trangThai = 'HUY'; x.nguon = 'SC'; x.capNhat = bay;
+  x.nhatKy.push({ b: 'xoa', luc: bay, uid: u.id, nguoi: u.ten, gc: catChu(p.lyDo, 200), op: '' });
+  suaDong('CongViec', x._r, cvThanhDong(x));
+  ghiNhatKy(u, 'XOA_SUA_CHUA', 'CongViec', x.id, x.tieuDe, '', catChu(p.lyDo, 200));
   return { congViec: sachCV(x) };
 }
 
