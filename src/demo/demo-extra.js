@@ -1,0 +1,297 @@
+// ===== Chỉ dùng cho bản xem thử (không chép vào Apps Script) =====
+// 171 linh kiện mẫu lấy từ file kho ERP ngày 26/09/2026 (đã gộp theo 品号)
+var MAU_KHO = [
+{"ma":"601020172","ten":"Bu lông 螺栓","qc":"M8*50","dv":"个","nh":"601","ton":1000,"vt":[["越-备品备件仓2","LA21",1000]]},
+{"ma":"601040010","ten":"销 L266 Chốt L266","qc":"D38xL266","dv":"个","nh":"601","ton":2,"vt":[["越-备品备件仓2","FB11",2]]},
+{"ma":"601040008","ten":"销D16.5 Chốt D16.5","qc":"D16xL38","dv":"个","nh":"601","ton":2,"vt":[["越-备品备件仓","FB13",2]]},
+{"ma":"601040009","ten":"销 L50,8 Chốt L50,8","qc":"D31,6xL50,8","dv":"个","nh":"601","ton":2,"vt":[["越-备品备件仓","FB12",2]]},
+{"ma":"601080047","ten":"外卡簧（轴用卡簧）Chốt vòng ngoài","qc":"φ8","dv":"个","nh":"601","ton":150,"vt":[["越-备品备件仓","EB11",150]]},
+{"ma":"601050020","ten":"平键","qc":"9*14*32（圆头）","dv":"个","nh":"601","ton":250,"vt":[["越-备品备件仓2","EB32",250]]},
+{"ma":"601050021","ten":"平键","qc":"8*12*32（圆头）","dv":"个","nh":"601","ton":244,"vt":[["越-备品备件仓2","EB32",244]]},
+{"ma":"602020173","ten":"轴Trục","qc":"φ20*150","dv":"件","nh":"602","ton":1,"vt":[["越-备品备件仓2","AC31",1]]},
+{"ma":"602020402","ten":"理片机轴Trục","qc":"Φ25*159.5","dv":"件","nh":"602","ton":1,"vt":[["越-备品备件仓2","AC31",1]]},
+{"ma":"602020708","ten":"轴Trục","qc":"φ40*510","dv":"件","nh":"602","ton":11,"vt":[["越-备品备件仓2","AB11",1],["越-备品备件仓2","AC11",5],["越-备品备件仓","AC11",5]]},
+{"ma":"602021227","ten":"二级包覆硅胶轮Con lăn bọc silicone hai lớp","qc":"φ90*90","dv":"件","nh":"602","ton":4,"vt":[["越-备品备件仓2","AA31",1],["越-备品备件仓","AA31",3]]},
+{"ma":"602021267","ten":"Trục truyền động传动轴","qc":"φ40*528","dv":"个","nh":"V602","ton":3,"vt":[["越-备品备件仓2","AB11",3]]},
+{"ma":"602010020","ten":"直线滑块","qc":"SHS15C1SS(GK)","dv":"件","nh":"602","ton":3,"vt":[["越-备品备件仓2","EA14",3]]},
+{"ma":"602020082","ten":"毛刷","qc":"内辊φ65*96，毛刷圈φ97*85","dv":"件","nh":"602","ton":2,"vt":[["越-备品备件仓2","DB34",2]]},
+{"ma":"603010010","ten":"平皮带Băng tải phẳng","qc":"2010*50*1.5/不打孔","dv":"个","nh":"603","ton":4,"vt":[["越-备品备件仓2","HB51",1],["越-备品备件仓","HB51",3]]},
+{"ma":"603010022","ten":"平皮带Băng tải phẳng","qc":"3340*50*1.5（打孔区40-3/2-φ6-列宽14）","dv":"个","nh":"603","ton":4,"vt":[["越-备品备件仓2","HD51",1],["越-备品备件仓","HD51",3]]},
+{"ma":"603010038","ten":"平皮带Băng tải phẳng","qc":"1210*120*1.5/不打孔","dv":"个","nh":"603","ton":5,"vt":[["越-备品备件仓2","HA21",2],["越-备品备件仓","HA21",3]]},
+{"ma":"603010358","ten":"平皮带Băng tải phẳng","qc":"1830*100*1.5/打孔区60-4/3-φ6-列宽18","dv":"个","nh":"603","ton":5,"vt":[["越-备品备件仓2","HC51",4],["越-备品备件仓","HC51",1]]},
+{"ma":"603010400","ten":"平皮带Băng tải phẳng","qc":"2210*100*1.5/打孔区46-3/2-φ6-列宽18","dv":"个","nh":"603","ton":5,"vt":[["越-备品备件仓2","HD31",1],["越-备品备件仓","HD31",4]]},
+{"ma":"603010028","ten":"平皮带","qc":"1180*70*1.5","dv":"个","nh":"603","ton":4,"vt":[["越-备品备件仓2","HA11",4]]},
+{"ma":"603010036","ten":"平皮带","qc":"1200*80*1.5/不打孔","dv":"个","nh":"603","ton":5,"vt":[["越-备品备件仓2","HA21",3],["越-备品备件仓","HA21",2]]},
+{"ma":"604010217","ten":"圆弧齿单面同步带Dây đai đồng bộ răng cung tròn một mặt","qc":"800*8M*40","dv":"个","nh":"604","ton":5,"vt":[["越-备品备件仓2","GB13",2],["越-备品备件仓","GB13",3]]},
+{"ma":"604010245","ten":"硅胶同步带dây đai đồng bộ bằng silicone","qc":"1870*130*5M硅胶/打孔区82-8/7-φ5-列宽10","dv":"个","nh":"604","ton":2,"vt":[["越-备品备件仓2","JD21",1],["越-备品备件仓","JD21",1]]},
+{"ma":"604010246","ten":"圆弧齿双面同步带Dây đai đồng bộ răng cung tròn hai mặt","qc":"1184*8M*40-DA","dv":"个","nh":"604","ton":3,"vt":[["越-备品备件仓2","GD13",3]]},
+{"ma":"604010263","ten":"圆弧齿单面同步带Day dai dông bo rǎng cung tròn m¢t mät","qc":"336*3M*5","dv":"个","nh":"604","ton":3,"vt":[["越-备品备件仓2","GC51",1],["越-备品备件仓","GC51",2]]},
+{"ma":"604010267","ten":"圆弧齿双面同步带Dây đai đồng bộ răng cung tròn hai mặt","qc":"1344*14M*40-DA","dv":"个","nh":"604","ton":5,"vt":[["越-备品备件仓2","GD21",1],["越-备品备件仓","GD21",4]]},
+{"ma":"604010213","ten":"圆弧齿单面同步带","qc":"912*8M*40","dv":"个","nh":"604","ton":4,"vt":[["越-备品备件仓2","GB16",1],["越-备品备件仓","GB16",3]]},
+{"ma":"604010216","ten":"圆弧齿单面同步带","qc":"856*8M*40","dv":"个","nh":"604","ton":2,"vt":[["越-备品备件仓2","GB14",2]]},
+{"ma":"605010001","ten":"Vòng bi 轴承","qc":"6306ZZCM","dv":"个","nh":"V605","ton":29,"vt":[["越-备品备件仓2","CA11",3],["越-备品备件仓","CA11",26]]},
+{"ma":"605010136","ten":"外球面带座菱形轴承Vòng bi","qc":"UCFL206（含UC206)","dv":"只","nh":"605","ton":5,"vt":[["越-备品备件仓2","CA33",2],["越-备品备件仓","CA33",3]]},
+{"ma":"605010185","ten":"轴承Vòng bi","qc":"NSK 6305无油","dv":"只","nh":"605","ton":30,"vt":[["越-备品备件仓2","CA12",2],["越-备品备件仓","CA12",28]]},
+{"ma":"605010344","ten":"Vòng bi轴承","qc":"22215EXQW33","dv":"个","nh":"V605","ton":6,"vt":[["越-备品备件仓2","CA34",2],["越-备品备件仓","CA34",4]]},
+{"ma":"605010351","ten":"Trục 轴","qc":"φ60*250","dv":"个","nh":"605","ton":4,"vt":[["越-备品备件仓2","AC21",4]]},
+{"ma":"605010014","ten":"轴承","qc":"6001-2Z","dv":"只","nh":"605","ton":49,"vt":[["越-备品备件仓2","CB21",1],["越-备品备件仓","CB21",48]]},
+{"ma":"605010022","ten":"轴承","qc":"6009-2Z","dv":"只","nh":"605","ton":45,"vt":[["越-备品备件仓2","CB22",1],["越-备品备件仓2","CB32",4],["越-备品备件仓","CB32",40]]},
+{"ma":"606060065","ten":"Quai nhê 金属扎带","qc":"155-178","dv":"个","nh":"606","ton":7,"vt":[["越-备品备件仓2","EB31",2],["越-备品备件仓","EB31",5]]},
+{"ma":"606060069","ten":"金属扎带Quai nhê","qc":"68-92","dv":"个","nh":"606","ton":13,"vt":[["越-备品备件仓2","EB31",13]]},
+{"ma":"606060070","ten":"金属扎带Quai nhê","qc":"120-140","dv":"个","nh":"606","ton":7,"vt":[["越-备品备件仓2","EB31",7]]},
+{"ma":"606060071","ten":"金属扎带Quai nhê","qc":"165-190","dv":"个","nh":"606","ton":24,"vt":[["越-备品备件仓2","EB31",24]]},
+{"ma":"606060066","ten":"Quai nhê金属扎带","qc":"118-140","dv":"个","nh":"V606","ton":16,"vt":[["越-备品备件仓","EB31",16]]},
+{"ma":"606070093","ten":"纠偏器传感线","qc":"1米长度","dv":"根","nh":"606","ton":6,"vt":[["越-备品备件仓2","KD31",6]]},
+{"ma":"606070010","ten":"绝缘胶带","qc":"3M","dv":"只","nh":"606","ton":72,"vt":[["越-备品备件仓","KB21",72]]},
+{"ma":"607020006","ten":"电磁阀Van điện từ","qc":"166B-611JM M0D:M681","dv":"只","nh":"607","ton":27,"vt":[["越-备品备件仓2","ED31",5],["越-备品备件仓","ED31",22]]},
+{"ma":"607020015","ten":"电磁阀 Van điện từ","qc":"4V210-08/DC24V","dv":"只","nh":"607","ton":12,"vt":[["越-备品备件仓2","DB42",2],["越-备品备件仓","DB42",10]]},
+{"ma":"607020031","ten":"电磁阀Van điện từ","qc":"52A-11-D0A-DM-DDAA-1BA","dv":"只","nh":"607","ton":6,"vt":[["越-备品备件仓2","DB43",6]]},
+{"ma":"607020087","ten":"Đầu nối nhanh 8 có điều chỉnh khí8毫米带调节功能的快速接头","qc":"JSC8-M5","dv":"个","nh":"V607","ton":24,"vt":[["越-备品备件仓2","DA31",24]]},
+{"ma":"607020088","ten":"Đầu nối nhanh 4 có chỉnh khí4毫米带调节功能的快速接头","qc":"JSC4-0.4","dv":"个","nh":"V607","ton":7,"vt":[["越-备品备件仓2","DB12",7]]},
+{"ma":"607020010","ten":"电磁阀","qc":"411A-D0A-DDAA-1BA","dv":"只","nh":"607","ton":7,"vt":[["越-备品备件仓2","BD43",5],["越-备品备件仓2","EA43",2]]},
+{"ma":"607020033","ten":"电磁阀","qc":"VUVG-LK14-M52-AT-G18-1H2L-S","dv":"只","nh":"607","ton":9,"vt":[["越-备品备件仓2","DB41",5],["越-备品备件仓","DB41",4]]},
+{"ma":"606100033","ten":"喷印头电缆 Cáp nguồn máy in phun","qc":"2100028101","dv":"个","nh":"608","ton":1,"vt":[["越-备品备件仓2","ED51",1]]},
+{"ma":"608020046","ten":"变频器（三菱）Biến tần Mitsubishi điều khiển động cơ","qc":"FR-E840-0040-4-60","dv":"个","nh":"608","ton":1,"vt":[["越-备品备件仓2","BD51",1]]},
+{"ma":"608020047","ten":"频率转换器Bộ chuyển đổi tần số","qc":"FR-E740-2.2K-CHT","dv":"个","nh":"608","ton":2,"vt":[["越-备品备件仓2","BD51",2]]},
+{"ma":"608020049","ten":"Biến tần变频器","qc":"0.75G3 340-440V 50-60HZ","dv":"只","nh":"V608","ton":2,"vt":[["越-备品备件仓2","BD11",2]]},
+{"ma":"608020050","ten":"Biến tần 变频器","qc":"FR-F840-22K-1","dv":"只","nh":"V608","ton":2,"vt":[["越-备品备件仓2","BD11",1],["越-备品备件仓","BD11",1]]},
+{"ma":"608010009","ten":"数字量输入模块","qc":"QX40-S1","dv":"只","nh":"608","ton":1,"vt":[["越-备品备件仓2","DD42",1]]},
+{"ma":"608010010","ten":"数字量输出模块","qc":"QY41P","dv":"只","nh":"608","ton":1,"vt":[["越-备品备件仓2","DD41",1]]},
+{"ma":"609010074","ten":"喷嘴Vòi phun","qc":"1095070","dv":"个","nh":"609","ton":1,"vt":[["越-备品备件仓2","ED41",1]]},
+{"ma":"609010075","ten":"喷嘴Vòi phun","qc":"322424","dv":"个","nh":"609","ton":2,"vt":[["越-备品备件仓2","ED41",2]]},
+{"ma":"609020015","ten":"Giắc đực máy keo nóng热熔胶机电磁阀","qc":"82*56","dv":"个","nh":"V609","ton":1,"vt":[["越-备品备件仓2","ED31",1]]},
+{"ma":"609020016","ten":"Giắc đực máy keo nóng热熔胶机公插头","qc":"22*28.5","dv":"个","nh":"V609","ton":4,"vt":[["越-备品备件仓2","ED31",4]]},
+{"ma":"609020017","ten":"Giắc đực máy keo nóng热熔胶机公插头","qc":"20*26.5","dv":"个","nh":"V609","ton":6,"vt":[["越-备品备件仓2","ED31",6]]},
+{"ma":"609010063","ten":"AB胶机I/0主板","qc":"1122064","dv":"件","nh":"609","ton":1,"vt":[["越-备品备件仓2","ED41",1]]},
+{"ma":"609010071","ten":"密封圈","qc":"PN1022028","dv":"个","nh":"609","ton":97,"vt":[["越-备品备件仓2","ED41",97]]},
+{"ma":"610020073","ten":"真空泵Bơm chân không","qc":"ABM20-B","dv":"个","nh":"610","ton":11,"vt":[["越-备品备件仓2","EA22",11]]},
+{"ma":"610020074","ten":"真空泵Bơm chân không","qc":"ABM30-B","dv":"个","nh":"610","ton":12,"vt":[["越-备品备件仓2","EA41",12]]},
+{"ma":"610040046","ten":"Đầu in mã vạch 条码打印头","qc":"47-00401","dv":"个","nh":"V610","ton":1,"vt":[["越-备品备件仓2","FA11",1]]},
+{"ma":"610040069","ten":"Cảm biến 传感器","qc":"PR18-BC40DNR","dv":"个","nh":"610","ton":5,"vt":[["越-备品备件仓2","DC32",5]]},
+{"ma":"610020069","ten":"Ram máy tính máy in 电脑内存，打印机内存","qc":"8GB DDR4","dv":"个","nh":"610","ton":4,"vt":[["越-备品备件仓","EC24",4]]},
+{"ma":"610020023","ten":"墨机控制板","qc":"MHEC PCBA GSDP","dv":"件","nh":"610","ton":7,"vt":[["越-备品备件仓2","EC41",5],["越-备品备件仓","EC31",2]]},
+{"ma":"610020036","ten":"点火总成","qc":"MFPG.8HH2100026056","dv":"套","nh":"610","ton":1,"vt":[["越-备品备件仓2","EC31",1]]},
+{"ma":"611030002","ten":"减速箱Hộp giảm tốc","qc":"TB-060-3-K3-14K14-ZD","dv":"个","nh":"611","ton":1,"vt":[["越-备品备件仓2","DC21",1]]},
+{"ma":"611020016","ten":"减速机Hộp giảm tốc","qc":"PRF90-L2-20-P2","dv":"台","nh":"611","ton":2,"vt":[["越-备品备件仓","BC21",2]]},
+{"ma":"611020017","ten":"减速机Hộp giảm tốc","qc":"PRF60-L2-20-P2","dv":"台","nh":"611","ton":2,"vt":[["越-备品备件仓","BC21",2]]},
+{"ma":"611030003","ten":"电机减速箱Hộp giảm tốc","qc":"NMRV90","dv":"个","nh":"611","ton":1,"vt":[["越-备品备件仓","ZK01",1]]},
+{"ma":"611010025","ten":"万向轴","qc":"φ94*297.6","dv":"件","nh":"611","ton":4,"vt":[["越-备品备件仓2","CD11",4]]},
+{"ma":"611010026","ten":"万向轴","qc":"φ104.7*290","dv":"件","nh":"611","ton":5,"vt":[["越-备品备件仓2","CD11",5]]},
+{"ma":"612060046","ten":"Cánh inoxCánh inox","qc":"SZ036006","dv":"个","nh":"V612","ton":1,"vt":[["越-备品备件仓2","CD21",1]]},
+{"ma":"612060047","ten":"Cánh inox不锈钢叶片","qc":"SZ036005","dv":"个","nh":"V612","ton":3,"vt":[["越-备品备件仓2","CD21",3]]},
+{"ma":"612060049","ten":"Gối đỡ vòng bi轴承座","qc":"SNL512-610","dv":"个","nh":"V612","ton":3,"vt":[["越-备品备件仓2","CD21",3]]},
+{"ma":"612060050","ten":"Nút bịt tủ điện配电箱堵头","qc":"NUTBIT","dv":"个","nh":"V612","ton":11,"vt":[["越-备品备件仓2","DB21",11]]},
+{"ma":"612060053","ten":"Bộ chuyển đổi 转换器","qc":"232-485","dv":"套","nh":"612","ton":2,"vt":[["越-备品备件仓2","DC11",2]]},
+{"ma":"612030001","ten":"纠偏器","qc":"160(双电眼）左","dv":"只","nh":"612","ton":1,"vt":[["越-备品备件仓2","LD21",1]]},
+{"ma":"612030003","ten":"纠偏器","qc":"250(双电眼）右","dv":"只","nh":"612","ton":1,"vt":[["越-备品备件仓2","LD21",1]]},
+{"ma":"613010016","ten":"Hộp nối đầu cuối 接线盒","qc":"TJ-6P-K","dv":"个","nh":"613","ton":7,"vt":[["越-备品备件仓2","JB21",7]]},
+{"ma":"613040030","ten":"Linh kiện máy đóng gói包装机配件","qc":"ZJ070402","dv":"个","nh":"V613","ton":2,"vt":[["越-备品备件仓2","FA13",2]]},
+{"ma":"613050046","ten":"四氟套袋板 Thanh dẫn hướng","qc":"W149xL361xH5","dv":"个","nh":"613","ton":3,"vt":[["越-备品备件仓2","JA31",3]]},
+{"ma":"613010003","ten":"Đầu cốt đồng tròn M16铜圆形端子 M16","qc":"16mm2","dv":"个","nh":"V613","ton":35,"vt":[["越-备品备件仓","EB11",35]]},
+{"ma":"613010018","ten":"铝压条Thanh nhôm","qc":"20*1.5*2500mm","dv":"个","nh":"613","ton":12,"vt":[["越-备品备件仓","ZK01",12]]},
+{"ma":"613030012","ten":"钢丝波纹管","qc":"内径φ32/PVC","dv":"米","nh":"613","ton":20,"vt":[["越-备品备件仓2","ZK01",20]]},
+{"ma":"613030062","ten":"钢丝波纹管","qc":"内径φ90/PU聚氨酯","dv":"米","nh":"613","ton":20,"vt":[["越-备品备件仓2","ZK01",20]]},
+{"ma":"614010011","ten":"直槽机用丝锥Mũi Taro","qc":"M6","dv":"件","nh":"614","ton":45,"vt":[["越-备品备件仓2","EB13",4],["越-备品备件仓","EB13",41]]},
+{"ma":"614010033","ten":"Dao cắt切割刀","qc":"P36040B01","dv":"个","nh":"614","ton":5,"vt":[["越-备品备件仓2","FD11",5]]},
+{"ma":"614010035","ten":"Dao cắt切割刀","qc":"P50955A03","dv":"个","nh":"V614","ton":16,"vt":[["越-备品备件仓2","FD21",16]]},
+{"ma":"614010139","ten":"Dao cắt nhiệt热切刀","qc":"XF01B319","dv":"个","nh":"V614","ton":1,"vt":[["越-备品备件仓2","FD21",1]]},
+{"ma":"614010140","ten":"Dao cắt切刀","qc":"P135987 P1952","dv":"个","nh":"V614","ton":3,"vt":[["越-备品备件仓2","FD11",2],["越-备品备件仓2","FD31",1]]},
+{"ma":"614010028","ten":"黄铜刮板","qc":"190*90*3","dv":"件","nh":"614","ton":1,"vt":[["越-备品备件仓2","FD21",1]]},
+{"ma":"614020030","ten":"气压表","qc":"AFR-2000","dv":"只","nh":"614","ton":1,"vt":[["越-备品备件仓2","DB24",1]]},
+{"ma":"615060003","ten":"毛巾","qc":"长毛巾100条","dv":"件","nh":"615","ton":3,"vt":[["越-备品备件仓2","DB34",3]]},
+{"ma":"615030008","ten":"Găng tay chịu nhiệt 防火手套","qc":"chất liệu polyester không dệt","dv":"双","nh":"615","ton":9,"vt":[["越-备品备件仓","KA31",9]]},
+{"ma":"615060013","ten":"护目眼罩","qc":"","dv":"只","nh":"615","ton":5,"vt":[["越-备品备件仓","KA41",5]]},
+{"ma":"616050027","ten":"Cắt băng dính Dân hoa丹花牌胶带切割器","qc":"5cm","dv":"个","nh":"V616","ton":29,"vt":[["越-备品备件仓","LC21",29]]},
+{"ma":"616050083","ten":"电脑底座Đế cắm máy tính","qc":"200*200*95","dv":"个","nh":"616","ton":2,"vt":[["越-备品备件仓","KD31",2]]},
+{"ma":"617040006","ten":"稀释剂","qc":"W843-D","dv":"瓶","nh":"617","ton":10,"vt":[["越-备品备件仓","EC11",10]]},
+{"ma":"617040012","ten":"溶剂Dung môi","qc":"E60-D","dv":"瓶","nh":"617","ton":14,"vt":[["越-备品备件仓","KC21",14]]},
+{"ma":"618090003","ten":"打印标贴Nhãn In Brother Tze-641","qc":"Khổ 18mm","dv":"卷","nh":"V618","ton":4,"vt":[["越-备品备件仓","EC21",4]]},
+{"ma":"618090004","ten":"打印标签Nhãn In Brother Tze-641","qc":"Khổ 24mm","dv":"卷","nh":"V618","ton":10,"vt":[["越-备品备件仓","EC21",10]]},
+{"ma":"631020002","ten":"减速机 Hộp giảm tốc","qc":"6GN15K(Mã số động cơ 6IK200RGN-CF)","dv":"个","nh":"631","ton":1,"vt":[["越-备品备件仓2","MC11",1]]},
+{"ma":"631020003","ten":"减速机 Hộp giảm tốc","qc":"90GK(F)30RC(Mã số động cơ 90YS90GY38)","dv":"个","nh":"631","ton":1,"vt":[["越-备品备件仓2","MC11",1]]},
+{"ma":"631020004","ten":"减速机 Hộp giảm tốc","qc":"5GU-5K(Mã số động cơ 5IK120RGU-CF)","dv":"个","nh":"631","ton":3,"vt":[["越-备品备件仓2","MC11",3]]},
+{"ma":"631020005","ten":"减速机 Hộp giảm tốc","qc":"5GU-10K(Mã số động cơ 5IK120RGU-CF)","dv":"个","nh":"631","ton":2,"vt":[["越-备品备件仓2","MC11",2]]},
+{"ma":"631020006","ten":"减速机 Hộp giảm tốc","qc":"5GU-15K(Mã số động cơ 5IK120RGU-CF)","dv":"个","nh":"631","ton":2,"vt":[["越-备品备件仓2","MC11",2]]},
+{"ma":"631050083","ten":"圆弧齿输送同步带","qc":"2160-5M-200/灰色/硅胶/打孔149-交叉6/6-φ6-列宽7.5","dv":"个","nh":"631","ton":6,"vt":[["越-备品备件仓2","KD31",6]]},
+{"ma":"631050099","ten":"圆弧齿输送同步带","qc":"4260-5M-220/灰色/硅胶/打孔146-6/5-φ6-列宽23","dv":"个","nh":"631","ton":2,"vt":[["越-备品备件仓2","KD51",2]]},
+{"ma":"632020009","ten":"背纸刀片Dao cắt giấy lưng","qc":"100*27*4-P176145","dv":"个","nh":"632","ton":8,"vt":[["越-备品备件仓2","FD31",8]]},
+{"ma":"632020010","ten":"小包切刀片Dao cắt màng túi nhỏ","qc":"100*39*6-P176746","dv":"个","nh":"632","ton":4,"vt":[["越-备品备件仓2","FD31",4]]},
+{"ma":"632020011","ten":"芯体切刀片Dao cắt lõi bông","qc":"250*40*5-P176749","dv":"个","nh":"632","ton":2,"vt":[["越-备品备件仓2","FD31",2]]},
+{"ma":"632020012","ten":"成品终切Cắt cuối thành phẩm","qc":"285*40*5-P176150","dv":"个","nh":"632","ton":2,"vt":[["越-备品备件仓2","FD31",2]]},
+{"ma":"632020014","ten":"刀片dao cắt","qc":"L100*W32*T6 （P176755)","dv":"个","nh":"632","ton":8,"vt":[["越-备品备件仓2","FD21",8]]},
+{"ma":"633040036","ten":"PU聚氨酯钢丝软管 Ống mềm PU lõi thép","qc":"内径110mm,厚度1mm Đường kính trong 110mm, độ dày 1mm","dv":"米","nh":"633","ton":20,"vt":[["越-备品备件仓2","ZK01",20]]},
+{"ma":"633040042","ten":"电机冷却风扇叶片Cánh quạt làm mát động cơ","qc":"YX3-200L-2","dv":"个","nh":"633","ton":3,"vt":[["越-备品备件仓2","LB41",3]]},
+{"ma":"633050009","ten":"电热管 ống gia nhiệt","qc":"∅12.5*240 350W","dv":"根","nh":"633","ton":2,"vt":[["越-备品备件仓2","DC42",2]]},
+{"ma":"633140015","ten":"电机 Động cơ","qc":"6IK200RGN-CF","dv":"个","nh":"633","ton":1,"vt":[["越-备品备件仓2","MB11",1]]},
+{"ma":"633140016","ten":"电机 Động cơ","qc":"CV18G3","dv":"个","nh":"633","ton":1,"vt":[["越-备品备件仓2","MB11",1]]},
+{"ma":"633060001","ten":"继电器模块 Modune relay","qc":"AR31","dv":"个","nh":"633","ton":2,"vt":[["越-备品备件仓2","FA11",2]]},
+{"ma":"633030001","ten":"气缸Xi lanh","qc":"ADN-40-20-I-P-A","dv":"个","nh":"633","ton":1,"vt":[["越-备品备件仓","EA53",1]]},
+{"ma":"634060001","ten":"胶机屏幕màn hình máy keo nóng","qc":"7403311","dv":"个","nh":"634","ton":1,"vt":[["越-备品备件仓2","ED41",1]]},
+{"ma":"634060038","ten":"加热管 thanh gia nhiệt","qc":"7407212","dv":"个","nh":"634","ton":1,"vt":[["越-备品备件仓2","ED41",1]]},
+{"ma":"634060039","ten":"加热管 thanh gia nhiệt","qc":"7407213","dv":"个","nh":"634","ton":1,"vt":[["越-备品备件仓2","ED41",1]]},
+{"ma":"634060008","ten":"加热管 ống gia nhiệt","qc":"7407213","dv":"个","nh":"634","ton":5,"vt":[["越-备品备件仓","ED41",5]]},
+{"ma":"634060009","ten":"加热管 ống gia nhiệt","qc":"7407212","dv":"个","nh":"634","ton":5,"vt":[["越-备品备件仓","ED41",5]]},
+{"ma":"634060002","ten":"偏心喷嘴","qc":"1503098","dv":"个","nh":"634","ton":1,"vt":[["越-备品备件仓","ED41",1]]},
+{"ma":"634060003","ten":"偏心喷嘴","qc":"1503097","dv":"个","nh":"634","ton":1,"vt":[["越-备品备件仓","ED41",1]]},
+{"ma":"635020010","ten":"影像机电路板","qc":"PA-XZJ-MCU-V3.3","dv":"个","nh":"635","ton":3,"vt":[["越-备品备件仓2","EC41",3]]},
+{"ma":"635020012","ten":"HDMI 线 cáp HDMI","qc":"HDMI Type A 公对公","dv":"米","nh":"635","ton":3,"vt":[["越-备品备件仓","CD11",3]]},
+{"ma":"636020001","ten":"航空插头针插孔母针Tiếp điểm cái cho đầu nối","qc":"2100101372","dv":"个","nh":"636","ton":30,"vt":[["越-备品备件仓","EC41",30]]},
+{"ma":"636020002","ten":"航空插头针插孔公针Tiếp điểm đực của đầu nối","qc":"航空插头针插孔公针Tiếp điểm đực của đầu nối","dv":"个","nh":"636","ton":30,"vt":[["越-备品备件仓","EC41",30]]},
+{"ma":"637030001","ten":"粉尘袋Túi lọc bụi","qc":"Ø550mm*2000mm","dv":"个","nh":"637","ton":20,"vt":[["越-备品备件仓2","KA51",20]]},
+{"ma":"637030002","ten":"粉尘袋Túi lọc bụi","qc":"Ø700mm*2000mm","dv":"个","nh":"637","ton":4,"vt":[["越-备品备件仓2","KA51",4]]},
+{"ma":"637030009","ten":"粉尘袋Túi lọc bụi","qc":"Ø420mm*220mm","dv":"个","nh":"637","ton":15,"vt":[["越-备品备件仓2","KA41",15]]},
+{"ma":"638050018","ten":"手电筒Đèn pin","qc":"EP10(φ35*160）","dv":"个","nh":"638","ton":1,"vt":[["越-备品备件仓2","ZK01",1]]},
+{"ma":"638050048","ten":"黑色内六角套筒Tuýp lục giác đen","qc":"Kingtony 4075","dv":"件","nh":"638","ton":2,"vt":[["越-备品备件仓2","LC11",2]]},
+{"ma":"638050054","ten":"开孔钻头Mũi khoan khoét lỗ","qc":"φ20mm","dv":"个","nh":"638","ton":2,"vt":[["越-备品备件仓2","LC11",2]]},
+{"ma":"638050055","ten":"开孔钻头Mũi khoan khoét lỗ","qc":"φ22mm","dv":"个","nh":"638","ton":2,"vt":[["越-备品备件仓2","LC11",2]]},
+{"ma":"638050056","ten":"开孔钻头Mũi khoan khoét lỗ","qc":"φ25mm","dv":"个","nh":"638","ton":2,"vt":[["越-备品备件仓2","LC11",2]]},
+{"ma":"639020014","ten":"特氟龙胶带Băng dính Tflon","qc":"T0.13mm*W50mm*L10m","dv":"个","nh":"639","ton":3,"vt":[["越-备品备件仓2","KA24",3]]},
+{"ma":"639020015","ten":"特氟龙胶带Băng dính Tflon","qc":"T0.13mm*W20mm*L10m","dv":"个","nh":"639","ton":4,"vt":[["越-备品备件仓2","KA24",4]]},
+{"ma":"639020018","ten":"铁氟龙高温胶带 băng keo chịu nhiệt PTFE","qc":"500mm","dv":"个","nh":"639","ton":1,"vt":[["越-备品备件仓2","LA21",1]]},
+{"ma":"639140001","ten":"海绵轮con lăn mút xốp","qc":"外径80*内径35*长500mm(普通）","dv":"个","nh":"639","ton":14,"vt":[["越-备品备件仓2","AA54",14]]},
+{"ma":"639150060","ten":"封口胶条gioăng làm kín","qc":"宽7mm*厚5mm rộng7mm*dày5mm\"","dv":"米","nh":"639","ton":10,"vt":[["越-备品备件仓2","FB11",10]]},
+{"ma":"639090001","ten":"毛线手套Gang tay len","qc":"","dv":"双","nh":"639","ton":150,"vt":[["越-备品备件仓","KA31",150]]},
+{"ma":"639090002","ten":"手套PU Gang tay","qc":"白色手套，指部PU涂层 màu trắng, phủ ngón PU","dv":"双","nh":"639","ton":2000,"vt":[["越-备品备件仓","JB11",2000]]},
+{"ma":"640020001","ten":"拉伸弹簧Lò xo căng mở","qc":"304不锈钢 拉伸弹簧，自由长度10~120mm，线径0.5mm，外径3mm","dv":"个","nh":"640","ton":9,"vt":[["越-备品备件仓","FB11",9]]},
+{"ma":"699240130","ten":"Băng dính xốp 泡棉胶带","qc":"2018#","dv":"卷","nh":"699","ton":30,"vt":[["越-备品备件仓2","KA21",30]]},
+{"ma":"699240218","ten":"Hộp mực Lanliruihe PrintPodsPB2Lanliruihe PrintPods PB2专用喷墨盒","qc":"","dv":"只","nh":"699","ton":3,"vt":[["越-备品备件仓2","EC11",3]]},
+{"ma":"699240236","ten":"Vòng đệm 垫圈","qc":"D51/40*T2","dv":"个","nh":"699","ton":97,"vt":[["越-备品备件仓2","FB13",97]]},
+{"ma":"699240284","ten":"Con lăn ép giấy không bụi无尘纸压轮","qc":"","dv":"个","nh":"699","ton":4,"vt":[["越-备品备件仓2","AC21",4]]},
+{"ma":"699010053","ten":"Tiếp điểm thường mở 常开触点","qc":"ZB2-BE101C","dv":"个","nh":"699","ton":8,"vt":[["越-备品备件仓","EA51",8]]},
+{"ma":"618010001","ten":"羊毛毡","qc":"1M*1M*8mm","dv":"片","nh":"699","ton":5,"vt":[["越-备品备件仓2","ZK01",5]]},
+{"ma":"618010002","ten":"羊毛毡","qc":"1M*1M*20mm","dv":"片","nh":"699","ton":1,"vt":[["越-备品备件仓2","ZK01",1]]},
+{"ma":"699010132","ten":"墨水Mực","qc":"AS-CC388A/Q2612A","dv":"个","nh":"699-","ton":4,"vt":[["越-备品备件仓2","EC11",4]]},
+{"ma":"699010134","ten":"棉芯刷Chổi quét lõi bông","qc":"HNZY-H25090801","dv":"个","nh":"699-","ton":1,"vt":[["越-备品备件仓2","DB33",1]]},
+{"ma":"699010135","ten":"棉芯刷Chổi quét lõi bông","qc":"HNZY-H25070353","dv":"个","nh":"699-","ton":5,"vt":[["越-备品备件仓2","DB35",5]]},
+{"ma":"699010178","ten":"枕头L101 Gối L101","qc":"W38xL101xT19","dv":"个","nh":"699-","ton":2,"vt":[["越-备品备件仓2","JA31",2]]},
+{"ma":"699010228","ten":"缓冲器Bộ giảm chấn","qc":"MACC1410M","dv":"个","nh":"699-","ton":12,"vt":[["越-备品备件仓2","EB32",12]]},
+{"ma":"699010241","ten":"硅胶Keo Silicon","qc":"APOLLO A500 透明色（白色透明）APOLLO A500 trắng trong","dv":"瓶","nh":"699-","ton":57,"vt":[["越-备品备件仓","KC31",57]]},
+{"ma":"800200070","ten":"变横凸轮","qc":"HNHWS-ZWO10104","dv":"件","nh":"802","ton":1,"vt":[["越-备品备件仓2","AB21",1]]},
+{"ma":"602020476","ten":"轴","qc":"D15W122L158","dv":"件","nh":"602","ton":4,"vt":[["越-备品备件仓2","AB21",1],["越-备品备件仓2","AC21",3]]},
+{"ma":"608040010","ten":"光电开关","qc":"E3T-FD11","dv":"只","nh":"608","ton":6,"vt":[["越-备品备件仓2","DC32",6]]},
+{"ma":"605010148","ten":"菱形座轴承","qc":"UCFL207","dv":"只","nh":"605","ton":2,"vt":[["越-备品备件仓2","CA35",1],["越-备品备件仓","CA35",1]]},
+{"ma":"608060263","ten":"交流接触器","qc":"LC1D65M7C 220V 50*60HZ 55KW-380V","dv":"只","nh":"608","ton":3,"vt":[["越-备品备件仓2","DD34",3]]},
+{"ma":"607030024","ten":"气缸","qc":"TN-20*200-S","dv":"只","nh":"607","ton":2,"vt":[["越-备品备件仓2","EA23",2]]}
+];
+function mauKho() {
+  if (docKho().length) return;
+  nhapKho({ ten: 'Quản lý' }, { file: '20260926ERP.xlsx (mẫu · 样本)', soDong: 203, ds: MAU_KHO });
+  var meta = docKhoMeta();
+  if (meta.nhap) { meta.nhap.luc = '2026-09-26 16:30:00'; ghiKhoMeta(meta); }
+}
+
+// Câu mẫu cho Google Dịch giả của bản xem thử (bản thật dùng Google Dịch, dịch được mọi câu)
+__dichMau.push(
+  ['Thay vòi nước nhà vệ sinh xưởng 1', '更换一车间卫生间水龙头'], ['Máy hút bụi VKY03 không chạy', '吸尘器VKY03不运转'],
+  ['Thay chổi than motor', '更换电机碳刷'], ['Đã thay 2 vòi, hết rò', '已更换2个水龙头，不再漏水'],
+  ['Đã thay 4 bóng LED, kiểm tra sáng đều', '已更换4个LED灯，检查亮度均匀'], ['Thay aptomat 3 pha, siết lại đầu cốt motor', '更换三相空气开关，重新紧固电机接线端子'],
+  ['Hao mòn', '自然磨损'], ['Thiếu bảo dưỡng', '保养不足'], ['Vận hành sai', '操作不当'], ['Lỗi điện', '电气故障'], ['Lỗi cơ khí', '机械故障'],
+  ['Lỗi khí nén / thuỷ lực', '气动/液压故障'], ['Chờ vật tư', '等待材料'], ['Chờ bóng đèn', '等灯泡'], ['Chờ dừng máy', '等待停机'],
+  ['Còn 1 bóng chập chờn', '还有1个灯时亮时不亮'], ['Thay bóng đèn', '更换灯泡'], ['Vệ sinh máy', '清洁设备'], ['Kiểm tra', '检查'],
+  ['Kiểm tra bình chữa cháy', '检查灭火器'], ['Vệ sinh nhà ăn', '清洁食堂'], ['Sửa máy', '修理设备'], ['Thay dầu máy nén khí', '更换空压机机油'],
+  ['Thay vòi nước xưởng 1', '更换一车间水龙头'], ['Lắp quạt', '安装风扇'], ['Không cần nữa', '不需要了'],
+  ['Kiểm tra mức dầu máy nén khí', '检查空压机油位'], ['Dầu xuống dưới vạch, cần châm thêm', '油位低于刻度线，需要加油']
+);
+
+// Thêm 3 kỹ thuật viên mẫu và công việc mẫu (đủ trạng thái), việc lặp lại mẫu
+function mauNhanVien() {
+  if (dsNguoiDung().length > 3) return;
+  var bay = thoiGianStr();
+  themNhieu('NguoiDung', [
+    ['U004', 'Lê Minh Tiến', 'kythuat', bamPin('444444'), '', 1, bay, 'NV004', '黎明进'],
+    ['U005', 'Nguyễn Tuấn', 'kythuat', bamPin('555555'), '', 1, bay, 'NV005', '阮俊'],
+    ['U006', 'Đỗ Văn Hồng', 'kythuat', bamPin('666666'), '', 1, bay, 'NV006', '杜文红']
+  ]);
+}
+function mauCongViec() {
+  if (docCongViec().length) return;
+  capNhatTieuDe('CongViec'); capNhatTieuDe('ViecLap');
+  var hn = homNayStr(), bay = thoiGianStr(), nvs = dsNguoiDung();
+  var nv = {}; nvs.forEach(function (n) { nv[n.maNV] = n; });
+  var ql = nv.NV002, so = 0;
+  function luc(n, gio) { return congNgay(hn, n) + ' ' + gio + ':00'; }
+  // Câu mẫu viết sẵn "tiếng Việt · 中文" → [chữ gốc, bản dịch] (không gọi dịch)
+  function tach(t) { var i = String(t || '').indexOf(' · '); return i > 0 ? [t.slice(0, i), t.slice(i + 3)] : [t || '', '']; }
+  function viec(o) {
+    so++;
+    var td = tach(o.t), mt = tach(o.mt);
+    var tao = o.tao || ql, x = { id: 'CVMAU' + (so < 10 ? '0' : '') + so, so: so, tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1],
+      ketQuaDich: '', nguyenNhanDich: '', loai: o.l, uuTien: o.u || 'TB', ma: o.ma || '',
+      han: o.han === undefined ? '' : congNgay(hn, o.han), trangThai: 'CHO_GIAO', uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '',
+      nguoiTao: tao.ten, uidTao: tao.id, lucTao: luc(o.tu || -1, '08:05'), lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: [], anhXong: [],
+      canKiemTra: o.kt === undefined ? !!CV_LOAI[o.l] || o.u === 'GAP' : o.kt, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: '', capNhat: bay, nguyenNhan: '', phutDung: '',
+      nhatKy: [{ b: 'tao', luc: luc(o.tu || -1, '08:05'), uid: tao.id, nguoi: tao.ten, gc: '', op: '' }] };
+    if (o.lam) {
+      x.trangThai = 'DA_GIAO'; x.uidLam = nv[o.lam].id; x.nguoiLam = nv[o.lam].ten; x.uidPhu = (o.phu || []).map(function (m) { return nv[m].id; });
+      x.nguoiGiao = ql.ten; x.uidGiao = ql.id; x.lucGiao = luc(o.tu || -1, '08:30');
+      x.nhatKy.push({ b: 'giao', luc: x.lucGiao, uid: ql.id, nguoi: ql.ten, gc: x.nguoiLam + ((o.phu || []).length ? ' + ' + o.phu.map(function (m) { return nv[m].ten; }).join(', ') : ''), op: '' });
+    }
+    (o.buoc || []).forEach(function (b) {
+      var ng = nv[o.lam], l = luc(b[1], b[2]);
+      var gc = tach(b[3]);
+      x.nhatKy.push({ b: b[0], luc: l, uid: ng.id, nguoi: ng.ten, gc: b[0] === 'xong' ? '' : gc[0], gcDich: b[0] === 'xong' ? '' : gc[1], op: '' });
+      if (b[0] === 'batdau') { x.trangThai = 'DANG_LAM'; x.lucBatDau = l; }
+      if (b[0] === 'hoan') x.trangThai = 'TAM_HOAN';
+      if (b[0] === 'xong') { x.trangThai = x.canKiemTra ? 'XONG' : 'DONG'; x.lucXong = l; x.ketQua = gc[0]; x.ketQuaDich = gc[1]; }
+    });
+    if (o.lk) x.linhKien = o.lk;
+    if (o.nn) { x.nguyenNhan = tach(o.nn)[0]; x.nguyenNhanDich = tach(o.nn)[1]; }
+    if (o.dung !== undefined) x.phutDung = o.dung;
+    if (o.dong && x.trangThai === 'XONG') {
+      x.trangThai = 'DONG'; x.nguoiKiemTra = ql.ten; x.lucKiemTra = congNgay(hn, o.han) + ' 16:30:00';
+      x.nhatKy.push({ b: 'kiemtra', luc: x.lucKiemTra, uid: ql.id, nguoi: ql.ten, gc: '', op: '' });
+    }
+    return x;
+  }
+  var m1 = timMay('M001');
+  var ds = [
+    viec({ t: 'Thay 4 bóng đèn LED khu đóng gói · 更换包装区4个LED灯', l: 'SUA', u: 'CAO', han: 0, lam: 'NV004' }),
+    viec({ t: 'Vệ sinh két làm mát máy nén khí số 2 · 清洁2号空压机冷却器', l: 'VS', ma: 'M038', han: 1, lam: 'NV005', buoc: [['batdau', 0, '07:50']] }),
+    viec({ t: 'Lắp thêm quạt hút xưởng 2 · 二车间加装排风扇', l: 'LAP', han: -2, tu: -5, lam: 'NV003', phu: ['NV006'],
+      mt: 'Lắp 2 quạt hút trên tường phía bắc, đi dây từ tủ điện xưởng 2 · 北墙装2台排风扇，从二车间电柜接线' }),
+    viec({ t: 'Kiểm tra rò khí đường ống khí nén xưởng 1 · 检查一车间压缩空气管道漏气', l: 'SUA', u: 'GAP', tao: nv.NV003, tu: 0,
+      mt: 'Nghe tiếng xì gần máy in VKY06 · 喷印机VKY06附近有漏气声' }),
+    viec({ t: 'Sơn lại vạch an toàn lối đi kho · 重新喷涂仓库通道安全线', l: 'CT', han: 7 }),
+    viec({ t: 'Hỗ trợ chuyển khuôn máy in VKY08 · 协助喷印机VKY08换模', l: 'HT', u: 'CAO', ma: 'M003', han: 0, tu: 0 }),
+    viec({ t: 'Thay công tắc hành trình máy đóng bao 05 · 更换打包机05行程开关', l: 'SUA', ma: 'M015', han: -1, tu: -2, lam: 'NV004',
+      buoc: [['batdau', -1, '09:10'], ['xong', -1, '10:40', 'Đã thay công tắc, chạy thử 50 bao ổn · 已更换行程开关，试运行50包正常']],
+      lk: [{ id: 'LKCV01', ten: 'Công tắc hành trình · 行程开关', quyCach: 'TZ-8108', dv: 'cái · 个', sl: 1, loai: 'THAY' }] }),
+    viec({ t: 'Vệ sinh tủ điện xưởng 1 · 清洁一车间电柜', l: 'VS', ma: 'M039', han: -1, tu: -3, lam: 'NV006',
+      buoc: [['batdau', -1, '13:30'], ['xong', -1, '15:00', 'Thổi bụi, siết lại đầu cốt · 吹灰，紧固接线端子']] }),
+    viec({ t: 'Bảo dưỡng định kỳ ' + (m1 ? m1.ten : 'M001') + ' · 定期保养 ' + (m1 ? m1.ten : 'M001'), l: 'BD', ma: 'M001', han: 0, lam: 'NV003' }),
+    viec({ t: 'Máy nén khí số 2 báo nhiệt độ cao, tự dừng · 2号空压机高温停机', l: 'SUA', u: 'GAP', ma: 'M038', han: -9, tu: -9, lam: 'NV005', phu: ['NV004'],
+      buoc: [['batdau', -9, '08:45'], ['xong', -9, '10:40', 'Vệ sinh két làm mát, thay lọc gió, chạy thử ổn định · 清洁冷却器，更换空气滤芯']],
+      nn: 'Két làm mát bám bụi dày · 冷却器积尘', dung: 150, kt: true, dong: true,
+      lk: [{ id: 'LK01', ten: 'Lọc gió · 空气滤芯', quyCach: '', dv: 'cái · 个', sl: 1, loai: 'THAY' }] }),
+    viec({ t: 'Máy in VKY16 in mờ, mất nét · 喷印机VKY16喷印模糊', l: 'SUA', u: 'CAO', ma: 'M005', han: -6, tu: -6, lam: 'NV003',
+      buoc: [['batdau', -6, '13:30'], ['xong', -6, '14:15', 'Vệ sinh đầu phun, thay gioăng · 清洗喷头，更换密封圈']],
+      nn: 'Đầu phun bám mực khô · 喷头积墨', dung: 45, dong: true,
+      lk: [{ id: 'LK03', ten: 'Gioăng đầu phun · 喷头密封圈', quyCach: 'Φ12', dv: 'cái · 个', sl: 2, loai: 'THAY' }] }),
+    viec({ t: 'Băng tải máy đóng bao 02 lệch, kêu to · 打包机02输送带跑偏异响', l: 'SUA', ma: 'M012', han: -3, tu: -4, lam: 'NV004',
+      buoc: [['batdau', -3, '15:50'], ['xong', -3, '17:20', 'Thay 2 vòng bi 6009-2Z, căn chỉnh băng tải · 更换2个轴承，调整输送带']],
+      nn: 'Vòng bi con lăn mòn · 滚筒轴承磨损', dung: 90, dong: true,
+      lk: [{ id: 'LKSC01', ten: 'Vòng bi 6009-2Z · 轴承', quyCach: '6009-2Z', dv: '只', sl: 2, loai: 'THAY', maKho: '605010022' }] }),
+    viec({ t: 'Máy băm phế xưởng 1 không chạy, aptomat nhảy · 废料机不转空开跳闸', l: 'SUA', u: 'GAP', ma: 'M033', han: 0, tu: 0, lam: 'NV006',
+      buoc: [['batdau', 0, '07:10']] }),
+    viec({ t: 'Thay ổ cắm phòng máy nén khí · 更换空压机房插座', l: 'SUA', ma: 'M038', han: 1, tu: -2, lam: 'NV006',
+      buoc: [['batdau', -1, '08:20'], ['hoan', -1, '09:00', 'Chờ ổ cắm công nghiệp 3 pha từ kho · 等仓库三相工业插座']] })
+  ];
+  themNhieu('CongViec', ds.map(cvThanhDong));
+  themNhieu('ViecLap', [
+    { id: 'VLMAU1', tieuDe: 'Kiểm tra bình chữa cháy toàn nhà máy', tieuDeDich: '检查全厂灭火器', moTa: '', moTaDich: '', loai: 'KHAC', uuTien: 'TB', ma: '', kieu: 'tuan', ngay: '1',
+      uidLam: nv.NV006.id, canKiemTra: false, hoatDong: true, taoDen: congNgay(hn, -1), nguoiTao: ql.ten, capNhat: bay },
+    { id: 'VLMAU2', tieuDe: 'Xả nước bình chứa khí nén', tieuDeDich: '储气罐排水', moTa: '', moTaDich: '', loai: 'VS', uuTien: 'TB', ma: 'M038', kieu: 'ngay', ngay: '',
+      uidLam: nv.NV005.id, canKiemTra: false, hoatDong: true, taoDen: congNgay(hn, -1), nguoiTao: ql.ten, capNhat: bay },
+    { id: 'VLMAU3', tieuDe: 'Chạy thử máy phát điện 15 phút', tieuDeDich: '发电机试运行15分钟', moTa: '', moTaDich: '', loai: 'KHAC', uuTien: 'CAO', ma: 'M037', kieu: 'thang', ngay: '1,15',
+      uidLam: '', canKiemTra: true, hoatDong: true, taoDen: congNgay(hn, -1), nguoiTao: ql.ten, capNhat: bay }
+  ].map(vlThanhDong));
+}
+
+__tz.off = -new Date().getTimezoneOffset() * 60000;
+caiDatBanDau();
+mauNhanVien();
+mauSoDien();
+mauKiemTra();
+mauKho();
+mauCongViec();
+return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };
