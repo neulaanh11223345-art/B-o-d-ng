@@ -1,6 +1,6 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.2.0
+# Credible Việt Nam CMMS · 设备管理 — v2.3.0
 
-App quản lý công việc, bảo dưỡng và sửa chữa thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
+App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
 - **iPhone:** chạy dạng PWA — mở bằng Safari rồi "Thêm vào Màn hình chính", dùng như một app.
 - **Máy tính:** cùng địa chỉ đó, mở bằng trình duyệt. Màn rộng tự chuyển sang giao diện có thanh bên và bảng dữ liệu.
@@ -11,10 +11,10 @@ App quản lý công việc, bảo dưỡng và sửa chữa thiết bị, ghi s
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.2.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.3.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.2.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.2.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.3.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.3.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc, bảo dưỡng và sửa chữa thiết bị, ghi s
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.2.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.3.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò |
 |---|---|---|
@@ -38,11 +38,11 @@ Muốn thử cảnh mất mạng: vào **Cá nhân → Giả lập mất mạng*
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.2.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.3.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
-   - thêm các cột mới vào các trang (tự thêm cột cho trang nào không đủ) và tạo các trang mới `SuaChua`, `CongViec`, `ViecLap`;
+   - thêm các cột mới vào các trang (tự thêm cột cho trang nào không đủ) và tạo các trang mới `CongViec`, `ViecLap`;
    - tính và lưu tiêu thụ cho mọi kỳ điện đã ghi.
 
    Việc này chỉ chạy một lần. Muốn chạy lại bằng tay: trong Apps Script chọn hàm `tinhLaiTatCa` → **Chạy**.
@@ -72,6 +72,24 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
+## Điểm mới của v2.3.0 (sửa theo lần duyệt giao diện thứ nhất)
+
+- **Bỏ phiếu báo hỏng.** Sửa chữa là một loại việc trong Công việc:
+  - Quản lý giao việc sửa chữa cho nhân viên.
+  - Nhân viên gặp máy hỏng thì tự ghi việc và đánh dấu "Tôi tự làm việc này" (việc giao luôn cho chính họ).
+  - Khi xong, nhân viên ghi kết quả, **nguyên nhân hỏng** và **thời gian dừng máy**; Quản lý xác nhận "Đạt, đóng việc".
+- **Thanh tab dưới (iPhone):** Trang chủ · Thiết bị · [Quét QR] · **Công việc** · Điện/Nước.
+- **Trang chủ:** nút "Ghi việc, giao việc" thay cho nút "Báo hỏng".
+- **Ghi xong việc:** bỏ dòng nhắc chờ Quản lý kiểm tra.
+- **Hồ sơ máy:** hai nút "Ghi việc cho máy này" và "Xác nhận bảo dưỡng". Tab Bảo dưỡng có nút xác nhận (Quản lý cũng dùng được) và nút giao bảo dưỡng. Tab Lịch sử gộp bảo dưỡng với các việc của máy.
+- **Báo cáo tháng (mới):** nút "Báo cáo tháng" trong Công việc (Quản lý).
+  - Tỉ lệ hoàn thành của từng người: được giao, đã xong, %, % xong đúng hạn, quá hạn chưa xong.
+  - Danh sách sửa chữa trong tháng, tổng giờ dừng máy.
+  - **Xuất Excel**, gồm 3 trang: Sửa chữa · Tỉ lệ hoàn thành · Tất cả việc.
+- **Bảng theo người (máy tính):** đầu mỗi cột có thanh tỉ lệ hoàn thành trong tháng.
+- **Bảng công việc (máy tính):** màu nhẹ hơn. Trạng thái chỉ còn chấm màu và chữ trên một dòng; dòng quá hạn chỉ có vạch đỏ ở đầu dòng.
+- **Google Sheet:** trang `CongViec` có thêm 2 cột ở cuối, `NguyenNhan` và `PhutDung`.
+
 ## Điểm mới của v2.2.0: Công việc (ghi việc, giao việc)
 
 - **Ghi việc nhanh:** chỉ bắt buộc tên việc. Chọn thêm loại việc (Sửa nhỏ · Vệ sinh · Lắp đặt / di dời · Cải tiến · Hỗ trợ sản xuất · Bảo dưỡng · Khác), mức ưu tiên (Gấp · Cao · Bình thường), hạn (Hôm nay · Ngày mai · Cuối tuần · chọn ngày), thiết bị, mô tả, ảnh. Nút **"Lưu và ghi tiếp"** để ghi liền nhiều việc.
@@ -93,6 +111,8 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - **Sửa lỗi:** trang Google Sheet mới chỉ có 26 cột; máy chủ nay tự thêm cột khi bảng cần nhiều hơn.
 
 ## Điểm mới của v2.1.0: Sửa chữa và Bảo dưỡng thành mục riêng
+
+> Phần phiếu báo hỏng dưới đây đã bỏ ở v2.3.0; sửa chữa nay là một loại việc trong Công việc.
 
 ### Sửa chữa (báo hỏng)
 - **Quy trình một phiếu:** Báo hỏng → Nhận sửa → (Chờ linh kiện) → Sửa xong → Quản lý nghiệm thu.
@@ -219,12 +239,11 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 | Xem trước khi xuất Excel | ✅ |
 | Cảnh báo trang chủ mở đúng danh sách | ✅ |
 
-| Báo hỏng / sửa chữa có trạng thái, người sửa, thời gian dừng máy, nghiệm thu | ✅ (v2.1.0) |
+| Sửa chữa: người sửa, nguyên nhân, thời gian dừng máy, Quản lý xác nhận, báo cáo Excel tháng | ✅ (v2.3.0) |
 | Ghi việc, giao việc cho nhân viên, việc lặp lại | ✅ (v2.2.0) |
 
 **Chưa làm (giai đoạn sau, cần vẽ màn và chốt quy trình trước):**
 - Nhật ký ca
-- Báo cáo sửa chữa xuất Excel (số lần hỏng, thời gian dừng theo máy)
 - Quản lý nhân viên ngoài tài khoản đăng nhập
 
 **Các câu hỏi ở mục 6 của checklist đã có chỗ cấu hình**, chỉ cần chốt giá trị:
@@ -237,6 +256,6 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 20 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
-node tests/e2e.mjs                      # 13 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
+node --test tests/backend.test.mjs      # 18 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node tests/e2e.mjs                      # 11 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```

@@ -180,69 +180,6 @@ function mauKho() {
   if (meta.nhap) { meta.nhap.luc = '2026-09-26 16:30:00'; ghiKhoMeta(meta); }
 }
 
-// Phiếu sửa chữa mẫu: đủ các trạng thái (đã nghiệm thu, chờ nghiệm thu, đang sửa, chờ sửa, chờ linh kiện, đã huỷ)
-function mauSuaChua() {
-  if (docSuaChua().length) return;
-  capNhatTieuDe('SuaChua');
-  var hn = homNayStr(), now = bayGio().getTime();
-  function ngay(n, gio) { return congNgay(hn, -n) + ' ' + gio + ':00'; }
-  function truoc(phut) { return Utilities.formatDate(new Date(now - phut * 60000), TZ, 'yyyy-MM-dd HH:mm:ss'); }
-  function sau(t, phut) { return new Date(msTG(t) + phut * 60000).toISOString().slice(0, 19).replace('T', ' '); }
-  var kt = { id: 'U003', ten: 'Kỹ thuật' }, ql = { id: 'U002', ten: 'Quản lý' };
-  function bc(b, luc, u, gc) { return { b: b, luc: luc, uid: u.id, nguoi: u.ten, gc: gc || '', op: '' }; }
-  function phieu(o) {
-    var m = timMay(o.ma), x = {
-      id: 'SCMAU0' + o.so, tenMay: m ? m.ten : '', nguoiBao: kt.ten, uidBao: kt.id, nguoiSua: '', lucNhan: '', nguyenNhan: '', xuLy: '',
-      linhKien: [], lucXong: '', lucChay: '', phutDung: '', nguoiNghiemThu: '', lucNghiemThu: '', anhBao: [], anhSua: [], opId: ''
-    };
-    Object.keys(o).forEach(function (k) { x[k] = o[k]; });
-    x.lucBao = x.lucBao || sau(x.lucHong, 6);
-    x.uidSua = x.nguoiSua === kt.ten ? kt.id : '';
-    x.capNhat = x.nhatKy[x.nhatKy.length - 1].luc;
-    if (x.mucDo === 'DUNG' && x.lucChay) x.phutDung = phutGiua(x.lucHong, x.lucChay);
-    return x;
-  }
-  var p1 = ngay(24, '08:10'), p2 = ngay(12, '13:20'), p3 = ngay(1, '15:40'), p4 = truoc(185), p5 = truoc(50), p6 = ngay(2, '09:15'), p7 = ngay(5, '10:00');
-  var ds = [
-    phieu({ so: 1, ma: 'M038', trangThai: 'DONG', mucDo: 'DUNG', lucHong: p1,
-      moTa: 'Máy nén khí số 2 báo lỗi nhiệt độ cao rồi tự dừng · 2号空压机高温报警后停机',
-      nguoiSua: 'Lê Minh Tiến, Nguyễn tuấn', lucNhan: sau(p1, 15), nguyenNhan: 'Két làm mát bám bụi dày · 冷却器积尘严重',
-      xuLy: 'Vệ sinh két làm mát, thay lọc gió, chạy thử 30 phút ổn định · 清洁冷却器，更换空气滤芯，试运行30分钟正常',
-      linhKien: [{ id: 'LK01', ten: 'Lọc gió · 空气滤芯', quyCach: '', dv: 'cái · 个', sl: 1, loai: 'THAY' }],
-      lucXong: sau(p1, 140), lucChay: sau(p1, 150), nguoiNghiemThu: ql.ten, lucNghiemThu: sau(p1, 360),
-      nhatKy: [bc('bao', sau(p1, 6), kt), bc('nhan', sau(p1, 15), kt), bc('xong', sau(p1, 145), kt), bc('nghiemthu', sau(p1, 360), ql)] }),
-    phieu({ so: 2, ma: 'M005', trangThai: 'DONG', mucDo: 'HAN_CHE', lucHong: p2,
-      moTa: 'In mờ, mất nét một bên đầu phun · 喷印模糊，一侧缺字',
-      nguoiSua: kt.ten, lucNhan: sau(p2, 10), nguyenNhan: 'Đầu phun bám mực khô · 喷头积墨',
-      xuLy: 'Vệ sinh đầu phun bằng dung môi, thay gioăng đầu phun · 用溶剂清洗喷头，更换喷头密封圈',
-      linhKien: [{ id: 'LK03', ten: 'Gioăng đầu phun · 喷头密封圈', quyCach: 'Φ12', dv: 'cái · 个', sl: 2, loai: 'THAY' }],
-      lucXong: sau(p2, 45), lucChay: sau(p2, 45), nguoiNghiemThu: ql.ten, lucNghiemThu: sau(p2, 160),
-      nhatKy: [bc('bao', sau(p2, 6), kt), bc('nhan', sau(p2, 10), kt), bc('xong', sau(p2, 46), kt), bc('nghiemthu', sau(p2, 160), ql)] }),
-    phieu({ so: 3, ma: 'M012', trangThai: 'XONG', mucDo: 'DUNG', lucHong: p3,
-      moTa: 'Băng tải lệch, ổ bi kêu to · 输送带跑偏，轴承异响',
-      nguoiSua: 'Lê Minh Tiến', lucNhan: sau(p3, 15), nguyenNhan: 'Vòng bi trục con lăn bị mòn · 滚筒轴承磨损',
-      xuLy: 'Thay 2 vòng bi 6009-2Z, căn chỉnh lại băng tải · 更换2个6009-2Z轴承，调整输送带',
-      linhKien: [{ id: 'LKSC01', ten: 'Vòng bi 6009-2Z · 轴承', quyCach: '6009-2Z', dv: '只', sl: 2, loai: 'THAY', maKho: '605010022' }],
-      lucXong: sau(p3, 100), lucChay: sau(p3, 110),
-      nhatKy: [bc('bao', sau(p3, 6), kt), bc('nhan', sau(p3, 15), kt), bc('xong', sau(p3, 102), kt)] }),
-    phieu({ so: 4, ma: 'M033', trangThai: 'DANG_SUA', mucDo: 'DUNG', lucHong: p4,
-      moTa: 'Motor không chạy, aptomat nhảy liên tục · 电机不转，空开反复跳闸',
-      nguoiSua: kt.ten, lucNhan: sau(p4, 20),
-      nhatKy: [bc('bao', sau(p4, 6), kt), bc('nhan', sau(p4, 20), kt)] }),
-    phieu({ so: 5, ma: 'M031', trangThai: 'CHO_SUA', mucDo: 'HAN_CHE', lucHong: p5, nguoiBao: ql.ten, uidBao: ql.id,
-      moTa: 'Điều hòa chảy nước, làm lạnh yếu · 空调漏水，制冷差',
-      nhatKy: [bc('bao', sau(p5, 6), ql)] }),
-    phieu({ so: 6, ma: 'M001', trangThai: 'CHO_LK', mucDo: 'HAN_CHE', lucHong: p6,
-      moTa: 'Cảm biến đếm sản phẩm lúc nhận lúc không · 计数传感器时好时坏',
-      nguoiSua: kt.ten, lucNhan: sau(p6, 15),
-      nhatKy: [bc('bao', sau(p6, 6), kt), bc('nhan', sau(p6, 15), kt), bc('cholk', sau(p6, 50), kt, 'Chờ cảm biến PR18-BC40DNR, đã làm phiếu xuất kho · 等待传感器PR18-BC40DNR，已开领料单')] }),
-    phieu({ so: 7, ma: 'M019', trangThai: 'HUY', mucDo: 'KHONG', lucHong: p7,
-      moTa: 'Máy hút bụi yếu · 吸尘器吸力弱',
-      nhatKy: [bc('bao', sau(p7, 6), kt), bc('huy', sau(p7, 30), ql, 'Báo nhầm máy, đã báo lại cho máy khác · 报错设备')] })
-  ];
-  themNhieu('SuaChua', ds.map(scThanhDong));
-}
-
 // Thêm 3 kỹ thuật viên mẫu và công việc mẫu (đủ trạng thái), việc lặp lại mẫu
 function mauNhanVien() {
   if (dsNguoiDung().length > 3) return;
@@ -265,7 +202,7 @@ function mauCongViec() {
     var tao = o.tao || ql, x = { id: 'CVMAU' + (so < 10 ? '0' : '') + so, so: so, tieuDe: o.t, moTa: o.mt || '', loai: o.l, uuTien: o.u || 'TB', ma: o.ma || '',
       han: o.han === undefined ? '' : congNgay(hn, o.han), trangThai: 'CHO_GIAO', uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '',
       nguoiTao: tao.ten, uidTao: tao.id, lucTao: luc(o.tu || -1, '08:05'), lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: [], anhXong: [],
-      canKiemTra: o.kt === undefined ? !!CV_LOAI[o.l] || o.u === 'GAP' : o.kt, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: '', capNhat: bay,
+      canKiemTra: o.kt === undefined ? !!CV_LOAI[o.l] || o.u === 'GAP' : o.kt, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: '', capNhat: bay, nguyenNhan: '', phutDung: '',
       nhatKy: [{ b: 'tao', luc: luc(o.tu || -1, '08:05'), uid: tao.id, nguoi: tao.ten, gc: '', op: '' }] };
     if (o.lam) {
       x.trangThai = 'DA_GIAO'; x.uidLam = nv[o.lam].id; x.nguoiLam = nv[o.lam].ten; x.uidPhu = (o.phu || []).map(function (m) { return nv[m].id; });
@@ -280,6 +217,12 @@ function mauCongViec() {
       if (b[0] === 'xong') { x.trangThai = x.canKiemTra ? 'XONG' : 'DONG'; x.lucXong = l; x.ketQua = b[3]; x.nhatKy[x.nhatKy.length - 1].gc = ''; }
     });
     if (o.lk) x.linhKien = o.lk;
+    if (o.nn) x.nguyenNhan = o.nn;
+    if (o.dung !== undefined) x.phutDung = o.dung;
+    if (o.dong && x.trangThai === 'XONG') {
+      x.trangThai = 'DONG'; x.nguoiKiemTra = ql.ten; x.lucKiemTra = congNgay(hn, o.han) + ' 16:30:00';
+      x.nhatKy.push({ b: 'kiemtra', luc: x.lucKiemTra, uid: ql.id, nguoi: ql.ten, gc: '', op: '' });
+    }
     return x;
   }
   var m1 = timMay('M001');
@@ -298,6 +241,20 @@ function mauCongViec() {
     viec({ t: 'Vệ sinh tủ điện xưởng 1 · 清洁一车间电柜', l: 'VS', ma: 'M039', han: -1, tu: -3, lam: 'NV006',
       buoc: [['batdau', -1, '13:30'], ['xong', -1, '15:00', 'Thổi bụi, siết lại đầu cốt · 吹灰，紧固接线端子']] }),
     viec({ t: 'Bảo dưỡng định kỳ ' + (m1 ? m1.ten : 'M001') + ' · 定期保养', l: 'BD', ma: 'M001', han: 0, lam: 'NV003' }),
+    viec({ t: 'Máy nén khí số 2 báo nhiệt độ cao, tự dừng · 2号空压机高温停机', l: 'SUA', u: 'GAP', ma: 'M038', han: -9, tu: -9, lam: 'NV005', phu: ['NV004'],
+      buoc: [['batdau', -9, '08:20'], ['xong', -9, '10:40', 'Vệ sinh két làm mát, thay lọc gió, chạy thử ổn định · 清洁冷却器，更换空气滤芯']],
+      nn: 'Két làm mát bám bụi dày · 冷却器积尘', dung: 150, kt: true, dong: true,
+      lk: [{ id: 'LK01', ten: 'Lọc gió · 空气滤芯', quyCach: '', dv: 'cái · 个', sl: 1, loai: 'THAY' }] }),
+    viec({ t: 'Máy in VKY16 in mờ, mất nét · 喷印机VKY16喷印模糊', l: 'SUA', u: 'CAO', ma: 'M005', han: -6, tu: -6, lam: 'NV003',
+      buoc: [['batdau', -6, '13:30'], ['xong', -6, '14:15', 'Vệ sinh đầu phun, thay gioăng · 清洗喷头，更换密封圈']],
+      nn: 'Đầu phun bám mực khô · 喷头积墨', dung: 45, dong: true,
+      lk: [{ id: 'LK03', ten: 'Gioăng đầu phun · 喷头密封圈', quyCach: 'Φ12', dv: 'cái · 个', sl: 2, loai: 'THAY' }] }),
+    viec({ t: 'Băng tải máy đóng bao 02 lệch, kêu to · 打包机02输送带跑偏异响', l: 'SUA', ma: 'M012', han: -3, tu: -4, lam: 'NV004',
+      buoc: [['batdau', -3, '15:50'], ['xong', -3, '17:20', 'Thay 2 vòng bi 6009-2Z, căn chỉnh băng tải · 更换2个轴承，调整输送带']],
+      nn: 'Vòng bi con lăn mòn · 滚筒轴承磨损', dung: 90, dong: true,
+      lk: [{ id: 'LKSC01', ten: 'Vòng bi 6009-2Z · 轴承', quyCach: '6009-2Z', dv: '只', sl: 2, loai: 'THAY', maKho: '605010022' }] }),
+    viec({ t: 'Máy băm phế xưởng 1 không chạy, aptomat nhảy · 废料机不转空开跳闸', l: 'SUA', u: 'GAP', ma: 'M033', han: 0, tu: 0, lam: 'NV006',
+      buoc: [['batdau', 0, '07:10']] }),
     viec({ t: 'Thay ổ cắm phòng máy nén khí · 更换空压机房插座', l: 'SUA', ma: 'M038', han: 1, tu: -2, lam: 'NV006',
       buoc: [['batdau', -1, '08:20'], ['hoan', -1, '09:00', 'Chờ ổ cắm công nghiệp 3 pha từ kho · 等仓库三相工业插座']] })
   ];
@@ -318,6 +275,5 @@ mauNhanVien();
 mauSoDien();
 mauKiemTra();
 mauKho();
-mauSuaChua();
 mauCongViec();
 return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };
