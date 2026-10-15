@@ -277,6 +277,27 @@ assert.ok(await page.isVisible('.board .bcol[data-uid=""]'), 'bảng theo ngư�
 await shot('14-desktop-theo-nguoi');
 ok('Giao diện máy tính: sidebar có Công việc, Bảo dưỡng; bảng việc theo người');
 
+// 12. Bản 2.9: tài liệu máy, tiền điện, gợi ý cách xử lý từ lịch sử sửa chữa, sao lưu
+await page.setViewportSize({ width: 390, height: 844 });
+await page.evaluate(() => go('may', { ma: 'M001', tab: 'tl' })); await wait();
+await page.click('[data-act="tlLink"]'); await wait();
+await page.fill('#tlTen', 'Sách hướng dẫn máy in'); await page.fill('#tlUrl', 'https://example.com/huong-dan.pdf');
+await page.click('[data-act="tlLinkLuu"]'); await wait(900);
+assert.match(await text('#main'), /Sách hướng dẫn máy in/);
+await page.evaluate(() => { S.f.dTab = 'tien'; tab('dien'); }); await wait(600);
+assert.match(await text('#main'), /Tiền điện tháng/);
+await shot('15-tien-dien');
+await page.evaluate(() => go('scGhi')); await wait();
+await page.selectOption('#scMa', 'M038'); await page.fill('#scMT', 'Máy nén khí báo nhiệt độ cao'); await wait(800);
+assert.match(await text('#scGoiY'), /Két làm mát/, 'gợi ý lần sửa tương tự của cùng máy');
+await page.click('#scGoiY [data-act="gyDung"]'); await wait();
+assert.equal(await page.inputValue('#scNN'), 'Két làm mát bám bụi dày');
+await logout(); await login('NV001', '111111');
+await page.evaluate(() => go('saoLuu')); await wait(1200);
+await page.click('[data-act="slNgay"]'); await wait(1500);
+assert.match(await text('#main'), /Sao lưu tay/);
+ok('Bản 2.9: tài liệu máy, tiền điện, gợi ý cách xử lý từ lịch sử, sao lưu dữ liệu');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
