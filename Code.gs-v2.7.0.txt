@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.6.0';
+var PHIEN_BAN = '2.7.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -25,11 +25,12 @@ var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
 // Cột mới luôn thêm vào CUỐI mỗi trang để sheet cũ vẫn đọc đúng (capNhatTieuDe tự ghi lại dòng tiêu đề).
 var BANG = {
   // Chuyen: mã chuyền sản xuất máy này thuộc về (vd VKY01), để trống nếu không thuộc chuyền nào
+  // MaHT: mã hiển thị do nhà máy tự đặt (vd QTN-16). Ma là mã hệ thống, không đổi, tem QR in theo Ma
   May: ['Ma', 'Ten', 'TenPhu', 'Nhom', 'ViTri', 'ChuKy', 'HanKeTiep', 'NoiDung', 'HoatDong', 'CapNhat', 'HangMuc', 'LinhKien',
-    'PhuTrach', 'NgayDuaVao', 'Chuyen'],
+    'PhuTrach', 'NgayDuaVao', 'Chuyen', 'MaHT'],
   // Chuyền sản xuất (theo Sổ cái quản lý cơ sở vật chất VKY-PR-E01-03). Sửa trực tiếp trên sheet hoặc trong app (Quản lý)
   Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
-    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat'],
+    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT'],
   LichSu: ['ID', 'Ma', 'TenMay', 'Ngay', 'DenHan', 'NguoiLam', 'GhiChu', 'NguoiXacNhan', 'ThoiGian', 'TrangThai', 'OpId', 'UID', 'Huy', 'ChiTiet'],
   NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh'],
   // Loai: cao (cao áp, nhiều mã OBIS) · ha (tủ tổng hạ áp) · nhanh (công tơ nhánh) · nuoc (đồng hồ nước, m³)
@@ -335,14 +336,14 @@ function mayTuDong(r, i) {
     ma: s(r[0]), ten: s(r[1]), tenPhu: s(r[2]), nhom: s(r[3]), viTri: s(r[4]),
     chuKy: Math.round(Number(r[5])) || 0, hanKeTiep: ngayStr(r[6]), noiDung: s(r[7]),
     hoatDong: hd(r[8]), capNhat: tgStr(r[9]), hangMuc: docJson(r[10], []), linhKien: docJson(r[11], []),
-    phuTrach: s(r[12]), ngayDuaVao: ngayStr(r[13]), chuyen: s(r[14]).toUpperCase(), _r: i + 2
+    phuTrach: s(r[12]), ngayDuaVao: ngayStr(r[13]), chuyen: s(r[14]).toUpperCase(), maHT: s(r[15]), _r: i + 2
   };
 }
 function mayThanhDong(m) {
   return [m.ma, anToan(m.ten), anToan(m.tenPhu), anToan(m.nhom), anToan(m.viTri), m.chuKy, m.hanKeTiep,
     anToan(m.noiDung), m.hoatDong ? 1 : 0, m.capNhat,
     m.hangMuc && m.hangMuc.length ? JSON.stringify(m.hangMuc) : '', m.linhKien && m.linhKien.length ? JSON.stringify(m.linhKien) : '',
-    anToan(m.phuTrach || ''), m.ngayDuaVao || '', m.chuyen || ''];
+    anToan(m.phuTrach || ''), m.ngayDuaVao || '', m.chuyen || '', anToan(m.maHT || '')];
 }
 function docJson(v, macDinh) {
   var t = s(v); if (!t) return macDinh;
@@ -353,7 +354,19 @@ function timMay(ma) { ma = s(ma).toUpperCase(); return dsMay().filter(function (
 function sachMay(m) {
   return { ma: m.ma, ten: m.ten, tenPhu: m.tenPhu, nhom: m.nhom, viTri: m.viTri, chuKy: m.chuKy,
     hanKeTiep: m.hanKeTiep, noiDung: m.noiDung, hoatDong: m.hoatDong, capNhat: m.capNhat,
-    hangMuc: m.hangMuc || [], linhKien: m.linhKien || [], phuTrach: m.phuTrach || '', ngayDuaVao: m.ngayDuaVao || '', chuyen: m.chuyen || '' };
+    hangMuc: m.hangMuc || [], linhKien: m.linhKien || [], phuTrach: m.phuTrach || '', ngayDuaVao: m.ngayDuaVao || '', chuyen: m.chuyen || '', maHT: m.maHT || '' };
+}
+// Mã hiển thị: tối đa 30 ký tự, không trùng mã hệ thống hay mã hiển thị của máy/chuyền khác (không phân biệt hoa thường)
+function kiemMaHT(v, maGoc) {
+  v = catChu(v, 30);
+  if (!v) return '';
+  if (/[<>"'`\\]/.test(v)) throw loi('MA_HT_SAI', 'Mã hiển thị có ký tự không hợp lệ · 显示编号含无效字符');
+  var k = v.toUpperCase(), goc = s(maGoc).toUpperCase();
+  var trung = dsMay().concat(dsChuyen()).filter(function (x) {
+    return x.ma !== goc && (x.ma === k || s(x.maHT).toUpperCase() === k);
+  })[0];
+  if (trung) throw loi('MA_HT_TRUNG', trung.ma);
+  return v;
 }
 // ----- Chuyền sản xuất -----
 var CH_KHOA = ['ma', 'ten', 'tenZh', 'maTaiSan', 'quyCach', 'nhaSX', 'tinhNang', 'tocDoChuan', 'tocDoThucTe', 'viTri', 'soXuatXuong',
@@ -361,12 +374,12 @@ var CH_KHOA = ['ma', 'ten', 'tenZh', 'maTaiSan', 'quyCach', 'nhaSX', 'tinhNang',
 function chTuDong(r, i) {
   var o = { _r: i + 2 };
   CH_KHOA.forEach(function (k, j) { o[k] = s(r[j]); });
-  o.ma = o.ma.toUpperCase(); o.hoatDong = s(r[15]) === '' ? true : hd(r[15]); o.capNhat = tgStr(r[16]);
+  o.ma = o.ma.toUpperCase(); o.hoatDong = s(r[15]) === '' ? true : hd(r[15]); o.capNhat = tgStr(r[16]); o.maHT = s(r[17]);
   return o;
 }
-function chThanhDong(o) { return CH_KHOA.map(function (k) { return anToan(o[k] || ''); }).concat([o.hoatDong === false ? 0 : 1, o.capNhat || '']); }
+function chThanhDong(o) { return CH_KHOA.map(function (k) { return anToan(o[k] || ''); }).concat([o.hoatDong === false ? 0 : 1, o.capNhat || '', anToan(o.maHT || '')]); }
 function dsChuyen() { return docTho('Chuyen').map(chTuDong).filter(function (x) { return x.ma; }); }
-function sachCh(o) { var x = {}; CH_KHOA.forEach(function (k) { x[k] = o[k] || ''; }); x.hoatDong = o.hoatDong !== false; return x; }
+function sachCh(o) { var x = {}; CH_KHOA.forEach(function (k) { x[k] = o[k] || ''; }); x.hoatDong = o.hoatDong !== false; x.maHT = o.maHT || ''; return x; }
 // Lần đầu: tạo 16 chuyền từ sổ cái, xếp máy in phun (喷印机 VKYxx) và máy hút bụi (Máy hút bụi VKYxx) vào chuyền cùng số. Chạy lại không trùng, không đè máy đã xếp.
 function napChuyen() {
   if (typeof DL_CHUYEN === 'undefined') return 0;
@@ -396,6 +409,7 @@ function luuChuyen(u, p) {
   var moi = !x; if (moi) x = { ma: ma };
   CH_KHOA.forEach(function (k) { if (k !== 'ma' && p[k] !== undefined) x[k] = catChu(p[k], k === 'ghiChu' ? 500 : 200); });
   if (p.hoatDong !== undefined) x.hoatDong = p.hoatDong !== false;
+  if (p.maHT !== undefined) x.maHT = kiemMaHT(p.maHT, ma);
   x.capNhat = thoiGianStr();
   if (moi) themDong('Chuyen', chThanhDong(x)); else suaDong('Chuyen', x._r, chThanhDong(x));
   return { chuyen: sachCh(x) };
@@ -1107,6 +1121,7 @@ function luuMay(u, p) {
     if (ch && !dsChuyen().some(function (c) { return c.ma === ch; })) throw loi('KHONG_CO_CHUYEN', 'Không tìm thấy chuyền · 找不到产线');
     m.chuyen = ch;
   }
+  if (p.maHT !== undefined) m.maHT = kiemMaHT(p.maHT, m ? m.ma : '');
   m.capNhat = thoiGianStr();
   if (moi) themDong('May', mayThanhDong(m)); else suaDong('May', m._r, mayThanhDong(m));
   return { may: sachMay(m), moi: moi };
