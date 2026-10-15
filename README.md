@@ -68,6 +68,17 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
    - Hoặc ghi link vào `src/config.json` (`apiUrl`) rồi chạy `node tools/build.mjs`: app sẽ không hỏi nữa.
 7. Đăng nhập NV001 / 111111 → **Cá nhân → Quản trị → Người dùng**: đổi PIN mặc định, thêm nhân viên (mã NV, tên tiếng Trung).
 
+## Nhập dữ liệu cũ từ Excel của nhà máy
+
+Dữ liệu cũ đã nằm sẵn trong `Code.gs`, không cần tải file lên:
+- **Số điện** (sổ điện 2026, từ kỳ 31/12/2025 đến kỳ 10/10/2026, 44 công tơ): tự nhập ở lần mở app đầu tiên. Nếu app đã mở trước khi dán bản mã có kỳ tháng 9–10, chạy hàm `nhapLaiSoDienExcel` một lần; số đã có không bị nhập trùng.
+- **Công việc** (Bảng phân công công việc: 73 việc; Bảng ghi chép sửa chữa thiết bị 12/10/2026: 3 việc sửa chữa): chạy hàm `nhapDuLieuCu` một lần trong Apps Script.
+  - Tạo tài khoản cho 7 người trong bảng (Lê Minh Tiến, Đỗ Văn Hồng, Nguyễn Tuấn, 吴建杰, Bùi Văn Chung là Quản lý, Lương Văn Hiệp, Bùi Văn Vân). Mã nhân viên lấy theo mã thẻ (V25252…); người chưa có mã thẻ được đặt NV004, NV005…
+  - PIN của mỗi tài khoản mới là số ngẫu nhiên, in ở **Nhật ký thực thi** ngay sau khi chạy. Ghi lại và đưa cho từng người, hoặc đặt PIN khác ở **Quản trị → Người dùng**.
+  - Người ghi đầu tiên ở cột "Nhân viên thực hiện" là người làm chính, người sau là người làm cùng. "吴剑杰" và "阿杰" được hiểu là 吴建杰; "Vân", "Tiến" là Bùi Văn Vân, Lê Minh Tiến.
+  - Bảng cũ không có ngày xong, nên việc "Đã hoàn thành" lấy ngày xong bằng hạn hoàn thành. Loại việc (Lắp đặt, Sửa chữa…) được đoán theo tên việc, sửa được trong app.
+  - Chạy lại không tạo trùng.
+
 ## Đăng app lên web để cài vào iPhone
 
 Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt buộc https để dùng camera và chạy offline):
@@ -306,6 +317,6 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 21 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node --test tests/backend.test.mjs      # 22 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
 node tests/e2e.mjs                      # 11 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```

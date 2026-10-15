@@ -465,3 +465,35 @@ test('tự dịch: nâng cấp từ bản cũ thì việc đã ghi trước đó
   assert.equal(d.congViec.find((v) => v.id === id).tieuDeDich, '更换仓库灯泡');
   assert.equal(pr.getProperty('DICH_THIEU'), null, 'dịch hết thì bỏ dấu');
 });
+test('nhập dữ liệu cũ: tạo tài khoản theo bảng phân công, nhập việc đúng người / hạn / trạng thái, chạy lại không trùng; số điện có đến kỳ 10/10', () => {
+  const b = setupSC();
+  const kq = b.ctx.nhapDuLieuCu();
+  assert.match(kq, /Đã nhập 73 việc, 3 việc sửa chữa, tạo 7 tài khoản/);
+  const d = ok(b.call('data', {}, b.ql));
+  const nv = (ten) => d.nhanVien.find((n) => n.ten === ten);
+  assert.equal(nv('Lê Minh Tiến').maNV, 'V25252');
+  assert.equal(nv('Bùi Văn Chung').vaiTro, 'quanly');
+  assert.ok(nv('吴建杰') && nv('Nguyễn Tuấn').maNV.startsWith('NV'));
+  const cu = d.congViec.filter((x) => /^CVCU/.test(x.id));
+  assert.equal(cu.length, 73);
+  const dem = (tt) => cu.filter((x) => x.trangThai === tt).length;
+  assert.deepEqual([dem('DONG'), dem('DANG_LAM'), dem('TAM_HOAN')], [59, 7, 7]);
+  const v1 = cu.find((x) => x.id === 'CVCU001');
+  assert.equal(v1.nguoiLam, 'Bùi Văn Vân');
+  assert.deepEqual(v1.uidPhu, [nv('Lê Minh Tiến').id]);
+  assert.equal(v1.han, '2026-07-25');
+  // Tên việc viết sẵn hai thứ tiếng (xuống dòng) được tách đôi
+  const v40 = cu.find((x) => x.id === 'CVCU040');
+  assert.match(v40.tieuDe, /^Thay cảm biến đếm/); assert.match(v40.tieuDeDich, /^更换 VKY18/);
+  const sc = d.congViec.filter((x) => /^CVSC/.test(x.id));
+  assert.equal(sc.length, 3);
+  assert.deepEqual([sc[1].nguoiLam, sc[1].phutDung, sc[1].nguoiKiemTra, sc[1].linhKien[0].quyCach], ['Đỗ Văn Hồng', 20, 'Bùi Văn Chung', '32A 3P']);
+  // Người mới đăng nhập được bằng mã NV + PIN in ở nhật ký
+  // Chạy lại: không tạo trùng
+  assert.match(b.ctx.nhapDuLieuCu(), /Đã nhập 0 việc, 0 việc sửa chữa, tạo 0 tài khoản/);
+  // Số điện: có kỳ 10/10/2026
+  b.ctx.PropertiesService.getScriptProperties().deleteProperty('NHAP_EXCEL');
+  b.ctx.nhapSoDienExcel(true);
+  const d2 = ok(b.call('data', {}, b.ql));
+  assert.ok(d2.chiSo.some((x) => x.ky === '2026-10-10'), 'có số điện kỳ 10/10');
+});
