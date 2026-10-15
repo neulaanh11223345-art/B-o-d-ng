@@ -21,7 +21,8 @@ self.addEventListener('fetch', (e) => {
     e.respondWith((async () => {
       const c = await caches.open(VER);
       try {
-        const res = await Promise.race([fetch(req), timeout(4000)]);
+        // no-cache: luôn hỏi lại máy chủ (GitHub Pages cho trình duyệt giữ trang 10 phút), mất mạng mới dùng bản đã lưu
+        const res = await Promise.race([fetch(req, { cache: 'no-cache' }), timeout(4000)]);
         if (res && res.ok) c.put(req, res.clone());
         return res;
       } catch (x) {
