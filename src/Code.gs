@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.5.1';
+var PHIEN_BAN = '2.6.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -92,7 +92,7 @@ var QUYEN = {
   nhatky: ['admin', 'quanly'],
   giaoviec: ['admin', 'quanly']     // giao việc, kiểm tra việc xong, việc lặp lại
 };
-var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveUser', 'changePin', 'notifySave',
+var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring'];
@@ -248,6 +248,7 @@ function dieuHuong(a, p, req) {
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
     case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
+    case 'saveRepair': canQuyen(u, 'xacnhan'); return luuSuaChua(u, p, s(req.opId));
     case 'assignTasks': canQuyen(u, 'giaoviec'); return giaoNhieuViec(u, p, s(req.opId));
     case 'saveRecurring': canQuyen(u, 'giaoviec'); return luuViecLap(u, p);
   }
@@ -921,7 +922,7 @@ function capNhatCongViec(u, p, opId) {
     var m = x.ma ? timMay(x.ma) : null;
     var gan = m ? ganLKDaDung(m, lk, u, lucXong.slice(0, 10), 'Thêm khi làm việc · 工作时添加') : { kho: null, doiMay: false };
     if (!m && lk.length) { var kho = khoNap(); ganKho(lk, 'Dùng cho việc #' + x.so + ' · ' + u.ten, kho); gan.kho = kho; }
-    var kqD = songNgu(kq), nnD = songNgu(catChu(p.nguyenNhan, 300));
+    var kqD = songNgu(kq), nnD = songNgu(catNhieuDong(p.nguyenNhan, 1000).trim());
     x.ketQua = kqD[0]; x.ketQuaDich = kqD[1]; x.nguyenNhan = nnD[0]; x.nguyenNhanDich = nnD[1];
     x.linhKien = lk; x.lucXong = lucXong; x.anhXong = anhSC(p.anh, 'cv' + x.so, 'SAU');
     var gio = soHoacRong(p.gioDung);
@@ -964,6 +965,41 @@ function capNhatCongViec(u, p, opId) {
   suaDong('CongViec', x._r, cvThanhDong(x));
   tra.congViec = sachCV(x);
   return tra;
+}
+
+// ----- Ghi sửa chữa (theo bảng 疑难故障处理过程及分析): ghi một lần, lưu luôn thành việc đã xong -----
+// Mô tả sự cố → TieuDe (+ MoTa nếu dài), Phân tích nguyên nhân → NguyenNhan, Kết quả xử lý → KetQua (nhiều dòng). Không cần ai xác nhận.
+function luuSuaChua(u, p, opId) {
+  var ds = docCongViec();
+  if (opId) {
+    var cu = ds.filter(function (r) { return r.opId === opId; })[0];
+    if (cu) return { dup: true, congViec: sachCV(cu) };
+  }
+  var moTa = catNhieuDong(p.moTa, 1000).trim(), nn = catNhieuDong(p.nguyenNhan, 1000).trim(), kq = catNhieuDong(p.ketQua, 1000).trim();
+  if (!moTa) throw loi('CAN_MO_TA', 'Cần ghi mô tả sự cố · 请填写问题描述');
+  if (!kq) throw loi('CAN_KET_QUA', 'Cần ghi kết quả · 请填写工作结果');
+  var nvs = dsNguoiDung(), quanLy = coQuyen(u, 'giaoviec');
+  var f = cvTruong({ tieuDe: moTa.replace(/\s+/g, ' '), ma: p.ma, uidLam: s(p.uidLam) || (quanLy ? '' : u.id), uidPhu: p.uidPhu }, nvs);
+  var ngay = s(p.ngay) ? ngayStr(p.ngay) : homNayStr();
+  if (!hopLeNgay(ngay) || ngay > homNayStr()) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  var bay = thoiGianStr(), luc = ngay === homNayStr() ? bay : ngay + ' 17:00:00';
+  var id = idCV(p.id, 'CV') || 'CV' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900);
+  if (ds.some(function (r) { return r.id === id; })) throw loi('TRUNG', 'Trùng mã việc · 工作编号重复');
+  capNhatTieuDe('CongViec');
+  var td = songNgu(catChu(moTa, 200)), mt = moTa.length > 200 ? songNgu(moTa) : ['', ''], nnD = songNgu(nn), kqD = songNgu(kq);
+  var gio = soHoacRong(p.gioDung);
+  var lk = String(p.linhKien || '').split('\n').map(function (t) { return catChu(t, 120); }).filter(Boolean).slice(0, 30)
+    .map(function (t, i) { return { id: 'LKSC' + (i + 1), ten: t, quyCach: '', dv: '', sl: '', loai: 'THAY' }; });
+  var x = { id: id, so: soLonNhat(ds) + 1, tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], loai: 'SUA', uuTien: 'TB', ma: f.ma, han: ngay,
+    trangThai: 'DONG', uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay,
+    lucBatDau: luc, lucXong: luc, ketQua: kqD[0], ketQuaDich: kqD[1], nguyenNhan: nnD[0], nguyenNhanDich: nnD[1], linhKien: lk, anhTao: [], anhXong: anhSC(p.anh, 'sc', 'SAU'),
+    canKiemTra: false, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: opId, capNhat: bay,
+    phutDung: gio !== '' && gio >= 0 && gio <= 24 * 60 ? Math.round(gio * 60) : '',
+    nhatKy: [{ b: 'tao', luc: bay, uid: u.id, nguoi: u.ten, gc: 'Ghi sửa chữa', gcDich: '记录维修', op: opId }] };
+  if (f.lam) { x.uidLam = f.lam.id; x.nguoiLam = f.lam.ten; x.uidPhu = f.phu.map(function (n) { return n.id; }); x.nguoiGiao = u.ten; x.uidGiao = u.id; x.lucGiao = bay; }
+  x.nhatKy.push({ b: 'xong', luc: luc, uid: u.id, nguoi: u.ten, gc: '', op: '' });
+  themDong('CongViec', cvThanhDong(x));
+  return { congViec: sachCV(x) };
 }
 
 // ----- Việc lặp lại -----

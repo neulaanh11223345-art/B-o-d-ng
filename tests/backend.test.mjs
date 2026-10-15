@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.5.1');
+  assert.equal(d.phienBan, '2.6.0');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -525,4 +525,22 @@ test('chuyền sản xuất: nâng cấp tạo 16 chuyền từ sổ cái, xếp
   d = ok(b.call('data', {}, ql));
   assert.equal(d.chuyen.length, 16);
   assert.equal(d.chuyen.find((c) => c.ma === 'VKY01').ghiChu, 'Thay dao cắt 10/2026');
+});
+test('ghi sửa chữa: lưu luôn thành việc đã xong, 3 mục nhiều dòng có tiếng Trung, ngày lùi được, kỹ thuật tự ghi là người xử lý', () => {
+  const b = setupSC();
+  b.ctx.__dichMau.push(['SAT260 thay cuộn thì in lệch', 'SAT260换料印花跑位'], ['Sức căng quá lớn\nVạch màu lệch', '张力过紧\n色标偏差'], ['Chỉnh sức căng', '调整张力']);
+  const d0 = ok(b.call('data', {}, b.ql)), hong = d0.nhanVien.find((n) => n.maNV === 'NV003');
+  const r = ok(b.call('saveRepair', { moTa: 'SAT260 thay cuộn thì in lệch', nguyenNhan: 'Sức căng quá lớn\nVạch màu lệch', ketQua: 'Chỉnh sức căng',
+    ma: 'M001', ngay: '2026-10-03', uidLam: hong.id, gioDung: 1.5, linhKien: 'Lọc mực\nGioăng' }, b.ql, 'op-sc-1')).congViec;
+  assert.deepEqual([r.trangThai, r.loai, r.canKiemTra, r.han, r.lucXong.slice(0, 10), r.phutDung, r.nguoiLam], ['DONG', 'SUA', false, '2026-10-03', '2026-10-03', 90, 'Kỹ thuật']);
+  assert.deepEqual([r.tieuDeDich, r.nguyenNhan, r.nguyenNhanDich, r.ketQuaDich], ['SAT260换料印花跑位', 'Sức căng quá lớn\nVạch màu lệch', '张力过紧\n色标偏差', '调整张力']);
+  assert.deepEqual(r.linhKien.map((k) => k.ten), ['Lọc mực', 'Gioăng']);
+  // Gửi lại cùng opId không tạo trùng
+  assert.equal(ok(b.call('saveRepair', { moTa: 'x', ketQua: 'y' }, b.ql, 'op-sc-1')).congViec.id, r.id);
+  // Kỹ thuật tự ghi: mặc định là người xử lý; thiếu mô tả / kết quả thì báo lỗi; ngày tương lai bị chặn
+  const k = ok(b.call('saveRepair', { moTa: 'Máy kêu to', ketQua: 'Siết bu lông' }, b.kt)).congViec;
+  assert.deepEqual([k.trangThai, k.nguoiLam], ['DONG', 'Kỹ thuật']);
+  err(b.call('saveRepair', { ketQua: 'y' }, b.kt), 'CAN_MO_TA');
+  err(b.call('saveRepair', { moTa: 'x' }, b.kt), 'CAN_KET_QUA');
+  err(b.call('saveRepair', { moTa: 'x', ketQua: 'y', ngay: '2026-12-01' }, b.kt), 'NGAY_SAI');
 });
