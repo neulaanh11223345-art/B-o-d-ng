@@ -5214,9 +5214,9 @@ function shell() {
 }
 const TITLES = { dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
-  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen' };
+  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap' };
 const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv'];
-const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv',
+const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
@@ -5935,7 +5935,10 @@ VIEWS.lkChuyen = {
   html() {
     const chs = chDangDung();
     let o = `<div class="card pad"><div class="help">${t('lkChHelp')}</div>${!S.kho.ds.length ? `<div class="note" style="margin-top:8px">${t('dcChuaERP')}</div>` : ''}
-      <div class="btns" style="margin-top:10px"><button class="btn sm" data-act="lkChXuat" data-ma="">${IC.dl} ${t('lkChXuatAll')}</button></div></div>`;
+      <div class="btns" style="margin-top:10px"><button class="btn sm" data-act="lkChXuat" data-ma="">${IC.dl} ${t('lkChXuatAll')}</button></div>
+      ${can('may') ? `<div class="sec" style="margin-top:14px"><h2>${t('lkNhapSec')}</h2></div><div class="help">${t('lkNhapHelp')}</div>
+      <div class="btns" style="margin-top:8px"><button class="btn ghost sm" data-act="lkMau">${IC.dl} ${t('lkMauBtn')}</button>
+      <label class="btn ghost sm filebtn">${IC.plus} ${t('lkNhapBtn')}<input type="file" id="lkFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label></div>` : ''}</div>`;
     o += `<div class="list" style="margin-top:12px">${chs.map((c) => {
       const a = lkCuaCh(c.ma), nl = lkLoiN(a), nc = a.filter((r) => r.dc.k === 'canh').length;
       return `<div class="row" data-act="lkChMo" data-ma="${esc(c.ma)}" role="button" tabindex="0"><div class="main"><div class="nm">${esc(c.ma)}${c.tenZh ? ` <span class="zi" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}</div>
@@ -5943,8 +5946,125 @@ VIEWS.lkChuyen = {
         <div class="end">${nl ? `<span class="pill p-qua">${tv('xLoiN', { n: nl })}</span>` : nc ? `<span class="pill p-nay">${tv('xCanhN', { n: nc })}</span>` : a.length ? `<span class="pill p-ok">${tv('dcOk')}</span>` : ''}</div></div>`;
     }).join('')}</div>`;
     return o;
+  },
+  after() {
+    const fi = $('#lkFile');
+    if (fi) fi.addEventListener('change', async () => {
+      const f = fi.files && fi.files[0]; fi.value = '';
+      if (!f) return;
+      toast(t('khoDoc'));
+      try { const r = await lkDocFile(f); const tt = $('.toast'); if (tt) tt.remove(); go('lkNhap', { r }); } catch (e) { toast(e && e.code ? t(e.code) : t('LOI', { m: e && e.message }), true); }
+    });
   }
 };
+// ---------- Nhập linh kiện của máy từ file Excel (theo bảng mẫu) ----------
+const LK_COT = [['chuyen', 'xChuyen', ['chuyen', 'chuyen san xuat', '产线', '所属产线']], ['ma', 'code', ['ma may', 'ma thiet bi', '设备编号']], ['tenMay', 'thMay', ['ten may', 'thiet bi', '设备', '设备名称']],
+  ['ten', 'lkTen', ['ten linh kien', '零件名称', 'linh kien']], ['quyCach', 'quyCach', ['quy cach', '规格', 'model']], ['maKho', 'xMaERP', ['ma erp', 'erp编号', 'ma kho', 'erp']], ['dv', 'dv', ['don vi', 'dvt', '单位']],
+  ['sl', 'slMay', ['sl tren may', 'sl lap', 'so luong', '装机数量', '数量']], ['viTriMay', 'viTriMay', ['vi tri lap', 'vi tri tren may', '安装位置']], ['mucDo', 'mucDo', ['muc do', 'muc do quan trong', '重要程度']], ['ghiChu', 'ghiChuLK', ['ghi chu', '备注']]];
+function lkMauXlsx() {
+  const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' }, Y = { fill: '#FFF8E1' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const MD = { thap: 'Thấp', tb: 'Trung bình', cao: 'Cao' };
+  const r1 = [[{ v: 'Bảng nhập linh kiện máy · 设备零件导入表', s: { b: 1, sz: 14 } }],
+    [{ v: 'Giữ nguyên dòng tiêu đề (dòng 4). Mỗi dòng một linh kiện. Bắt buộc: Mã máy (hoặc Tên máy) và Tên linh kiện. Mã ERP để đối chiếu tồn kho. 保留第4行标题，每行一个零件。', s: { i: 1, color: '#55625F', wrap: 1 } }], [],
+    LK_COT.map(([k, lbl]) => ({ v: tp(lbl).replace(' · ', '\n') + (k === 'ten' || k === 'ma' ? ' *' : ''), s: H }))];
+  const may = S.V.may.filter((m) => m.hoatDong).sort((a, b) => ((a.chuyen || 'zz') > (b.chuyen || 'zz') ? 1 : (a.chuyen || 'zz') < (b.chuyen || 'zz') ? -1 : a.ma.localeCompare(b.ma)));
+  may.forEach((m) => {
+    const ds = lkOf(m), dau = [c(m.chuyen || ''), c(m.ma), c(m.ten)];
+    if (!ds.length) { r1.push(dau.concat([c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y)])); return; }
+    ds.forEach((x) => r1.push(dau.concat([c(x.ten), c(x.quyCach || ''), c(x.maKho || ''), c(x.dv || ''), c(x.sl === '' || x.sl === undefined ? '' : +x.sl || x.sl), c(x.viTriMay || ''), c(MD[x.mucDo] || ''), c(x.ghiChu || '')])));
+  });
+  const r2 = [[{ v: 'Danh sách máy · 设备清单', s: { b: 1, sz: 14 } }], [], [], ['code', 'thMay', 'group', 'xChuyen'].map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }))];
+  S.V.may.filter((m) => m.hoatDong).forEach((m) => r2.push([c(m.ma), c(m.ten), c(m.nhom || ''), c(m.chuyen || '')]));
+  const hd = ['Cách dùng · 使用说明', '', '1. Trang "Linh kien": mỗi dòng là một linh kiện lắp trên một máy. Bảng đã điền sẵn máy và linh kiện hiện có trong app; sửa, thêm dòng, xoá dòng tuỳ ý.',
+    '2. Mã máy (M001…) lấy ở trang "Danh sach may". Không có mã máy thì ghi đúng Tên máy.',
+    '3. Mã ERP: mã linh kiện trong file tồn ERP. App sẽ báo lỗi nếu mã không có trong ERP, quy cách khác ERP hoặc hết hàng.',
+    '4. Mức độ: Thấp / Trung bình / Cao (không bắt buộc).',
+    '5. Trong app: Thiết bị → Linh kiện theo chuyền → Nhập từ Excel → chọn file → xem trước → Nhập.',
+    '   Chọn "Thêm vào" để giữ linh kiện cũ (trùng tên thì cập nhật), hoặc "Thay toàn bộ" để danh sách của mỗi máy có trong file chỉ còn các dòng trong file.'];
+  return XW.build([{ name: 'Linh kien', rows: r1, cols: [10, 9, 24, 28, 18, 14, 9, 9, 18, 12, 24], merges: ['A1:K1', 'A2:K2'], heights: { 2: 30 }, freeze: { r: 4, c: 0 } },
+    { name: 'Danh sach may', rows: r2, cols: [9, 30, 24, 10], freeze: { r: 4, c: 0 } },
+    { name: 'Huong dan', rows: hd.map((x, i) => [{ v: x, s: i ? {} : { b: 1, sz: 14 } }]), cols: [110] }]);
+}
+const mdTuChu = (v) => { const n = norm(v); return !n ? undefined : /^(thap|低|low)/.test(n) ? 'thap' : /^(cao|高|high)/.test(n) ? 'cao' : /^(tb|trung|中|med)/.test(n) ? 'tb' : undefined; };
+async function lkDocFile(file) {
+  if (/\.xls$/i.test(file.name || '')) throw { code: 'FILE_XLS' };
+  let sheets;
+  try { sheets = await readXlsx(await file.arrayBuffer()); } catch (e) { if (e && e.code) throw e; throw { code: 'FILE_SAI' }; }
+  for (const sh of sheets) {
+    const rows = await sh.rows();
+    for (let hi = 0; hi < Math.min(rows.length, 15); hi++) {
+      const cot = {};
+      (rows[hi] || []).forEach((v, i) => {
+        // So khớp tên cột (dòng tiếng Việt hoặc dòng tiếng Trung), bỏ dấu * bắt buộc
+        const dong = String(v || '').replace(/\*/g, '').split(/\n| · /).map((x) => norm(x).trim()).filter(Boolean);
+        LK_COT.forEach(([k, , ten]) => { if (cot[k] === undefined && ten.some((tn) => dong.indexOf(norm(tn)) >= 0)) cot[k] = i; });
+      });
+      if (cot.ten === undefined || (cot.ma === undefined && cot.tenMay === undefined)) continue;
+      const out = [], byTen = {};
+      S.V.may.forEach((m) => { byTen[norm(m.ten)] = m; });
+      for (let r = hi + 1; r < rows.length; r++) {
+        const row = rows[r] || [], g = (k) => (cot[k] === undefined || row[cot[k]] === undefined ? '' : String(row[cot[k]]).trim());
+        const ten = g('ten'), ma = g('ma').toUpperCase(), tenMay = g('tenMay');
+        if (!ten && !ma && !tenMay) continue;
+        if (!ten) continue;                                              // dòng máy chưa có linh kiện
+        const o = { dong: r + 1, ten: ten.slice(0, 120), quyCach: g('quyCach').slice(0, 80), maKho: g('maKho'), dv: g('dv').slice(0, 12), sl: g('sl'), viTriMay: g('viTriMay').slice(0, 80), mucDo: mdTuChu(g('mucDo')), ghiChu: g('ghiChu').slice(0, 160), loi: [] };
+        o.m = (ma && S.V.byMa[ma]) || (tenMay && byTen[norm(tenMay)]) || null;
+        if (!o.m) o.loi.push(ma ? 'lkLoiMa' : 'lkLoiMay');
+        const sl = parseSo(o.sl);
+        if (sl !== null && (isNaN(sl) || sl < 0)) o.loi.push('lkLoiSL'); else o.sl = sl === null ? '' : sl;
+        const kx = o.maKho ? khoGet(o.maKho) : null;
+        if (kx) { o.maKho = kx.ma; if (!o.quyCach) o.quyCach = kx.qc || ''; if (!o.dv) o.dv = kx.dv || ''; }
+        o.dc = o.maKho && !kx ? { k: 'loi', ds: ['dcKhongMa'] } : lkDoiChieu({ ten: o.ten, quyCach: o.quyCach, sl: o.sl, maKho: kx ? kx.ma : '' });
+        out.push(o);
+      }
+      if (!out.length) throw { code: 'LK_FILE_TRONG' };
+      return { file: file.name, sheet: sh.name, ds: out };
+    }
+  }
+  throw { code: 'LK_FILE_COT' };
+}
+VIEWS.lkNhap = {
+  html(p) {
+    const r = p.r, ok = r.ds.filter((o) => !o.loi.length), loiMay = r.ds.length - ok.length, loiERP = ok.filter((o) => o.dc.k === 'loi').length;
+    const soMay = new Set(ok.map((o) => o.m.ma)).size, che = p.che || 'them';
+    const sx = r.ds.slice().sort((a, b) => (b.loi.length - a.loi.length) || ((b.dc.k === 'loi') - (a.dc.k === 'loi')) || a.dong - b.dong);
+    let o = `<div class="card pad"><dl class="kv"><dt>${t('khoFile')}</dt><dd class="mono" style="font-size:13px">${esc(r.file)}</dd><dt>${t('khoSheet')}</dt><dd>${esc(r.sheet)}</dd></dl>
+      <div class="kstrip" style="margin-top:10px">${kstHtml('k-green', 'lkNhapOk', null, ok.length)}${kstHtml('k-blue', 'lkNhapMay', null, soMay)}${kstHtml('k-red', 'lkNhapLoiMay', null, loiMay)}${kstHtml('k-orange', 'lkNhapLoiERP', null, loiERP)}</div>
+      <div class="seg" style="margin-top:6px"><button class="${che === 'them' ? 'on' : ''}" data-act="lkChe" data-v="them">${tv('lkCheThem')} ${tz('lkCheThem')}</button><button class="${che === 'thay' ? 'on' : ''}" data-act="lkChe" data-v="thay">${tv('lkCheThay')} ${tz('lkCheThay')}</button></div>
+      <div class="help" style="margin-top:6px">${t(che === 'them' ? 'lkCheThemHelp' : 'lkCheThayHelp')}</div>
+      ${loiMay ? `<div class="note" style="margin-top:8px">${t('lkBoQua', { n: loiMay })}</div>` : ''}
+      <div class="err" id="lkErr" hidden></div>
+      <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="back">${t('cancel')}</button><button class="btn" id="lkOk" data-act="lkNhapOk"${ok.length ? '' : ' disabled'}>${t('lkNhapN', { n: ok.length })}</button></div></div>`;
+    o += `<div class="list lkch" style="margin-top:12px">${sx.slice(0, 300).map((x) => `<div class="row"><div class="main"><div class="nm">${esc(x.ten)}${x.quyCach ? ` <span class="mono qc">${esc(x.quyCach)}</span>` : ''}</div>
+      <div class="sub">${tv('lkDong', { n: x.dong })} · ${x.m ? esc(x.m.ma + ' ' + x.m.ten) : '—'}${x.maKho ? ` · ERP <span class="code">${esc(x.maKho)}</span>` : ''}</div></div>
+      <div class="end">${x.loi.length ? `<span class="dctag dc-loi">${x.loi.map((k) => tv(k)).join(' · ')}</span>` : dcTag(x.dc)}</div></div>`).join('')}</div>`;
+    if (sx.length > 300) o += `<div class="help" style="margin-top:6px">… +${sx.length - 300}</div>`;
+    return o;
+  }
+};
+async function lkNhapOk(el) {
+  const p = topV().p, thay = p.che === 'thay', theoMay = {};
+  p.r.ds.filter((o) => !o.loi.length).forEach((o) => { (theoMay[o.m.ma] = theoMay[o.m.ma] || []).push(o); });
+  const fe = $('#lkErr'); el.disabled = true;
+  let n = 0, loi = [];
+  const mas = Object.keys(theoMay);
+  for (const ma of mas) {
+    const m = S.V.byMa[ma]; if (!m) continue;
+    const ds = thay ? [] : JSON.parse(JSON.stringify(lkOf(m)));
+    theoMay[ma].forEach((o) => {
+      const cu = ds.find((x) => norm(x.ten) === norm(o.ten));
+      const moi = { ten: o.ten, quyCach: o.quyCach, dv: o.dv, sl: o.sl, viTriMay: o.viTriMay, ghiChu: o.ghiChu };
+      if (o.mucDo) moi.mucDo = o.mucDo;
+      if (o.maKho && khoGet(o.maKho)) moi.maKho = o.maKho;
+      if (cu) Object.assign(cu, moi); else ds.push(Object.assign({ id: newId('LK') }, moi));
+    });
+    el.textContent = tp('lkDangLuu', { a: ++n, b: mas.length });
+    try { mergeResult(await api('saveLists', { ma, linhKien: ds })); } catch (e) { loi.push(ma + ': ' + (e.code === 'MANG' ? tp('needNet') : errMsg(e))); }
+  }
+  if (loi.length) { fe.innerHTML = esc(loi.join(' · ')); fe.hidden = false; el.disabled = false; el.textContent = tp('lkNhapN', { n: 0 }); return; }
+  toast(t('lkDaNhap', { n: mas.length })); back();
+}
 const chDangDung = () => (S.V.ch || []).filter((c) => c.hoatDong !== false);
 function chSecHtml(today) {
   const chs = chDangDung();
@@ -6785,6 +6905,9 @@ const ACT = {
   gap: (el) => { S.f.mo = S.f.mo || {}; S.f.mo[el.dataset.k] = !S.f.mo[el.dataset.k]; softRender(); },
   chuyen: (el) => go('chuyen', { ma: el.dataset.ma }),
   lkChXuat: (el) => lkChXuat(el.dataset.ma || ''),
+  lkMau: async () => { toast(t('exporting')); await sleep(30); let b; try { b = lkMauXlsx(); } catch (e) { toast(t('LOI', { m: e.message }), true); return; } const tt = $('.toast'); if (tt) tt.remove(); await saveFile(b, 'Bang-mau-linh-kien-' + TODAY() + '.xlsx'); },
+  lkChe: (el) => { topV().p.che = el.dataset.v; render(); },
+  lkNhapOk: (el) => lkNhapOk(el),
   lkChMo: (el) => { S.f.mo = S.f.mo || {}; S.f.mo['lkch:' + el.dataset.ma] = true; go('chuyen', { ma: el.dataset.ma }); },
   lkChSua: (el) => { if (can('may')) go('dsEdit', { ma: el.dataset.ma, k: 'lk' }); else go('may', { ma: el.dataset.ma, tab: 'lk' }); },
   lkChThem: (el) => {
@@ -9921,7 +10044,17 @@ Object.assign(TX, {
   doneViec: ['Báo vào Telegram khi giao việc', '派工时通知Telegram群'],
   thViec: ['Việc', '工作'], thLoaiCV: ['Loại', '类型'], thUu: ['Ưu tiên', '优先'], thNguoiLam: ['Người làm', '执行人'], thHanCV: ['Hạn', '期限'],
   srvMissCh: ['Bản 2.5: chuyền sản xuất (xếp máy theo chuyền).', '2.5版：生产线（按产线管理设备）。'],
-  t_chuyen: ['Chuyền sản xuất', '生产线'], t_lkChuyen: ['Linh kiện theo chuyền', '产线零件'],
+  t_chuyen: ['Chuyền sản xuất', '生产线'], t_lkChuyen: ['Linh kiện theo chuyền', '产线零件'], t_lkNhap: ['Nhập linh kiện từ Excel', '从Excel导入零件'],
+  lkNhapSec: ['Nhập linh kiện từ file Excel', '从Excel文件导入零件'], lkNhapHelp: ['Tải bảng mẫu (đã điền sẵn máy và linh kiện hiện có), điền thêm rồi nhập lại vào app. App đối chiếu từng dòng với tồn ERP trước khi lưu.', '下载模板（已填好现有设备和零件），填写后导入。保存前逐行与ERP库存核对。'],
+  lkMauBtn: ['Tải bảng mẫu', '下载模板'], lkNhapBtn: ['Nhập từ Excel', '从Excel导入'], xChuyen: ['Chuyền', '产线'],
+  lkNhapOk: ['Dòng nhập được', '可导入行'], lkNhapMay: ['Số máy', '设备数'], lkNhapLoiMay: ['Dòng lỗi (bỏ qua)', '错误行（跳过）'], lkNhapLoiERP: ['Lỗi ERP', 'ERP错误'],
+  lkCheThem: ['Thêm vào', '追加'], lkCheThay: ['Thay toàn bộ', '全部替换'],
+  lkCheThemHelp: ['Giữ linh kiện đang có của máy; dòng trùng tên linh kiện thì cập nhật theo file.', '保留设备现有零件；名称相同则按文件更新。'],
+  lkCheThayHelp: ['Danh sách linh kiện của mỗi máy có trong file sẽ chỉ còn các dòng trong file. Máy không có trong file giữ nguyên.', '文件中出现的设备，零件清单将替换为文件内容；未出现的设备不变。'],
+  lkBoQua: ['{n} dòng lỗi sẽ bị bỏ qua (không tìm thấy máy hoặc số lượng sai). Sửa trong file rồi nhập lại nếu cần.', '{n}行错误将被跳过（找不到设备或数量错误）。如需要请修改文件后重新导入。'],
+  lkNhapN: ['Nhập {n} dòng', '导入{n}行'], lkDong: ['Dòng {n}', '第{n}行'], lkDangLuu: ['Đang lưu máy {a}/{b}…', '正在保存{a}/{b}…'], lkDaNhap: ['Đã nhập linh kiện cho {n} máy', '已为{n}台设备导入零件'],
+  lkLoiMa: ['Mã máy không có', '无此设备编号'], lkLoiMay: ['Không tìm thấy máy', '找不到设备'], lkLoiSL: ['Số lượng sai', '数量错误'],
+  LK_FILE_COT: ['Không thấy cột "Tên linh kiện" và "Mã máy". Hãy dùng bảng mẫu của app.', '未找到"零件名称"和"设备编号"列，请使用应用模板。'], LK_FILE_TRONG: ['File không có dòng linh kiện nào.', '文件中没有零件行。'],
   lkChSec: ['Linh kiện của chuyền', '产线零件'], lkChXem: ['Xem linh kiện và đối chiếu ERP', '查看零件及ERP核对'], lkChTrong: ['Chưa có linh kiện. Thêm linh kiện cho từng máy trong chuyền.', '暂无零件。请为产线内各设备添加零件。'],
   lkChThem: ['Thêm / sửa linh kiện', '添加/编辑零件'], lkChXuat: ['Xuất Excel linh kiện chuyền này', '导出本产线零件Excel'], lkChXuatAll: ['Xuất Excel linh kiện tất cả chuyền', '导出全部产线零件Excel'],
   lkChHelp: ['Linh kiện của các máy trong mỗi chuyền, đối chiếu với tồn kho trong file ERP đã nhập: mã có trong ERP không, quy cách có khớp không, còn hàng không.', '各产线设备零件，与已导入的ERP库存核对：编号是否存在、规格是否一致、是否有库存。'],

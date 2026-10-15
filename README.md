@@ -111,6 +111,11 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
   - **Cảnh báo (cam):** chưa liên kết mã ERP nhưng ERP có mã cùng quy cách, tồn ít hơn số lắp trên máy, dưới tồn tối thiểu.
   - Thêm / sửa linh kiện: chọn máy trong chuyền rồi tìm linh kiện trong kho ERP như ở hồ sơ máy.
   - **Mục riêng "Linh kiện theo chuyền"** (nút ở đầu phần Chuyền sản xuất): mỗi chuyền một dòng kèm số lỗi; **Xuất Excel** cho một chuyền hoặc tất cả chuyền (trang Tổng hợp, trang "Can xu ly" gom các linh kiện lỗi / cảnh báo, mỗi chuyền một trang).
+- **Nhập linh kiện từ Excel** (Linh kiện theo chuyền → mục "Nhập linh kiện từ file Excel", Quản lý):
+  - **Tải bảng mẫu:** file có trang "Linh kien" điền sẵn mọi máy đang theo dõi và linh kiện hiện có (Chuyền · Mã máy · Tên máy · Tên linh kiện · Quy cách · Mã ERP · Đơn vị · SL trên máy · Vị trí lắp · Mức độ · Ghi chú), trang "Danh sach may" và trang "Huong dan".
+  - **Nhập từ Excel:** chọn file → xem trước: số dòng nhập được, số máy, dòng lỗi (không tìm thấy máy, số lượng sai — bị bỏ qua) và lỗi ERP từng dòng (mã không có trong ERP, quy cách khác, hết hàng…).
+  - Chọn **Thêm vào** (giữ linh kiện cũ, trùng tên thì cập nhật) hoặc **Thay toàn bộ** (máy có trong file chỉ còn các dòng trong file) → **Nhập**.
+  - Mã ERP nên để ô dạng Văn bản (Text) trong Excel để không mất số 0 ở đầu.
 - **Xuất Excel việc đang giao** (nút trong Công việc, Quản lý): trang "Tat ca" liệt kê mọi việc chưa xong (chờ giao, đã giao, đang làm, tạm hoãn) theo hạn; mỗi người một trang riêng (phiếu giao việc) có cột ghi chú / kết quả và dòng ký nhận, để in ra đưa cho từng người. Việc quá hạn tô đỏ ở cột Hạn.
 - Nâng cấp: dán `Code.gs-v2.5.1.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Lần mở app đầu tiên máy chủ tự tạo trang `Chuyen` và xếp máy in phun.
 
