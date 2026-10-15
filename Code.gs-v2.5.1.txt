@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.5.0';
+var PHIEN_BAN = '2.5.1';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -366,7 +366,7 @@ function chTuDong(r, i) {
 function chThanhDong(o) { return CH_KHOA.map(function (k) { return anToan(o[k] || ''); }).concat([o.hoatDong === false ? 0 : 1, o.capNhat || '']); }
 function dsChuyen() { return docTho('Chuyen').map(chTuDong).filter(function (x) { return x.ma; }); }
 function sachCh(o) { var x = {}; CH_KHOA.forEach(function (k) { x[k] = o[k] || ''; }); x.hoatDong = o.hoatDong !== false; return x; }
-// Lần đầu: tạo 16 chuyền từ sổ cái, xếp máy in phun (喷印机 VKYxx) vào chuyền cùng số. Chạy lại không trùng, không đè máy đã xếp.
+// Lần đầu: tạo 16 chuyền từ sổ cái, xếp máy in phun (喷印机 VKYxx) và máy hút bụi (Máy hút bụi VKYxx) vào chuyền cùng số. Chạy lại không trùng, không đè máy đã xếp.
 function napChuyen() {
   if (typeof DL_CHUYEN === 'undefined') return 0;
   trang('Chuyen'); capNhatTieuDe('Chuyen'); capNhatTieuDe('May');
@@ -380,7 +380,7 @@ function napChuyen() {
   if (moi.length) themNhieu('Chuyen', moi);
   var n = 0;
   dsMay().forEach(function (m) {
-    var k = /喷印机\s*VKY\s*0*(\d+)/i.exec(m.ten);
+    var k = /(?:喷印机|máy hút bụi)\s*VKY\s*0*(\d+)/i.exec(m.ten);
     if (!k || m.chuyen) return;
     var ma = 'VKY' + ('0' + k[1]).slice(-2);
     if (!co[ma]) return;

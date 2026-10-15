@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.5.0');
+  assert.equal(d.phienBan, '2.5.1');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -508,11 +508,14 @@ test('chuyền sản xuất: nâng cấp tạo 16 chuyền từ sổ cái, xếp
   const may = (ten) => d.may.find((m) => m.ten === ten);
   assert.equal(may('喷印机 VKY01').chuyen, 'VKY01');
   assert.equal(may('喷印机 VKY16').chuyen, 'VKY16');
-  assert.equal(may('Máy hút bụi VKY01').chuyen, '', 'chỉ xếp máy in phun');
+  assert.equal(may('Máy hút bụi VKY01').chuyen, 'VKY01', 'máy hút bụi cũng vào chuyền cùng số');
+  assert.equal(may('Máy hút bụi VKY17').chuyen, 'VKY17');
+  assert.equal(may('打包机Máy đóng bao 01').chuyen, '', 'máy khác không tự xếp');
   // Đổi chuyền của một máy; mã chuyền sai thì báo lỗi
-  const hb = may('Máy hút bụi VKY01');
+  const hb = may('Máy hút bụi VKY02');
   const sua = (more) => b.call('saveMachine', Object.assign({ ma: hb.ma, ten: hb.ten, nhom: hb.nhom, chuKy: hb.chuKy, hanKeTiep: hb.hanKeTiep }, more), ql);
-  assert.equal(ok(sua({ chuyen: 'VKY01' })).may.chuyen, 'VKY01');
+  assert.equal(ok(sua({ chuyen: 'VKY03' })).may.chuyen, 'VKY03');
+  assert.equal(ok(sua({ chuyen: '' })).may.chuyen, '', 'bỏ khỏi chuyền');
   err(sua({ chuyen: 'VKY99' }), 'KHONG_CO_CHUYEN');
   // Sửa thông tin chuyền: Quản lý được, kỹ thuật không
   assert.equal(ok(b.call('saveLine', { ma: 'VKY01', ghiChu: 'Thay dao cắt 10/2026' }, ql)).chuyen.ghiChu, 'Thay dao cắt 10/2026');
