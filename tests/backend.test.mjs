@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.1.0');
+  assert.equal(d.phienBan, '2.2.0');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -362,4 +362,100 @@ test('xác nhận bảo dưỡng vẫn gắn linh kiện vào máy và kho như 
   assert.deepEqual(r.may.linhKien.map((k) => k.ten), ['Lọc gió', 'Dây curoa A42']);
   assert.match(r.may.linhKien[1].ghiChu, /bảo dưỡng/);
   assert.ok(r.kho && r.kho.ds.some((k) => k.ten === 'Dây curoa A42'), 'linh kiện mới được thêm vào kho');
+});
+
+// ===================== Công việc =====================
+const viec = (b, tk, more, opId) => b.call('saveTask', Object.assign({ tieuDe: 'Thay đèn xưởng 2', loai: 'SUA' }, more || {}), tk, opId);
+const buocCV = (b, tk, id, bc, more, opId) => b.call('updateTask', Object.assign({ id, buoc: bc }, more || {}), tk, opId);
+
+test('công việc: kỹ thuật ghi → chờ giao; Quản lý giao nhiều việc; làm → xong → kiểm tra; quyền; gửi lại không trùng', () => {
+  const b = setupSC();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien;
+  const kt = nv.find((n) => n.maNV === 'NV003'), ad = nv.find((n) => n.maNV === 'NV001');
+  const a = ok(viec(b, b.kt, { id: 'CVTEST0001', han: '2026-10-06' }, 'o1')).congViec;
+  assert.deepEqual([a.id, a.so, a.trangThai, a.canKiemTra, a.nguoiTao], ['CVTEST0001', 1, 'CHO_GIAO', true, 'Kỹ thuật']);
+  assert.equal(ok(viec(b, b.kt, { id: 'CVTEST0001' }, 'o1')).dup, true);
+  // Kỹ thuật ghi kèm người làm thì vẫn chờ Quản lý giao
+  const c = ok(viec(b, b.kt, { tieuDe: 'Vệ sinh khu máy nén', loai: 'VS', uidLam: kt.id })).congViec;
+  assert.deepEqual([c.trangThai, c.canKiemTra], ['CHO_GIAO', false]);
+  err(viec(b, b.kt, { tieuDe: ' ' }), 'CAN_TIEU_DE');
+  err(b.call('assignTasks', { ids: [a.id, c.id], uidLam: kt.id }, b.kt), 'KHONG_QUYEN');
+  err(b.call('assignTasks', { ids: [a.id], uidLam: 'U999' }, b.ql), 'KHONG_CO_NV');
+  const g = ok(b.call('assignTasks', { ids: [a.id, c.id], uidLam: kt.id, uidPhu: [ad.id, kt.id] }, b.ql, 'o2')).dsCongViec;
+  assert.deepEqual(g.map((x) => [x.trangThai, x.nguoiLam, x.uidPhu.join()]), [['DA_GIAO', 'Kỹ thuật', ad.id], ['DA_GIAO', 'Kỹ thuật', ad.id]]);
+  assert.equal(ok(b.call('assignTasks', { ids: [a.id, c.id], uidLam: kt.id }, b.ql, 'o2')).dup, true);
+  // Người không được giao không làm được
+  const ql2 = b.login('NV002', '222222');
+  ok(buocCV(b, b.kt, a.id, 'batdau'));
+  err(buocCV(b, b.kt, a.id, 'hoan'), 'CAN_LY_DO');
+  ok(buocCV(b, b.kt, a.id, 'hoan', { ghiChu: 'Chờ bóng đèn' }));
+  err(buocCV(b, b.kt, a.id, 'xong', { ketQua: '' }), 'CAN_KET_QUA');
+  const x = ok(buocCV(b, b.kt, a.id, 'xong', { ketQua: 'Đã thay 4 bóng', linhKien: [{ ten: 'Bóng LED 1m2', dv: 'cái', sl: 4 }] }, 'o3'));
+  assert.equal(x.congViec.trangThai, 'XONG');
+  assert.ok(x.kho.ds.some((k) => k.ten === 'Bóng LED 1m2'), 'linh kiện dùng cho việc không gắn máy vẫn vào kho');
+  err(buocCV(b, b.kt, a.id, 'kiemtra'), 'KHONG_QUYEN');
+  ok(buocCV(b, ql2, a.id, 'tralai', { ghiChu: 'Còn 1 bóng chập chờn' }));
+  ok(buocCV(b, b.kt, a.id, 'xong', { ketQua: 'Thay thêm 1 bóng' }));
+  const d = ok(buocCV(b, b.ql, a.id, 'kiemtra')).congViec;
+  assert.deepEqual([d.trangThai, d.nguoiKiemTra], ['DONG', 'Quản lý']);
+  assert.deepEqual(d.nhatKy.map((n) => n.b), ['tao', 'giao', 'batdau', 'hoan', 'xong', 'tralai', 'xong', 'kiemtra']);
+  // Việc vệ sinh không cần kiểm tra: xong là đóng
+  assert.equal(ok(buocCV(b, b.kt, c.id, 'xong', { ketQua: 'Sạch' })).congViec.trangThai, 'DONG');
+  // Quản lý ghi kèm người làm → đã giao luôn; huỷ cần lý do; người tạo tự huỷ việc chưa giao
+  const e = ok(viec(b, b.ql, { tieuDe: 'Lắp quạt', loai: 'LAP', uidLam: kt.id })).congViec;
+  assert.equal(e.trangThai, 'DA_GIAO');
+  err(buocCV(b, b.ql, e.id, 'huy'), 'CAN_LY_DO');
+  ok(buocCV(b, b.ql, e.id, 'huy', { ghiChu: 'Không cần nữa' }));
+  const f = ok(viec(b, b.kt, { tieuDe: 'Ghi nhầm' })).congViec;
+  ok(buocCV(b, b.kt, f.id, 'huy'));
+  // Sửa việc: kỹ thuật chỉ sửa việc mình ghi khi chưa giao
+  err(viec(b, b.kt, { id: e.id, tieuDe: 'x' }), 'SAI_TRANG_THAI');
+  const data = ok(b.call('data', {}, b.kt));
+  assert.ok(data.congViec.some((v) => v.id === a.id && v.trangThai === 'DONG'));
+});
+
+test('công việc: giao bảo dưỡng thì xác nhận bảo dưỡng đóng luôn việc; giao phiếu sửa chữa cho người', () => {
+  const b = setupSC();
+  const kt = ok(b.call('data', {}, b.ql)).nhanVien.find((n) => n.maNV === 'NV003');
+  const v = ok(viec(b, b.ql, { tieuDe: 'Bảo dưỡng M001', loai: 'BD', ma: 'M001', uidLam: kt.id, han: '2026-10-05' })).congViec;
+  const r = ok(b.call('confirm', { ma: 'M001', ngay: '2026-10-05', nguoi: 'Kỹ thuật' }, b.kt));
+  assert.deepEqual(r.dsCongViec.map((x) => [x.id, x.trangThai]), [[v.id, 'DONG']]);
+  const sc = ok(bao(b, b.kt, { id: 'SCTEST0G01' })).suaChua;
+  err(buoc(b, b.kt, sc.id, 'giao', { uid: kt.id }), 'KHONG_QUYEN');
+  const g = ok(buoc(b, b.ql, sc.id, 'giao', { uid: kt.id })).suaChua;
+  assert.deepEqual([g.trangThai, g.uidSua, g.nguoiSua], ['CHO_SUA', kt.id, 'Kỹ thuật']);
+  const n = ok(buoc(b, b.kt, sc.id, 'nhan')).suaChua;
+  assert.deepEqual([n.trangThai, n.uidSua], ['DANG_SUA', kt.id]);
+});
+
+test('việc lặp lại: sinh việc đúng ngày, giao sẵn người làm, không sinh trùng, bật lại không sinh bù', () => {
+  const b = setupSC();                                   // 2026-10-05 là Thứ Hai
+  const kt = ok(b.call('data', {}, b.ql)).nhanVien.find((n) => n.maNV === 'NV003');
+  err(b.call('saveRecurring', { tieuDe: 'Kiểm tra bình chữa cháy', kieu: 'tuan', ngay: '' }, b.ql), 'CAN_NGAY_LAP');
+  err(b.call('saveRecurring', { tieuDe: 'x', kieu: 'ngay' }, b.kt), 'KHONG_QUYEN');
+  const r = ok(b.call('saveRecurring', { tieuDe: 'Kiểm tra bình chữa cháy', loai: 'KHAC', kieu: 'tuan', ngay: '1', uidLam: kt.id }, b.ql));
+  assert.deepEqual(r.dsCongViec.map((x) => [x.han, x.trangThai, x.nguoiLam]), [['2026-10-05', 'DA_GIAO', 'Kỹ thuật']]);
+  ok(b.call('saveRecurring', { tieuDe: 'Vệ sinh nhà ăn', loai: 'VS', kieu: 'ngay' }, b.ql));
+  b.setNow('2026-10-08T03:00:00Z');                      // Thứ Năm: tải dữ liệu thì bù Thứ Ba, Tư, Năm
+  let d = ok(b.call('data', {}, b.ql));
+  const vs = d.congViec.filter((x) => x.tieuDe === 'Vệ sinh nhà ăn').map((x) => x.han).sort();
+  assert.deepEqual(vs, ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08']);
+  d = ok(b.call('data', {}, b.ql));
+  assert.equal(d.congViec.filter((x) => x.tieuDe === 'Vệ sinh nhà ăn').length, 4, 'tải lại không sinh trùng');
+  b.setNow('2026-10-12T03:00:00Z');                      // Thứ Hai tuần sau
+  d = ok(b.call('data', {}, b.ql));
+  assert.deepEqual(d.congViec.filter((x) => x.tieuDe === 'Kiểm tra bình chữa cháy').map((x) => x.han).sort(), ['2026-10-05', '2026-10-12']);
+  // Tắt rồi bật lại sau 5 ngày: không sinh bù những ngày đã tắt
+  const vl = d.viecLap.find((x) => x.tieuDe === 'Vệ sinh nhà ăn');
+  ok(b.call('saveRecurring', Object.assign({}, vl, { hoatDong: false }), b.ql));
+  b.setNow('2026-10-17T03:00:00Z');
+  ok(b.call('saveRecurring', Object.assign({}, vl, { hoatDong: true }), b.ql));
+  d = ok(b.call('data', {}, b.ql));
+  const sau = d.congViec.filter((x) => x.tieuDe === 'Vệ sinh nhà ăn' && x.han > '2026-10-12').map((x) => x.han);
+  assert.deepEqual(sau, ['2026-10-17']);
+  // Tháng: ngày 31 ở tháng 30 ngày rơi vào ngày cuối tháng
+  assert.equal(b.ctx.ngayKhop({ kieu: 'thang', ngay: '31' }, '2026-11-30'), true);
+  // Nhắc hằng ngày có mục việc quá hạn
+  const t = b.ctx.tomTat('2026-10-17', 3);
+  assert.ok(t.cvQua.length > 0);
 });

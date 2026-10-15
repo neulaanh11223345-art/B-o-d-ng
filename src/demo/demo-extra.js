@@ -197,6 +197,7 @@ function mauSuaChua() {
     };
     Object.keys(o).forEach(function (k) { x[k] = o[k]; });
     x.lucBao = x.lucBao || sau(x.lucHong, 6);
+    x.uidSua = x.nguoiSua === kt.ten ? kt.id : '';
     x.capNhat = x.nhatKy[x.nhatKy.length - 1].luc;
     if (x.mucDo === 'DUNG' && x.lucChay) x.phutDung = phutGiua(x.lucHong, x.lucChay);
     return x;
@@ -242,10 +243,81 @@ function mauSuaChua() {
   themNhieu('SuaChua', ds.map(scThanhDong));
 }
 
+// Thêm 3 kỹ thuật viên mẫu và công việc mẫu (đủ trạng thái), việc lặp lại mẫu
+function mauNhanVien() {
+  if (dsNguoiDung().length > 3) return;
+  var bay = thoiGianStr();
+  themNhieu('NguoiDung', [
+    ['U004', 'Lê Minh Tiến', 'kythuat', bamPin('444444'), '', 1, bay, 'NV004', '黎明进'],
+    ['U005', 'Nguyễn Tuấn', 'kythuat', bamPin('555555'), '', 1, bay, 'NV005', '阮俊'],
+    ['U006', 'Đỗ Văn Hồng', 'kythuat', bamPin('666666'), '', 1, bay, 'NV006', '杜文红']
+  ]);
+}
+function mauCongViec() {
+  if (docCongViec().length) return;
+  capNhatTieuDe('CongViec'); capNhatTieuDe('ViecLap');
+  var hn = homNayStr(), bay = thoiGianStr(), nvs = dsNguoiDung();
+  var nv = {}; nvs.forEach(function (n) { nv[n.maNV] = n; });
+  var ql = nv.NV002, so = 0;
+  function luc(n, gio) { return congNgay(hn, n) + ' ' + gio + ':00'; }
+  function viec(o) {
+    so++;
+    var tao = o.tao || ql, x = { id: 'CVMAU' + (so < 10 ? '0' : '') + so, so: so, tieuDe: o.t, moTa: o.mt || '', loai: o.l, uuTien: o.u || 'TB', ma: o.ma || '',
+      han: o.han === undefined ? '' : congNgay(hn, o.han), trangThai: 'CHO_GIAO', uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '',
+      nguoiTao: tao.ten, uidTao: tao.id, lucTao: luc(o.tu || -1, '08:05'), lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: [], anhXong: [],
+      canKiemTra: o.kt === undefined ? !!CV_LOAI[o.l] || o.u === 'GAP' : o.kt, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: '', capNhat: bay,
+      nhatKy: [{ b: 'tao', luc: luc(o.tu || -1, '08:05'), uid: tao.id, nguoi: tao.ten, gc: '', op: '' }] };
+    if (o.lam) {
+      x.trangThai = 'DA_GIAO'; x.uidLam = nv[o.lam].id; x.nguoiLam = nv[o.lam].ten; x.uidPhu = (o.phu || []).map(function (m) { return nv[m].id; });
+      x.nguoiGiao = ql.ten; x.uidGiao = ql.id; x.lucGiao = luc(o.tu || -1, '08:30');
+      x.nhatKy.push({ b: 'giao', luc: x.lucGiao, uid: ql.id, nguoi: ql.ten, gc: x.nguoiLam + ((o.phu || []).length ? ' + ' + o.phu.map(function (m) { return nv[m].ten; }).join(', ') : ''), op: '' });
+    }
+    (o.buoc || []).forEach(function (b) {
+      var ng = nv[o.lam], l = luc(b[1], b[2]);
+      x.nhatKy.push({ b: b[0], luc: l, uid: ng.id, nguoi: ng.ten, gc: b[3] || '', op: '' });
+      if (b[0] === 'batdau') { x.trangThai = 'DANG_LAM'; x.lucBatDau = l; }
+      if (b[0] === 'hoan') x.trangThai = 'TAM_HOAN';
+      if (b[0] === 'xong') { x.trangThai = x.canKiemTra ? 'XONG' : 'DONG'; x.lucXong = l; x.ketQua = b[3]; x.nhatKy[x.nhatKy.length - 1].gc = ''; }
+    });
+    if (o.lk) x.linhKien = o.lk;
+    return x;
+  }
+  var m1 = timMay('M001');
+  var ds = [
+    viec({ t: 'Thay 4 bóng đèn LED khu đóng gói · 更换包装区4个LED灯', l: 'SUA', u: 'CAO', han: 0, lam: 'NV004' }),
+    viec({ t: 'Vệ sinh két làm mát máy nén khí số 2 · 清洁2号空压机冷却器', l: 'VS', ma: 'M038', han: 1, lam: 'NV005', buoc: [['batdau', 0, '07:50']] }),
+    viec({ t: 'Lắp thêm quạt hút xưởng 2 · 二车间加装排风扇', l: 'LAP', han: -2, tu: -5, lam: 'NV003', phu: ['NV006'],
+      mt: 'Lắp 2 quạt hút trên tường phía bắc, đi dây từ tủ điện xưởng 2 · 北墙装2台排风扇，从二车间电柜接线' }),
+    viec({ t: 'Kiểm tra rò khí đường ống khí nén xưởng 1 · 检查一车间压缩空气管道漏气', l: 'SUA', u: 'GAP', tao: nv.NV003, tu: 0,
+      mt: 'Nghe tiếng xì gần máy in VKY06 · 喷印机VKY06附近有漏气声' }),
+    viec({ t: 'Sơn lại vạch an toàn lối đi kho · 重新喷涂仓库通道安全线', l: 'CT', han: 7 }),
+    viec({ t: 'Hỗ trợ chuyển khuôn máy in VKY08 · 协助喷印机VKY08换模', l: 'HT', u: 'CAO', ma: 'M003', han: 0, tu: 0 }),
+    viec({ t: 'Thay công tắc hành trình máy đóng bao 05 · 更换打包机05行程开关', l: 'SUA', ma: 'M015', han: -1, tu: -2, lam: 'NV004',
+      buoc: [['batdau', -1, '09:10'], ['xong', -1, '10:40', 'Đã thay công tắc, chạy thử 50 bao ổn · 已更换行程开关，试运行50包正常']],
+      lk: [{ id: 'LKCV01', ten: 'Công tắc hành trình · 行程开关', quyCach: 'TZ-8108', dv: 'cái · 个', sl: 1, loai: 'THAY' }] }),
+    viec({ t: 'Vệ sinh tủ điện xưởng 1 · 清洁一车间电柜', l: 'VS', ma: 'M039', han: -1, tu: -3, lam: 'NV006',
+      buoc: [['batdau', -1, '13:30'], ['xong', -1, '15:00', 'Thổi bụi, siết lại đầu cốt · 吹灰，紧固接线端子']] }),
+    viec({ t: 'Bảo dưỡng định kỳ ' + (m1 ? m1.ten : 'M001') + ' · 定期保养', l: 'BD', ma: 'M001', han: 0, lam: 'NV003' }),
+    viec({ t: 'Thay ổ cắm phòng máy nén khí · 更换空压机房插座', l: 'SUA', ma: 'M038', han: 1, tu: -2, lam: 'NV006',
+      buoc: [['batdau', -1, '08:20'], ['hoan', -1, '09:00', 'Chờ ổ cắm công nghiệp 3 pha từ kho · 等仓库三相工业插座']] })
+  ];
+  themNhieu('CongViec', ds.map(cvThanhDong));
+  themNhieu('ViecLap', [
+    { id: 'VLMAU1', tieuDe: 'Kiểm tra bình chữa cháy toàn nhà máy · 检查全厂灭火器', moTa: '', loai: 'KHAC', uuTien: 'TB', ma: '', kieu: 'tuan', ngay: '1',
+      uidLam: nv.NV006.id, canKiemTra: false, hoatDong: true, taoDen: congNgay(hn, -1), nguoiTao: ql.ten, capNhat: bay },
+    { id: 'VLMAU2', tieuDe: 'Xả nước bình chứa khí nén · 储气罐排水', moTa: '', loai: 'VS', uuTien: 'TB', ma: 'M038', kieu: 'ngay', ngay: '',
+      uidLam: nv.NV005.id, canKiemTra: false, hoatDong: true, taoDen: congNgay(hn, -1), nguoiTao: ql.ten, capNhat: bay },
+    { id: 'VLMAU3', tieuDe: 'Chạy thử máy phát điện 15 phút · 发电机试运行15分钟', moTa: '', loai: 'KHAC', uuTien: 'CAO', ma: 'M037', kieu: 'thang', ngay: '1,15',
+      uidLam: '', canKiemTra: true, hoatDong: true, taoDen: congNgay(hn, -1), nguoiTao: ql.ten, capNhat: bay }
+  ].map(vlThanhDong));
+}
+
 __tz.off = -new Date().getTimezoneOffset() * 60000;
 caiDatBanDau();
+mauNhanVien();
 mauSoDien();
 mauKiemTra();
 mauKho();
 mauSuaChua();
+mauCongViec();
 return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };

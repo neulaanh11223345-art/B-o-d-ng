@@ -950,6 +950,38 @@ table.dt td.bad{color:var(--red);font-weight:700}
 .mtiles .mtile:last-child:nth-child(odd){grid-column:1/-1;min-height:96px}
 .note .zi{display:block}
 @media (min-width:1024px){.btn.wide.scbtn{width:auto;padding:10px 26px;min-height:48px}}
+.uu-GAP.mdtag{background:var(--red);color:#fff} .uu-CAO.mdtag{background:var(--orange-bg);color:var(--orange)}
+.uuseg button.on.uu-GAP{background:var(--red);color:#fff} .uuseg button.on.uu-CAO{background:var(--orange);color:#fff}
+.hanl{font-size:12.5px;color:var(--ink2);font-weight:600;white-space:nowrap}
+h1.cvh{margin:10px 0 2px;font-size:20px;line-height:1.3;overflow-wrap:anywhere}
+.cvbtns{margin:0 0 14px}
+.cvsave{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cvsave .bigbtn{margin-top:0}
+.nvlist{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:700px){.nvlist{grid-template-columns:1fr 1fr}}
+.nvc{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:9px 12px;text-align:left;color:var(--ink);min-height:56px}
+.nvc.on{border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand);background:var(--brand-bg)}
+.nvc .nvt{flex:1;min-width:0}
+.nvc .nvt b{font-size:15px}
+.nvc .nvt small{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
+.av.sm{width:34px;height:34px;font-size:13px}
+.cvpick{cursor:pointer}
+.cvpick input{width:22px;height:22px;flex:none;accent-color:var(--brand)}
+.cvpick .sub .mdtag{margin-right:2px}
+.board{display:flex;gap:12px;overflow-x:auto;padding-bottom:10px;align-items:flex-start}
+.bcol{flex:0 0 228px;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:10px;min-height:200px}
+.bcol.over{border-color:var(--brand);box-shadow:inset 0 0 0 2px var(--brand)}
+.bcol .bh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;margin-bottom:8px}
+.bcol .bh .zi{font-size:12px}
+.bcol .bh .cnt{margin-left:auto;font-family:var(--f-mono);color:var(--ink2)}
+.bcol .bh small{flex-basis:100%;font-size:12px;color:var(--ink2)}
+.bl{display:flex;flex-direction:column;gap:8px}
+.bcard{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 10px;cursor:grab;font-size:14px}
+.bcard b{display:block;margin-top:6px;line-height:1.3}
+.bcard.qua{border-color:color-mix(in srgb,var(--red) 45%,var(--line))}
+.bcard.drag{opacity:.5}
+.bcard .scf{margin-top:4px}
+.mt-orange .mic svg{color:#fff}
 </style>
 </head>
 <body>
@@ -1125,7 +1157,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbxYJ1YcP3FN3oWU8YsOlSpPFxU88fvnoZNPKYjygzrJ7PFPHIDZ1LY0VOkYbtJdhAUWoQ/exec";
 const MODE = "live";
-const APP_VER = "2.1.0";
+const APP_VER = "2.2.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -1434,7 +1466,7 @@ let DEV = store.get('bd_dev', '');
 if (!DEV) { DEV = 'd' + uid(); store.set('bd_dev', DEV); }
 
 function apiUrl() { return (typeof API_URL === 'string' && API_URL) || store.get('bd_api', ''); }
-const ROLE_OK = { confirm: ['admin', 'quanly', 'kythuat'], may: ['admin', 'quanly'], huy: ['admin', 'quanly'], admin: ['admin'], nghiemthu: ['admin', 'quanly'] };
+const ROLE_OK = { confirm: ['admin', 'quanly', 'kythuat'], may: ['admin', 'quanly'], huy: ['admin', 'quanly'], admin: ['admin'], nghiemthu: ['admin', 'quanly'], giaoviec: ['admin', 'quanly'] };
 const can = (q) => !!(S.me && ROLE_OK[q].indexOf(S.me.vaiTro) >= 0);
 function errMsg(e) {
   const c = (e && e.code) || 'LOI';
@@ -1566,6 +1598,11 @@ function mergeResult(d) {
     const i = L.findIndex((x) => x.ma === d.congTo.ma);
     if (i >= 0) L[i] = d.congTo; else L.push(d.congTo);
   }
+  (d.congViec ? [d.congViec] : []).concat(d.dsCongViec || []).forEach((v) => {
+    const L = S.base.congViec = S.base.congViec || [];
+    const i = L.findIndex((x) => x.id === v.id);
+    if (i >= 0) L[i] = v; else L.push(v);
+  });
   if (d.suaChua) {
     const L = S.base.suaChua = S.base.suaChua || [];
     const i = L.findIndex((x) => x.id === d.suaChua.id);
@@ -1604,6 +1641,7 @@ function rebuild() {
   S.V = { may, byMa, ls, lsMa, groups };
   rebuildDien();
   rebuildSC();
+  rebuildCV();
 }
 const activeMay = () => S.V.may.filter((m) => m.hoatDong);
 const nhacTruoc = () => (S.base && S.base.caiDat && S.base.caiDat.nhacTruoc !== undefined ? S.base.caiDat.nhacTruoc : 3);
@@ -1677,7 +1715,7 @@ function closeSheet() { const b = $('#sheetBg'); if (b) b.remove(); }
 const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefined && extra !== '' ? `<span class="cnt">${extra}</span>` : ''}</h2></div>`;
 
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Sửa chữa · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
-const SIDE = [['home', 'home', 'home'], ['list', 'navMay', 'gear'], ['sc', 'navSC', 'wrench'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'],
+const SIDE = [['home', 'home', 'home'], ['cv', 'navCV', 'list'], ['list', 'navMay', 'gear'], ['sc', 'navSC', 'wrench'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'],
   ['dien', 'navDien', 'bolt'], ['kho', 'segKho', 'box'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
 function shell() {
   $('#root').innerHTML = `
@@ -1710,9 +1748,11 @@ function shell() {
 }
 const TITLES = { dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
-  sc: 't_sc', scNew: 't_scNew', scView: 't_scView', scXong: 't_scXong' };
-const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'sc'];
+  sc: 't_sc', scNew: 't_scNew', scView: 't_scView', scXong: 't_scXong',
+  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit' };
+const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'sc', 'cv'];
 const TAB_OF = { cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', scNew: 'sc', scView: 'sc', scXong: 'sc',
+  cv: 'home', cvNew: 'home', cvView: 'home', cvGiao: 'home', cvXong: 'home', cvLap: 'home', cvLapEdit: 'home',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
@@ -1743,12 +1783,13 @@ function render() {
   const sb = (v, x) => { const e = $('#sb_' + v); if (e) { e.hidden = !x; e.textContent = x; } };
   const ns = S.V && S.V.sc ? scCanLam().length : 0, bs = $('#bdgS');
   if (bs) { bs.hidden = !ns; bs.textContent = ns; }
-  sb('home', n); sb('dien', ne); sb('sc', ns);
+  const nc = S.V && S.V.cv ? (can('giaoviec') ? S.V.cv.filter((x) => x.trangThai === 'CHO_GIAO' || x.trangThai === 'XONG').length : viecCuaToi().length) : 0;
+  sb('home', n); sb('dien', ne); sb('sc', ns); sb('cv', nc);
   renderSync();
 }
 // Vẽ lại nhưng không phá ô đang gõ
 // Chỉ vẽ lại các màn hiển thị dữ liệu; màn đang nhập liệu (sửa máy, báo tin…) giữ nguyên
-const LIVE_VIEWS = ['home', 'cal', 'list', 'hist', 'may', 'queue', 'sync', 'dien', 'me', 'duyet', 'sc', 'scView'];
+const LIVE_VIEWS = ['home', 'cal', 'list', 'hist', 'may', 'queue', 'sync', 'dien', 'me', 'duyet', 'sc', 'scView', 'cv', 'cvView', 'cvLap'];
 function softRender() {
   const a = document.activeElement, cur = topV();
   if (!cur || LIVE_VIEWS.indexOf(cur.v) < 0) { renderSync(); return; }
@@ -1853,6 +1894,12 @@ function homeAlerts(g) {
   const out = [], add = (sev, ic, k, v, n, act, extra) => { if (n) out.push({ sev, ic, k, v: v || {}, n, act, extra: extra || '' }); };
   const st = syncState();
   add(0, 'cloud', 'aLoi', null, S.Q.filter((q) => q.st === 'loi' || q.st === 'xd').length, 'data-act="go" data-v="sync"');
+  const ql = can('giaoviec'), cvq = S.V.cv.filter(cvQua);
+  if (ql) {
+    add(0, 'clock', 'aCvQua', null, cvq.length, 'data-act="cvLoc" data-v="qua"');
+    add(1, 'list', 'aCvCho', null, S.V.cv.filter((x) => x.trangThai === 'CHO_GIAO').length, 'data-act="cvLoc" data-v="cho"');
+    add(1, 'check', 'aCvKT', null, S.V.cv.filter((x) => x.trangThai === 'XONG').length, 'data-act="cvLoc" data-v="kt"');
+  } else add(0, 'clock', 'aCvToiQua', null, cvq.filter(laCuaToi).length, 'data-act="cvLoc" data-v="toi"');
   const scm = S.V.sc.filter(scMo);
   add(0, 'warn', 'aScDung', null, scm.filter((x) => x.mucDo === 'DUNG').length, 'data-act="scLoc" data-v="mo"');
   add(0, 'warn', 'aQua', null, g.qua.length, 'data-act="listSt" data-st="qua"');
@@ -1897,6 +1944,9 @@ function modTiles() {
   let plan = 0; act.forEach((m) => planFor(m, +today.slice(0, 4), today).forEach((k, d) => { if (d.slice(0, 7) === ym) plan++; }));
   const tile = (cls, ic, k, v, big, sub, a) => `<button class="mtile ${cls}" ${a}><span class="mic">${IC[ic]}</span><span class="mtx"><span>${tv(k, v)}<small>${tz(k, v)}</small></span><b>${big}</b>${sub ? `<em>${sub}</em>` : ''}</span></button>`;
   let h = tile('mt-blue', 'gear', 'mThietBi', null, act.length, t('mDangTD'), 'data-act="tab" data-v="list"');
+  const cvm = S.V.cv.filter(cvMo), cvq = cvm.filter(cvQua).length, cvc = cvm.filter((x) => x.trangThai === 'CHO_GIAO').length;
+  h += tile('mt-orange', 'list', 'mCongViec', null, `${cvm.length}<small> ${esc(tv('mCvMo'))}</small>`,
+    cvq ? `<span class="warnx">${t('mCvQua', { n: cvq })}</span>` : cvc ? t('mCvCho', { n: cvc }) : t('mCvOk'), 'data-act="cvLoc" data-v="' + (can('giaoviec') ? 'mo' : 'toi') + '"');
   const scm = S.V.sc.filter(scMo), dung = scm.filter((x) => x.mucDo === 'DUNG').length;
   h += tile('mt-red', 'wrench', 'mSuaChua', null, `${scm.length}<small> ${esc(tv('mScMo'))}</small>`,
     dung ? `<span class="warnx">${t('mScDung', { n: dung })}</span>` : t('mScKhongDung'), 'data-act="scLoc" data-v="mo"');
@@ -1935,6 +1985,7 @@ VIEWS.home = {
       left += `<button class="cta2" data-act="scNew"><span class="ic">${IC.warn}</span><span>${tv('baoHongTB')}<span class="zi">${tz('baoHongTB')}</span></span>${IC.chev}</button>`;
     }
     if (can('may')) left += srvWarn();
+    left += cvCuaToiHtml();
     left += `<div class="sec"><h2>${t('viecCanLam')}</h2></div>` + (al.length ? `<div class="alerts">${al.map(alertRow).join('')}</div>` : `<div class="card empty">${t('khongCoViec')}</div>`);
     const block = (k, arr, lbl) => arr.length ? `<div id="sec-${k}">${lbl}<div class="list">${arr.map((o) => mRow(o.m, o.st, true)).join('')}</div></div>` : '';
     let lists = block('qua', g.qua, sec('st_qua', g.qua.length)) + block('nay', g.nay, sec('st_nay', g.nay.length)) + block('sap', g.sap, sec('sapN', g.sap.length, { n: nhacTruoc() }));
@@ -1985,6 +2036,10 @@ function qTen(q) {
   if (q.action === 'reportRepair' || q.action === 'updateRepair') {
     const x = S.V && S.V.scById && S.V.scById[q.p.id], ma = q.p.ma || (x && x.ma) || '', mm = S.V && S.V.byMa[ma];
     return IC.wrench + ' ' + esc(mm ? mm.ten : ma) + ' · ' + t(q.action === 'reportRepair' ? 'b_bao' : 'b_' + q.p.buoc);
+  }
+  if (q.action === 'saveTask' || q.action === 'updateTask' || q.action === 'assignTasks') {
+    const ids = q.p.ids || [q.p.id], x = S.V && S.V.cvById && S.V.cvById[ids[0]];
+    return IC.list + ' ' + esc(q.p.tieuDe || (x ? x.tieuDe : '')) + (ids.length > 1 ? ' +' + (ids.length - 1) : '') + (q.p.buoc ? ' · ' + t('k_' + q.p.buoc) : q.action === 'assignTasks' ? ' · ' + t('k_giao') : '');
   }
   const m = S.V && (S.V.byMa[q.p.ma] || S.V.ctByMa[q.p.ma]);
   return (q.action === 'saveReading' ? IC.bolt + ' ' : IC.check + ' ') + esc(m ? m.ten : q.p.ma);
@@ -2185,7 +2240,8 @@ VIEWS.may = {
     if (!m) return `<div class="card empty">${t('notFound')}</div>`;
     const h = histOf(m.ma), tb = p.tab || 'tt', scDs = (S.V.scMa[m.ma] || []).filter((x) => x.trangThai !== 'HUY'), hong = scMoCua(m.ma);
     let o = mayHead(m);
-    if (hong.length) o += `<div class="alerts" style="margin-top:10px">${hong.map(scAlert).join('')}</div>`;
+    const cvM = S.V.cv.filter((x) => x.ma === m.ma && cvMo(x));
+    if (hong.length || cvM.length) o += `<div class="alerts" style="margin-top:10px">${hong.map(scAlert).join('')}${cvM.map(cvAlert).join('')}</div>`;
     if (can('confirm') && m.hoatDong) {
       o += `<div class="btn2"><button class="btn danger bigbtn" data-act="scNew" data-ma="${esc(m.ma)}">${IC.warn}<span class="stk">${tv('baoHong')}<span class="zi">${tz('baoHong')}</span></span></button>
         <button class="btn g bigbtn" data-act="xn" data-ma="${esc(m.ma)}">${IC.check}<span class="stk">${tv('confirmBD')}<span class="zi">${tz('confirmBD')}</span></span></button></div>`;
@@ -2204,6 +2260,7 @@ VIEWS.may = {
         <dt>${t('cycle')}</dt><dd>${t('days', { n: m.chuKy })}</dd>
       </dl></div>`;
       if (m.noiDung) o += sec('content') + `<div class="card pad"><p class="pre">${esc(m.noiDung)}</p></div>`;
+      if (can('confirm') && m.hoatDong) o += `<div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="cvNew" data-ma="${esc(m.ma)}">${IC.plus} ${t('cvChoMay')}</button></div>`;
       if (can('may')) {
         o += `<div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="editMay" data-ma="${esc(m.ma)}">${IC.edit} ${t('edit')}</button>
           <button class="btn ghost" data-act="labelsOne" data-ma="${esc(m.ma)}">${IC.qr} ${t('printQR')}</button></div>`;
@@ -2215,6 +2272,7 @@ VIEWS.may = {
     } else if (tb === 'bd') {
       o += hmSection(m);
       if (m.hoatDong) o += sec('plan') + `<div class="card pad"><div class="dates">${nextPlans(m, 6).map((d) => `<span>${fmtD(d)}</span>`).join('')}</div></div>`;
+      if (m.hoatDong && can('giaoviec')) o += `<div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="cvNewBD" data-ma="${esc(m.ma)}">${IC.user} ${t('cvGiaoBD')}</button></div>`;
     } else {
       // Lịch sử chung: bảo dưỡng + sửa chữa, mới nhất lên trên
       const ev = h.map((x) => ({ d: x.ngay + ' ' + (x.thoiGian || '').slice(11), html: hRow(x, false) }))
@@ -2708,6 +2766,7 @@ VIEWS.notify = {
         ${chats.length ? `<div class="list">${chats.map((ch) => `<label class="checkrow"><input type="radio" name="nChat" value="${esc(ch.id)}" data-ten="${esc(ch.ten)}" ${ch.id === c.tgChat ? 'checked' : ''}><span>${esc(ch.ten)} <span class="mono muted" style="font-size:12px">${esc(ch.id)}</span></span></label>`).join('')}</div>` : `<div class="help">${p.chats ? t('tgNoChat') : '—'}</div>`}</div>
         <label class="switch" style="margin-top:10px"><span class="t">${t('doneOn')}</span><input type="checkbox" id="nXong" ${c.baoXong ? 'checked' : ''}></label>
         <label class="switch" style="margin-top:10px"><span class="t">${t('doneHong')}</span><input type="checkbox" id="nHong" ${c.baoHong !== false ? 'checked' : ''}></label>
+        <label class="switch" style="margin-top:10px"><span class="t">${t('doneViec')}</span><input type="checkbox" id="nViec" ${c.baoViec !== false ? 'checked' : ''}></label>
       </div>
       <div class="sec"><h2>Email</h2></div><div class="card pad">
         <label class="switch"><span class="t">${t('mailOn')}<div class="help">${t('mailTo')}</div></span><input type="checkbox" id="nMail" ${c.mailBat ? 'checked' : ''}></label>
@@ -2728,7 +2787,7 @@ VIEWS.notify = {
 function notifyPayload() {
   const ch = $('input[name="nChat"]:checked');
   const o = { nhacTruoc: +$('#nTruoc').value, gio: +$('#nGio').value, tgBat: $('#nTg').checked, mailBat: $('#nMail').checked,
-    baoXong: $('#nXong').checked, baoHong: $('#nHong').checked, linkApp: IS_DEMO ? '' : appLink() };
+    baoXong: $('#nXong').checked, baoHong: $('#nHong').checked, baoViec: $('#nViec').checked, linkApp: IS_DEMO ? '' : appLink() };
   const tk = $('#nToken').value.trim(); if (tk) o.tgToken = tk;
   if (ch) { o.tgChat = ch.value; o.tgTen = ch.dataset.ten; }
   return o;
@@ -2748,7 +2807,7 @@ async function tgFind(el) {
     const d = await api('notifyChats', { tgToken: $('#nToken').value.trim() });
     const p = topV().p, keep = notifyPayload();
     p.chats = d.chats;
-    p.c = Object.assign({}, p.c, { tgBat: keep.tgBat, mailBat: keep.mailBat, baoXong: keep.baoXong, baoHong: keep.baoHong, nhacTruoc: keep.nhacTruoc, gio: keep.gio });
+    p.c = Object.assign({}, p.c, { tgBat: keep.tgBat, mailBat: keep.mailBat, baoXong: keep.baoXong, baoHong: keep.baoHong, baoViec: keep.baoViec, nhacTruoc: keep.nhacTruoc, gio: keep.gio });
     const tok = $('#nToken').value;
     render(); $('#nToken').value = tok;
     if (d.chats.length === 1) { const r = $('input[name="nChat"]'); if (r) r.checked = true; }
@@ -3339,14 +3398,14 @@ Object.assign(ERR, {
 });
 
 // Máy chủ cũ hơn bản app cần (ví dụ triển khai chưa lên Phiên bản mới): báo rõ cách sửa
-const SRV_CAN = '2.1.0';
+const SRV_CAN = '2.2.0';
 function verLt(a, b) {
   const x = String(a || '0').split('.').map((n) => +n || 0), y = String(b).split('.').map((n) => +n || 0);
   for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0);
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['sc', '2.1.0', 'srvMissSC']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['sc', '2.1.0', 'srvMissSC'], ['cv', '2.2.0', 'srvMissCV']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -6204,7 +6263,8 @@ function rebuildSC() {
 // Áp một bước lên phiếu ngay trên máy (giống máy chủ) để màn hình đúng khi còn chờ gửi
 function scApDung(x, p, luc, nguoi, op) {
   const b = p.buoc;
-  if (b === 'nhan') { x.trangThai = 'DANG_SUA'; x.nguoiSua = p.nguoi || nguoi; if (!x.lucNhan) x.lucNhan = luc; }
+  if (b === 'nhan') { x.trangThai = 'DANG_SUA'; x.nguoiSua = p.nguoi || nguoi; x.uidSua = (S.me || {}).id; if (!x.lucNhan) x.lucNhan = luc; }
+  else if (b === 'giao') { x.uidSua = p.uid; x.nguoiSua = nvTen(p.uid); x.nhatKy.push({ b, luc, nguoi, gc: x.nguoiSua, op }); return; }
   else if (b === 'cholk') { x.trangThai = 'CHO_LK'; if (!x.nguoiSua) x.nguoiSua = nguoi; }
   else if (b === 'tiep' || b === 'tralai') x.trangThai = 'DANG_SUA';
   else if (b === 'huy') x.trangThai = 'HUY';
@@ -6405,9 +6465,10 @@ function scActions(x) {
   if (st === 'XONG' && can('nghiemthu')) out.push(b('g', 'scB', 'scNghiemThu', IC.check, 'nghiemthu'), b('danger', 'scB', 'scTraLai', IC.left, 'tralai'));
   let o = out.length ? `<div class="scact">${out.join('')}</div>` : '';
   if (st === 'XONG' && !can('nghiemthu')) o += `<div class="note" style="margin-top:12px">${t('scChoNT')}</div>`;
-  if ((x.uidBao === me.id && st === 'CHO_SUA') || (can('nghiemthu') && (scMo(x) || st === 'XONG'))) {
-    o += `<div class="scact2"><button class="lnkbtn red" data-act="scB" data-id="${esc(x.id)}" data-b="huy">${IC.out} ${t('scHuy')}</button></div>`;
-  }
+  const lnk = [];
+  if (can('giaoviec') && scMo(x)) lnk.push(`<button class="lnkbtn" data-act="scGiao" data-id="${esc(x.id)}">${IC.user} ${t('scGiao')}</button>`);
+  if ((x.uidBao === me.id && st === 'CHO_SUA') || (can('nghiemthu') && (scMo(x) || st === 'XONG'))) lnk.push(`<button class="lnkbtn red" data-act="scB" data-id="${esc(x.id)}" data-b="huy">${IC.out} ${t('scHuy')}</button>`);
+  if (lnk.length) o += `<div class="scact2">${lnk.join('')}</div>`;
   return o;
 }
 // Bước cần nhập thêm (người sửa / lý do) thì mở bảng nhỏ; bước khác gửi ngay
@@ -6535,6 +6596,647 @@ Object.assign(ACT, {
   scB: (el) => { const b = el.dataset.b; if (b === 'tiep' || b === 'nghiemthu') scBuocNgay(el.dataset.id, b, el); else scBuocSheet(el.dataset.id, b); },
   scBuocGo: (el) => scBuocGo(el),
   scXong: (el) => go('scXong', { id: el.dataset.id })
+});
+
+// ===================== CÔNG VIỆC · 工作 =====================
+// Ghi việc → (Chờ giao) → Quản lý giao cho người có tài khoản → Bắt đầu → Xong → (Quản lý kiểm tra) → Đóng.
+Object.assign(TX, {
+  navCV: ['Công việc', '工作'], t_cv: ['Công việc', '工作'], t_cvNew: ['Ghi việc', '记录工作'], t_cvView: ['Công việc', '工作详情'],
+  t_cvGiao: ['Giao việc', '派工'], t_cvXong: ['Xong việc', '完成工作'], t_cvLap: ['Việc lặp lại', '重复工作'], t_cvLapEdit: ['Việc lặp lại', '重复工作'],
+  cv_CHO_GIAO: ['Chờ giao', '待派工'], cv_DA_GIAO: ['Đã giao', '已派工'], cv_DANG_LAM: ['Đang làm', '进行中'], cv_TAM_HOAN: ['Tạm hoãn', '暂停'],
+  cv_XONG: ['Chờ kiểm tra', '待检查'], cv_DONG: ['Đã xong', '已完成'], cv_HUY: ['Đã huỷ', '已取消'],
+  lv_SUA: ['Sửa nhỏ', '小修'], lv_VS: ['Vệ sinh', '清洁'], lv_LAP: ['Lắp đặt / di dời', '安装/搬迁'], lv_CT: ['Cải tiến', '改善'],
+  lv_HT: ['Hỗ trợ sản xuất', '生产支援'], lv_BD: ['Bảo dưỡng', '保养'], lv_KHAC: ['Khác', '其他'],
+  uu_GAP: ['Gấp', '紧急'], uu_CAO: ['Cao', '高'], uu_TB: ['Bình thường', '普通'],
+  cvTieuDe: ['Tên việc', '工作名称'], cvTieuDePh: ['Vd: Thay đèn xưởng 2', '如：更换二车间灯'], cvLoai: ['Loại việc', '工作类型'], cvUu: ['Mức ưu tiên', '优先级'],
+  cvHan: ['Hạn hoàn thành', '完成期限'], hanNay: ['Hôm nay', '今天'], hanMai: ['Ngày mai', '明天'], hanTuan: ['Cuối tuần', '本周末'], hanKhong: ['Không hạn', '无期限'],
+  cvMay: ['Thiết bị (không bắt buộc)', '设备（可选）'], cvKhongMay: ['— Không gắn thiết bị —', '— 不关联设备 —'],
+  cvMoTa: ['Mô tả (không bắt buộc)', '说明（可选）'], cvAnh: ['Ảnh (không bắt buộc)', '照片（可选）'],
+  cvKT: ['Cần Quản lý kiểm tra khi xong', '完成后需主管检查'], cvGiaoCho: ['Giao cho', '派给'], cvChuaGiao: ['Để sau, chưa giao', '暂不派工'],
+  cvPhu: ['Người làm cùng (không bắt buộc)', '协助人（可选）'],
+  cvLuu: ['Lưu', '保存'], cvLuuTiep: ['Lưu và ghi tiếp', '保存并继续'], cvDaLuu: ['Đã lưu việc', '已保存工作'],
+  cvKtGhi: ['Việc bạn ghi sẽ vào mục "Chờ giao" để Quản lý giao người làm.', '您记录的工作将进入“待派工”，由主管派工。'],
+  cvGhi: ['Ghi việc', '记录工作'], cvGiaoN: ['Giao việc ({n})', '派工（{n}）'], cvLapBtn: ['Việc lặp lại', '重复工作'],
+  cvLoc_toi: ['Của tôi', '我的'], cvLoc_cho: ['Chờ giao', '待派工'], cvLoc_mo: ['Đang thực hiện', '执行中'], cvLoc_qua: ['Quá hạn', '逾期'],
+  cvLoc_kt: ['Chờ kiểm tra', '待检查'], cvLoc_dong: ['Đã xong', '已完成'], cvLoc_huy: ['Đã huỷ', '已取消'], cvLoc_all: ['Tất cả', '全部'],
+  cvKCho: ['Chờ giao', '待派工'], cvKMo: ['Đang thực hiện', '执行中'], cvKQua: ['Quá hạn', '逾期'], cvKKT: ['Chờ kiểm tra', '待检查'],
+  xemDS: ['Danh sách', '列表'], xemNguoi: ['Theo người', '按人员'],
+  cvChuaGiaoCot: ['Chưa giao', '未派工'], cvKeoTha: ['Kéo thẻ việc sang cột của một người để giao (hoặc giao lại) cho người đó.', '把工作卡片拖到某人的列，即可派工（或重新派工）。'],
+  cvCuaToi: ['Việc của tôi', '我的工作'], cvXemHet: ['Xem tất cả', '查看全部'],
+  cvBatDau: ['Bắt đầu', '开始'], cvLamTiep: ['Làm tiếp', '继续'], cvXongBtn: ['Xong việc', '完成'], cvHoan: ['Tạm hoãn', '暂停'],
+  cvKiemTra: ['Đạt, đóng việc', '合格，关闭'], cvTraLai: ['Chưa đạt, trả lại', '不合格，退回'], cvHuy: ['Huỷ việc', '取消工作'],
+  cvSua: ['Sửa việc', '编辑'], cvGiaoLai: ['Giao lại', '重新派工'], cvGiaoBtn: ['Giao việc', '派工'], cvXacNhanBD: ['Xác nhận bảo dưỡng', '确认保养'],
+  cvHoanPh: ['Vì sao tạm hoãn? (chờ vật tư, chờ dừng máy…)', '暂停原因？（等材料、等停机…）'], cvTraLaiPh: ['Còn thiếu gì?', '还有什么问题？'], cvHuyPh: ['Lý do huỷ', '取消原因'],
+  cvKetQua: ['Kết quả', '工作结果'], cvKetQuaPh: ['Đã làm gì, có gì cần lưu ý', '做了什么，有何注意事项'], cvLucXong: ['Lúc xong', '完成时间'],
+  cvLK: ['Linh kiện / vật tư đã dùng', '使用的零件/材料'], cvAnhXong: ['Ảnh sau khi làm (không bắt buộc)', '完成后照片（可选）'],
+  cvNguoiLam: ['Người làm', '执行人'], cvNguoiGiao: ['Người giao', '派工人'], cvNguoiTao: ['Người ghi', '记录人'], cvKiemTraBoi: ['Kiểm tra', '检查'],
+  cvChoKT: ['Đã xong, chờ Quản lý kiểm tra.', '已完成，等待主管检查。'], cvSeChoKT: ['Sau khi lưu, việc chờ Quản lý kiểm tra.', '保存后等待主管检查。'],
+  cvDaXong: ['Đã ghi xong việc', '已记录完成'], cvDaGui: ['Đã giao {n} việc cho {t}', '已将{n}项工作派给{t}'],
+  cvChonViec: ['Chọn việc cần giao', '选择要派的工作'], cvChonNguoi: ['Chọn người làm', '选择执行人'], cvKhongCho: ['Không còn việc chờ giao', '没有待派的工作'],
+  cvTai: ['{a} việc đang làm · {b} quá hạn', '进行中{a}项 · 逾期{b}项'], cvDoiHan: ['Đổi hạn cho các việc đã chọn (không bắt buộc)', '修改所选工作的期限（可选）'],
+  cvGiaoNut: ['Giao {n} việc', '派{n}项工作'], cvGiaoNutCho: ['Giao {n} việc cho {t}', '把{n}项工作派给{t}'], cvChonItNhat: ['Chọn ít nhất một việc.', '请至少选择一项工作。'], cvCanNguoi: ['Chọn người làm.', '请选择执行人。'],
+  cvQuaHanN: ['Quá hạn {n} ngày', '逾期{n}天'], cvHanNay: ['Hạn hôm nay', '今天到期'], cvHanNgay: ['Hạn {d}', '期限{d}'],
+  cvTrong: ['Không có việc nào', '没有工作'], cvLapTu: ['Việc lặp lại', '重复工作'], cvChoMay: ['Ghi việc cho máy này', '为此设备记录工作'], cvGiaoBD: ['Giao bảo dưỡng cho người làm', '派保养任务'],
+  cvViecMay: ['Việc đang mở của máy này', '此设备未完成的工作'],
+  k_tao: ['Ghi việc', '记录'], k_giao: ['Giao việc', '派工'], k_batdau: ['Bắt đầu', '开始'], k_hoan: ['Tạm hoãn', '暂停'], k_xong: ['Xong', '完成'],
+  k_kiemtra: ['Kiểm tra đạt', '检查合格'], k_tralai: ['Trả lại', '退回'], k_huy: ['Huỷ', '取消'], k_sua: ['Sửa việc', '编辑'], k_lap: ['Tự tạo từ việc lặp lại', '由重复工作自动创建'],
+  aCvCho: ['Việc chưa giao người làm', '未派工的工作'], aCvQua: ['Việc quá hạn', '逾期工作'], aCvKT: ['Việc xong chờ kiểm tra', '已完成待检查'], aCvToiQua: ['Việc của tôi quá hạn', '我的逾期工作'],
+  mCongViec: ['Công việc', '工作'], mCvMo: ['đang mở', '未完成'], mCvQua: ['{n} quá hạn', '逾期{n}'], mCvCho: ['{n} chờ giao', '待派工{n}'], mCvOk: ['không có việc quá hạn', '无逾期'],
+  b_giao: ['Giao sửa', '派修'], scGiao: ['Giao cho người sửa', '派给维修人'],
+  lap_ngay: ['Hằng ngày', '每天'], lap_tuan: ['Hằng tuần', '每周'], lap_thang: ['Hằng tháng', '每月'], lapKieu: ['Lặp lại', '重复'],
+  lapThu: ['Vào các thứ', '每周几'], lapNgayThang: ['Vào các ngày trong tháng', '每月几号'], lapNgayPh: ['Vd: 1, 15', '如：1, 15'],
+  lapNguoi: ['Giao sẵn cho', '默认执行人'], lapNguoiTrong: ['— Không, để vào "Chờ giao" —', '— 不，进入“待派工” —'],
+  lapBat: ['Đang bật', '启用中'], lapTat: ['Đã tắt', '已停用'], lapDangBat: ['Bật việc lặp lại này', '启用此重复工作'], lapThem: ['Thêm việc lặp lại', '添加重复工作'],
+  lapHelp: ['Mỗi ngày app tự tạo việc theo lịch (khi có người mở app, hoặc lúc gửi nhắc hằng ngày). Có người làm sẵn thì việc được giao luôn, không thì vào mục "Chờ giao".', '应用每天按计划自动创建工作（有人打开应用或每日提醒时）。设置了执行人则直接派工，否则进入“待派工”。'],
+  lapTrong: ['Chưa có việc lặp lại', '暂无重复工作'], lapCanNgay: ['Chọn ít nhất một ngày.', '请至少选择一天。'], lapNgayN: ['ngày {n}', '{n}号'],
+  doneViec: ['Báo vào Telegram khi giao việc', '派工时通知Telegram群'],
+  thViec: ['Việc', '工作'], thLoaiCV: ['Loại', '类型'], thUu: ['Ưu tiên', '优先'], thNguoiLam: ['Người làm', '执行人'], thHanCV: ['Hạn', '期限'],
+  srvMissCV: ['Bản 2.2: công việc, giao việc, việc lặp lại.', '2.2版：工作、派工、重复工作。']
+});
+Object.assign(ERR, {
+  CAN_TIEU_DE: ['Cần ghi tên việc.', '请填写工作名称。'], CAN_KET_QUA: ['Cần ghi kết quả.', '请填写工作结果。'],
+  KHONG_CO_NV: ['Không tìm thấy nhân viên (tài khoản đã bị tắt?).', '找不到该员工（账号已停用？）。'], CAN_NGAY_LAP: ['Chọn ít nhất một ngày lặp lại.', '请至少选择一个重复日期。']
+});
+const CV_MO = ['CHO_GIAO', 'DA_GIAO', 'DANG_LAM', 'TAM_HOAN'];
+const CV_LAM = ['DA_GIAO', 'DANG_LAM', 'TAM_HOAN'];
+const CV_LOAI = { SUA: 1, VS: 0, LAP: 1, CT: 1, HT: 0, BD: 0, KHAC: 1 };
+const CV_UU = ['GAP', 'CAO', 'TB'];
+const CV_PILL = { CHO_GIAO: 'p-cho', DA_GIAO: 'p-sap', DANG_LAM: 'p-nay', TAM_HOAN: 'p-huy', XONG: 'p-sap', DONG: 'p-xong', HUY: 'p-huy' };
+const CV_LOC = [['toi', 'cvLoc_toi'], ['cho', 'cvLoc_cho'], ['mo', 'cvLoc_mo'], ['qua', 'cvLoc_qua'], ['kt', 'cvLoc_kt'], ['dong', 'cvLoc_dong'], ['huy', 'cvLoc_huy'], ['all', 'cvLoc_all']];
+const cvMo = (x) => CV_MO.indexOf(x.trangThai) >= 0;
+const laCuaToi = (x) => !!S.me && (x.uidLam === S.me.id || (x.uidPhu || []).indexOf(S.me.id) >= 0);
+const cvQua = (x) => cvMo(x) && x.trangThai !== 'CHO_GIAO' && !!x.han && x.han < TODAY();
+const nvTen = (id) => (S.V.nvById[id] ? S.V.nvById[id].ten : '');
+const cvPill = (x) => `<span class="pill ${CV_PILL[x.trangThai] || 'p-ok'}">${t('cv_' + x.trangThai)}</span>`;
+const uuTag = (x) => (x.uuTien === 'GAP' || x.uuTien === 'CAO' ? `<span class="mdtag uu-${x.uuTien}">${esc(tv('uu_' + x.uuTien))}<i>${esc(tz('uu_' + x.uuTien))}</i></span>` : '');
+function hanPill(x) {
+  if (!x.han) return '';
+  if (!cvMo(x) || x.trangThai === 'CHO_GIAO') return `<span class="hanl">${esc(tv('cvHanNgay', { d: fmtDM(x.han) }))}</span>`;
+  const d = diffD(x.han, TODAY());
+  if (d < 0) return `<span class="pill p-qua">${t('cvQuaHanN', { n: -d })}</span>`;
+  if (d === 0) return `<span class="pill p-nay">${t('cvHanNay')}</span>`;
+  return `<span class="hanl">${esc(tv('cvHanNgay', { d: fmtDM(x.han) }))}</span>`;
+}
+// Tải việc của một người: số việc đang làm (gồm phiếu sửa chữa được giao), số việc quá hạn
+function taiNV(id) {
+  let a = 0, b = 0;
+  S.V.cv.forEach((x) => { if (CV_LAM.indexOf(x.trangThai) >= 0 && (x.uidLam === id || (x.uidPhu || []).indexOf(id) >= 0)) { a++; if (cvQua(x)) b++; } });
+  S.V.sc.forEach((x) => { if (x.uidSua === id && scMo(x)) a++; });
+  return { a, b };
+}
+function viecCuaToi() {
+  const out = [];
+  S.V.cv.forEach((x) => { if (laCuaToi(x) && CV_LAM.indexOf(x.trangThai) >= 0) out.push({ k: 'cv', x, h: x.han || '9999' }); });
+  S.V.sc.forEach((x) => { if (S.me && x.uidSua === S.me.id && scMo(x)) out.push({ k: 'sc', x, h: x.mucDo === 'DUNG' ? '0000' : x.lucHong.slice(0, 10) }); });
+  return out.sort((a, b) => (a.h < b.h ? -1 : a.h > b.h ? 1 : 0));
+}
+
+// Dữ liệu hiển thị = việc trên máy chủ + việc đang chờ gửi
+function cvTruongLocal(x, p) {
+  ['tieuDe', 'moTa', 'loai', 'ma', 'han'].forEach((k) => { if (p[k] !== undefined) x[k] = p[k]; });
+  if (p.uuTien !== undefined) x.uuTien = p.uuTien;
+  x.canKiemTra = p.canKiemTra === undefined ? !!CV_LOAI[x.loai] || x.uuTien === 'GAP' : !!p.canKiemTra;
+}
+function cvGiaoLocal(x, lam, phu, luc, nguoi, op) {
+  x.uidLam = lam; x.nguoiLam = nvTen(lam); x.uidPhu = (phu || []).filter((id) => id !== lam);
+  x.nguoiGiao = nguoi; x.lucGiao = luc;
+  if (x.trangThai === 'CHO_GIAO') x.trangThai = 'DA_GIAO';
+  x.nhatKy.push({ b: 'giao', luc, nguoi, gc: x.nguoiLam, op });
+}
+function cvApDung(x, p, luc, nguoi, op) {
+  const b = p.buoc, ql = can('giaoviec');
+  if (b === 'giao') { cvGiaoLocal(x, p.uidLam, p.uidPhu, luc, nguoi, op); return; }
+  if (b === 'batdau') { x.trangThai = 'DANG_LAM'; if (!x.lucBatDau) x.lucBatDau = luc; }
+  else if (b === 'hoan') x.trangThai = 'TAM_HOAN';
+  else if (b === 'xong') {
+    Object.assign(x, { ketQua: p.ketQua, linhKien: p.linhKien || [], lucXong: p.lucXong || luc, anhXong: (p.anh || []).map((a) => ({ loai: 'SAU', data: a.data })) });
+    x.trangThai = x.canKiemTra && !ql ? 'XONG' : 'DONG';
+  } else if (b === 'kiemtra') { x.trangThai = 'DONG'; x.nguoiKiemTra = nguoi; x.lucKiemTra = luc; }
+  else if (b === 'tralai') x.trangThai = 'DANG_LAM';
+  else if (b === 'huy') x.trangThai = 'HUY';
+  x.nhatKy.push({ b, luc, nguoi, gc: p.ghiChu || '', op });
+}
+function rebuildCV() {
+  const b = S.base, me = S.me || {}, nv = b.nhanVien || [], nvById = {};
+  nv.forEach((n) => { nvById[n.id] = n; });
+  S.V.nv = nv; S.V.nvById = nvById;
+  const list = (b.congViec || []).map((x) => Object.assign({}, x, { nhatKy: (x.nhatKy || []).slice(), uidPhu: x.uidPhu || [], linhKien: x.linhKien || [], anhTao: x.anhTao || [], anhXong: x.anhXong || [] }));
+  const byId = {};
+  list.forEach((x) => { byId[x.id] = x; });
+  const daCo = (x, q) => x.nhatKy.some((n) => n.op === q.opId);
+  S.Q.forEach((q) => {
+    if (q.st !== 'cho') return;
+    if (q.action === 'saveTask') {
+      let x = byId[q.p.id];
+      if (x && daCo(x, q)) return;
+      if (!x) {
+        x = { id: q.p.id, so: '', trangThai: 'CHO_GIAO', uidLam: '', nguoiLam: '', uidPhu: [], nguoiTao: me.ten || '', uidTao: q.uid, lucTao: q.t,
+          linhKien: [], anhTao: (q.p.anh || []).map((a) => ({ loai: 'TRUOC', data: a.data })), anhXong: [], ketQua: '', nhatKy: [{ b: 'tao', luc: q.t, nguoi: me.ten || '', op: q.opId }] };
+        cvTruongLocal(x, q.p);
+        if (q.p.uidLam && can('giaoviec')) cvGiaoLocal(x, q.p.uidLam, q.p.uidPhu, q.t, me.ten || '', '');
+        list.push(x); byId[x.id] = x;
+      } else {
+        cvTruongLocal(x, q.p);
+        x.nhatKy.push({ b: 'sua', luc: q.t, nguoi: me.ten || '', op: q.opId });
+        if (can('giaoviec') && q.p.uidLam) cvGiaoLocal(x, q.p.uidLam, q.p.uidPhu, q.t, me.ten || '', '');
+      }
+      x.cho = true;
+    } else if (q.action === 'assignTasks') {
+      (q.p.ids || []).forEach((id) => {
+        const x = byId[id]; if (!x || !cvMo(x) || daCo(x, q)) return;
+        if (q.p.han) x.han = q.p.han;
+        cvGiaoLocal(x, q.p.uidLam, q.p.uidPhu, q.t, me.ten || '', q.opId); x.cho = true;
+      });
+    } else if (q.action === 'updateTask') {
+      const x = byId[q.p.id]; if (!x || daCo(x, q)) return;
+      cvApDung(x, q.p, q.t, me.ten || '', q.opId); x.cho = true;
+    } else if (q.action === 'confirm') {
+      list.forEach((x) => { if (x.loai === 'BD' && x.ma === q.p.ma && cvMo(x)) { x.trangThai = 'DONG'; x.ketQua = tv('cvXacNhanBD') + ' ' + fmtD(q.p.ngay); x.cho = true; } });
+    }
+  });
+  Object.assign(S.V, { cv: list, cvById: byId, vl: b.viecLap || [] });
+}
+
+// ---------- Chọn người làm (dùng ở màn giao việc, ghi việc, bảng nhỏ) ----------
+function nvDS() {
+  return S.V.nv.slice().sort((a, b) => (a.vaiTro === 'kythuat' ? 0 : 1) - (b.vaiTro === 'kythuat' ? 0 : 1) || a.ten.localeCompare(b.ten));
+}
+function nvChonHtml(sel, opt) {
+  opt = opt || {};
+  const ds = nvDS();
+  let o = `<div class="nvlist">${opt.trong ? `<button type="button" class="nvc${!sel.lam ? ' on' : ''}" data-act="nvLam" data-id=""><span class="av sm">—</span><span class="nvt"><b>${esc(tv(opt.trong))}</b><small>${esc(tz(opt.trong))}</small></span></button>` : ''}
+    ${ds.map((n) => { const ti = taiNV(n.id); return `<button type="button" class="nvc${sel.lam === n.id ? ' on' : ''}" data-act="nvLam" data-id="${esc(n.id)}"><span class="av sm">${esc(initials(n.ten))}</span>
+      <span class="nvt"><b>${esc(n.ten)}</b>${n.tenZh ? ` <span class="zi" lang="zh-CN">${esc(n.tenZh)}</span>` : ''}<small>${esc(tv('r_' + n.vaiTro))} · ${esc(tv('cvTai', ti))}</small></span>
+      ${ti.b ? `<span class="pill p-qua">${ti.b}</span>` : ''}</button>`; }).join('')}</div>`;
+  if (sel.lam && !opt.noPhu) o += `<div class="fld" style="margin:12px 0 0"><span>${t('cvPhu')}</span><div class="chips">${ds.filter((n) => n.id !== sel.lam).map((n) => `<button type="button" class="chip${sel.phu.indexOf(n.id) >= 0 ? ' on' : ''}" data-act="nvPhu" data-id="${esc(n.id)}">${esc(n.ten)}</button>`).join('')}</div></div>`;
+  return o;
+}
+// S.nvSel: lựa chọn đang sửa; S.nvSelVe: vẽ lại phần chọn người (và nhãn nút) sau mỗi lần bấm
+function nvSelGan(sel, opt, sau) {
+  S.nvSel = sel;
+  S.nvSelVe = () => { const b = $('#nvBox'); if (b) b.innerHTML = nvChonHtml(sel, opt); if (sau) sau(); };
+}
+
+// ---------- Dòng việc ----------
+function cvRow(x, nguoi) {
+  return `<button class="scrow" data-act="cvView" data-id="${esc(x.id)}">
+    <div class="sch">${cvPill(x)}${uuTag(x)}${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}<span class="scno mono">${x.so ? '#' + x.so : ''}</span><span class="sct">${hanPill(x)}</span></div>
+    <div class="nm">${esc(x.tieuDe)}</div>
+    <div class="scf"><span>${esc(tv('lv_' + x.loai))}</span>${x.ma ? `<span class="code">${esc(x.ma)}</span>` : ''}${nguoi && x.nguoiLam ? `<span>${IC.user}${esc(x.nguoiLam)}${(x.uidPhu || []).length ? ' +' + x.uidPhu.length : ''}</span>` : ''}${x.lapLai ? `<span title="${esc(tp('cvLapTu'))}">${IC.refresh}</span>` : ''}</div></button>`;
+}
+function cvAlert(x) {
+  return `<button class="alert ${cvQua(x) ? 'a-red' : 'a-blue'}" data-act="cvView" data-id="${esc(x.id)}"><span class="aic">${IC.list}</span>
+    <span class="atx">${esc(x.tieuDe)}<small>${esc(tv('cv_' + x.trangThai))}${x.nguoiLam ? ' · ' + esc(x.nguoiLam) : ''}${x.han ? ' · ' + esc(tv('cvHanNgay', { d: fmtDM(x.han) })) : ''}</small></span>${IC.chev}</button>`;
+}
+function cvCuaToiHtml() {
+  const ds = viecCuaToi();
+  if (!ds.length) return '';
+  return `<div class="sec"><h2>${t('cvCuaToi')}<span class="cnt">${ds.length}</span></h2><button class="lnk" data-act="cvLoc" data-v="toi">${t('cvXemHet')}${IC.chev}</button></div>
+    <div class="list">${ds.slice(0, 8).map((o) => (o.k === 'cv' ? cvRow(o.x, false) : scRow(o.x, true))).join('')}</div>`;
+}
+
+// ---------- Danh sách việc ----------
+function cvLocOf(x, loc) {
+  if (loc === 'toi') return laCuaToi(x) && CV_LAM.indexOf(x.trangThai) >= 0;
+  if (loc === 'cho') return x.trangThai === 'CHO_GIAO';
+  if (loc === 'mo') return CV_LAM.indexOf(x.trangThai) >= 0;
+  if (loc === 'qua') return cvQua(x);
+  if (loc === 'kt') return x.trangThai === 'XONG';
+  if (loc === 'dong') return x.trangThai === 'DONG';
+  if (loc === 'huy') return x.trangThai === 'HUY';
+  return true;
+}
+function cvFind(q, list) {
+  const n = norm(q); if (!n) return list;
+  return list.filter((x) => norm([x.so ? '#' + x.so : '', x.tieuDe, x.moTa, x.ma, x.nguoiLam, x.nguoiTao, tv('lv_' + x.loai)].join(' ')).indexOf(n) >= 0);
+}
+const cvSapMo = (a, b) => CV_UU.indexOf(a.uuTien) - CV_UU.indexOf(b.uuTien) || ((a.han || '9999') < (b.han || '9999') ? -1 : (a.han || '9999') > (b.han || '9999') ? 1 : 0);
+const cvLoc0 = () => S.f.cvLoc || (can('giaoviec') ? (S.V.cv.some((x) => x.trangThai === 'CHO_GIAO') ? 'cho' : 'mo') : 'toi');
+VIEWS.cv = {
+  html() {
+    const f = S.f, ql = can('giaoviec'), loc = cvLoc0(), all = S.V.cv;
+    const nCho = all.filter((x) => x.trangThai === 'CHO_GIAO').length;
+    let o = ql ? srvWarn('cv') : '';
+    o += `<div class="kstrip">${kstHtml('k-orange', 'cvKCho', null, nCho, 'data-act="cvLoc" data-v="cho"')}${kstHtml('k-blue', 'cvKMo', null, all.filter((x) => cvLocOf(x, 'mo')).length, 'data-act="cvLoc" data-v="mo"')}
+      ${kstHtml('k-red', 'cvKQua', null, all.filter(cvQua).length, 'data-act="cvLoc" data-v="qua"')}${kstHtml('k-green', 'cvKKT', null, all.filter((x) => x.trangThai === 'XONG').length, 'data-act="cvLoc" data-v="kt"')}</div>`;
+    o += `<div class="btns cvbtns">${can('confirm') ? `<button class="btn" data-act="cvNew">${IC.plus} ${t('cvGhi')}</button>` : ''}
+      ${ql && nCho ? `<button class="btn y" data-act="go" data-v="cvGiao">${IC.user} ${t('cvGiaoN', { n: nCho })}</button>` : ''}
+      ${ql ? `<button class="btn ghost" data-act="go" data-v="cvLap">${IC.refresh} ${t('cvLapBtn')}</button>` : ''}</div>`;
+    const bang = isWide() && ql;
+    if (bang) o += `<div class="seg" style="margin-bottom:12px"><button class="${f.cvXem !== 'nguoi' ? 'on' : ''}" data-act="cvXem" data-v="ds">${tv('xemDS')} ${tz('xemDS')}</button><button class="${f.cvXem === 'nguoi' ? 'on' : ''}" data-act="cvXem" data-v="nguoi">${tv('xemNguoi')} ${tz('xemNguoi')}</button></div>`;
+    if (bang && f.cvXem === 'nguoi') return o + cvBoard();
+    o += `<div class="tools"><div class="searchbox">${IC.search}<input class="inp" id="cvQ" type="search" value="${esc(f.cvQ || '')}" placeholder="${esc(tp('search'))}" autocomplete="off"></div>
+      <div class="hscroll stchips">${CV_LOC.map(([v, l]) => { const n = all.filter((x) => cvLocOf(x, v)).length; return `<button class="chip${loc === v ? ' on' : ''}" data-act="cvLoc" data-v="${v}">${t(l)}${v !== 'all' && n ? ` <b class="mono">${n}</b>` : ''}</button>`; }).join('')}</div></div>`;
+    return o + `<div id="cvBody" style="margin-top:12px">${cvBody()}</div>`;
+  },
+  after() {
+    const q = $('#cvQ');
+    if (q) q.addEventListener('input', (e) => { S.f.cvQ = e.target.value; S.f.pg = Object.assign(S.f.pg || {}, { cv: 0 }); $('#cvBody').innerHTML = cvBody(); });
+    cvBoardDnD();
+  }
+};
+function cvBody() {
+  const loc = cvLoc0();
+  const list = cvFind(S.f.cvQ || '', S.V.cv.filter((x) => cvLocOf(x, loc)));
+  if (['dong', 'huy', 'all'].indexOf(loc) >= 0) list.sort((a, b) => ((b.lucXong || b.capNhat || b.lucTao || '') > (a.lucXong || a.capNhat || a.lucTao || '') ? 1 : -1));
+  else list.sort(cvSapMo);
+  if (!list.length) return `<div class="card empty">${t('cvTrong')}</div>`;
+  if (isWide()) {
+    const { p } = pageOf('cv', list.length), rows = list.slice(p * PER_PAGE, (p + 1) * PER_PAGE);
+    const tr = rows.map((x) => `<tr class="${cvQua(x) ? 'tr-qua' : ''}"><td class="mono"><button class="cellnm" data-act="cvView" data-id="${esc(x.id)}">${x.so ? '#' + x.so : '—'}</button></td>
+      <td><button class="cellnm" data-act="cvView" data-id="${esc(x.id)}"><b>${esc(x.tieuDe)}</b></button>${x.lapLai ? ` <span title="${esc(tp('cvLapTu'))}">${IC.refresh}</span>` : ''}</td>
+      <td>${esc(tv('lv_' + x.loai))}</td><td>${uuTag(x) || esc(tv('uu_TB'))}</td><td class="mono">${x.ma ? `<button class="cellnm" data-act="may" data-ma="${esc(x.ma)}">${esc(x.ma)}</button>` : '—'}</td>
+      <td>${esc(x.nguoiLam || '—')}${(x.uidPhu || []).length ? ' <span class="muted">+' + x.uidPhu.length + '</span>' : ''}</td><td class="num">${hanPill(x) || '—'}</td><td>${cvPill(x)}${x.cho ? ` <span class="pill p-cho">${t('pending')}</span>` : ''}</td></tr>`).join('');
+    return dtable([['thSo'], ['thViec'], ['thLoaiCV'], ['thUu'], ['thCode'], ['thNguoiLam'], ['thHanCV', '', 'num'], ['thTT']], tr) + pager('cv', list.length);
+  }
+  return `<div class="list">${list.map((x) => cvRow(x, true)).join('')}</div>`;
+}
+// Bảng theo người (máy tính): mỗi người một cột, kéo thẻ để giao / giao lại
+function cvBoard() {
+  const mo = S.V.cv.filter(cvMo).sort(cvSapMo);
+  const cols = [{ id: '', ten: tv('cvChuaGiaoCot'), zh: tz('cvChuaGiaoCot'), ds: mo.filter((x) => x.trangThai === 'CHO_GIAO') }]
+    .concat(nvDS().map((n) => ({ id: n.id, ten: n.ten, zh: n.tenZh || '', ds: mo.filter((x) => x.trangThai !== 'CHO_GIAO' && x.uidLam === n.id) })));
+  return `<p class="help" style="margin:0 0 10px">${t('cvKeoTha')}</p><div class="board">${cols.map((c) => { const ti = c.id ? taiNV(c.id) : null; return `<div class="bcol" data-uid="${esc(c.id)}">
+    <div class="bh"><b>${esc(c.ten)}</b>${c.zh ? `<span class="zi">${esc(c.zh)}</span>` : ''}<span class="cnt">${c.ds.length}</span>${ti ? `<small>${esc(tv('cvTai', ti))}</small>` : ''}</div>
+    <div class="bl">${c.ds.map((x) => `<div class="bcard${cvQua(x) ? ' qua' : ''}" draggable="true" data-id="${esc(x.id)}" data-act="cvView" role="button" tabindex="0">
+      <div class="sch">${cvPill(x)}${uuTag(x)}<span class="scno mono">${x.so ? '#' + x.so : ''}</span></div><b>${esc(x.tieuDe)}</b>
+      <div class="scf">${x.ma ? `<span class="code">${esc(x.ma)}</span>` : ''}${hanPill(x)}</div></div>`).join('')}</div></div>`; }).join('')}</div>`;
+}
+function cvBoardDnD() {
+  $$('.bcard').forEach((c) => c.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', c.dataset.id); c.classList.add('drag'); }));
+  $$('.bcol').forEach((col) => {
+    col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('over'); });
+    col.addEventListener('dragleave', () => col.classList.remove('over'));
+    col.addEventListener('drop', async (e) => {
+      e.preventDefault(); col.classList.remove('over');
+      const id = e.dataTransfer.getData('text/plain'), uid = col.dataset.uid, x = S.V.cvById[id];
+      if (!x || !uid || x.uidLam === uid) return;
+      const r = await send('assignTasks', { ids: [id], uidLam: uid, uidPhu: (x.uidPhu || []).filter((v) => v !== uid) });
+      if (r.err) { toast(cvLoi(r.err), true); render(); return; }
+      toast(r.queued ? t('savedLocal') : t('cvDaGui', { n: 1, t: esc(nvTen(uid)) }));
+      render();
+    });
+  });
+}
+function cvLoi(e) {
+  if (e && e.data && e.data.congViec) mergeResult({ congViec: e.data.congViec });
+  return errMsg(e);
+}
+
+// ---------- Ghi việc / sửa việc ----------
+function mayOptions(cur) {
+  const ds = activeMay();
+  return `<option value="">${esc(tp('cvKhongMay'))}</option>` + byGroup(ds).map(([g, a]) => `<optgroup label="${esc(g || '—')}">${a.map((m) => `<option value="${esc(m.ma)}"${m.ma === cur ? ' selected' : ''}>${esc(m.ma)} · ${esc(m.ten)}</option>`).join('')}</optgroup>`).join('');
+}
+const cuoiTuan = () => { const d = TODAY(), w = wday(d); return addD(d, w === 0 ? 0 : 6 - w); };
+function hanChips(han) {
+  const ds = [['hanNay', TODAY()], ['hanMai', addD(TODAY(), 1)], ['hanTuan', cuoiTuan()], ['hanKhong', '']];
+  return `<div class="chips">${ds.map(([k, v]) => `<button type="button" class="chip${han === v ? ' on' : ''}" data-act="cvHanChon" data-v="${v}">${t(k)}</button>`).join('')}</div>`;
+}
+function cvSync(p) {
+  const v = (id) => { const e = $('#' + id); return e ? e.value : undefined; };
+  if (v('cvTD') !== undefined) p.tieuDe = v('cvTD');
+  if (v('cvMT') !== undefined) p.moTa = v('cvMT');
+  if (v('cvMa') !== undefined) p.ma = v('cvMa');
+  if (v('cvHanD') !== undefined) p.han = v('cvHanD');
+  const k = $('#cvKT'); if (k) p.kt = k.checked;
+}
+VIEWS.cvNew = {
+  html(p) {
+    const ql = can('giaoviec');
+    if (!p.init) {
+      p.init = 1;
+      const x = p.id ? S.V.cvById[p.id] : null;
+      if (x) Object.assign(p, { sua: true, tieuDe: x.tieuDe, moTa: x.moTa || '', loai: x.loai, uu: x.uuTien, ma: x.ma || '', han: x.han || '', kt: x.canKiemTra, ktSua: true, sel: { lam: x.uidLam || '', phu: (x.uidPhu || []).slice() } });
+      else Object.assign(p, { id: 'CV' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase(), tieuDe: p.tieuDe || '', moTa: '', loai: p.loai || 'SUA',
+        uu: 'TB', ma: p.ma || '', han: p.han === undefined ? '' : p.han, sel: { lam: '', phu: [] } });
+      p.anh = [];
+    }
+    if (!p.ktSua) p.kt = !!CV_LOAI[p.loai] || p.uu === 'GAP';
+    if (ql) nvSelGan(p.sel, { trong: 'cvChuaGiao' });
+    return `<form id="cvF" autocomplete="off">
+      <label class="fld"><span>${t('cvTieuDe')}</span><input class="inp" id="cvTD" maxlength="200" value="${esc(p.tieuDe)}" placeholder="${esc(tp('cvTieuDePh'))}"></label>
+      <div class="fld"><span>${t('cvLoai')}</span><div class="chips">${Object.keys(CV_LOAI).map((k) => `<button type="button" class="chip${p.loai === k ? ' on' : ''}" data-act="cvLoaiChon" data-v="${k}">${t('lv_' + k)}</button>`).join('')}</div></div>
+      <div class="fld"><span>${t('cvUu')}</span><div class="seg uuseg">${CV_UU.map((k) => `<button type="button" class="${p.uu === k ? 'on' : ''} uu-${k}" data-act="cvUuChon" data-v="${k}">${tv('uu_' + k)} ${tz('uu_' + k)}</button>`).join('')}</div></div>
+      <div class="fld"><span>${t('cvHan')}</span>${hanChips(p.han)}<input class="inp" type="date" id="cvHanD" style="margin-top:8px" value="${esc(p.han)}"></div>
+      <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="cvMa">${mayOptions(p.ma)}</select></label>
+      <label class="fld"><span>${t('cvMoTa')}</span><textarea class="inp" id="cvMT" rows="3" maxlength="1000">${esc(p.moTa)}</textarea></label>
+      <div class="fld"><span>${t('cvAnh')}</span><div id="scAnh">${scAnhHtml(p.anh, 'scb')}</div></div>
+      <label class="checkrow" style="border:0;padding:4px 0 12px"><input type="checkbox" id="cvKT"${p.kt ? ' checked' : ''}><span>${t('cvKT')}</span></label>
+      ${ql ? `<div class="fld"><span>${t('cvGiaoCho')}</span><div id="nvBox">${nvChonHtml(p.sel, { trong: 'cvChuaGiao' })}</div></div>` : `<div class="note">${t('cvKtGhi')}</div>`}
+      <div class="err" id="cvErr" hidden></div>
+      <div class="btns cvsave"><button type="submit" class="btn bigbtn" id="cvOk">${IC.check} ${t('cvLuu')}</button>
+        ${p.sua ? '' : `<button type="button" class="btn ghost bigbtn" data-act="cvLuuTiep">${IC.plus} ${t('cvLuuTiep')}</button>`}</div>
+    </form>`;
+  },
+  after(p) {
+    const f = $('#cvF'); if (!f) return;
+    f.addEventListener('input', () => cvSync(p));
+    f.addEventListener('change', (e) => { cvSync(p); if (e.target.id === 'cvKT') p.ktSua = true; if (e.target.id === 'cvHanD') render(); });
+    f.addEventListener('submit', (e) => { e.preventDefault(); cvLuu(p, false); });
+  }
+};
+async function cvLuu(p, tiep) {
+  cvSync(p);
+  const fe = $('#cvErr'), err = (h) => { fe.innerHTML = h; fe.hidden = false; fe.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  if (!p.tieuDe.trim()) return err(t('CAN_TIEU_DE'));
+  if (p.han && !validD(p.han)) return err(t('NGAY_SAI'));
+  const pl = { id: p.id, tieuDe: p.tieuDe.trim(), moTa: p.moTa.trim(), loai: p.loai, uuTien: p.uu, ma: p.ma, han: p.han, canKiemTra: !!p.kt, anh: p.anh.map((d) => ({ data: d })) };
+  if (can('giaoviec')) { pl.uidLam = p.sel.lam; pl.uidPhu = p.sel.phu; }
+  $$('#cvF .bigbtn').forEach((b) => { b.disabled = true; });
+  const r = await send('saveTask', pl);
+  if (r.err) { $$('#cvF .bigbtn').forEach((b) => { b.disabled = false; }); return err(cvLoi(r.err)); }
+  const x = S.V.cvById[p.id];
+  toast((r.queued ? t('savedLocal') : t('cvDaLuu')) + (x && x.so ? ' #' + x.so : ''));
+  if (tiep) {
+    const keep = { loai: p.loai, han: p.han, ma: '' };
+    S.stack[S.stack.length - 1] = { v: 'cvNew', p: keep }; render(); window.scrollTo(0, 0);
+    const i = $('#cvTD'); if (i) i.focus();
+  } else if (p.sua) back();
+  else replaceTop('cvView', { id: p.id });
+}
+
+// ---------- Chi tiết việc ----------
+VIEWS.cvView = {
+  html(p) {
+    const x = S.V.cvById[p.id];
+    if (!x) return `<div class="card empty">${t('notFound')}</div>`;
+    const m = x.ma && S.V.byMa[x.ma], phu = (x.uidPhu || []).map(nvTen).filter(Boolean);
+    let o = `<div class="card schead"><div class="dh1">${cvPill(x)}${uuTag(x)}<span class="mdtag md-KHONG">${esc(tv('lv_' + x.loai))}<i>${esc(tz('lv_' + x.loai))}</i></span>${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}<span class="scno mono">${x.so ? '#' + x.so : ''}</span></div>
+      <h1 class="cvh">${esc(x.tieuDe)}</h1>
+      ${x.moTa ? `<div class="scmota">${esc(x.moTa)}</div>` : ''}
+      ${m ? `<button class="scmayl" data-act="may" data-ma="${esc(m.ma)}"><span><b>${esc(m.ten)}</b> <span class="code">${esc(m.ma)}</span>${m.viTri ? `<span class="sub">${esc(m.viTri)}</span>` : ''}</span>${IC.chev}</button>` : ''}
+      ${x.anhTao.length ? anhGridHtml(x.anhTao, false, '') : ''}
+      <div class="scgrid">
+        <div class="${cvQua(x) ? 'red' : ''}"><small>${t('cvHan')}</small><b>${x.han ? fmtD(x.han) : '—'}</b>${cvQua(x) ? `<div>${hanPill(x)}</div>` : ''}</div>
+        <div><small>${t('cvNguoiLam')}</small><b>${esc(x.nguoiLam || '—')}</b>${phu.length ? `<div class="muted">+ ${esc(phu.join(', '))}</div>` : ''}</div>
+        <div><small>${t('cvNguoiGiao')}</small><b>${esc(x.nguoiGiao || '—')}</b></div>
+        <div><small>${t('cvNguoiTao')}</small><b>${esc(x.nguoiTao || '—')}</b>${x.lapLai ? `<div class="muted">${IC.refresh} ${esc(tv('cvLapTu'))}</div>` : ''}</div>
+      </div></div>`;
+    o += cvActions(x);
+    if (x.ketQua || x.trangThai === 'XONG' || x.trangThai === 'DONG') {
+      o += sec('cvKetQua') + `<div class="card pad"><div class="scres">
+        <div class="w"><small>${t('cvKetQua')}</small><b class="pre">${esc(x.ketQua || '—')}</b></div>
+        <div><small>${t('cvLucXong')}</small><b class="mono">${esc(fmtTG(x.lucXong))}</b></div>
+        ${x.nguoiKiemTra ? `<div><small>${t('cvKiemTraBoi')}</small><b>${esc(x.nguoiKiemTra)} · <span class="mono">${esc(fmtTG(x.lucKiemTra))}</span></b></div>` : ''}</div>
+        ${x.linhKien.length ? `<div class="sclk"><b>${t('cvLK')}</b>${x.linhKien.map((k) => `<div class="lkline"><span>${lkTenH(k.ten)}${k.quyCach ? ` <small class="muted">${esc(k.quyCach)}</small>` : ''}${k.maKho ? ` <span class="code">${esc(k.maKho)}</span>` : ''}</span><b class="mono">×${esc(soG(k.sl))} ${esc(dvTxt(k.dv))}</b></div>`).join('')}</div>` : ''}
+        ${x.anhXong.length ? anhGridHtml(x.anhXong, false, '') : ''}</div>`;
+    }
+    o += sec('scQuaTrinh') + `<div class="card pad"><ol class="sctl">${x.nhatKy.map((n) => `<li class="b-${esc(n.b === 'kiemtra' ? 'nghiemthu' : n.b === 'tao' || n.b === 'lap' ? 'tao' : n.b === 'hoan' ? 'cholk' : n.b)}"><i></i><div><b>${t('k_' + n.b)}</b>
+      <span class="muted">${esc(n.nguoi || '')} · <span class="mono">${esc(fmtTG(n.luc))}</span></span>${n.gc ? `<div class="gc">${esc(n.gc)}</div>` : ''}</div></li>`).join('')}</ol></div>`;
+    return o;
+  }
+};
+function cvActions(x) {
+  if (!can('confirm')) return '';
+  const ql = can('giaoviec'), toi = laCuaToi(x), st = x.trangThai, out = [], me = S.me || {};
+  const b = (cls, act, k, ic, bc, extra) => `<button class="btn ${cls}" data-act="${act}" data-id="${esc(x.id)}"${bc ? ` data-b="${bc}"` : ''}${extra || ''}>${ic || ''}<span class="stk">${tv(k)}<span class="zi">${tz(k)}</span></span></button>`;
+  const lam = toi || ql;
+  if (st === 'CHO_GIAO' && ql) out.push(b('y', 'cvGiao1', 'cvGiaoBtn', IC.user));
+  if ((st === 'DA_GIAO' || st === 'TAM_HOAN') && lam) out.push(b('y', 'cvB', st === 'TAM_HOAN' ? 'cvLamTiep' : 'cvBatDau', IC.wrench, 'batdau'));
+  if (CV_LAM.indexOf(st) >= 0 && lam) {
+    if (x.loai === 'BD' && x.ma && S.V.byMa[x.ma] && S.V.byMa[x.ma].hoatDong) out.push(b('g', 'xn', 'cvXacNhanBD', IC.check, '', ` data-ma="${esc(x.ma)}"`));
+    else out.push(b('g', 'cvXong', 'cvXongBtn', IC.check));
+  }
+  if ((st === 'DA_GIAO' || st === 'DANG_LAM') && lam) out.push(b('ghost', 'cvB', 'cvHoan', IC.clock, 'hoan'));
+  if (st === 'XONG' && ql) out.push(b('g', 'cvB', 'cvKiemTra', IC.check, 'kiemtra'), b('danger', 'cvB', 'cvTraLai', IC.left, 'tralai'));
+  let o = out.length ? `<div class="scact">${out.join('')}</div>` : '';
+  if (st === 'XONG' && !ql) o += `<div class="note" style="margin-top:12px">${t('cvChoKT')}</div>`;
+  const lnk = [];
+  if (ql && CV_LAM.indexOf(st) >= 0) lnk.push(`<button class="lnkbtn" data-act="cvGiao1" data-id="${esc(x.id)}">${IC.user} ${t('cvGiaoLai')}</button>`);
+  if ((ql && (cvMo(x) || st === 'XONG')) || (x.uidTao === me.id && st === 'CHO_GIAO')) lnk.push(`<button class="lnkbtn" data-act="cvEdit" data-id="${esc(x.id)}">${IC.edit} ${t('cvSua')}</button>`);
+  if ((ql && (cvMo(x) || st === 'XONG')) || (x.uidTao === me.id && st === 'CHO_GIAO')) lnk.push(`<button class="lnkbtn red" data-act="cvB" data-id="${esc(x.id)}" data-b="huy">${IC.out} ${t('cvHuy')}</button>`);
+  if (lnk.length) o += `<div class="scact2">${lnk.join('')}</div>`;
+  return o;
+}
+const cvCanLyDo = (x, b) => b === 'hoan' || b === 'tralai' || (b === 'huy' && !(x.uidTao === (S.me || {}).id && x.trangThai === 'CHO_GIAO'));
+function cvBuocSheet(id, b) {
+  const x = S.V.cvById[id]; if (!x) return;
+  const ten = { hoan: 'cvHoan', tralai: 'cvTraLai', huy: 'cvHuy' }[b], ph = { hoan: 'cvHoanPh', tralai: 'cvTraLaiPh', huy: 'cvHuyPh' }[b];
+  openSheet(`<div class="grab"></div><h3>${tv(ten)}<span class="zi">${tz(ten)}</span></h3>
+    <div class="who"><b>${esc(x.tieuDe)}</b> ${x.so ? '<span class="mono">#' + x.so + '</span>' : ''}</div>
+    <label class="fld"><span>${t(cvCanLyDo(x, b) ? 'scLyDo' : 'scLyDoTuy')}</span><textarea class="inp" id="sbGC" rows="3" maxlength="300" placeholder="${esc(tp(ph))}"></textarea></label>
+    <div class="err" id="sbErr" hidden></div>
+    <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn${b === 'hoan' ? '' : ' danger'}" data-act="cvBuocGo" data-id="${esc(id)}" data-b="${b}">${t('confirm')}</button></div>`);
+}
+async function cvGuiBuoc(pl, el, fe) {
+  el.disabled = true;
+  const r = await send('updateTask', pl);
+  if (r.err) { el.disabled = false; if (fe) { fe.innerHTML = cvLoi(r.err); fe.hidden = false; } else { toast(cvLoi(r.err), true); render(); } return false; }
+  closeSheet();
+  toast(r.queued ? t('savedLocal') : t(pl.buoc === 'kiemtra' ? 'cvDaXong' : 'scDaLuu'));
+  render();
+  return true;
+}
+function cvGiaoSheet(id) {
+  const x = S.V.cvById[id]; if (!x) return;
+  const sel = { lam: x.uidLam || '', phu: (x.uidPhu || []).slice() };
+  nvSelGan(sel, {});
+  openSheet(`<div class="grab"></div><h3>${tv('cvGiaoBtn')}<span class="zi">${tz('cvGiaoBtn')}</span></h3>
+    <div class="who"><b>${esc(x.tieuDe)}</b> ${x.so ? '<span class="mono">#' + x.so + '</span>' : ''}</div>
+    <div id="nvBox">${nvChonHtml(sel, {})}</div><div class="err" id="sbErr" hidden></div>
+    <div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn" data-act="cvGiao1Go" data-id="${esc(id)}">${IC.user} ${t('cvGiaoBtn')}</button></div>`);
+}
+function scGiaoSheet(id) {
+  const x = S.V.scById[id]; if (!x) return;
+  const sel = { lam: x.uidSua || '', phu: [] };
+  nvSelGan(sel, { noPhu: true });
+  openSheet(`<div class="grab"></div><h3>${tv('scGiao')}<span class="zi">${tz('scGiao')}</span></h3>
+    <div class="who"><b>${esc(scTenMay(x))}</b> <span class="code">${esc(x.ma)}</span><div class="sub">${esc(x.moTa)}</div></div>
+    <div id="nvBox">${nvChonHtml(sel, { noPhu: true })}</div><div class="err" id="sbErr" hidden></div>
+    <div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn" data-act="scGiaoGo" data-id="${esc(id)}">${IC.user} ${t('confirm')}</button></div>`);
+}
+
+// ---------- Giao nhiều việc ----------
+function cgNhan(p) {
+  const n = p.ids.length, ten = nvTen(p.sel.lam);
+  return n && ten ? esc(tv('cvGiaoNutCho', { n, t: ten })) : esc(tv('cvGiaoNut', { n }));
+}
+VIEWS.cvGiao = {
+  html(p) {
+    if (!p.sel) { p.sel = { lam: '', phu: [] }; p.ids = p.ids || []; p.han = ''; }
+    const cho = S.V.cv.filter((x) => x.trangThai === 'CHO_GIAO').sort(cvSapMo);
+    p.ids = p.ids.filter((id) => cho.some((x) => x.id === id));
+    if (!cho.length) return `<div class="card empty">${t('cvKhongCho')}</div>`;
+    nvSelGan(p.sel, {}, () => { const l = $('#cgLbl'); if (l) l.innerHTML = cgNhan(p); });
+    return `${sec('cvChonViec', cho.length)}<div class="list">${cho.map((x) => `<label class="row cvpick"><input type="checkbox" data-id="${esc(x.id)}"${p.ids.indexOf(x.id) >= 0 ? ' checked' : ''}>
+        <div class="main"><div class="nm">${esc(x.tieuDe)}</div><div class="sub">${uuTag(x)} ${esc(tv('lv_' + x.loai))}${x.ma ? ` · <span class="code">${esc(x.ma)}</span>` : ''}${x.han ? ' · ' + esc(tv('cvHanNgay', { d: fmtDM(x.han) })) : ''}${x.nguoiTao ? ' · ' + esc(x.nguoiTao) : ''}</div></div></label>`).join('')}</div>
+      ${sec('cvChonNguoi')}<div id="nvBox">${nvChonHtml(p.sel, {})}</div>
+      <label class="fld" style="margin-top:14px"><span>${t('cvDoiHan')}</span><input class="inp" type="date" id="cgHan" value="${esc(p.han)}"></label>
+      <div class="err" id="cgErr" hidden></div>
+      <button class="btn wide bigbtn" id="cgOk" data-act="cvGiaoGo">${IC.user} <span id="cgLbl">${cgNhan(p)}</span></button>`;
+  },
+  after(p) {
+    $$('.cvpick input').forEach((c) => c.addEventListener('change', () => {
+      p.ids = $$('.cvpick input').filter((i) => i.checked).map((i) => i.dataset.id);
+      const l = $('#cgLbl'); if (l) l.innerHTML = cgNhan(p);
+    }));
+    const h = $('#cgHan'); if (h) h.addEventListener('change', () => { p.han = h.value; });
+  }
+};
+async function cvGiaoGo(el) {
+  const p = topV().p, fe = $('#cgErr'), err = (h) => { fe.innerHTML = h; fe.hidden = false; };
+  if (!p.ids.length) return err(t('cvChonItNhat'));
+  if (!p.sel.lam) return err(t('cvCanNguoi'));
+  el.disabled = true;
+  const r = await send('assignTasks', { ids: p.ids, uidLam: p.sel.lam, uidPhu: p.sel.phu, han: p.han || '' });
+  if (r.err) { el.disabled = false; return err(cvLoi(r.err)); }
+  toast(r.queued ? t('savedLocal') : t('cvDaGui', { n: p.ids.length, t: esc(nvTen(p.sel.lam)) }));
+  back();
+}
+
+// ---------- Xong việc ----------
+VIEWS.cvXong = {
+  html(p) {
+    const x = S.V.cvById[p.id];
+    if (!x) return `<div class="card empty">${t('notFound')}</div>`;
+    if (!p.ctF) Object.assign(p, { lucX: tgO(nowStr()), anhS: [], kq: '', ctF: { ma: x.ma || '', kt: {}, lk: [], anh: [] } });
+    S.ctF = p.ctF;
+    return `<div class="card pad scmini"><div class="dh1">${cvPill(x)}${uuTag(x)}<span class="scno mono">${x.so ? '#' + x.so : ''}</span></div><b>${esc(x.tieuDe)}</b>${x.ma ? ` <span class="code">${esc(x.ma)}</span>` : ''}</div>
+    <form id="cvXF" autocomplete="off" style="margin-top:14px">
+      <label class="fld"><span>${t('cvKetQua')}</span><textarea class="inp" id="cxKQ" rows="3" maxlength="1000" placeholder="${esc(tp('cvKetQuaPh'))}">${esc(p.kq)}</textarea></label>
+      <div class="ctsec" id="ctLK"><div class="cth"><b>${tv('cvLK')}<span class="zi">${tz('cvLK')}</span></b></div><div id="lkRows">${lkRowsHtml()}</div>
+        <button type="button" class="btn ghost sm" data-act="lkAdd">${IC.plus} ${t('addLK')}</button></div>
+      <div class="fld" style="margin-top:14px"><span>${t('cvAnhXong')}</span><div id="scAnh">${scAnhHtml(p.anhS, 'scs')}</div></div>
+      <label class="fld"><span>${t('cvLucXong')}</span><input class="inp" type="datetime-local" id="cxLuc" value="${esc(p.lucX)}"></label>
+      ${x.canKiemTra && !can('giaoviec') ? `<p class="help">${t('cvSeChoKT')}</p>` : ''}
+      <div class="err" id="cxErr" hidden></div>
+      <button type="submit" class="btn g wide bigbtn" id="cxOk">${IC.check}<span class="stk">${tv('cvXongBtn')}<span class="zi">${tz('cvXongBtn')}</span></span></button>
+    </form>`;
+  },
+  after(p) {
+    const f = $('#cvXF'); if (!f) return;
+    ktConfirmAfter(f);
+    f.addEventListener('input', (e) => { if (e.target.id === 'cxKQ') p.kq = e.target.value; if (e.target.id === 'cxLuc') p.lucX = e.target.value; });
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const x = S.V.cvById[p.id], fe = $('#cxErr'), err = (h) => { fe.innerHTML = h; fe.hidden = false; fe.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+      const kq = $('#cxKQ').value.trim(), luc = tgChuan($('#cxLuc').value);
+      if (!kq) return err(t('CAN_KET_QUA'));
+      if (!luc) return err(t('TG_SAI'));
+      if (tgMs(luc) > Date.now() + 600000) return err(t('scTGTuongLai'));
+      const lr = lkCollect(S.V.byMa[x.ma]);
+      if (lr.err) return err(lr.err);
+      const btn = $('#cxOk'); btn.disabled = true;
+      const r = await send('updateTask', { id: x.id, buoc: 'xong', ketQua: kq, lucXong: luc, linhKien: lr.v, anh: p.anhS.map((d) => ({ data: d })) });
+      if (r.err) { btn.disabled = false; return err(cvLoi(r.err)); }
+      S.ctF = null;
+      toast(r.queued ? t('savedLocal') : t('cvDaXong'));
+      back();
+    });
+  }
+};
+
+// ---------- Việc lặp lại ----------
+function lapTxt(v) {
+  if (v.kieu === 'ngay') return tv('lap_ngay');
+  const so = String(v.ngay || '').split(',').filter((s) => s !== '');
+  if (v.kieu === 'tuan') return tv('lap_tuan') + ': ' + so.map((n) => WD_VI[+n]).join(', ');
+  return tv('lap_thang') + ': ' + so.map((n) => tv('lapNgayN', { n })).join(', ');
+}
+VIEWS.cvLap = {
+  html() {
+    const ds = S.V.vl.slice().sort((a, b) => (b.hoatDong ? 1 : 0) - (a.hoatDong ? 1 : 0) || a.tieuDe.localeCompare(b.tieuDe));
+    return `<p class="help" style="margin-top:0">${t('lapHelp')}</p>
+      <button class="btn" data-act="go" data-v="cvLapEdit" style="margin:4px 0 14px">${IC.plus} ${t('lapThem')}</button>
+      <div class="list">${ds.length ? ds.map((v) => `<button class="row" data-act="cvLapSua" data-id="${esc(v.id)}"><div class="main"><div class="nm">${esc(v.tieuDe)}</div>
+        <div class="sub">${esc(lapTxt(v))} · ${esc(tv('lv_' + v.loai))}${v.ma ? ' · ' + esc(v.ma) : ''}${v.uidLam ? ' · ' + esc(nvTen(v.uidLam)) : ''}</div></div>
+        <span class="pill ${v.hoatDong ? 'p-xong' : 'p-huy'}">${t(v.hoatDong ? 'lapBat' : 'lapTat')}</span>${IC.chev}</button>`).join('') : `<div class="empty">${t('lapTrong')}</div>`}</div>`;
+  }
+};
+VIEWS.cvLapEdit = {
+  html(p) {
+    if (!p.init) {
+      p.init = 1;
+      const v = p.id ? S.V.vl.find((x) => x.id === p.id) : null;
+      Object.assign(p, v ? { tieuDe: v.tieuDe, moTa: v.moTa || '', loai: v.loai, uu: v.uuTien, ma: v.ma || '', kieu: v.kieu, ngay: String(v.ngay || ''), lam: v.uidLam || '', kt: v.canKiemTra, bat: v.hoatDong }
+        : { tieuDe: '', moTa: '', loai: 'KHAC', uu: 'TB', ma: '', kieu: 'tuan', ngay: String(wday(TODAY())), lam: '', kt: false, bat: true });
+    }
+    const thu = p.kieu === 'tuan' ? p.ngay.split(',').filter((x) => x !== '') : [];
+    return `<form id="vlF" autocomplete="off">
+      <label class="fld"><span>${t('cvTieuDe')}</span><input class="inp" id="vlTD" maxlength="200" value="${esc(p.tieuDe)}"></label>
+      <div class="fld"><span>${t('cvLoai')}</span><div class="chips">${Object.keys(CV_LOAI).map((k) => `<button type="button" class="chip${p.loai === k ? ' on' : ''}" data-act="vlSet" data-k="loai" data-v="${k}">${t('lv_' + k)}</button>`).join('')}</div></div>
+      <div class="fld"><span>${t('cvUu')}</span><div class="seg uuseg">${CV_UU.map((k) => `<button type="button" class="${p.uu === k ? 'on' : ''} uu-${k}" data-act="vlSet" data-k="uu" data-v="${k}">${tv('uu_' + k)} ${tz('uu_' + k)}</button>`).join('')}</div></div>
+      <div class="fld"><span>${t('lapKieu')}</span><div class="seg">${['ngay', 'tuan', 'thang'].map((k) => `<button type="button" class="${p.kieu === k ? 'on' : ''}" data-act="vlSet" data-k="kieu" data-v="${k}">${tv('lap_' + k)} ${tz('lap_' + k)}</button>`).join('')}</div></div>
+      ${p.kieu === 'tuan' ? `<div class="fld"><span>${t('lapThu')}</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<button type="button" class="chip${thu.indexOf(String(d)) >= 0 ? ' on' : ''}" data-act="vlThu" data-v="${d}">${WD_VI[d]} ${WD_ZH[d]}</button>`).join('')}</div></div>` : ''}
+      ${p.kieu === 'thang' ? `<label class="fld"><span>${t('lapNgayThang')}</span><input class="inp" id="vlNgay" value="${esc(p.ngay)}" placeholder="${esc(tp('lapNgayPh'))}" inputmode="numeric"></label>` : ''}
+      <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="vlMa">${mayOptions(p.ma)}</select></label>
+      <label class="fld"><span>${t('lapNguoi')}</span><select class="inp" id="vlLam"><option value="">${esc(tp('lapNguoiTrong'))}</option>${nvDS().map((n) => `<option value="${esc(n.id)}"${p.lam === n.id ? ' selected' : ''}>${esc(n.ten)}</option>`).join('')}</select></label>
+      <label class="fld"><span>${t('cvMoTa')}</span><textarea class="inp" id="vlMT" rows="2" maxlength="1000">${esc(p.moTa)}</textarea></label>
+      <label class="checkrow" style="border:0;padding:4px 0"><input type="checkbox" id="vlKT"${p.kt ? ' checked' : ''}><span>${t('cvKT')}</span></label>
+      <label class="checkrow" style="border:0;padding:4px 0 12px"><input type="checkbox" id="vlBat"${p.bat ? ' checked' : ''}><span>${t('lapDangBat')}</span></label>
+      <div class="err" id="vlErr" hidden></div>
+      <button type="submit" class="btn wide bigbtn" id="vlOk">${IC.check} ${t('cvLuu')}</button></form>`;
+  },
+  after(p) {
+    const f = $('#vlF'); if (!f) return;
+    const sync = () => {
+      p.tieuDe = $('#vlTD').value; p.moTa = $('#vlMT').value; p.ma = $('#vlMa').value; p.lam = $('#vlLam').value;
+      p.kt = $('#vlKT').checked; p.bat = $('#vlBat').checked; if ($('#vlNgay')) p.ngay = $('#vlNgay').value;
+    };
+    S.vlSync = sync;
+    f.addEventListener('input', sync); f.addEventListener('change', sync);
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault(); sync();
+      const fe = $('#vlErr'), err = (h) => { fe.innerHTML = h; fe.hidden = false; };
+      if (!p.tieuDe.trim()) return err(t('CAN_TIEU_DE'));
+      if (p.kieu !== 'ngay' && !p.ngay.split(/[,;\s]+/).some((x) => x !== '')) return err(t('lapCanNgay'));
+      const btn = $('#vlOk'); btn.disabled = true;
+      try {
+        const d = await api('saveRecurring', { id: p.id || '', tieuDe: p.tieuDe.trim(), moTa: p.moTa.trim(), loai: p.loai, uuTien: p.uu, ma: p.ma, kieu: p.kieu, ngay: p.ngay, uidLam: p.lam, canKiemTra: p.kt, hoatDong: p.bat });
+        const L = S.base.viecLap = S.base.viecLap || [], i = L.findIndex((x) => x.id === d.viecLap.id);
+        if (i >= 0) L[i] = d.viecLap; else L.push(d.viecLap);
+        mergeResult({ dsCongViec: d.dsCongViec || [] });
+        toast(t('scDaLuu')); back();
+      } catch (er) { btn.disabled = false; err(er.code === 'MANG' ? t('needNet') : errMsg(er)); }
+    });
+  }
+};
+
+Object.assign(ACT, {
+  cvLoc: (el) => { S.f.cvLoc = el.dataset.v; S.f.cvQ = ''; S.f.cvXem = 'ds'; S.f.pg = Object.assign(S.f.pg || {}, { cv: 0 }); if (S.stack.length === 1 && topV().v === 'cv') render(); else tab('cv'); },
+  cvXem: (el) => { S.f.cvXem = el.dataset.v; render(); },
+  cvView: (el) => { if (topV().v === 'cvView' && topV().p.id === el.dataset.id) { closeSheet(); return; } go('cvView', { id: el.dataset.id }); },
+  cvNew: (el) => go('cvNew', el.dataset.ma ? { ma: el.dataset.ma } : {}),
+  cvNewBD: (el) => { const m = S.V.byMa[el.dataset.ma]; if (m) go('cvNew', { ma: m.ma, loai: 'BD', han: m.hanKeTiep || '', tieuDe: tv('lv_BD') + ' ' + m.ten }); },
+  cvEdit: (el) => go('cvNew', { id: el.dataset.id }),
+  cvLoaiChon: (el) => { const p = topV().p; cvSync(p); p.loai = el.dataset.v; render(); },
+  cvUuChon: (el) => { const p = topV().p; cvSync(p); p.uu = el.dataset.v; render(); },
+  cvHanChon: (el) => { const p = topV().p; cvSync(p); p.han = el.dataset.v; render(); },
+  cvLuuTiep: () => cvLuu(topV().p, true),
+  nvLam: (el) => { const s = S.nvSel; if (!s) return; s.lam = el.dataset.id; s.phu = s.phu.filter((x) => x !== s.lam); if (S.nvSelVe) S.nvSelVe(); },
+  nvPhu: (el) => { const s = S.nvSel; if (!s) return; const id = el.dataset.id, i = s.phu.indexOf(id); if (i >= 0) s.phu.splice(i, 1); else if (s.phu.length < 5) s.phu.push(id); if (S.nvSelVe) S.nvSelVe(); },
+  cvGiao1: (el) => cvGiaoSheet(el.dataset.id),
+  cvGiao1Go: (el) => {
+    const s = S.nvSel, fe = $('#sbErr');
+    if (!s || !s.lam) { fe.innerHTML = t('cvCanNguoi'); fe.hidden = false; return; }
+    cvGuiBuoc({ id: el.dataset.id, buoc: 'giao', uidLam: s.lam, uidPhu: s.phu }, el, fe);
+  },
+  scGiao: (el) => scGiaoSheet(el.dataset.id),
+  scGiaoGo: async (el) => {
+    const s = S.nvSel, fe = $('#sbErr');
+    if (!s || !s.lam) { fe.innerHTML = t('cvCanNguoi'); fe.hidden = false; return; }
+    el.disabled = true;
+    const r = await send('updateRepair', { id: el.dataset.id, buoc: 'giao', uid: s.lam });
+    if (r.err) { el.disabled = false; fe.innerHTML = scLoi(r.err); fe.hidden = false; return; }
+    closeSheet(); toast(r.queued ? t('savedLocal') : t('scDaLuu')); render();
+  },
+  cvB: (el) => {
+    const b = el.dataset.b, x = S.V.cvById[el.dataset.id]; if (!x) return;
+    if (b === 'batdau' || b === 'kiemtra') cvGuiBuoc({ id: x.id, buoc: b }, el, null);
+    else cvBuocSheet(x.id, b);
+  },
+  cvBuocGo: (el) => {
+    const x = S.V.cvById[el.dataset.id], b = el.dataset.b, gc = ($('#sbGC') || {}).value || '', fe = $('#sbErr');
+    if (!x) return;
+    if (cvCanLyDo(x, b) && !gc.trim()) { fe.innerHTML = t('CAN_LY_DO'); fe.hidden = false; return; }
+    cvGuiBuoc({ id: x.id, buoc: b, ghiChu: gc.trim() }, el, fe);
+  },
+  cvXong: (el) => go('cvXong', { id: el.dataset.id }),
+  cvGiaoGo: (el) => cvGiaoGo(el),
+  cvLapSua: (el) => go('cvLapEdit', { id: el.dataset.id }),
+  vlSet: (el) => { const p = topV().p; if (S.vlSync) S.vlSync(); p[el.dataset.k] = el.dataset.v; if (el.dataset.k === 'kieu') p.ngay = el.dataset.v === 'tuan' ? String(wday(TODAY())) : el.dataset.v === 'thang' ? String(+TODAY().slice(8, 10)) : ''; render(); },
+  vlThu: (el) => { const p = topV().p; if (S.vlSync) S.vlSync(); const a = p.ngay.split(',').filter((x) => x !== ''), v = el.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else a.push(v); p.ngay = a.join(','); render(); }
 });
 
 // Link từ tem QR: ...?m=M001

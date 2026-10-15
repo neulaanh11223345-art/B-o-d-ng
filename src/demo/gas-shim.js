@@ -9,7 +9,7 @@ var __triggers = [];
 
 var SpreadsheetApp = (function () {
   function Sheet(name) {
-    this.name = name; this.data = []; this.fmt = {}; this.maxRows = 1000; this.frozen = 0;
+    this.name = name; this.data = []; this.fmt = {}; this.maxRows = 1000; this.maxCols = 26; this.frozen = 0;
   }
   Sheet.prototype.getName = function () { return this.name; };
   Sheet.prototype.getLastRow = function () {
@@ -20,7 +20,8 @@ var SpreadsheetApp = (function () {
     return 0;
   };
   Sheet.prototype.getMaxRows = function () { return this.maxRows; };
-  Sheet.prototype.getMaxColumns = function () { return 26; };
+  Sheet.prototype.getMaxColumns = function () { return this.maxCols; };
+  Sheet.prototype.insertColumnsAfter = function (after, n) { this.maxCols += n; return this; };
   Sheet.prototype.insertRowsAfter = function (after, n) { this.maxRows += n; return this; };
   Sheet.prototype.setFrozenRows = function (n) { this.frozen = n; return this; };
   Sheet.prototype.setColumnWidth = function () { return this; };
@@ -32,13 +33,13 @@ var SpreadsheetApp = (function () {
   Sheet.prototype.getRange = function (row, col, nr, nc) {
     if (typeof row === 'string') throw new Error('A1 notation not supported in mock');
     nr = nr || 1; nc = nc || 1;
-    if (row < 1 || col < 1 || row + nr - 1 > this.maxRows || col + nc - 1 > 26) {
+    if (row < 1 || col < 1 || row + nr - 1 > this.maxRows || col + nc - 1 > this.maxCols) {
       throw new Error('Range outside sheet: ' + row + ',' + col + ',' + nr + ',' + nc);
     }
     return new Range(this, row, col, nr, nc);
   };
   Sheet.prototype.getDataRange = function () {
-    return this.getRange(1, 1, Math.max(1, this.getLastRow()), 26);
+    return this.getRange(1, 1, Math.max(1, this.getLastRow()), this.maxCols);
   };
 
   function Range(sh, r, c, nr, nc) { this.sh = sh; this.r = r; this.c = c; this.nr = nr; this.nc = nc; }

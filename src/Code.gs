@@ -1,5 +1,5 @@
 /**
- * CREDIBLE CMMS — BẢO DƯỠNG · SỬA CHỮA · ĐIỆN NƯỚC · KHO LINH KIỆN · 设备管理 — máy chủ (Google Apps Script)
+ * CREDIBLE CMMS — BẢO DƯỠNG · SỬA CHỮA · CÔNG VIỆC · ĐIỆN NƯỚC · KHO LINH KIỆN · 设备管理 — máy chủ (Google Apps Script)
  * Dữ liệu lưu trong chính Google Sheet chứa script này (mỗi bảng một trang).
  *
  * Cài đặt lần đầu:
@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.1.0';
+var PHIEN_BAN = '2.2.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -52,10 +52,20 @@ var BANG = {
   // LinhKien (JSON): [{id, ten, quyCach, dv, sl, loai, maKho}] · NhatKy (JSON): các bước [{b, luc, uid, nguoi, gc, op}]
   SuaChua: ['ID', 'So', 'Ma', 'TenMay', 'TrangThai', 'MucDo', 'MoTa', 'LucHong', 'NguoiBao', 'UIDBao', 'LucBao',
     'NguoiSua', 'LucNhan', 'NguyenNhan', 'XuLy', 'LinhKien', 'LucXong', 'LucChay', 'PhutDung', 'NguoiNghiemThu', 'LucNghiemThu',
-    'AnhBao', 'AnhSua', 'OpId', 'CapNhat', 'NhatKy']
+    'AnhBao', 'AnhSua', 'OpId', 'CapNhat', 'NhatKy', 'UIDSua'],
+  // Công việc giao cho nhân viên (chỉ người có tài khoản trong app). ID do máy tạo việc sinh ra (ghi được khi chưa có mạng).
+  // TrangThai: CHO_GIAO · DA_GIAO · DANG_LAM · TAM_HOAN · XONG (chờ Quản lý kiểm tra) · DONG · HUY
+  // Loai: SUA (sửa nhỏ) · VS (vệ sinh) · LAP (lắp đặt / di dời) · CT (cải tiến) · HT (hỗ trợ sản xuất) · BD (bảo dưỡng) · KHAC
+  // UuTien: GAP · CAO · TB · UIDPhu (JSON): người làm cùng · LapLai: mã việc lặp lại đã sinh ra việc này
+  CongViec: ['ID', 'So', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Han', 'TrangThai', 'UIDLam', 'NguoiLam', 'UIDPhu',
+    'NguoiGiao', 'UIDGiao', 'LucGiao', 'NguoiTao', 'UIDTao', 'LucTao', 'LucBatDau', 'LucXong', 'KetQua', 'LinhKien',
+    'AnhTao', 'AnhXong', 'CanKiemTra', 'NguoiKiemTra', 'LucKiemTra', 'LapLai', 'OpId', 'CapNhat', 'NhatKy'],
+  // Việc lặp lại: mỗi ngày (khi app tải dữ liệu và lúc nhắc hằng ngày) tự sinh việc vào CongViec
+  // Kieu: ngay (hằng ngày) · tuan (Ngay = các thứ 0–6, 0 = Chủ nhật) · thang (Ngay = các ngày trong tháng) · TaoDen: đã sinh việc đến ngày
+  ViecLap: ['ID', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Kieu', 'Ngay', 'UIDLam', 'CanKiemTra', 'HoatDong', 'TaoDen', 'NguoiTao', 'CapNhat']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
-  SuaChua: ['So', 'PhutDung'] };
+  SuaChua: ['So', 'PhutDung'], CongViec: ['So', 'CanKiemTra'], ViecLap: ['CanKiemTra', 'HoatDong'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
 
@@ -81,16 +91,19 @@ var QUYEN = {
   thongso: ['admin'],
   khoaky: ['admin', 'quanly'],      // khoá / mở lại kỳ điện, duyệt ngoại lệ, sửa số kỳ đã khoá
   nhatky: ['admin', 'quanly'],
-  nghiemthu: ['admin', 'quanly']    // nghiệm thu / trả lại phiếu sửa chữa, huỷ phiếu của người khác
+  nghiemthu: ['admin', 'quanly'],   // nghiệm thu / trả lại phiếu sửa chữa, huỷ phiếu của người khác
+  giaoviec: ['admin', 'quanly']     // giao việc, kiểm tra việc xong, việc lặp lại, giao phiếu sửa chữa
 };
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
-  'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg', 'reportRepair', 'updateRepair'];
+  'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg', 'reportRepair', 'updateRepair',
+  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
   mailBat: false, baoXong: false, linkApp: '',
   baoHong: true,                     // báo ngay lên Telegram khi có báo hỏng / sửa xong
+  baoViec: true,                     // báo lên Telegram khi giao việc
   nguongTang: 50, nguongGiam: 50     // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
 };
 
@@ -176,7 +189,7 @@ var TIN_CHO = [];
 var DA_TIEU_DE = {};  // trang đã kiểm dòng tiêu đề trong lần chạy này
 
 function xuLy(req) {
-  TIN_CHO = []; DA_TIEU_DE = {};
+  TIN_CHO = []; DA_TIEU_DE = {}; DU_COT = {};
   var kq, lock = null;
   try {
     req = req || {};
@@ -204,6 +217,7 @@ function dieuHuong(a, p, req) {
     case 'data':
       try { nhapSoDienExcel(); } catch (e) { console.log('nhapSoDienExcel: ' + (e && e.message || e)); }
       try { nangCapLanDau(); } catch (e) { console.log('nangCapLanDau: ' + (e && e.message || e)); }
+      try { taoViecLap(false); } catch (e) { console.log('taoViecLap: ' + (e && e.message || e)); }
       return layDuLieu(u);
     case 'history': return {
       lichSu: docLichSu().filter(function (x) { return x.ngay.slice(0, 4) === String(p.nam); }).map(sachLS),
@@ -235,6 +249,10 @@ function dieuHuong(a, p, req) {
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
     case 'reportRepair': canQuyen(u, 'xacnhan'); return baoHong(u, p, s(req.opId));
     case 'updateRepair': canQuyen(u, 'xacnhan'); return capNhatSuaChua(u, p, s(req.opId));
+    case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
+    case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
+    case 'assignTasks': canQuyen(u, 'giaoviec'); return giaoNhieuViec(u, p, s(req.opId));
+    case 'saveRecurring': canQuyen(u, 'giaoviec'); return luuViecLap(u, p);
   }
   throw loi('KHONG_HIEU', 'Máy chủ chưa hiểu yêu cầu này: ' + a);
 }
@@ -271,18 +289,25 @@ function ngayVN(d) { return d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.s
 function hex(b) { return b.map(function (x) { var h = ((x + 256) % 256).toString(16); return h.length < 2 ? '0' + h : h; }).join(''); }
 
 // ===================== Trang tính =====================
+var DU_COT = {};      // trang đã đủ số cột trong lần chạy này
 function trang(ten) {
   var ss = SpreadsheetApp.getActive();
   var sh = ss.getSheetByName(ten);
   if (!sh) {
     sh = ss.insertSheet(ten);
     var cot = BANG[ten];
+    // Trang mới của Google Sheet chỉ có 26 cột (A–Z): bảng nhiều cột hơn thì thêm cột trước
+    if (sh.getMaxColumns() < cot.length) sh.insertColumnsAfter(sh.getMaxColumns(), cot.length - sh.getMaxColumns());
     sh.getRange(1, 1, 1, cot.length).setValues([cot]).setFontWeight('bold').setBackground('#16211F').setFontColor('#FFFFFF');
     sh.setFrozenRows(1);
     cot.forEach(function (c, i) {
       sh.getRange(2, i + 1, sh.getMaxRows() - 1, 1).setNumberFormat(dinhDangCot(ten, c));
     });
+  } else if (!DU_COT[ten]) {
+    // Trang cũ được thêm cột mới ở cuối (vd SuaChua v2.1 → v2.2) có thể vượt quá số cột đang có
+    if (sh.getMaxColumns() < BANG[ten].length) sh.insertColumnsAfter(sh.getMaxColumns(), BANG[ten].length - sh.getMaxColumns());
   }
+  DU_COT[ten] = 1;
   return sh;
 }
 function laSo(ten, c) { return (COT_SO[ten] || []).indexOf(c) >= 0; }
@@ -431,6 +456,9 @@ function layDuLieu(u) {
     caiDat: { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam },
     khoaKy: docKhoaKy(),
     suaChua: docSuaChua().filter(function (x) { return SC_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG' || x.lucBao >= tu; }).map(sachSC),
+    congViec: docCongViec().filter(function (x) { return CV_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG' || x.lucTao >= tu; }).map(sachCV),
+    viecLap: docViecLap().map(sachCV),
+    nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) { return { id: x.id, ten: x.ten, tenZh: x.tenZh, vaiTro: x.vaiTro, maNV: x.maNV }; }),
     kho: khoTomTat(),
     me: congKhai(u),
     phienBan: PHIEN_BAN
@@ -472,7 +500,22 @@ function xacNhan(u, p, opId) {
     suaDong('May', m._r, mayThanhDong(m));
   }
   TIN_CHO.push({ loai: 'xong', may: m, ban: x });
-  return { ban: sachLS(x), may: sachMay(m), kho: gan.kho ? khoLuuMoi(gan.kho) : null };
+  return { ban: sachLS(x), may: sachMay(m), kho: gan.kho ? khoLuuMoi(gan.kho) : null, dsCongViec: dongViecBaoDuong(m, x, u).map(sachCV) };
+}
+// Xác nhận bảo dưỡng thì đóng luôn các việc "bảo dưỡng" đang giao cho máy đó
+function dongViecBaoDuong(m, ls, u) {
+  var out = [];
+  docCongViec().forEach(function (v) {
+    if (v.loai !== 'BD' || v.ma !== m.ma || CV_MO.indexOf(v.trangThai) < 0) return;
+    capNhatTieuDe('CongViec');
+    v.trangThai = 'DONG'; v.lucXong = ls.thoiGian; v.capNhat = ls.thoiGian;
+    if (!v.lucBatDau) v.lucBatDau = ls.thoiGian;
+    v.ketQua = 'Đã xác nhận bảo dưỡng ngày ' + ngayVN(ls.ngay) + ' · 已确认保养 — ' + ls.nguoi;
+    v.nhatKy.push({ b: 'xong', luc: ls.thoiGian, uid: u.id, nguoi: u.ten, gc: v.ketQua, op: '' });
+    suaDong('CongViec', v._r, cvThanhDong(v));
+    out.push(v);
+  });
+  return out;
 }
 
 // Linh kiện đã dùng khi bảo dưỡng / sửa chữa (lk đã qua sachChiTiet, bị sửa tại chỗ):
@@ -544,14 +587,14 @@ function scTuDong(r, i) {
     nguoiSua: s(r[11]), lucNhan: tgStr(r[12]), nguyenNhan: s(r[13]), xuLy: s(r[14]), linhKien: docJson(r[15], []),
     lucXong: tgStr(r[16]), lucChay: tgStr(r[17]), phutDung: s(r[18]) === '' ? '' : Math.round(Number(r[18])) || 0,
     nguoiNghiemThu: s(r[19]), lucNghiemThu: tgStr(r[20]), anhBao: docJson(r[21], []), anhSua: docJson(r[22], []),
-    opId: s(r[23]), capNhat: tgStr(r[24]), nhatKy: docJson(r[25], []), _r: i + 2
+    opId: s(r[23]), capNhat: tgStr(r[24]), nhatKy: docJson(r[25], []), uidSua: s(r[26]), _r: i + 2
   };
 }
 function scThanhDong(x) {
   return [x.id, x.so, x.ma, anToan(x.tenMay), x.trangThai, x.mucDo, anToan(x.moTa), x.lucHong, anToan(x.nguoiBao), x.uidBao, x.lucBao,
     anToan(x.nguoiSua), x.lucNhan, anToan(x.nguyenNhan), anToan(x.xuLy), x.linhKien.length ? JSON.stringify(x.linhKien) : '',
     x.lucXong, x.lucChay, x.phutDung, anToan(x.nguoiNghiemThu), x.lucNghiemThu,
-    x.anhBao.length ? JSON.stringify(x.anhBao) : '', x.anhSua.length ? JSON.stringify(x.anhSua) : '', x.opId, x.capNhat, catJson(x.nhatKy)];
+    x.anhBao.length ? JSON.stringify(x.anhBao) : '', x.anhSua.length ? JSON.stringify(x.anhSua) : '', x.opId, x.capNhat, catJson(x.nhatKy), x.uidSua || ''];
 }
 function docSuaChua() { return docTho('SuaChua').map(scTuDong).filter(function (x) { return x.id && x.ma; }); }
 function sachSC(x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; }); return o; }
@@ -603,7 +646,7 @@ function baoHong(u, p, opId) {
     id: id, so: so, ma: m.ma, tenMay: m.ten, trangThai: 'CHO_SUA', mucDo: MUC_DO_SC.indexOf(p.mucDo) >= 0 ? p.mucDo : 'KHONG',
     moTa: moTa, lucHong: lucHong, nguoiBao: u.ten, uidBao: u.id, lucBao: bay,
     nguoiSua: '', lucNhan: '', nguyenNhan: '', xuLy: '', linhKien: [], lucXong: '', lucChay: '', phutDung: '',
-    nguoiNghiemThu: '', lucNghiemThu: '', anhBao: anhSC(p.anh, 'sc' + so, 'TRUOC'), anhSua: [], opId: opId, capNhat: bay,
+    nguoiNghiemThu: '', lucNghiemThu: '', anhBao: anhSC(p.anh, 'sc' + so, 'TRUOC'), anhSua: [], opId: opId, capNhat: bay, uidSua: '',
     nhatKy: [{ b: 'bao', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: opId }]
   };
   themDong('SuaChua', scThanhDong(x));
@@ -627,13 +670,20 @@ function capNhatSuaChua(u, p, opId) {
   if (b === 'nhan') {
     if (x.trangThai === 'DANG_SUA') throw loiDL('DA_NHAN', x.nguoiSua, { suaChua: sachSC(x) });
     phai(['CHO_SUA', 'CHO_LK']);
-    x.trangThai = 'DANG_SUA'; x.nguoiSua = catChu(p.nguoi, 150) || u.ten;
+    x.trangThai = 'DANG_SUA'; x.nguoiSua = catChu(p.nguoi, 150) || u.ten; x.uidSua = u.id;
     if (!x.lucNhan) x.lucNhan = bay;
+  } else if (b === 'giao') {
+    // Quản lý giao phiếu cho một người (có tài khoản); phiếu vẫn chờ người đó bấm "Nhận sửa"
+    canQuyen(u, 'giaoviec'); phai(SC_MO);
+    var nv = timNV(p.uid);
+    if (!nv) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
+    x.uidSua = nv.id; x.nguoiSua = nv.ten; gc = nv.ten;
+    TIN_CHO.push({ loai: 'scgiao', may: m || { ma: x.ma, ten: x.tenMay }, sc: x, nv: nv });
   } else if (b === 'cholk') {
     phai(['CHO_SUA', 'DANG_SUA']);
     if (!gc) throw loi('CAN_LY_DO', 'Ghi linh kiện đang chờ · 请填写等待的配件');
     x.trangThai = 'CHO_LK';
-    if (!x.nguoiSua) x.nguoiSua = u.ten;
+    if (!x.nguoiSua) { x.nguoiSua = u.ten; x.uidSua = u.id; }
     if (!x.lucNhan) x.lucNhan = bay;
   } else if (b === 'tiep') {
     phai(['CHO_LK']);
@@ -680,6 +730,291 @@ function capNhatSuaChua(u, p, opId) {
   suaDong('SuaChua', x._r, scThanhDong(x));
   tra.suaChua = sachSC(x);
   return tra;
+}
+
+// ===================== Công việc (giao việc) =====================
+var CV_LOAI = { SUA: 1, VS: 0, LAP: 1, CT: 1, HT: 0, BD: 0, KHAC: 1 };   // 1 = mặc định cần Quản lý kiểm tra khi xong
+var CV_UU = ['GAP', 'CAO', 'TB'];
+var CV_MO = ['CHO_GIAO', 'DA_GIAO', 'DANG_LAM', 'TAM_HOAN'];
+var TEN_TT_CV = { CHO_GIAO: 'Chờ giao · 待派工', DA_GIAO: 'Đã giao · 已派工', DANG_LAM: 'Đang làm · 进行中', TAM_HOAN: 'Tạm hoãn · 暂停',
+  XONG: 'Xong, chờ kiểm tra · 已完成待检查', DONG: 'Đã xong · 已完成', HUY: 'Đã huỷ · 已取消' };
+var CV_KHOA = ['id', 'so', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'han', 'trangThai', 'uidLam', 'nguoiLam', 'uidPhu',
+  'nguoiGiao', 'uidGiao', 'lucGiao', 'nguoiTao', 'uidTao', 'lucTao', 'lucBatDau', 'lucXong', 'ketQua', 'linhKien',
+  'anhTao', 'anhXong', 'canKiemTra', 'nguoiKiemTra', 'lucKiemTra', 'lapLai', 'opId', 'capNhat', 'nhatKy'];
+var VL_KHOA = ['id', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'kieu', 'ngay', 'uidLam', 'canKiemTra', 'hoatDong', 'taoDen', 'nguoiTao', 'capNhat'];
+var CV_JSON = { uidPhu: 1, linhKien: 1, anhTao: 1, anhXong: 1, nhatKy: 1 };
+var CV_BOOL = { canKiemTra: 1, hoatDong: 1 };
+var CV_NGAY = { han: 1, taoDen: 1 };
+function obTuDong(khoa, r, i) {
+  var o = { _r: i + 2 };
+  khoa.forEach(function (k, j) {
+    var v = r[j];
+    if (CV_JSON[k]) o[k] = docJson(v, []);
+    else if (CV_BOOL[k]) o[k] = s(v) !== '' && hd(v);
+    else if (CV_NGAY[k]) o[k] = ngayStr(v);
+    else if (k === 'so') o[k] = Math.round(Number(v)) || 0;
+    else o[k] = v instanceof Date ? tgStr(v) : s(v);
+  });
+  return o;
+}
+function obThanhDong(khoa, x) {
+  return khoa.map(function (k) {
+    var v = x[k];
+    if (CV_JSON[k]) return v && v.length ? (k === 'nhatKy' ? catJson(v) : JSON.stringify(v)) : '';
+    if (CV_BOOL[k]) return v ? 1 : 0;
+    if (v === undefined || v === null) return '';
+    return typeof v === 'string' ? anToan(v) : v;
+  });
+}
+function cvThanhDong(x) { return obThanhDong(CV_KHOA, x); }
+function vlThanhDong(x) { return obThanhDong(VL_KHOA, x); }
+function docCongViec() { return docTho('CongViec').map(function (r, i) { return obTuDong(CV_KHOA, r, i); }).filter(function (x) { return x.id; }); }
+function docViecLap() { return docTho('ViecLap').map(function (r, i) { return obTuDong(VL_KHOA, r, i); }).filter(function (x) { return x.id; }); }
+function sachCV(x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; }); return o; }
+function timNV(id, ds) {
+  id = s(id); if (!id) return null;
+  return (ds || dsNguoiDung()).filter(function (n) { return n.id === id && n.hoatDong; })[0] || null;
+}
+function soLonNhat(ds) { var so = 0; ds.forEach(function (x) { if (x.so > so) so = x.so; }); return so; }
+function idCV(v, tien) { v = s(v).toUpperCase(); return new RegExp('^' + tien + '[A-Z0-9]{6,30}$').test(v) ? v : ''; }
+// Đọc các trường chung của việc / việc lặp lại từ yêu cầu
+function cvTruong(p, nvs) {
+  var tieuDe = catChu(p.tieuDe, 200);
+  if (!tieuDe) throw loi('CAN_TIEU_DE', 'Cần ghi tên việc · 请填写工作名称');
+  var ma = s(p.ma).toUpperCase();
+  if (ma && !timMay(ma)) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
+  var lam = s(p.uidLam) ? timNV(p.uidLam, nvs) : null;
+  if (s(p.uidLam) && !lam) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
+  var phu = [];
+  (Array.isArray(p.uidPhu) ? p.uidPhu : []).forEach(function (id) {
+    var n = timNV(id, nvs);
+    if (n && (!lam || n.id !== lam.id) && phu.indexOf(n) < 0 && phu.length < 5) phu.push(n);
+  });
+  var loai = CV_LOAI.hasOwnProperty(p.loai) ? p.loai : 'KHAC', uu = CV_UU.indexOf(p.uuTien) >= 0 ? p.uuTien : 'TB';
+  return { tieuDe: tieuDe, moTa: catNhieuDong(p.moTa, 1000).trim(), loai: loai, uuTien: uu, ma: ma, lam: lam, phu: phu,
+    canKiemTra: p.canKiemTra === undefined || p.canKiemTra === null ? !!CV_LOAI[loai] || uu === 'GAP' : !!p.canKiemTra };
+}
+function giaoCho(x, lam, phu, u, bay, op) {
+  x.uidLam = lam.id; x.nguoiLam = lam.ten; x.uidPhu = phu.map(function (n) { return n.id; });
+  x.nguoiGiao = u.ten; x.uidGiao = u.id; x.lucGiao = bay;
+  if (x.trangThai === 'CHO_GIAO') x.trangThai = 'DA_GIAO';
+  x.nhatKy.push({ b: 'giao', luc: bay, uid: u.id, nguoi: u.ten, gc: lam.ten + (phu.length ? ' + ' + phu.map(function (n) { return n.ten; }).join(', ') : ''), op: op || '' });
+}
+
+// Ghi việc mới hoặc sửa việc. Kỹ thuật ghi việc → "Chờ giao"; Quản lý ghi kèm người làm → "Đã giao".
+function luuCongViec(u, p, opId) {
+  var ds = docCongViec(), id = s(p.id).toUpperCase();
+  if (opId) {
+    var cu = ds.filter(function (r) { return r.opId === opId || r.nhatKy.some(function (n) { return n.op === opId; }); })[0];
+    if (cu) return { dup: true, congViec: sachCV(cu) };
+  }
+  var x = id ? ds.filter(function (r) { return r.id === id; })[0] : null;
+  var quanLy = coQuyen(u, 'giaoviec'), nvs = dsNguoiDung(), f = cvTruong(p, nvs), bay = thoiGianStr();
+  var han = s(p.han) ? ngayStr(p.han) : '';
+  if (han && !hopLeNgay(han)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  capNhatTieuDe('CongViec');
+  if (!x) {
+    id = idCV(id, 'CV') || 'CV' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900);
+    var so = soLonNhat(ds) + 1;
+    x = { id: id, so: so, tieuDe: f.tieuDe, moTa: f.moTa, loai: f.loai, uuTien: f.uuTien, ma: f.ma, han: han, trangThai: 'CHO_GIAO',
+      uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay,
+      lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: anhSC(p.anh, 'cv' + so, 'TRUOC'), anhXong: [],
+      canKiemTra: f.canKiemTra, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: opId, capNhat: bay,
+      nhatKy: [{ b: 'tao', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: opId }] };
+    if (f.lam && quanLy) {
+      giaoCho(x, f.lam, f.phu, u, bay, '');
+      TIN_CHO.push({ loai: 'giao', ds: [x], lam: f.lam, phu: f.phu, boi: u.ten });
+    }
+    themDong('CongViec', cvThanhDong(x));
+    return { congViec: sachCV(x) };
+  }
+  if (x.trangThai === 'DONG' || x.trangThai === 'HUY') throw loiDL('SAI_TRANG_THAI', TEN_TT_CV[x.trangThai], { congViec: sachCV(x) });
+  if (!quanLy && !(x.uidTao === u.id && x.trangThai === 'CHO_GIAO')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  var truoc = { tieuDe: x.tieuDe, han: x.han, uidLam: x.uidLam, uuTien: x.uuTien };
+  ['tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'canKiemTra'].forEach(function (k) { x[k] = f[k]; });
+  x.han = han;
+  x.anhTao = x.anhTao.concat(anhSC(p.anh, 'cv' + x.so, 'TRUOC')).slice(0, SC_ANH_TOI_DA);
+  x.nhatKy.push({ b: 'sua', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: opId });
+  if (quanLy && p.uidLam !== undefined) {
+    if (f.lam && (f.lam.id !== x.uidLam || f.phu.map(function (n) { return n.id; }).join() !== x.uidPhu.join())) {
+      giaoCho(x, f.lam, f.phu, u, bay, '');
+      TIN_CHO.push({ loai: 'giao', ds: [x], lam: f.lam, phu: f.phu, boi: u.ten });
+    } else if (!f.lam && x.uidLam && x.trangThai === 'DA_GIAO') {
+      x.uidLam = ''; x.nguoiLam = ''; x.uidPhu = []; x.trangThai = 'CHO_GIAO';
+    }
+  }
+  x.capNhat = bay;
+  suaDong('CongViec', x._r, cvThanhDong(x));
+  if (truoc.uidLam !== x.uidLam || truoc.han !== x.han) ghiNhatKy(u, 'sua', 'CongViec', x.id, truoc, { tieuDe: x.tieuDe, han: x.han, uidLam: x.uidLam, uuTien: x.uuTien }, '');
+  return { congViec: sachCV(x) };
+}
+
+// Giao nhiều việc cho một người (Quản lý). Giao lại việc đang làm cũng được.
+function giaoNhieuViec(u, p, opId) {
+  var ids = (Array.isArray(p.ids) ? p.ids : []).map(function (v) { return s(v).toUpperCase(); }).slice(0, 60);
+  if (!ids.length) throw loi('KHONG_CO', 'Chưa chọn việc · 未选择工作');
+  var ds = docCongViec(), nvs = dsNguoiDung();
+  var lam = timNV(p.uidLam, nvs);
+  if (!lam) throw loi('KHONG_CO_NV', 'Chọn người làm · 请选择执行人');
+  var chon = ds.filter(function (x) { return ids.indexOf(x.id) >= 0; });
+  if (opId && chon.length && chon.every(function (x) { return x.nhatKy.some(function (n) { return n.op === opId; }); })) return { dup: true, dsCongViec: chon.map(sachCV) };
+  var phu = cvTruong({ tieuDe: '-', uidLam: lam.id, uidPhu: p.uidPhu }, nvs).phu;
+  var han = s(p.han) ? ngayStr(p.han) : '';
+  if (han && !hopLeNgay(han)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  capNhatTieuDe('CongViec');
+  var bay = thoiGianStr(), out = [];
+  chon.forEach(function (x) {
+    if (CV_MO.indexOf(x.trangThai) < 0) return;
+    if (han) x.han = han;
+    giaoCho(x, lam, phu, u, bay, opId);
+    x.capNhat = bay;
+    suaDong('CongViec', x._r, cvThanhDong(x));
+    out.push(x);
+  });
+  if (out.length) TIN_CHO.push({ loai: 'giao', ds: out, lam: lam, phu: phu, boi: u.ten });
+  return { dsCongViec: out.map(sachCV) };
+}
+
+// Các bước: batdau · hoan (tạm hoãn) · xong · kiemtra / tralai (Quản lý) · huy · giao (giao một việc)
+function capNhatCongViec(u, p, opId) {
+  var ds = docCongViec(), id = s(p.id).toUpperCase();
+  var x = ds.filter(function (r) { return r.id === id; })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy việc · 找不到工作');
+  if (opId && x.nhatKy.some(function (n) { return n.op === opId; })) return { dup: true, congViec: sachCV(x) };
+  var b = s(p.buoc), bay = thoiGianStr(), gc = catChu(p.ghiChu, 300), tra = {};
+  var quanLy = coQuyen(u, 'giaoviec'), laNguoiLam = x.uidLam === u.id || x.uidPhu.indexOf(u.id) >= 0;
+  function phai(tt) {
+    if (tt.indexOf(x.trangThai) < 0) throw loiDL('SAI_TRANG_THAI', TEN_TT_CV[x.trangThai] || x.trangThai, { congViec: sachCV(x) });
+  }
+  function canLam() { if (!laNguoiLam && !quanLy) throw loi('KHONG_QUYEN', 'Việc này giao cho người khác · 此工作已派给他人'); }
+  capNhatTieuDe('CongViec');
+  if (b === 'batdau') {
+    canLam(); phai(['DA_GIAO', 'TAM_HOAN']);
+    x.trangThai = 'DANG_LAM';
+    if (!x.lucBatDau) x.lucBatDau = bay;
+  } else if (b === 'hoan') {
+    canLam(); phai(['DA_GIAO', 'DANG_LAM']);
+    if (!gc) throw loi('CAN_LY_DO', 'Cần ghi lý do tạm hoãn · 请填写暂停原因');
+    x.trangThai = 'TAM_HOAN';
+  } else if (b === 'xong') {
+    canLam(); phai(['DA_GIAO', 'DANG_LAM', 'TAM_HOAN']);
+    var kq = catNhieuDong(p.ketQua, 1000).trim();
+    if (!kq) throw loi('CAN_KET_QUA', 'Cần ghi kết quả · 请填写工作结果');
+    var lucXong = scKiemTG(p.lucXong, bay);
+    var ct = sachChiTiet({ lk: p.linhKien }), lk = ct ? ct.lk : [];
+    var m = x.ma ? timMay(x.ma) : null;
+    var gan = m ? ganLKDaDung(m, lk, u, lucXong.slice(0, 10), 'Thêm khi làm việc · 工作时添加') : { kho: null, doiMay: false };
+    if (!m && lk.length) { var kho = khoNap(); ganKho(lk, 'Dùng cho việc #' + x.so + ' · ' + u.ten, kho); gan.kho = kho; }
+    x.ketQua = kq; x.linhKien = lk; x.lucXong = lucXong; x.anhXong = anhSC(p.anh, 'cv' + x.so, 'SAU');
+    if (!x.lucBatDau) x.lucBatDau = lucXong;
+    if (x.canKiemTra && !quanLy) x.trangThai = 'XONG';
+    else { x.trangThai = 'DONG'; if (x.canKiemTra) { x.nguoiKiemTra = u.ten; x.lucKiemTra = bay; } }
+    if (gan.doiMay) { m.capNhat = bay; suaDong('May', m._r, mayThanhDong(m)); tra.may = sachMay(m); }
+    if (gan.kho) tra.kho = khoLuuMoi(gan.kho);
+  } else if (b === 'kiemtra') {
+    canQuyen(u, 'giaoviec'); phai(['XONG']);
+    x.trangThai = 'DONG'; x.nguoiKiemTra = u.ten; x.lucKiemTra = bay;
+  } else if (b === 'tralai') {
+    canQuyen(u, 'giaoviec'); phai(['XONG']);
+    if (!gc) throw loi('CAN_LY_DO', 'Cần ghi lý do trả lại · 请填写退回原因');
+    x.trangThai = 'DANG_LAM';
+  } else if (b === 'giao') {
+    canQuyen(u, 'giaoviec'); phai(CV_MO);
+    var nvs = dsNguoiDung(), f = cvTruong({ tieuDe: '-', uidLam: p.uidLam, uidPhu: p.uidPhu }, nvs);
+    if (!f.lam) throw loi('KHONG_CO_NV', 'Chọn người làm · 请选择执行人');
+    giaoCho(x, f.lam, f.phu, u, bay, opId);
+    TIN_CHO.push({ loai: 'giao', ds: [x], lam: f.lam, phu: f.phu, boi: u.ten });
+    x.capNhat = bay;
+    suaDong('CongViec', x._r, cvThanhDong(x));
+    return { congViec: sachCV(x) };
+  } else if (b === 'huy') {
+    var cuaMinh = x.uidTao === u.id && x.trangThai === 'CHO_GIAO';
+    if (!cuaMinh && !quanLy) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+    phai(CV_MO.concat(['XONG']));
+    if (!gc && !cuaMinh) throw loi('CAN_LY_DO', 'Cần ghi lý do huỷ · 请填写取消原因');
+    ghiNhatKy(u, 'huy', 'CongViec', x.id, { trangThai: x.trangThai, tieuDe: x.tieuDe }, { trangThai: 'HUY' }, gc);
+    x.trangThai = 'HUY';
+  } else {
+    throw loi('KHONG_HIEU', 'Bước không hợp lệ: ' + b);
+  }
+  x.capNhat = bay;
+  x.nhatKy.push({ b: b, luc: bay, uid: u.id, nguoi: u.ten, gc: gc, op: opId });
+  if (b === 'xong' && x.trangThai === 'DONG' && x.canKiemTra) x.nhatKy.push({ b: 'kiemtra', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: '' });
+  suaDong('CongViec', x._r, cvThanhDong(x));
+  tra.congViec = sachCV(x);
+  return tra;
+}
+
+// ----- Việc lặp lại -----
+function ngayKhop(vl, d) {
+  if (vl.kieu === 'ngay') return true;
+  var so = s(vl.ngay).split(',').map(function (v) { return Math.round(Number(v)); });
+  if (vl.kieu === 'tuan') return so.indexOf(new Date(d + 'T00:00:00Z').getUTCDay()) >= 0;
+  var day = +d.slice(8, 10), cuoi = cuoiThang(+d.slice(0, 4), +d.slice(5, 7));
+  return so.some(function (n) { return n === day || (n > cuoi && day === cuoi); });
+}
+// Sinh việc từ một mẫu lặp lại cho các ngày (TaoDen, hôm nay], bù tối đa 7 ngày. Mã việc cố định theo mẫu + ngày nên không tạo trùng.
+function taoTuMau(vl, homNay, cvs, nvs) {
+  var tu = congNgay(vl.taoDen || congNgay(homNay, -1), 1), min = congNgay(homNay, -6), out = [], so = soLonNhat(cvs), bay = thoiGianStr();
+  if (tu < min) tu = min;
+  var lam = timNV(vl.uidLam, nvs);
+  for (var d = tu, g = 0; d <= homNay && g < 40; d = congNgay(d, 1), g++) {
+    if (!ngayKhop(vl, d)) continue;
+    var id = 'CVL' + vl.id.replace(/[^A-Za-z0-9]/g, '').toUpperCase() + d.replace(/-/g, '');
+    if (cvs.some(function (x) { return x.id === id; })) continue;
+    so++;
+    var x = { id: id, so: so, tieuDe: vl.tieuDe, moTa: vl.moTa, loai: vl.loai, uuTien: vl.uuTien, ma: vl.ma, han: d, trangThai: 'CHO_GIAO',
+      uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: vl.nguoiTao, uidTao: '', lucTao: bay,
+      lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: [], anhXong: [], canKiemTra: vl.canKiemTra, nguoiKiemTra: '', lucKiemTra: '',
+      lapLai: vl.id, opId: '', capNhat: bay, nhatKy: [{ b: 'lap', luc: bay, uid: '', nguoi: vl.nguoiTao, gc: '', op: '' }] };
+    if (lam) giaoCho(x, lam, [], { id: '', ten: vl.nguoiTao }, bay, '');
+    cvs.push(x); out.push(x);
+  }
+  if (out.length) { capNhatTieuDe('CongViec'); themNhieu('CongViec', out.map(cvThanhDong)); }
+  vl.taoDen = homNay;
+  suaDong('ViecLap', vl._r, vlThanhDong(vl));
+  return out;
+}
+function taoViecLap(coLock) {
+  var homNay = homNayStr();
+  if (!docViecLap().some(function (v) { return v.hoatDong && v.taoDen < homNay; })) return [];
+  var lock = null;
+  if (!coLock) { lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) return []; }
+  try {
+    var cvs = docCongViec(), nvs = dsNguoiDung(), out = [];
+    capNhatTieuDe('ViecLap');
+    docViecLap().forEach(function (v) { if (v.hoatDong && v.taoDen < homNay) out = out.concat(taoTuMau(v, homNay, cvs, nvs)); });
+    return out;
+  } finally { if (lock) lock.releaseLock(); }
+}
+function luuViecLap(u, p) {
+  var ds = docViecLap(), id = s(p.id), x = id ? ds.filter(function (r) { return r.id === id; })[0] : null;
+  var nvs = dsNguoiDung(), f = cvTruong(p, nvs), homNay = homNayStr(), bay = thoiGianStr();
+  var kieu = ['ngay', 'tuan', 'thang'].indexOf(p.kieu) >= 0 ? p.kieu : 'tuan', ngay = '';
+  if (kieu !== 'ngay') {
+    var max = kieu === 'tuan' ? 6 : 31, min = kieu === 'tuan' ? 0 : 1, so = [];
+    String(p.ngay === undefined ? '' : p.ngay).split(/[,;\s]+/).forEach(function (v) {
+      if (v === '') return;
+      var n = Math.round(Number(v)); if (n >= min && n <= max && so.indexOf(n) < 0) so.push(n);
+    });
+    if (!so.length) throw loi('CAN_NGAY_LAP', 'Chọn ngày lặp lại · 请选择重复日期');
+    ngay = so.sort(function (a, b) { return a - b; }).join(',');
+  }
+  capNhatTieuDe('ViecLap');
+  var o = { tieuDe: f.tieuDe, moTa: f.moTa, loai: f.loai, uuTien: f.uuTien, ma: f.ma, kieu: kieu, ngay: ngay, uidLam: f.lam ? f.lam.id : '',
+    canKiemTra: f.canKiemTra, hoatDong: p.hoatDong !== false, capNhat: bay };
+  if (!x) {
+    x = Object.assign({ id: 'VL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(10 + Math.random() * 90), taoDen: congNgay(homNay, -1), nguoiTao: u.ten }, o);
+    themDong('ViecLap', vlThanhDong(x));
+    x = docViecLap().filter(function (r) { return r.id === x.id; })[0];
+  } else {
+    var batLai = !x.hoatDong && o.hoatDong;
+    Object.keys(o).forEach(function (k) { x[k] = o[k]; });
+    if (batLai) x.taoDen = congNgay(homNay, -1);      // bật lại: không sinh bù những ngày đã tắt
+    suaDong('ViecLap', x._r, vlThanhDong(x));
+  }
+  var moi = x.hoatDong && x.taoDen < homNay ? taoTuMau(x, homNay, docCongViec(), nvs) : [];
+  return { viecLap: sachCV(x), dsCongViec: moi.map(sachCV) };
 }
 
 // ===================== Danh mục máy =====================
@@ -1836,7 +2171,7 @@ function layCaiDatBaoTin() {
   var lich = ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'nhacHangNgay'; }).length > 0;
   return {
     nhacTruoc: c.nhacTruoc, gio: c.gio, tgBat: c.tgBat, tgCo: !!c.tgToken, tgDuoi: c.tgToken ? c.tgToken.slice(-4) : '',
-    tgChat: c.tgChat, tgTen: c.tgTen, mailBat: c.mailBat, baoXong: c.baoXong, baoHong: c.baoHong, linkApp: c.linkApp, lichBat: lich,
+    tgChat: c.tgChat, tgTen: c.tgTen, mailBat: c.mailBat, baoXong: c.baoXong, baoHong: c.baoHong, baoViec: c.baoViec, linkApp: c.linkApp, lichBat: lich,
     loi: docLoiBaoTin(),
     nhanMail: dsNguoiDung().filter(function (x) { return x.hoatDong && x.email; }).map(function (x) { return x.ten + ' <' + x.email + '>'; })
   };
@@ -1853,7 +2188,7 @@ function luuCaiDatBaoTin(p) {
     if (!(g >= 0 && g <= 23)) throw loi('SO_SAI', 'Giờ 0–23');
     c.gio = g;
   }
-  ['tgBat', 'mailBat', 'baoXong', 'baoHong'].forEach(function (k) { if (p[k] !== undefined) c[k] = !!p[k]; });
+  ['tgBat', 'mailBat', 'baoXong', 'baoHong', 'baoViec'].forEach(function (k) { if (p[k] !== undefined) c[k] = !!p[k]; });
   if (p.xoaTg) { c.tgToken = ''; c.tgChat = ''; c.tgTen = ''; c.tgBat = false; }
   if (s(p.tgToken)) c.tgToken = s(p.tgToken);
   if (p.tgChat !== undefined) { c.tgChat = s(p.tgChat); c.tgTen = catChu(p.tgTen, 80); }
@@ -1923,9 +2258,14 @@ function tomTat(homNay, nhacTruoc) {
   t.sc = docSuaChua().filter(function (x) { return SC_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG'; })
     .sort(function (a, b) { return a.so - b.so; })
     .map(function (x) { return { so: x.so, ten: x.tenMay, mucDo: x.mucDo, tt: x.trangThai }; });
+  var cv = docCongViec().filter(function (x) { return CV_MO.indexOf(x.trangThai) >= 0; });
+  t.cvQua = cv.filter(function (x) { return x.han && x.han < homNay && x.trangThai !== 'CHO_GIAO'; })
+    .sort(function (a, b) { return a.han < b.han ? -1 : 1; })
+    .map(function (x) { return { so: x.so, ten: x.tieuDe, nguoi: x.nguoiLam, han: x.han }; });
+  t.cvCho = cv.filter(function (x) { return x.trangThai === 'CHO_GIAO'; }).length;
   return t;
 }
-function coNhac(t) { return !!(t.qua.length || t.nay.length || t.sap.length || t.dien || t.choDuyet || (t.sc && t.sc.length)); }
+function coNhac(t) { return !!(t.qua.length || t.nay.length || t.sap.length || t.dien || t.choDuyet || (t.sc && t.sc.length) || (t.cvQua && t.cvQua.length) || t.cvCho); }
 function noiDungNhac(t, homNay, c, thu) {
   var TOI_DA = 30;
   function dong(o, loai) {
@@ -1999,6 +2339,17 @@ function noiDungNhac(t, homNay, c, thu) {
     }
     html += '</ul>';
   }
+  if ((t.cvQua && t.cvQua.length) || t.cvCho) {
+    coGi = true;
+    var sv = '📋 Công việc · 工作: ' + (t.cvQua ? t.cvQua.length : 0) + ' quá hạn · 逾期' + (t.cvCho ? ', ' + t.cvCho + ' chưa giao · 未派工' : '');
+    tg += '\n<b>' + escH(sv) + '</b>\n'; text += '\n' + sv + '\n';
+    html += '<h3 style="margin:14px 0 4px;color:#C8372D">' + escH(sv) + '</h3><ul style="margin:0;padding-left:18px">';
+    (t.cvQua || []).slice(0, 20).forEach(function (o) {
+      var d = '#' + o.so + ' ' + o.ten + ' — ' + (o.nguoi || '?') + ' — hạn · 期限 ' + ngayVN(o.han).slice(0, 5);
+      tg += '• ' + escH(d) + '\n'; text += '- ' + d + '\n'; html += '<li>' + escH(d) + '</li>';
+    });
+    html += '</ul>';
+  }
   if (!coGi) {
     var khong = 'Không có máy nào đến hạn · 没有到期的设备';
     tg += '\n' + khong + '\n'; text += '\n' + khong + '\n'; html += '<p>' + khong + '</p>';
@@ -2014,6 +2365,7 @@ function noiDungNhac(t, homNay, c, thu) {
 
 // Trigger hằng ngày (tạo bằng datLichNhac)
 function nhacHangNgay() {
+  try { taoViecLap(false); } catch (e) { console.log('taoViecLap: ' + (e && e.message || e)); }
   var c = docCaiDat();
   if (!c.tgBat && !c.mailBat) return;
   var homNay = homNayStr(), t = tomTat(homNay, c.nhacTruoc);
@@ -2067,11 +2419,28 @@ function guiTinCho() {
         'Hạn kế tiếp · 下次: ' + ngayVN(tin.may.hanKeTiep);
     } else if ((tin.loai === 'hong' || tin.loai === 'scxong') && c.baoHong) {
       txt = tinSuaChua(tin, c);
+    } else if ((tin.loai === 'giao' || tin.loai === 'scgiao') && c.baoViec) {
+      txt = tinGiaoViec(tin, c);
     }
     if (!txt) return;
     try { guiTelegram(c, txt); } catch (e) { loiDs.push(String(e.message || e)); }
   });
   ghiLoiBaoTin(loiDs);
+}
+var TEN_UU_CV = { GAP: '🔴 Gấp · 紧急', CAO: '🟠 Cao · 高', TB: '' };
+function tinGiaoViec(tin, c) {
+  var t;
+  if (tin.loai === 'scgiao') {
+    t = '🛠 <b>GIAO SỬA CHỮA · 派修 #' + tin.sc.so + '</b> → ' + escH(tin.nv.ten) + '\n' + escH(tin.may.ten) + ' (' + escH(tin.sc.ma) + ')\n' +
+      escH(tin.sc.moTa) + '\n' + escH(TEN_MD_SC[tin.sc.mucDo]);
+  } else {
+    t = '📋 <b>GIAO VIỆC · 派工</b> → ' + escH(tin.lam.ten) + (tin.phu.length ? ' + ' + escH(tin.phu.map(function (n) { return n.ten; }).join(', ')) : '') + '\n' +
+      tin.ds.map(function (x) {
+        return '• #' + x.so + ' ' + escH(x.tieuDe) + (TEN_UU_CV[x.uuTien] ? ' ' + TEN_UU_CV[x.uuTien] : '') + (x.han ? ' — hạn · 期限 ' + ngayVN(x.han).slice(0, 5) : '');
+      }).join('\n') + '\nGiao bởi · 派工人: ' + escH(tin.boi);
+  }
+  if (c.linkApp) t += '\n👉 <a href="' + escH(c.linkApp) + '">Mở app · 打开应用</a>';
+  return t;
 }
 function gioPhut(p) {
   if (p === '' || p === null || p === undefined) return '';
@@ -2185,7 +2554,7 @@ function mauKiemTra() {
 // ===================== Cài đặt lần đầu =====================
 // Chạy hàm này một lần trong trình soạn Apps Script (nó cũng hỏi cấp quyền).
 function caiDatBanDau() {
-  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'SuaChua'].forEach(trang);
+  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'SuaChua', 'CongViec', 'ViecLap'].forEach(trang);
   thuocTinh('SALT'); thuocTinh('TOKEN_KEY');
   if (!dsNguoiDung().length) {
     var bay = thoiGianStr();

@@ -129,7 +129,7 @@ ok('Khoá kỳ; kỹ thuật không sửa được số kỳ đã khoá');
 
 // 7. Cảnh báo trang chủ mở đúng danh sách lọc
 await page.click('.tabs .tab[data-v="home"]'); await wait();
-await page.click('.alert:has-text("quá hạn")'); await wait();
+await page.click('.alert:has-text("Máy quá hạn")'); await wait();
 assert.ok(await page.isVisible('.stchips .chip.on:has-text("Quá hạn")'), 'danh sách máy lọc Quá hạn');
 ok('Cảnh báo "Máy quá hạn" mở danh sách máy đã lọc');
 
@@ -207,7 +207,49 @@ assert.match(await text('#main'), /Chổi than motor/);
 await shot('10-ho-so-sua-chua');
 ok('Quản lý nghiệm thu từ cảnh báo; hồ sơ máy có tab Sửa chữa, linh kiện đã thay vào danh sách của máy');
 
-// 12. Máy tính: sidebar, bảng có tiêu đề, phân trang
+// 12. Công việc: Quản lý ghi việc và giao luôn; giao nhiều việc một lần; nhân viên thấy ở "Việc của tôi", làm xong; Quản lý kiểm tra
+await page.click('.tabs .tab[data-v="home"]'); await wait();
+await page.click('.mtile:has-text("Công việc")'); await wait();
+assert.match(await text('#barTitle'), /Công việc/);
+await page.click('[data-act="cvNew"]'); await wait();
+await page.click('#cvOk'); await wait();
+assert.match(await text('#cvErr'), /tên việc/);
+await page.fill('#cvTD', 'Thay vòi nước nhà vệ sinh xưởng 1');
+await page.click('[data-act="cvHanChon"] >> nth=0'); await wait();
+assert.equal(await page.inputValue('#cvTD'), 'Thay vòi nước nhà vệ sinh xưởng 1', 'giữ chữ đã gõ khi bấm chọn hạn');
+await page.click('.nvc:has-text("Lê Minh Tiến")'); await wait();
+await shot('12-ghi-viec');
+await page.click('#cvOk'); await wait(900);
+assert.match(await text('.schead'), /Đã giao/);
+assert.match(await text('.schead'), /Lê Minh Tiến/);
+await page.click('.tabs .tab[data-v="home"]'); await wait();
+await page.click('.mtile:has-text("Công việc")'); await wait();
+await page.click('[data-act="go"][data-v="cvGiao"]'); await wait();
+await page.click('.cvpick >> nth=0'); await page.click('.cvpick >> nth=1');
+await page.click('.nvc:has-text("Nguyễn Tuấn")'); await wait();
+assert.match(await text('#cgLbl'), /Giao 2 việc cho Nguyễn Tuấn/);
+await shot('13-giao-viec');
+await page.click('#cgOk'); await wait(900);
+assert.match(await text('.chip[data-act="cvLoc"][data-v="cho"]'), /Chờ giao.*2/s, 'còn 2 việc chờ giao');
+await logout();
+await login('NV004', '444444');
+assert.match(await text('#main'), /Việc của tôi/);
+await page.click('.scrow:has-text("Thay vòi nước")'); await wait();
+await page.click('[data-act="cvB"][data-b="batdau"]'); await wait(900);
+assert.match(await text('.schead'), /Đang làm/);
+await page.click('[data-act="cvXong"]'); await wait();
+await page.fill('#cxKQ', 'Đã thay 2 vòi, hết rò');
+await page.click('#cxOk'); await wait(900);
+assert.match(await text('.schead'), /Chờ kiểm tra/);
+await logout();
+await login('NV002', '222222');
+await page.click('.alert:has-text("chờ kiểm tra")'); await wait();
+await page.click('.scrow:has-text("Thay vòi nước")'); await wait();
+await page.click('[data-act="cvB"][data-b="kiemtra"]'); await wait(900);
+assert.match(await text('.schead'), /Đã xong/);
+ok('Công việc: ghi và giao, giao nhiều việc, nhân viên làm xong, Quản lý kiểm tra');
+
+// 13. Máy tính: sidebar, bảng có tiêu đề, phân trang
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.click('.side .nav[data-v="list"]'); await wait(600);
 assert.ok(await page.isVisible('table.dt thead'), 'bảng thiết bị trên máy tính');
@@ -223,7 +265,11 @@ await shot('11-desktop-sua-chua');
 await page.click('.side .nav[data-v="cal"]'); await wait(600);
 assert.match(await text('#barTitle'), /Bảo dưỡng/);
 assert.ok(await page.isVisible('.kstrip'), 'trang Bảo dưỡng có ô tóm tắt');
-ok('Giao diện máy tính: sidebar có Sửa chữa và Bảo dưỡng, bảng dữ liệu, tổng số kết quả');
+await page.click('.side .nav[data-v="cv"]'); await wait(600);
+await page.click('[data-act="cvXem"][data-v="nguoi"]'); await wait();
+assert.ok(await page.isVisible('.board .bcol[data-uid=""]'), 'bảng theo người');
+await shot('14-desktop-theo-nguoi');
+ok('Giao diện máy tính: sidebar có Công việc, Sửa chữa, Bảo dưỡng; bảng việc theo người');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
