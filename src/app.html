@@ -1009,6 +1009,11 @@ h1.cvh{margin:10px 0 2px;font-size:20px;line-height:1.3;overflow-wrap:anywhere}
 .cta2.blue{border-color:color-mix(in srgb,var(--brand) 35%,var(--line));background:var(--brand-bg);color:var(--brand)}
 .cta2.blue .ic{background:var(--brand)}
 .cvdt td:nth-child(3),.cvdt td:nth-child(4){white-space:nowrap}
+.zh2{display:block;font-family:var(--f-zh);font-weight:500;font-size:.86em;color:var(--ink2);margin-top:2px;overflow-wrap:anywhere}
+h1.cvh .zh2{font-size:.8em;margin-top:4px}
+.atx .zh2{font-size:12.5px}
+.fld .help{display:block;font-weight:400}
+.dichfld>span{color:var(--ink2)}
 </style>
 </head>
 <body>
@@ -3391,14 +3396,14 @@ Object.assign(ERR, {
 });
 
 // Máy chủ cũ hơn bản app cần (ví dụ triển khai chưa lên Phiên bản mới): báo rõ cách sửa
-const SRV_CAN = '2.3.0';
+const SRV_CAN = '2.4.0';
 function verLt(a, b) {
   const x = String(a || '0').split('.').map((n) => +n || 0), y = String(b).split('.').map((n) => +n || 0);
   for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0);
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.3.0', 'srvMissCV']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -6242,7 +6247,10 @@ Object.assign(TX, {
   lapTrong: ['Chưa có việc lặp lại', '暂无重复工作'], lapCanNgay: ['Chọn ít nhất một ngày.', '请至少选择一天。'], lapNgayN: ['ngày {n}', '{n}号'],
   doneViec: ['Báo vào Telegram khi giao việc', '派工时通知Telegram群'],
   thViec: ['Việc', '工作'], thLoaiCV: ['Loại', '类型'], thUu: ['Ưu tiên', '优先'], thNguoiLam: ['Người làm', '执行人'], thHanCV: ['Hạn', '期限'],
-  srvMissCV: ['Bản 2.3: công việc, giao việc, việc lặp lại, báo cáo tháng.', '2.3版：工作、派工、重复工作、月度报表。'],
+  srvMissCV: ['Bản 2.4: công việc, giao việc, việc lặp lại, báo cáo tháng, tự dịch Việt ↔ Trung.', '2.4版：工作、派工、重复工作、月度报表、中越自动翻译。'],
+  cvTuDich: ['Lưu xong app tự dịch sang tiếng Trung (gõ tiếng Trung thì dịch sang tiếng Việt).', '保存后自动翻译成越南语或中文。'],
+  cvBanDich: ['Bản dịch (tự động, sửa được nếu sai)', '译文（自动翻译，如有错误可修改）'],
+  cvBanDichHelp: ['Xoá trống rồi lưu để app dịch lại.', '清空后保存即可重新翻译。'],
   ctaGiao: ['Ghi việc, giao việc', '记录并派工'], ctaGhi: ['Ghi việc / ghi sửa chữa', '记录工作/维修'],
   cvTuLam: ['Tôi tự làm việc này (vd máy hỏng, sửa luôn)', '由我自己完成（如设备故障当场维修）'],
   cvNN: ['Nguyên nhân hỏng', '故障原因'], cvGioDung: ['Thời gian dừng máy (giờ, không bắt buộc)', '停机时长（小时，可选）'], cvGioDungPh: ['Vd: 1.5', '如：1.5'],
@@ -6266,6 +6274,20 @@ const CV_LOAI = { SUA: 1, VS: 0, LAP: 1, CT: 1, HT: 0, BD: 0, KHAC: 1 };
 const CV_UU = ['GAP', 'CAO', 'TB'];
 const CV_PILL = { CHO_GIAO: 'p-cho', DA_GIAO: 'p-sap', DANG_LAM: 'p-nay', TAM_HOAN: 'p-huy', XONG: 'p-sap', DONG: 'p-xong', HUY: 'p-huy' };
 const CV_LOC = [['toi', 'cvLoc_toi'], ['cho', 'cvLoc_cho'], ['mo', 'cvLoc_mo'], ['qua', 'cvLoc_qua'], ['kt', 'cvLoc_kt'], ['dong', 'cvLoc_dong'], ['huy', 'cvLoc_huy'], ['all', 'cvLoc_all']];
+// ----- Song ngữ: chữ người dùng gõ + bản dịch tự động (máy chủ dịch Việt ↔ Trung khi lưu) -----
+const CJK_G = /[\u3400-\u9fff\uf900-\ufaff]/g;
+const demKy = (t, re) => (String(t || '').match(re) || []).length;
+const laZh = (t) => { const c = demKy(t, CJK_G); return c > 0 && c * 2 >= demKy(t, /[A-Za-zÀ-ỹ]/g); };
+// [tiếng Việt, tiếng Trung] từ chữ gốc + bản dịch (chữ gốc có thể là tiếng Trung)
+function hai(goc, dich) {
+  goc = goc || ''; dich = dich || '';
+  if (!dich || dich === goc) return [goc, ''];
+  return laZh(goc) && !laZh(dich) ? [dich, goc] : [goc, dich];
+}
+// Tiếng Việt + dòng tiếng Trung nhỏ bên dưới
+function svH(goc, dich) { const [v, z] = hai(goc, dich); return esc(v) + (z ? `<span class="zh2" lang="zh-CN">${esc(z)}</span>` : ''); }
+// Một chuỗi "Việt · 中文" (hoặc xuống dòng) cho Excel
+function sv1(goc, dich, sep) { const [v, z] = hai(goc, dich); return z ? v + (sep || ' · ') + z : v; }
 const cvMo = (x) => CV_MO.indexOf(x.trangThai) >= 0;
 const laCuaToi = (x) => !!S.me && (x.uidLam === S.me.id || (x.uidPhu || []).indexOf(S.me.id) >= 0);
 const cvQua = (x) => cvMo(x) && x.trangThai !== 'CHO_GIAO' && !!x.han && x.han < TODAY();
@@ -6294,7 +6316,13 @@ function viecCuaToi() {
 
 // Dữ liệu hiển thị = việc trên máy chủ + việc đang chờ gửi
 function cvTruongLocal(x, p) {
-  ['tieuDe', 'moTa', 'loai', 'ma', 'han'].forEach((k) => { if (p[k] !== undefined) x[k] = p[k]; });
+  // Bản dịch: gửi kèm thì dùng; chữ gốc đổi mà không gửi thì bỏ bản dịch cũ (máy chủ dịch lại khi nhận)
+  [['tieuDe', 'tieuDeDich'], ['moTa', 'moTaDich']].forEach(([k, kd]) => {
+    if (p[k] === undefined) return;
+    if (p[kd] !== undefined) x[kd] = p[kd]; else if (p[k] !== x[k]) x[kd] = '';
+    x[k] = p[k];
+  });
+  ['loai', 'ma', 'han'].forEach((k) => { if (p[k] !== undefined) x[k] = p[k]; });
   if (p.uuTien !== undefined) x.uuTien = p.uuTien;
   x.canKiemTra = p.canKiemTra === undefined ? !!CV_LOAI[x.loai] || x.uuTien === 'GAP' : !!p.canKiemTra;
 }
@@ -6310,7 +6338,7 @@ function cvApDung(x, p, luc, nguoi, op) {
   if (b === 'batdau') { x.trangThai = 'DANG_LAM'; if (!x.lucBatDau) x.lucBatDau = luc; }
   else if (b === 'hoan') x.trangThai = 'TAM_HOAN';
   else if (b === 'xong') {
-    Object.assign(x, { ketQua: p.ketQua, linhKien: p.linhKien || [], lucXong: p.lucXong || luc, anhXong: (p.anh || []).map((a) => ({ loai: 'SAU', data: a.data })),
+    Object.assign(x, { ketQua: p.ketQua, ketQuaDich: '', nguyenNhanDich: '', linhKien: p.linhKien || [], lucXong: p.lucXong || luc, anhXong: (p.anh || []).map((a) => ({ loai: 'SAU', data: a.data })),
       nguyenNhan: p.nguyenNhan || '', phutDung: p.gioDung === '' || p.gioDung === undefined ? '' : Math.round(p.gioDung * 60) });
     x.trangThai = x.canKiemTra && !ql ? 'XONG' : 'DONG';
   } else if (b === 'kiemtra') { x.trangThai = 'DONG'; x.nguoiKiemTra = nguoi; x.lucKiemTra = luc; }
@@ -6354,7 +6382,7 @@ function rebuildCV() {
       const x = byId[q.p.id]; if (!x || daCo(x, q)) return;
       cvApDung(x, q.p, q.t, me.ten || '', q.opId); x.cho = true;
     } else if (q.action === 'confirm') {
-      list.forEach((x) => { if (x.loai === 'BD' && x.ma === q.p.ma && cvMo(x)) { x.trangThai = 'DONG'; x.ketQua = tv('cvXacNhanBD') + ' ' + fmtD(q.p.ngay); x.cho = true; } });
+      list.forEach((x) => { if (x.loai === 'BD' && x.ma === q.p.ma && cvMo(x)) { x.trangThai = 'DONG'; x.ketQua = tv('cvXacNhanBD') + ' ' + fmtD(q.p.ngay); x.ketQuaDich = tz('cvXacNhanBD') + ' ' + fmtD(q.p.ngay); x.cho = true; } });
     }
   });
   Object.assign(S.V, { cv: list, cvById: byId, vl: b.viecLap || [] });
@@ -6384,12 +6412,12 @@ function nvSelGan(sel, opt, sau) {
 function cvRow(x, nguoi) {
   return `<button class="scrow" data-act="cvView" data-id="${esc(x.id)}">
     <div class="sch">${cvPill(x)}${uuTag(x)}${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}<span class="scno mono">${x.so ? '#' + x.so : ''}</span><span class="sct">${hanPill(x)}</span></div>
-    <div class="nm">${esc(x.tieuDe)}</div>
+    <div class="nm">${svH(x.tieuDe, x.tieuDeDich)}</div>
     <div class="scf"><span>${esc(tv('lv_' + x.loai))}</span>${x.ma ? `<span class="code">${esc(x.ma)}</span>` : ''}${nguoi && x.nguoiLam ? `<span>${IC.user}${esc(x.nguoiLam)}${(x.uidPhu || []).length ? ' +' + x.uidPhu.length : ''}</span>` : ''}${x.lapLai ? `<span title="${esc(tp('cvLapTu'))}">${IC.refresh}</span>` : ''}</div></button>`;
 }
 function cvAlert(x) {
   return `<button class="alert ${cvQua(x) ? 'a-red' : 'a-blue'}" data-act="cvView" data-id="${esc(x.id)}"><span class="aic">${IC.list}</span>
-    <span class="atx">${esc(x.tieuDe)}<small>${esc(tv('cv_' + x.trangThai))}${x.nguoiLam ? ' · ' + esc(x.nguoiLam) : ''}${x.han ? ' · ' + esc(tv('cvHanNgay', { d: fmtDM(x.han) })) : ''}</small></span>${IC.chev}</button>`;
+    <span class="atx">${svH(x.tieuDe, x.tieuDeDich)}<small>${esc(tv('cv_' + x.trangThai))}${x.nguoiLam ? ' · ' + esc(x.nguoiLam) : ''}${x.han ? ' · ' + esc(tv('cvHanNgay', { d: fmtDM(x.han) })) : ''}</small></span>${IC.chev}</button>`;
 }
 function cvCuaToiHtml() {
   const ds = viecCuaToi();
@@ -6411,7 +6439,7 @@ function cvLocOf(x, loc) {
 }
 function cvFind(q, list) {
   const n = norm(q); if (!n) return list;
-  return list.filter((x) => norm([x.so ? '#' + x.so : '', x.tieuDe, x.moTa, x.ma, x.nguoiLam, x.nguoiTao, tv('lv_' + x.loai)].join(' ')).indexOf(n) >= 0);
+  return list.filter((x) => norm([x.so ? '#' + x.so : '', x.tieuDe, x.tieuDeDich, x.moTa, x.moTaDich, x.ma, x.nguoiLam, x.nguoiTao, tv('lv_' + x.loai)].join(' ')).indexOf(n) >= 0);
 }
 const cvSapMo = (a, b) => CV_UU.indexOf(a.uuTien) - CV_UU.indexOf(b.uuTien) || ((a.han || '9999') < (b.han || '9999') ? -1 : (a.han || '9999') > (b.han || '9999') ? 1 : 0);
 const cvLoc0 = () => S.f.cvLoc || (can('giaoviec') ? (S.V.cv.some((x) => x.trangThai === 'CHO_GIAO') ? 'cho' : 'mo') : 'toi');
@@ -6447,7 +6475,7 @@ function cvBody() {
   if (isWide()) {
     const { p } = pageOf('cv', list.length), rows = list.slice(p * PER_PAGE, (p + 1) * PER_PAGE);
     const tr = rows.map((x) => `<tr class="${cvQua(x) ? 'tr-warn' : ''}"><td class="mono"><button class="cellnm" data-act="cvView" data-id="${esc(x.id)}">${x.so ? '#' + x.so : '—'}</button></td>
-      <td><button class="cellnm" data-act="cvView" data-id="${esc(x.id)}"><b>${esc(x.tieuDe)}</b></button>${x.lapLai ? ` <span title="${esc(tp('cvLapTu'))}">${IC.refresh}</span>` : ''}</td>
+      <td><button class="cellnm" data-act="cvView" data-id="${esc(x.id)}"><b>${svH(x.tieuDe, x.tieuDeDich)}</b></button>${x.lapLai ? ` <span title="${esc(tp('cvLapTu'))}">${IC.refresh}</span>` : ''}</td>
       <td>${esc(tv('lv_' + x.loai))}</td><td>${uuTag(x) || esc(tv('uu_TB'))}</td><td class="mono">${x.ma ? `<button class="cellnm" data-act="may" data-ma="${esc(x.ma)}">${esc(x.ma)}</button>` : '—'}</td>
       <td>${esc(x.nguoiLam || '—')}${(x.uidPhu || []).length ? ' <span class="muted">+' + x.uidPhu.length + '</span>' : ''}</td><td class="num">${hanPill(x) || '—'}</td><td>${cvPill(x)}${x.cho ? ` <span class="pill p-cho">${t('pending')}</span>` : ''}</td></tr>`).join('');
     return '<div class="cvdt">' + dtable([['thSo'], ['thViec'], ['thLoaiCV'], ['thUu'], ['thCode'], ['thNguoiLam'], ['thHanCV', '', 'num'], ['thTT']], tr) + '</div>' + pager('cv', list.length);
@@ -6463,7 +6491,7 @@ function cvBoard() {
     <div class="bh"><b>${esc(c.ten)}</b>${c.zh ? `<span class="zi">${esc(c.zh)}</span>` : ''}<span class="cnt">${c.ds.length}</span>${ti ? `<small>${esc(tv('cvTai', ti))}</small>` : ''}
       ${c.id ? bcThanh(bcNguoi(c.id, TODAY().slice(0, 7))) : ''}</div>
     <div class="bl">${c.ds.map((x) => `<div class="bcard${cvQua(x) ? ' qua' : ''}" draggable="true" data-id="${esc(x.id)}" data-act="cvView" role="button" tabindex="0">
-      <div class="sch">${cvPill(x)}${uuTag(x)}<span class="scno mono">${x.so ? '#' + x.so : ''}</span></div><b>${esc(x.tieuDe)}</b>
+      <div class="sch">${cvPill(x)}${uuTag(x)}<span class="scno mono">${x.so ? '#' + x.so : ''}</span></div><b>${svH(x.tieuDe, x.tieuDeDich)}</b>
       <div class="scf">${x.ma ? `<span class="code">${esc(x.ma)}</span>` : ''}${hanPill(x)}</div></div>`).join('')}</div></div>`; }).join('')}</div>`;
 }
 function cvBoardDnD() {
@@ -6500,6 +6528,8 @@ function hanChips(han) {
 function cvSync(p) {
   const v = (id) => { const e = $('#' + id); return e ? e.value : undefined; };
   if (v('cvTD') !== undefined) p.tieuDe = v('cvTD');
+  if (v('cvTDd') !== undefined) p.dTD = v('cvTDd');
+  if (v('cvMTd') !== undefined) p.dMT = v('cvMTd');
   if (v('cvMT') !== undefined) p.moTa = v('cvMT');
   if (v('cvMa') !== undefined) p.ma = v('cvMa');
   if (v('cvHanD') !== undefined) p.han = v('cvHanD');
@@ -6512,7 +6542,7 @@ VIEWS.cvNew = {
     if (!p.init) {
       p.init = 1;
       const x = p.id ? S.V.cvById[p.id] : null;
-      if (x) Object.assign(p, { sua: true, tieuDe: x.tieuDe, moTa: x.moTa || '', loai: x.loai, uu: x.uuTien, ma: x.ma || '', han: x.han || '', kt: x.canKiemTra, ktSua: true, sel: { lam: x.uidLam || '', phu: (x.uidPhu || []).slice() } });
+      if (x) Object.assign(p, { sua: true, tieuDe: x.tieuDe, moTa: x.moTa || '', dTD: x.tieuDeDich || '', dMT: x.moTaDich || '', dGoc: { td: x.tieuDeDich || '', mt: x.moTaDich || '' }, loai: x.loai, uu: x.uuTien, ma: x.ma || '', han: x.han || '', kt: x.canKiemTra, ktSua: true, sel: { lam: x.uidLam || '', phu: (x.uidPhu || []).slice() } });
       else Object.assign(p, { id: 'CV' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase(), tieuDe: p.tieuDe || '', moTa: '', loai: p.loai || 'SUA',
         uu: 'TB', ma: p.ma || '', han: p.han === undefined ? '' : p.han, sel: { lam: '', phu: [] } });
       p.anh = [];
@@ -6520,12 +6550,14 @@ VIEWS.cvNew = {
     if (!p.ktSua) p.kt = !!CV_LOAI[p.loai] || p.uu === 'GAP';
     if (ql) nvSelGan(p.sel, { trong: 'cvChuaGiao' });
     return `<form id="cvF" autocomplete="off">
-      <label class="fld"><span>${t('cvTieuDe')}</span><input class="inp" id="cvTD" maxlength="200" value="${esc(p.tieuDe)}" placeholder="${esc(tp('cvTieuDePh'))}"></label>
+      <label class="fld"><span>${t('cvTieuDe')}</span><input class="inp" id="cvTD" maxlength="200" value="${esc(p.tieuDe)}" placeholder="${esc(tp('cvTieuDePh'))}">${p.sua ? '' : `<span class="help">${t('cvTuDich')}</span>`}</label>
+      ${p.sua ? `<label class="fld dichfld"><span>${t('cvBanDich')}</span><input class="inp" id="cvTDd" maxlength="2000" value="${esc(p.dTD)}"><span class="help">${t('cvBanDichHelp')}</span></label>` : ''}
       <div class="fld"><span>${t('cvLoai')}</span><div class="chips">${Object.keys(CV_LOAI).map((k) => `<button type="button" class="chip${p.loai === k ? ' on' : ''}" data-act="cvLoaiChon" data-v="${k}">${t('lv_' + k)}</button>`).join('')}</div></div>
       <div class="fld"><span>${t('cvUu')}</span><div class="seg uuseg">${CV_UU.map((k) => `<button type="button" class="${p.uu === k ? 'on' : ''} uu-${k}" data-act="cvUuChon" data-v="${k}">${tv('uu_' + k)} ${tz('uu_' + k)}</button>`).join('')}</div></div>
       <div class="fld"><span>${t('cvHan')}</span>${hanChips(p.han)}<input class="inp" type="date" id="cvHanD" style="margin-top:8px" value="${esc(p.han)}"></div>
       <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="cvMa">${mayOptions(p.ma)}</select></label>
       <label class="fld"><span>${t('cvMoTa')}</span><textarea class="inp" id="cvMT" rows="3" maxlength="1000">${esc(p.moTa)}</textarea></label>
+      ${p.sua && (p.moTa || p.dMT) ? `<label class="fld dichfld"><span>${t('cvBanDich')}</span><textarea class="inp" id="cvMTd" rows="2" maxlength="2000">${esc(p.dMT)}</textarea></label>` : ''}
       <div class="fld"><span>${t('cvAnh')}</span><div id="scAnh">${scAnhHtml(p.anh, 'scb')}</div></div>
       <label class="checkrow" style="border:0;padding:4px 0 12px"><input type="checkbox" id="cvKT"${p.kt ? ' checked' : ''}><span>${t('cvKT')}</span></label>
       ${ql ? `<div class="fld"><span>${t('cvGiaoCho')}</span><div id="nvBox">${nvChonHtml(p.sel, { trong: 'cvChuaGiao' })}</div></div>`
@@ -6548,6 +6580,9 @@ async function cvLuu(p, tiep) {
   if (!p.tieuDe.trim()) return err(t('CAN_TIEU_DE'));
   if (p.han && !validD(p.han)) return err(t('NGAY_SAI'));
   const pl = { id: p.id, tieuDe: p.tieuDe.trim(), moTa: p.moTa.trim(), loai: p.loai, uuTien: p.uu, ma: p.ma, han: p.han, canKiemTra: !!p.kt, anh: p.anh.map((d) => ({ data: d })) };
+  // Bản dịch chỉ gửi khi người sửa đã đổi nó (sửa tay, hoặc xoá trống để dịch lại)
+  if (p.sua && p.dTD !== p.dGoc.td) pl.tieuDeDich = (p.dTD || '').trim();
+  if (p.sua && p.dMT !== p.dGoc.mt) pl.moTaDich = (p.dMT || '').trim();
   if (can('giaoviec')) { pl.uidLam = p.sel.lam; pl.uidPhu = p.sel.phu; } else if (p.tuLam && !p.sua) pl.tuLam = true;
   $$('#cvF .bigbtn').forEach((b) => { b.disabled = true; });
   const r = await send('saveTask', pl);
@@ -6569,8 +6604,8 @@ VIEWS.cvView = {
     if (!x) return `<div class="card empty">${t('notFound')}</div>`;
     const m = x.ma && S.V.byMa[x.ma], phu = (x.uidPhu || []).map(nvTen).filter(Boolean);
     let o = `<div class="card schead"><div class="dh1">${cvPill(x)}${uuTag(x)}<span class="mdtag md-KHONG">${esc(tv('lv_' + x.loai))}<i>${esc(tz('lv_' + x.loai))}</i></span>${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}<span class="scno mono">${x.so ? '#' + x.so : ''}</span></div>
-      <h1 class="cvh">${esc(x.tieuDe)}</h1>
-      ${x.moTa ? `<div class="scmota">${esc(x.moTa)}</div>` : ''}
+      <h1 class="cvh">${svH(x.tieuDe, x.tieuDeDich)}</h1>
+      ${x.moTa ? `<div class="scmota">${svH(x.moTa, x.moTaDich)}</div>` : ''}
       ${m ? `<button class="scmayl" data-act="may" data-ma="${esc(m.ma)}"><span><b>${esc(m.ten)}</b> <span class="code">${esc(m.ma)}</span>${m.viTri ? `<span class="sub">${esc(m.viTri)}</span>` : ''}</span>${IC.chev}</button>` : ''}
       ${x.anhTao.length ? anhGridHtml(x.anhTao, false, '') : ''}
       <div class="scgrid">
@@ -6582,8 +6617,8 @@ VIEWS.cvView = {
     o += cvActions(x);
     if (x.ketQua || x.trangThai === 'XONG' || x.trangThai === 'DONG') {
       o += sec('cvKetQua') + `<div class="card pad"><div class="scres">
-        ${x.nguyenNhan ? `<div class="w"><small>${t('cvNN')}</small><b>${esc(x.nguyenNhan)}</b></div>` : ''}
-        <div class="w"><small>${t('cvKetQua')}</small><b class="pre">${esc(x.ketQua || '—')}</b></div>
+        ${x.nguyenNhan ? `<div class="w"><small>${t('cvNN')}</small><b>${svH(x.nguyenNhan, x.nguyenNhanDich)}</b></div>` : ''}
+        <div class="w"><small>${t('cvKetQua')}</small><b class="pre">${x.ketQua ? svH(x.ketQua, x.ketQuaDich) : '—'}</b></div>
         ${x.phutDung !== '' && x.phutDung !== undefined ? `<div><small>${t('cvDung')}</small><b>${gioDai(x.phutDung)}</b></div>` : ''}
         <div><small>${t('cvLucXong')}</small><b class="mono">${esc(fmtTG(x.lucXong))}</b></div>
         ${x.nguoiKiemTra ? `<div><small>${t('cvKiemTraBoi')}</small><b>${esc(x.nguoiKiemTra)} · <span class="mono">${esc(fmtTG(x.lucKiemTra))}</span></b></div>` : ''}</div>
@@ -6591,7 +6626,7 @@ VIEWS.cvView = {
         ${x.anhXong.length ? anhGridHtml(x.anhXong, false, '') : ''}</div>`;
     }
     o += sec('scQuaTrinh') + `<div class="card pad"><ol class="sctl">${x.nhatKy.map((n) => `<li class="b-${esc(n.b === 'kiemtra' ? 'nghiemthu' : n.b === 'tao' || n.b === 'lap' ? 'tao' : n.b === 'hoan' ? 'cholk' : n.b)}"><i></i><div><b>${t('k_' + n.b)}</b>
-      <span class="muted">${esc(n.nguoi || '')} · <span class="mono">${esc(fmtTG(n.luc))}</span></span>${n.gc ? `<div class="gc">${esc(n.gc)}</div>` : ''}</div></li>`).join('')}</ol></div>`;
+      <span class="muted">${esc(n.nguoi || '')} · <span class="mono">${esc(fmtTG(n.luc))}</span></span>${n.gc ? `<div class="gc">${svH(n.gc, n.gcDich)}</div>` : ''}</div></li>`).join('')}</ol></div>`;
     return o;
   }
 };
@@ -6622,7 +6657,7 @@ function cvBuocSheet(id, b) {
   const x = S.V.cvById[id]; if (!x) return;
   const ten = { hoan: 'cvHoan', tralai: 'cvTraLai', huy: 'cvHuy' }[b], ph = { hoan: 'cvHoanPh', tralai: 'cvTraLaiPh', huy: 'cvHuyPh' }[b];
   openSheet(`<div class="grab"></div><h3>${tv(ten)}<span class="zi">${tz(ten)}</span></h3>
-    <div class="who"><b>${esc(x.tieuDe)}</b> ${x.so ? '<span class="mono">#' + x.so + '</span>' : ''}</div>
+    <div class="who"><b>${svH(x.tieuDe, x.tieuDeDich)}</b> ${x.so ? '<span class="mono">#' + x.so + '</span>' : ''}</div>
     <label class="fld"><span>${t(cvCanLyDo(x, b) ? 'scLyDo' : 'scLyDoTuy')}</span><textarea class="inp" id="sbGC" rows="3" maxlength="300" placeholder="${esc(tp(ph))}"></textarea></label>
     <div class="err" id="sbErr" hidden></div>
     <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn${b === 'hoan' ? '' : ' danger'}" data-act="cvBuocGo" data-id="${esc(id)}" data-b="${b}">${t('confirm')}</button></div>`);
@@ -6641,7 +6676,7 @@ function cvGiaoSheet(id) {
   const sel = { lam: x.uidLam || '', phu: (x.uidPhu || []).slice() };
   nvSelGan(sel, {});
   openSheet(`<div class="grab"></div><h3>${tv('cvGiaoBtn')}<span class="zi">${tz('cvGiaoBtn')}</span></h3>
-    <div class="who"><b>${esc(x.tieuDe)}</b> ${x.so ? '<span class="mono">#' + x.so + '</span>' : ''}</div>
+    <div class="who"><b>${svH(x.tieuDe, x.tieuDeDich)}</b> ${x.so ? '<span class="mono">#' + x.so + '</span>' : ''}</div>
     <div id="nvBox">${nvChonHtml(sel, {})}</div><div class="err" id="sbErr" hidden></div>
     <div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn" data-act="cvGiao1Go" data-id="${esc(id)}">${IC.user} ${t('cvGiaoBtn')}</button></div>`);
 }
@@ -6658,7 +6693,7 @@ VIEWS.cvGiao = {
     if (!cho.length) return `<div class="card empty">${t('cvKhongCho')}</div>`;
     nvSelGan(p.sel, {}, () => { const l = $('#cgLbl'); if (l) l.innerHTML = cgNhan(p); });
     return `${sec('cvChonViec', cho.length)}<div class="list">${cho.map((x) => `<label class="row cvpick"><input type="checkbox" data-id="${esc(x.id)}"${p.ids.indexOf(x.id) >= 0 ? ' checked' : ''}>
-        <div class="main"><div class="nm">${esc(x.tieuDe)}</div><div class="sub">${uuTag(x)} ${esc(tv('lv_' + x.loai))}${x.ma ? ` · <span class="code">${esc(x.ma)}</span>` : ''}${x.han ? ' · ' + esc(tv('cvHanNgay', { d: fmtDM(x.han) })) : ''}${x.nguoiTao ? ' · ' + esc(x.nguoiTao) : ''}</div></div></label>`).join('')}</div>
+        <div class="main"><div class="nm">${svH(x.tieuDe, x.tieuDeDich)}</div><div class="sub">${uuTag(x)} ${esc(tv('lv_' + x.loai))}${x.ma ? ` · <span class="code">${esc(x.ma)}</span>` : ''}${x.han ? ' · ' + esc(tv('cvHanNgay', { d: fmtDM(x.han) })) : ''}${x.nguoiTao ? ' · ' + esc(x.nguoiTao) : ''}</div></div></label>`).join('')}</div>
       ${sec('cvChonNguoi')}<div id="nvBox">${nvChonHtml(p.sel, {})}</div>
       <label class="fld" style="margin-top:14px"><span>${t('cvDoiHan')}</span><input class="inp" type="date" id="cgHan" value="${esc(p.han)}"></label>
       <div class="err" id="cgErr" hidden></div>
@@ -6690,7 +6725,7 @@ VIEWS.cvXong = {
     if (!x) return `<div class="card empty">${t('notFound')}</div>`;
     if (!p.ctF) Object.assign(p, { lucX: tgO(nowStr()), anhS: [], kq: '', ctF: { ma: x.ma || '', kt: {}, lk: [], anh: [] } });
     S.ctF = p.ctF;
-    return `<div class="card pad scmini"><div class="dh1">${cvPill(x)}${uuTag(x)}<span class="scno mono">${x.so ? '#' + x.so : ''}</span></div><b>${esc(x.tieuDe)}</b>${x.ma ? ` <span class="code">${esc(x.ma)}</span>` : ''}</div>
+    return `<div class="card pad scmini"><div class="dh1">${cvPill(x)}${uuTag(x)}<span class="scno mono">${x.so ? '#' + x.so : ''}</span></div><b>${svH(x.tieuDe, x.tieuDeDich)}</b>${x.ma ? ` <span class="code">${esc(x.ma)}</span>` : ''}</div>
     <form id="cvXF" autocomplete="off" style="margin-top:14px">
       <label class="fld"><span>${t('cvKetQua')}</span><textarea class="inp" id="cxKQ" rows="3" maxlength="1000" placeholder="${esc(tp('cvKetQuaPh'))}">${esc(p.kq)}</textarea></label>
       ${x.loai === 'SUA' ? `<label class="fld"><span>${t('cvNN')}</span><input class="inp" id="cxNN" maxlength="300" value="${esc(p.nn || '')}"></label>
@@ -6743,7 +6778,7 @@ VIEWS.cvLap = {
     const ds = S.V.vl.slice().sort((a, b) => (b.hoatDong ? 1 : 0) - (a.hoatDong ? 1 : 0) || a.tieuDe.localeCompare(b.tieuDe));
     return `<p class="help" style="margin-top:0">${t('lapHelp')}</p>
       <button class="btn" data-act="go" data-v="cvLapEdit" style="margin:4px 0 14px">${IC.plus} ${t('lapThem')}</button>
-      <div class="list">${ds.length ? ds.map((v) => `<button class="row" data-act="cvLapSua" data-id="${esc(v.id)}"><div class="main"><div class="nm">${esc(v.tieuDe)}</div>
+      <div class="list">${ds.length ? ds.map((v) => `<button class="row" data-act="cvLapSua" data-id="${esc(v.id)}"><div class="main"><div class="nm">${svH(v.tieuDe, v.tieuDeDich)}</div>
         <div class="sub">${esc(lapTxt(v))} · ${esc(tv('lv_' + v.loai))}${v.ma ? ' · ' + esc(v.ma) : ''}${v.uidLam ? ' · ' + esc(nvTen(v.uidLam)) : ''}</div></div>
         <span class="pill ${v.hoatDong ? 'p-xong' : 'p-huy'}">${t(v.hoatDong ? 'lapBat' : 'lapTat')}</span>${IC.chev}</button>`).join('') : `<div class="empty">${t('lapTrong')}</div>`}</div>`;
   }
@@ -6753,12 +6788,13 @@ VIEWS.cvLapEdit = {
     if (!p.init) {
       p.init = 1;
       const v = p.id ? S.V.vl.find((x) => x.id === p.id) : null;
-      Object.assign(p, v ? { tieuDe: v.tieuDe, moTa: v.moTa || '', loai: v.loai, uu: v.uuTien, ma: v.ma || '', kieu: v.kieu, ngay: String(v.ngay || ''), lam: v.uidLam || '', kt: v.canKiemTra, bat: v.hoatDong }
+      Object.assign(p, v ? { tieuDe: v.tieuDe, moTa: v.moTa || '', dTD: v.tieuDeDich || '', dMT: v.moTaDich || '', dGoc: { td: v.tieuDeDich || '', mt: v.moTaDich || '' }, loai: v.loai, uu: v.uuTien, ma: v.ma || '', kieu: v.kieu, ngay: String(v.ngay || ''), lam: v.uidLam || '', kt: v.canKiemTra, bat: v.hoatDong }
         : { tieuDe: '', moTa: '', loai: 'KHAC', uu: 'TB', ma: '', kieu: 'tuan', ngay: String(wday(TODAY())), lam: '', kt: false, bat: true });
     }
     const thu = p.kieu === 'tuan' ? p.ngay.split(',').filter((x) => x !== '') : [];
     return `<form id="vlF" autocomplete="off">
-      <label class="fld"><span>${t('cvTieuDe')}</span><input class="inp" id="vlTD" maxlength="200" value="${esc(p.tieuDe)}"></label>
+      <label class="fld"><span>${t('cvTieuDe')}</span><input class="inp" id="vlTD" maxlength="200" value="${esc(p.tieuDe)}">${p.dGoc ? '' : `<span class="help">${t('cvTuDich')}</span>`}</label>
+      ${p.dGoc ? `<label class="fld dichfld"><span>${t('cvBanDich')}</span><input class="inp" id="vlTDd" maxlength="2000" value="${esc(p.dTD)}"><span class="help">${t('cvBanDichHelp')}</span></label>` : ''}
       <div class="fld"><span>${t('cvLoai')}</span><div class="chips">${Object.keys(CV_LOAI).map((k) => `<button type="button" class="chip${p.loai === k ? ' on' : ''}" data-act="vlSet" data-k="loai" data-v="${k}">${t('lv_' + k)}</button>`).join('')}</div></div>
       <div class="fld"><span>${t('cvUu')}</span><div class="seg uuseg">${CV_UU.map((k) => `<button type="button" class="${p.uu === k ? 'on' : ''} uu-${k}" data-act="vlSet" data-k="uu" data-v="${k}">${tv('uu_' + k)} ${tz('uu_' + k)}</button>`).join('')}</div></div>
       <div class="fld"><span>${t('lapKieu')}</span><div class="seg">${['ngay', 'tuan', 'thang'].map((k) => `<button type="button" class="${p.kieu === k ? 'on' : ''}" data-act="vlSet" data-k="kieu" data-v="${k}">${tv('lap_' + k)} ${tz('lap_' + k)}</button>`).join('')}</div></div>
@@ -6767,6 +6803,7 @@ VIEWS.cvLapEdit = {
       <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="vlMa">${mayOptions(p.ma)}</select></label>
       <label class="fld"><span>${t('lapNguoi')}</span><select class="inp" id="vlLam"><option value="">${esc(tp('lapNguoiTrong'))}</option>${nvDS().map((n) => `<option value="${esc(n.id)}"${p.lam === n.id ? ' selected' : ''}>${esc(n.ten)}</option>`).join('')}</select></label>
       <label class="fld"><span>${t('cvMoTa')}</span><textarea class="inp" id="vlMT" rows="2" maxlength="1000">${esc(p.moTa)}</textarea></label>
+      ${p.dGoc && (p.moTa || p.dMT) ? `<label class="fld dichfld"><span>${t('cvBanDich')}</span><textarea class="inp" id="vlMTd" rows="2" maxlength="2000">${esc(p.dMT)}</textarea></label>` : ''}
       <label class="checkrow" style="border:0;padding:4px 0"><input type="checkbox" id="vlKT"${p.kt ? ' checked' : ''}><span>${t('cvKT')}</span></label>
       <label class="checkrow" style="border:0;padding:4px 0 12px"><input type="checkbox" id="vlBat"${p.bat ? ' checked' : ''}><span>${t('lapDangBat')}</span></label>
       <div class="err" id="vlErr" hidden></div>
@@ -6776,6 +6813,8 @@ VIEWS.cvLapEdit = {
     const f = $('#vlF'); if (!f) return;
     const sync = () => {
       p.tieuDe = $('#vlTD').value; p.moTa = $('#vlMT').value; p.ma = $('#vlMa').value; p.lam = $('#vlLam').value;
+      if ($('#vlTDd')) p.dTD = $('#vlTDd').value;
+      if ($('#vlMTd')) p.dMT = $('#vlMTd').value;
       p.kt = $('#vlKT').checked; p.bat = $('#vlBat').checked; if ($('#vlNgay')) p.ngay = $('#vlNgay').value;
     };
     S.vlSync = sync;
@@ -6787,7 +6826,10 @@ VIEWS.cvLapEdit = {
       if (p.kieu !== 'ngay' && !p.ngay.split(/[,;\s]+/).some((x) => x !== '')) return err(t('lapCanNgay'));
       const btn = $('#vlOk'); btn.disabled = true;
       try {
-        const d = await api('saveRecurring', { id: p.id || '', tieuDe: p.tieuDe.trim(), moTa: p.moTa.trim(), loai: p.loai, uuTien: p.uu, ma: p.ma, kieu: p.kieu, ngay: p.ngay, uidLam: p.lam, canKiemTra: p.kt, hoatDong: p.bat });
+        const pl = { id: p.id || '', tieuDe: p.tieuDe.trim(), moTa: p.moTa.trim(), loai: p.loai, uuTien: p.uu, ma: p.ma, kieu: p.kieu, ngay: p.ngay, uidLam: p.lam, canKiemTra: p.kt, hoatDong: p.bat };
+        if (p.dGoc && p.dTD !== p.dGoc.td) pl.tieuDeDich = (p.dTD || '').trim();
+        if (p.dGoc && p.dMT !== p.dGoc.mt) pl.moTaDich = (p.dMT || '').trim();
+        const d = await api('saveRecurring', pl);
         const L = S.base.viecLap = S.base.viecLap || [], i = L.findIndex((x) => x.id === d.viecLap.id);
         if (i >= 0) L[i] = d.viecLap; else L.push(d.viecLap);
         mergeResult({ dsCongViec: d.dsCongViec || [] });
@@ -6870,7 +6912,7 @@ VIEWS.cvBC = {
       : `<div class="card empty">${t('bcKhongNV')}</div>`) + `<p class="help">${t('bcCach')}</p>`;
     o += sec('bcSua', sua.length) + (sua.length ? `<div class="list">${sua.map((x) => `<button class="scrow" data-act="cvView" data-id="${esc(x.id)}">
         <div class="sch"><span class="mono scno">${esc(fmtTG(x.lucXong))}</span>${x.ma ? `<span class="code">${esc(x.ma)}</span>` : ''}${x.phutDung !== '' && x.phutDung !== undefined ? `<span class="sct">${IC.clock} ${esc(fmtNum(x.phutDung / 60, 1))} h</span>` : ''}</div>
-        <div class="nm">${esc(x.tieuDe)}</div><div class="sub">${x.nguyenNhan ? esc(x.nguyenNhan) + ' · ' : ''}${esc(x.ketQua || '')}</div>
+        <div class="nm">${svH(x.tieuDe, x.tieuDeDich)}</div><div class="sub">${x.nguyenNhan ? svH(x.nguyenNhan, x.nguyenNhanDich) : ''}${x.ketQua ? `<div>${svH(x.ketQua, x.ketQuaDich)}</div>` : ''}</div>
         <div class="scf"><span>${IC.user}${esc(x.nguoiLam || '—')}</span></div></button>`).join('')}</div>` : `<div class="card empty">${t('bcTrong')}</div>`);
     return o;
   }
@@ -6886,7 +6928,7 @@ function bcWorkbook(ym) {
     hd(['stt', 'thNgayXong', 'code', 'thMay', 'thNoiDung', 'thNN', 'thXuLy', 'thLK', 'thNguoiLam', 'thDungGio', 'thTT'])];
   sua.forEach((x, i) => {
     const m = S.V.byMa[x.ma];
-    r1.push([c(i + 1, { align: 'center' }), ngay(x.lucXong), c(x.ma), c(m ? m.ten : ''), c(x.tieuDe), c(x.nguyenNhan), c(x.ketQua),
+    r1.push([c(i + 1, { align: 'center' }), ngay(x.lucXong), c(x.ma), c(m ? m.ten : ''), c(sv1(x.tieuDe, x.tieuDeDich, '\n')), c(sv1(x.nguyenNhan, x.nguyenNhanDich, '\n')), c(sv1(x.ketQua, x.ketQuaDich, '\n')),
       c(x.linhKien.map((k) => k.ten + ' ×' + soG(k.sl) + (k.dv ? ' ' + dvTxt(k.dv) : '')).join('\n')), c([x.nguoiLam].concat((x.uidPhu || []).map(nvTen)).filter(Boolean).join(', ')),
       c(x.phutDung === '' || x.phutDung === undefined ? '' : Math.round(x.phutDung / 6) / 10, { fmt: '0.0', align: 'right' }), c(tp('cv_' + x.trangThai))]);
   });
@@ -6902,7 +6944,7 @@ function bcWorkbook(ym) {
   const s2 = { name: 'Ti le hoan thanh', rows: r2, cols: [28, 10, 11, 11, 11, 13, 13, 11], merges: ['A1:H1', 'A2:H2'], heights: { 2: 32 }, freeze: { r: 4, c: 0 } };
   const ds = S.V.cv.filter((x) => x.trangThai !== 'HUY' && (ngayCV(x).slice(0, 7) === ym || (x.lucXong || '').slice(0, 7) === ym)).sort((a, b) => (+a.so || 0) - (+b.so || 0));
   const r3 = [T('Tất cả công việc tháng ' + mo + '/' + y + ' · ' + y + '年' + mo + '月全部工作'), [], [], hd(['thSo', 'thViec', 'thLoaiCV', 'thUu', 'code', 'thNguoiLam', 'thHanCV', 'thTT', 'thNgayXong', 'cvKetQua'])];
-  ds.forEach((x) => r3.push([c(x.so ? '#' + x.so : ''), c(x.tieuDe), c(tp('lv_' + x.loai)), c(tp('uu_' + x.uuTien)), c(x.ma), c(x.nguoiLam), ngay(x.han), c(tp('cv_' + x.trangThai)), ngay(x.lucXong), c(x.ketQua)]));
+  ds.forEach((x) => r3.push([c(x.so ? '#' + x.so : ''), c(sv1(x.tieuDe, x.tieuDeDich, '\n')), c(tp('lv_' + x.loai)), c(tp('uu_' + x.uuTien)), c(x.ma), c(x.nguoiLam), ngay(x.han), c(tp('cv_' + x.trangThai)), ngay(x.lucXong), c(sv1(x.ketQua, x.ketQuaDich, '\n'))]));
   const s3 = { name: 'Tat ca viec', rows: r3, cols: [7, 34, 14, 12, 8, 18, 11, 16, 11, 34], merges: ['A1:J1'], freeze: { r: 4, c: 0 }, landscape: true };
   return XW.build([s1, s2, s3]);
 }

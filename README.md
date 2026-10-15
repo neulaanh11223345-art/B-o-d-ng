@@ -1,20 +1,20 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.3.0
+# Credible Việt Nam CMMS · 设备管理 — v2.4.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
 - **iPhone:** chạy dạng PWA — mở bằng Safari rồi "Thêm vào Màn hình chính", dùng như một app.
 - **Máy tính:** cùng địa chỉ đó, mở bằng trình duyệt. Màn rộng tự chuyển sang giao diện có thanh bên và bảng dữ liệu.
 - **Dữ liệu:** lưu trong **Google Sheet**, đọc/ghi qua Google Apps Script. Ảnh lưu trong Google Drive của chủ sheet và để riêng tư.
-- **Ngôn ngữ:** song ngữ Việt – Trung. Tiếng Việt chữ lớn, tiếng Trung nhỏ hơn bên dưới.
+- **Ngôn ngữ:** song ngữ Việt – Trung. Tiếng Việt chữ lớn, tiếng Trung nhỏ hơn bên dưới. Nội dung công việc gõ một thứ tiếng, app tự dịch sang thứ tiếng kia.
 
 ## Các file
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.3.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.4.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.3.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.3.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.4.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.4.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.3.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.4.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò |
 |---|---|---|
@@ -35,10 +35,12 @@ Mở `docs/demo.html` (hoặc `demo-v2.3.0.html`) bằng trình duyệt. Tài kh
 
 Muốn thử cảnh mất mạng: vào **Cá nhân → Giả lập mất mạng**.
 
+Bản xem thử không gọi Google Dịch thật, chỉ dịch được các câu mẫu (ví dụ "Thay vòi nước nhà vệ sinh xưởng 1", "Máy hút bụi VKY03 không chạy", "Thay chổi than motor"). Câu khác sẽ hiện dòng "（演示版：正式系统会自动翻译这句话）" thay cho bản dịch.
+
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.3.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.4.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -46,7 +48,9 @@ Muốn thử cảnh mất mạng: vào **Cá nhân → Giả lập mất mạng*
    - tính và lưu tiêu thụ cho mọi kỳ điện đã ghi.
 
    Việc này chỉ chạy một lần. Muốn chạy lại bằng tay: trong Apps Script chọn hàm `tinhLaiTatCa` → **Chạy**.
-5. **Đăng nhập:** người dùng cũ chưa có mã nhân viên thì có hai cách:
+   - Từ bản 2.4.0: các việc đã ghi trước đó (trong 60 ngày gần nhất) được dịch dần sang thứ tiếng còn lại.
+5. **Thử tự dịch (một lần):** trong Apps Script chọn hàm `thuDich` → **Chạy**. Kết quả là hai câu đã dịch. Nếu Google hỏi cấp quyền thì bấm cho phép.
+6. **Đăng nhập:** người dùng cũ chưa có mã nhân viên thì có hai cách:
    - nhập mã theo ID: U001, U002…;
    - bỏ trống mã và chỉ nhập PIN như trước (được khi PIN đó chỉ một người dùng).
 
@@ -71,6 +75,39 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Việc chờ gửi chỉ được gửi khi app đang mở và có mạng. iOS không có gửi ngầm.
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
+
+## Điểm mới của v2.4.0: tự dịch Việt ↔ Trung trong Công việc
+
+- **Gõ một thứ tiếng, app hiện cả hai.** Gõ tiếng Việt thì máy chủ dịch sang tiếng Trung lúc lưu; gõ tiếng Trung thì dịch sang tiếng Việt. Màn hình luôn hiện tiếng Việt chữ lớn ở trên, tiếng Trung chữ nhỏ ở dưới.
+- **Những gì được dịch:**
+  - tên việc và mô tả, cả mẫu việc lặp lại (mẫu chỉ dịch một lần, các việc sinh ra mỗi ngày dùng lại bản dịch);
+  - kết quả và nguyên nhân hỏng khi ghi xong việc;
+  - lý do tạm hoãn, trả lại, huỷ việc;
+  - kết quả tự ghi khi xác nhận bảo dưỡng ("Đã xác nhận bảo dưỡng ngày…" · "已确认保养…").
+
+  Không dịch: chữ chỉ có mã và số (ví dụ "M001 - 2026"). Chữ đã viết sẵn hai thứ tiếng dạng `Việt · 中文` thì app tách làm hai, không gọi dịch.
+- **Sửa bản dịch:** khi sửa một việc, dưới ô Tên việc (và Mô tả) có ô **Bản dịch**. Quản lý sửa được; người ghi việc sửa được khi việc còn chờ giao.
+  - Sửa tay thì app giữ nguyên, không dịch đè.
+  - Xoá trống ô Bản dịch rồi lưu thì app dịch lại.
+  - Đổi tên việc mà không sửa bản dịch thì app dịch lại theo tên mới.
+  - Bản dịch của kết quả, nguyên nhân hỏng và lý do chưa sửa tay được.
+- **Tìm việc** theo cả tiếng Việt và tiếng Trung.
+- **Telegram và Excel song ngữ:**
+  - Tin giao việc và tin nhắc việc quá hạn ghi tên việc dạng `Việt · 中文`.
+  - Trong file Excel báo cáo tháng, ô tên việc, nguyên nhân và cách xử lý có hai dòng: tiếng Việt, dưới là tiếng Trung.
+- **Mất mạng:** việc ghi lúc mất mạng được dịch khi gửi lên máy chủ (lúc có mạng lại).
+- **Google lỗi hoặc hết hạn mức dịch trong ngày:** việc vẫn lưu bình thường, tạm thời chỉ có một thứ tiếng.
+  - Máy chủ ghi nhớ và tự dịch bù sau ít nhất 1 giờ: mỗi lần app tải dữ liệu dịch thêm vài câu, lúc gửi nhắc hằng ngày dịch nhiều hơn.
+  - Chỉ dịch bù các việc trong 60 ngày gần nhất.
+- **Chất lượng bản dịch:** dùng Google Dịch có sẵn trong Apps Script (`LanguageApp`), miễn phí, không cần khoá API. Câu kỹ thuật ngắn thường dịch ổn. Tên riêng, cách gọi riêng trong xưởng và chữ viết tắt có thể bị dịch sai, nên mới có ô sửa tay.
+- **Hai hàm chạy tay trong Apps Script:**
+  - `thuDich`: thử dịch hai câu, để kiểm tra Google Dịch chạy được và cấp quyền nếu Google hỏi.
+  - `dichLaiTatCa`: dịch ngay mọi việc còn thiếu bản dịch, ví dụ sau nhiều ngày Google báo hết hạn mức.
+- **Google Sheet:**
+  - Trang `CongViec` thêm 4 cột ở cuối: `TieuDeDich`, `MoTaDich`, `KetQuaDich`, `NguyenNhanDich`.
+  - Trang `ViecLap` thêm 2 cột ở cuối: `TieuDeDich`, `MoTaDich`.
+  - Bản dịch của lý do tạm hoãn, trả lại, huỷ nằm trong cột `NhatKy` có sẵn (trường `gcDich`).
+  - Máy chủ tự thêm cột ở lần tải dữ liệu đầu tiên sau khi nâng cấp.
 
 ## Điểm mới của v2.3.0 (sửa theo lần duyệt giao diện thứ nhất)
 
@@ -238,9 +275,9 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 | Lọc / tìm / phân trang bảng lớn | ✅ Thiết bị, công tơ (máy tính) |
 | Xem trước khi xuất Excel | ✅ |
 | Cảnh báo trang chủ mở đúng danh sách | ✅ |
-
 | Sửa chữa: người sửa, nguyên nhân, thời gian dừng máy, Quản lý xác nhận, báo cáo Excel tháng | ✅ (v2.3.0) |
 | Ghi việc, giao việc cho nhân viên, việc lặp lại | ✅ (v2.2.0) |
+| Nội dung công việc tự dịch Việt ↔ Trung, sửa tay được bản dịch | ✅ (v2.4.0) |
 
 **Chưa làm (giai đoạn sau, cần vẽ màn và chốt quy trình trước):**
 - Nhật ký ca
@@ -256,6 +293,6 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 18 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node --test tests/backend.test.mjs      # 21 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
 node tests/e2e.mjs                      # 11 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```

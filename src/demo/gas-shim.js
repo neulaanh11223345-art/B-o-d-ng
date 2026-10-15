@@ -244,6 +244,23 @@ var MailApp = {
   getRemainingDailyQuota: function () { return 100; }
 };
 
+// Google Dịch giả: chỉ dịch được các câu mẫu trong __dichMau ([tiếng Việt, tiếng Trung]); câu khác trả lời dòng báo "bản xem thử".
+// __dich.loi = true để giả lập Google hết hạn mức; __dich.goi đếm số lần gọi.
+var __dichMau = [];
+var __dich = { loi: false, goi: 0 };
+var LanguageApp = {
+  translate: function (text, from, to) {
+    __dich.goi++;
+    if (__dich.loi) throw new Error('Service invoked too many times for one day: translate.');
+    var t = String(text || '').trim(), k = t.toLowerCase();
+    for (var i = 0; i < __dichMau.length; i++) {
+      var m = __dichMau[i];
+      if (m[0].toLowerCase() === k || m[1] === t) return to === 'vi' ? m[0] : m[1];
+    }
+    return to === 'vi' ? '(Bản xem thử: hệ thống thật sẽ tự dịch câu này)' : '（演示版：正式系统会自动翻译这句话）';
+  }
+};
+
 var UrlFetchApp = {
   fetch: function (url, opt) {
     __net.log.push({ url: url, opt: opt });

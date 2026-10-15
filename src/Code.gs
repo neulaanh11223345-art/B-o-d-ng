@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.3.0';
+var PHIEN_BAN = '2.4.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -49,12 +49,15 @@ var BANG = {
   // TrangThai: CHO_GIAO · DA_GIAO · DANG_LAM · TAM_HOAN · XONG (chờ Quản lý kiểm tra) · DONG · HUY
   // Loai: SUA (sửa chữa: thêm NguyenNhan, PhutDung = số phút dừng máy) · VS (vệ sinh) · LAP (lắp đặt / di dời) · CT (cải tiến) · HT (hỗ trợ sản xuất) · BD (bảo dưỡng) · KHAC
   // UuTien: GAP · CAO · TB · UIDPhu (JSON): người làm cùng · LapLai: mã việc lặp lại đã sinh ra việc này
+  // …Dich: bản dịch tự động Việt ↔ Trung của tên việc, mô tả, kết quả, nguyên nhân (sửa tay được)
   CongViec: ['ID', 'So', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Han', 'TrangThai', 'UIDLam', 'NguoiLam', 'UIDPhu',
     'NguoiGiao', 'UIDGiao', 'LucGiao', 'NguoiTao', 'UIDTao', 'LucTao', 'LucBatDau', 'LucXong', 'KetQua', 'LinhKien',
-    'AnhTao', 'AnhXong', 'CanKiemTra', 'NguoiKiemTra', 'LucKiemTra', 'LapLai', 'OpId', 'CapNhat', 'NhatKy', 'NguyenNhan', 'PhutDung'],
+    'AnhTao', 'AnhXong', 'CanKiemTra', 'NguoiKiemTra', 'LucKiemTra', 'LapLai', 'OpId', 'CapNhat', 'NhatKy', 'NguyenNhan', 'PhutDung',
+    'TieuDeDich', 'MoTaDich', 'KetQuaDich', 'NguyenNhanDich'],
   // Việc lặp lại: mỗi ngày (khi app tải dữ liệu và lúc nhắc hằng ngày) tự sinh việc vào CongViec
   // Kieu: ngay (hằng ngày) · tuan (Ngay = các thứ 0–6, 0 = Chủ nhật) · thang (Ngay = các ngày trong tháng) · TaoDen: đã sinh việc đến ngày
-  ViecLap: ['ID', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Kieu', 'Ngay', 'UIDLam', 'CanKiemTra', 'HoatDong', 'TaoDen', 'NguoiTao', 'CapNhat']
+  ViecLap: ['ID', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Kieu', 'Ngay', 'UIDLam', 'CanKiemTra', 'HoatDong', 'TaoDen', 'NguoiTao', 'CapNhat',
+    'TieuDeDich', 'MoTaDich']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'] };
@@ -179,7 +182,7 @@ var TIN_CHO = [];
 var DA_TIEU_DE = {};  // trang đã kiểm dòng tiêu đề trong lần chạy này
 
 function xuLy(req) {
-  TIN_CHO = []; DA_TIEU_DE = {}; DU_COT = {};
+  TIN_CHO = []; DA_TIEU_DE = {}; DU_COT = {}; DICH_LOI = false;
   var kq, lock = null;
   try {
     req = req || {};
@@ -208,6 +211,7 @@ function dieuHuong(a, p, req) {
       try { nhapSoDienExcel(); } catch (e) { console.log('nhapSoDienExcel: ' + (e && e.message || e)); }
       try { nangCapLanDau(); } catch (e) { console.log('nangCapLanDau: ' + (e && e.message || e)); }
       try { taoViecLap(false); } catch (e) { console.log('taoViecLap: ' + (e && e.message || e)); }
+      try { dichBu(8, false); } catch (e) { console.log('dichBu: ' + (e && e.message || e)); }
       return layDuLieu(u);
     case 'history': return {
       lichSu: docLichSu().filter(function (x) { return x.ngay.slice(0, 4) === String(p.nam); }).map(sachLS),
@@ -497,7 +501,8 @@ function dongViecBaoDuong(m, ls, u) {
     capNhatTieuDe('CongViec');
     v.trangThai = 'DONG'; v.lucXong = ls.thoiGian; v.capNhat = ls.thoiGian;
     if (!v.lucBatDau) v.lucBatDau = ls.thoiGian;
-    v.ketQua = 'Đã xác nhận bảo dưỡng ngày ' + ngayVN(ls.ngay) + ' · 已确认保养 — ' + ls.nguoi;
+    v.ketQua = 'Đã xác nhận bảo dưỡng ngày ' + ngayVN(ls.ngay) + ' — ' + ls.nguoi;
+    v.ketQuaDich = '已确认保养 ' + ngayVN(ls.ngay) + ' — ' + ls.nguoi;
     v.nhatKy.push({ b: 'xong', luc: ls.thoiGian, uid: u.id, nguoi: u.ten, gc: v.ketQua, op: '' });
     suaDong('CongViec', v._r, cvThanhDong(v));
     out.push(v);
@@ -585,6 +590,104 @@ function anhSC(anh, ten, loai) {
   }), ten);
 }
 
+// ===================== Tự dịch Việt ↔ Trung (Google Dịch có sẵn trong Apps Script, không cần khoá) =====================
+// Gõ tiếng Việt → dịch sang tiếng Trung; gõ tiếng Trung → dịch sang tiếng Việt; gõ sẵn "Việt · 中文" → tách đôi, không dịch.
+// Dịch lỗi (hết hạn mức trong ngày, Google bận…) KHÔNG chặn việc lưu: bản dịch để trống, ghi dấu DICH_THIEU,
+// rồi dịch bù khi app tải dữ liệu (sau ít nhất 1 giờ) hoặc lúc nhắc hằng ngày.
+var DICH_LOI = false;      // trong lần chạy này dịch đã lỗi → không gọi tiếp
+var CJK_RE = /[㐀-鿿豈-﫿]/g;
+var CHU_RE = /[A-Za-zÀ-ỹ]/g;
+var VI_DAU_RE = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi;
+// "chữ gốc · bản dịch" (tiếng Việt trước) cho tin nhắn Telegram / email
+function hai(goc, dich) {
+  goc = s(goc); dich = s(dich);
+  if (!dich || dich === goc) return goc;
+  return laTiengTrung(goc) && !laTiengTrung(dich) ? dich + ' · ' + goc : goc + ' · ' + dich;
+}
+function demKyTu(t, re) { var m = String(t || '').match(re); return m ? m.length : 0; }
+function laTiengTrung(t) { var c = demKyTu(t, CJK_RE); return c > 0 && c * 2 >= demKyTu(t, CHU_RE); }
+// Có cần dịch không: có chữ thật (bỏ qua mã như M001, VKY03, số), và chưa viết sẵn cả hai thứ tiếng
+function canDich(t) {
+  t = s(t);
+  var chu = t.replace(/\S*\d\S*/g, ' ');
+  if (!t || !(demKyTu(chu, CJK_RE) >= 1 || demKyTu(chu, CHU_RE) >= 2)) return false;
+  return !(demKyTu(t, CJK_RE) >= 2 && demKyTu(t, VI_DAU_RE) >= 2);
+}
+function giaiMa(t) { return String(t).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); }
+function dichChu(t) {
+  t = s(t);
+  if (DICH_LOI || !canDich(t)) return '';
+  var zh = laTiengTrung(t);
+  try {
+    return s(giaiMa(LanguageApp.translate(t, zh ? 'zh-CN' : 'vi', zh ? 'vi' : 'zh-CN', { contentType: 'text' }))).slice(0, 2000);
+  } catch (e) {
+    DICH_LOI = true;
+    try { PropertiesService.getScriptProperties().setProperty('DICH_THIEU', thoiGianStr()); } catch (x) { /* bỏ qua */ }
+    console.log('dichChu: ' + (e && e.message || e));
+    return '';
+  }
+}
+// Chữ người dùng gõ → [chữ gốc, bản dịch]
+function songNgu(t, dichTay) {
+  t = s(t);
+  if (!t) return ['', ''];
+  if (s(dichTay)) return [t, s(dichTay).slice(0, 2000)];
+  var i = t.indexOf(' · ');
+  if (i > 0) {
+    var a = t.slice(0, i).trim(), b = t.slice(i + 3).trim();
+    if (a && b && laTiengTrung(a) !== laTiengTrung(b)) return [a, b];
+  }
+  return [t, dichChu(t)];
+}
+// Khi sửa: gửi kèm bản dịch = sửa tay (dùng luôn, không dịch đè); gửi bản dịch rỗng = nhờ dịch lại;
+// không gửi: chữ gốc đổi (hoặc chưa có bản dịch) thì dịch lại, còn không thì giữ nguyên.
+function dichKhiSua(moi, cuGoc, cuDich, dichGui) {
+  if (dichGui !== undefined && dichGui !== null) return s(dichGui) ? [s(moi), s(dichGui).slice(0, 2000)] : songNgu(moi);
+  if (s(moi) === s(cuGoc) && (s(cuDich) || !canDich(moi))) return [s(cuGoc), s(cuDich)];
+  return songNgu(moi);
+}
+var DICH_TRUONG = [['tieuDe', 'tieuDeDich'], ['moTa', 'moTaDich'], ['ketQua', 'ketQuaDich'], ['nguyenNhan', 'nguyenNhanDich']];
+var DICH_GC = ['hoan', 'tralai', 'huy'];
+// Dịch bù những chỗ còn thiếu bản dịch (việc của 60 ngày gần đây + việc lặp lại). Trả số lần đã gọi dịch.
+function dichBu(max, khongCho) {
+  var ps = PropertiesService.getScriptProperties(), dau = ps.getProperty('DICH_THIEU');
+  if (!dau) return 0;
+  if (!khongCho && msTG(thoiGianStr()) - msTG(dau) < 3600000) return 0;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return 0;
+  var n = 0, tu = congNgay(homNayStr(), -60);
+  try {
+    var thieu = function (o, k) { return canDich(o[k[0]]) && !s(o[k[1]]); };
+    docCongViec().forEach(function (x) {
+      if (n >= max || DICH_LOI || x.trangThai === 'HUY' || (x.lucTao || '').slice(0, 10) < tu) return;
+      var doi = false;
+      DICH_TRUONG.forEach(function (k) {
+        if (n >= max || DICH_LOI || !thieu(x, k)) return;
+        n++; var d = dichChu(x[k[0]]); if (d) { x[k[1]] = d; doi = true; }
+      });
+      x.nhatKy.forEach(function (e) {
+        if (n >= max || DICH_LOI || DICH_GC.indexOf(e.b) < 0 || !thieu(e, ['gc', 'gcDich'])) return;
+        n++; var d = dichChu(e.gc); if (d) { e.gcDich = d; doi = true; }
+      });
+      if (doi) { capNhatTieuDe('CongViec'); suaDong('CongViec', x._r, cvThanhDong(x)); }
+    });
+    docViecLap().forEach(function (v) {
+      var doi = false;
+      DICH_TRUONG.slice(0, 2).forEach(function (k) {
+        if (n >= max || DICH_LOI || !thieu(v, k)) return;
+        n++; var d = dichChu(v[k[0]]); if (d) { v[k[1]] = d; doi = true; }
+      });
+      if (doi) { capNhatTieuDe('ViecLap'); suaDong('ViecLap', v._r, vlThanhDong(v)); }
+    });
+    if (!DICH_LOI && n < max) ps.deleteProperty('DICH_THIEU');     // đã dịch hết
+    return n;
+  } finally { lock.releaseLock(); }
+}
+// Chạy tay trong trình soạn Apps Script để thử dịch (lần đầu Google có thể hỏi cấp quyền)
+function thuDich() { return LanguageApp.translate('Thay bóng đèn xưởng 2', 'vi', 'zh-CN') + ' | ' + LanguageApp.translate('更换水泵密封圈', 'zh-CN', 'vi'); }
+// Chạy tay để dịch mọi việc còn thiếu bản dịch (vd sau khi Google hết hạn mức nhiều ngày)
+function dichLaiTatCa() { PropertiesService.getScriptProperties().setProperty('DICH_THIEU', thoiGianStr()); return dichBu(400, true); }
+
 // ===================== Công việc (giao việc) =====================
 var CV_LOAI = { SUA: 1, VS: 0, LAP: 1, CT: 1, HT: 0, BD: 0, KHAC: 1 };   // 1 = mặc định cần Quản lý kiểm tra khi xong
 var CV_UU = ['GAP', 'CAO', 'TB'];
@@ -593,8 +696,10 @@ var TEN_TT_CV = { CHO_GIAO: 'Chờ giao · 待派工', DA_GIAO: 'Đã giao · �
   XONG: 'Xong, chờ kiểm tra · 已完成待检查', DONG: 'Đã xong · 已完成', HUY: 'Đã huỷ · 已取消' };
 var CV_KHOA = ['id', 'so', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'han', 'trangThai', 'uidLam', 'nguoiLam', 'uidPhu',
   'nguoiGiao', 'uidGiao', 'lucGiao', 'nguoiTao', 'uidTao', 'lucTao', 'lucBatDau', 'lucXong', 'ketQua', 'linhKien',
-  'anhTao', 'anhXong', 'canKiemTra', 'nguoiKiemTra', 'lucKiemTra', 'lapLai', 'opId', 'capNhat', 'nhatKy', 'nguyenNhan', 'phutDung'];
-var VL_KHOA = ['id', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'kieu', 'ngay', 'uidLam', 'canKiemTra', 'hoatDong', 'taoDen', 'nguoiTao', 'capNhat'];
+  'anhTao', 'anhXong', 'canKiemTra', 'nguoiKiemTra', 'lucKiemTra', 'lapLai', 'opId', 'capNhat', 'nhatKy', 'nguyenNhan', 'phutDung',
+  'tieuDeDich', 'moTaDich', 'ketQuaDich', 'nguyenNhanDich'];
+var VL_KHOA = ['id', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'kieu', 'ngay', 'uidLam', 'canKiemTra', 'hoatDong', 'taoDen', 'nguoiTao', 'capNhat',
+  'tieuDeDich', 'moTaDich'];
 var CV_JSON = { uidPhu: 1, linhKien: 1, anhTao: 1, anhXong: 1, nhatKy: 1 };
 var CV_BOOL = { canKiemTra: 1, hoatDong: 1 };
 var CV_NGAY = { han: 1, taoDen: 1 };
@@ -669,8 +774,9 @@ function luuCongViec(u, p, opId) {
   capNhatTieuDe('CongViec');
   if (!x) {
     id = idCV(id, 'CV') || 'CV' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900);
-    var so = soLonNhat(ds) + 1;
-    x = { id: id, so: so, tieuDe: f.tieuDe, moTa: f.moTa, loai: f.loai, uuTien: f.uuTien, ma: f.ma, han: han, trangThai: 'CHO_GIAO',
+    var so = soLonNhat(ds) + 1, td = songNgu(f.tieuDe), mt = songNgu(f.moTa);
+    x = { id: id, so: so, tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], ketQuaDich: '', nguyenNhanDich: '',
+      loai: f.loai, uuTien: f.uuTien, ma: f.ma, han: han, trangThai: 'CHO_GIAO',
       uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay,
       lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: anhSC(p.anh, 'cv' + so, 'TRUOC'), anhXong: [],
       canKiemTra: f.canKiemTra, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: opId, capNhat: bay, nguyenNhan: '', phutDung: '',
@@ -687,7 +793,9 @@ function luuCongViec(u, p, opId) {
   if (x.trangThai === 'DONG' || x.trangThai === 'HUY') throw loiDL('SAI_TRANG_THAI', TEN_TT_CV[x.trangThai], { congViec: sachCV(x) });
   if (!quanLy && !(x.uidTao === u.id && x.trangThai === 'CHO_GIAO')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
   var truoc = { tieuDe: x.tieuDe, han: x.han, uidLam: x.uidLam, uuTien: x.uuTien };
-  ['tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'canKiemTra'].forEach(function (k) { x[k] = f[k]; });
+  var td = dichKhiSua(f.tieuDe, x.tieuDe, x.tieuDeDich, p.tieuDeDich), mt = dichKhiSua(f.moTa, x.moTa, x.moTaDich, p.moTaDich);
+  ['loai', 'uuTien', 'ma', 'canKiemTra'].forEach(function (k) { x[k] = f[k]; });
+  x.tieuDe = td[0]; x.tieuDeDich = td[1]; x.moTa = mt[0]; x.moTaDich = mt[1];
   x.han = han;
   x.anhTao = x.anhTao.concat(anhSC(p.anh, 'cv' + x.so, 'TRUOC')).slice(0, SC_ANH_TOI_DA);
   x.nhatKy.push({ b: 'sua', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: opId });
@@ -761,8 +869,9 @@ function capNhatCongViec(u, p, opId) {
     var m = x.ma ? timMay(x.ma) : null;
     var gan = m ? ganLKDaDung(m, lk, u, lucXong.slice(0, 10), 'Thêm khi làm việc · 工作时添加') : { kho: null, doiMay: false };
     if (!m && lk.length) { var kho = khoNap(); ganKho(lk, 'Dùng cho việc #' + x.so + ' · ' + u.ten, kho); gan.kho = kho; }
-    x.ketQua = kq; x.linhKien = lk; x.lucXong = lucXong; x.anhXong = anhSC(p.anh, 'cv' + x.so, 'SAU');
-    x.nguyenNhan = catChu(p.nguyenNhan, 300);
+    var kqD = songNgu(kq), nnD = songNgu(catChu(p.nguyenNhan, 300));
+    x.ketQua = kqD[0]; x.ketQuaDich = kqD[1]; x.nguyenNhan = nnD[0]; x.nguyenNhanDich = nnD[1];
+    x.linhKien = lk; x.lucXong = lucXong; x.anhXong = anhSC(p.anh, 'cv' + x.so, 'SAU');
     var gio = soHoacRong(p.gioDung);
     x.phutDung = gio !== '' && gio >= 0 && gio <= 24 * 60 ? Math.round(gio * 60) : '';
     if (!x.lucBatDau) x.lucBatDau = lucXong;
@@ -797,7 +906,8 @@ function capNhatCongViec(u, p, opId) {
     throw loi('KHONG_HIEU', 'Bước không hợp lệ: ' + b);
   }
   x.capNhat = bay;
-  x.nhatKy.push({ b: b, luc: bay, uid: u.id, nguoi: u.ten, gc: gc, op: opId });
+  var gcD = gc && DICH_GC.indexOf(b) >= 0 ? songNgu(gc) : [gc, ''];
+  x.nhatKy.push({ b: b, luc: bay, uid: u.id, nguoi: u.ten, gc: gcD[0], gcDich: gcD[1], op: opId });
   if (b === 'xong' && x.trangThai === 'DONG' && x.canKiemTra) x.nhatKy.push({ b: 'kiemtra', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: '' });
   suaDong('CongViec', x._r, cvThanhDong(x));
   tra.congViec = sachCV(x);
@@ -822,7 +932,8 @@ function taoTuMau(vl, homNay, cvs, nvs) {
     var id = 'CVL' + vl.id.replace(/[^A-Za-z0-9]/g, '').toUpperCase() + d.replace(/-/g, '');
     if (cvs.some(function (x) { return x.id === id; })) continue;
     so++;
-    var x = { id: id, so: so, tieuDe: vl.tieuDe, moTa: vl.moTa, loai: vl.loai, uuTien: vl.uuTien, ma: vl.ma, han: d, trangThai: 'CHO_GIAO',
+    var x = { id: id, so: so, tieuDe: vl.tieuDe, tieuDeDich: vl.tieuDeDich || '', moTa: vl.moTa, moTaDich: vl.moTaDich || '',
+      ketQuaDich: '', nguyenNhanDich: '', loai: vl.loai, uuTien: vl.uuTien, ma: vl.ma, han: d, trangThai: 'CHO_GIAO',
       uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: vl.nguoiTao, uidTao: '', lucTao: bay,
       lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: [], anhXong: [], canKiemTra: vl.canKiemTra, nguoiKiemTra: '', lucKiemTra: '',
       lapLai: vl.id, opId: '', capNhat: bay, nguyenNhan: '', phutDung: '', nhatKy: [{ b: 'lap', luc: bay, uid: '', nguoi: vl.nguoiTao, gc: '', op: '' }] };
@@ -860,7 +971,9 @@ function luuViecLap(u, p) {
     ngay = so.sort(function (a, b) { return a - b; }).join(',');
   }
   capNhatTieuDe('ViecLap');
-  var o = { tieuDe: f.tieuDe, moTa: f.moTa, loai: f.loai, uuTien: f.uuTien, ma: f.ma, kieu: kieu, ngay: ngay, uidLam: f.lam ? f.lam.id : '',
+  var td = x ? dichKhiSua(f.tieuDe, x.tieuDe, x.tieuDeDich, p.tieuDeDich) : songNgu(f.tieuDe);
+  var mt = x ? dichKhiSua(f.moTa, x.moTa, x.moTaDich, p.moTaDich) : songNgu(f.moTa);
+  var o = { tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], loai: f.loai, uuTien: f.uuTien, ma: f.ma, kieu: kieu, ngay: ngay, uidLam: f.lam ? f.lam.id : '',
     canKiemTra: f.canKiemTra, hoatDong: p.hoatDong !== false, capNhat: bay };
   if (!x) {
     x = Object.assign({ id: 'VL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(10 + Math.random() * 90), taoDen: congNgay(homNay, -1), nguoiTao: u.ten }, o);
@@ -1891,6 +2004,8 @@ function nangCapLanDau() {
     if (pr.getProperty('NANG_CAP') === PHIEN_BAN) return null;
     Object.keys(BANG).forEach(function (t) { trang(t); capNhatTieuDe(t); });
     var n = tinhLaiTatCa();
+    // Việc ghi từ bản trước chưa có bản dịch: đánh dấu để dịch dần (dichBu, mỗi lần tải dữ liệu vài việc)
+    if (!pr.getProperty('DICH_THIEU')) pr.setProperty('DICH_THIEU', '2000-01-01 00:00:00');
     pr.setProperty('NANG_CAP', PHIEN_BAN);
     return 'Đã nâng cấp lên ' + PHIEN_BAN + ' · tính lại ' + n + ' kỳ';
   } finally { lock.releaseLock(); }
@@ -2117,7 +2232,7 @@ function tomTat(homNay, nhacTruoc) {
   var cv = docCongViec().filter(function (x) { return CV_MO.indexOf(x.trangThai) >= 0; });
   t.cvQua = cv.filter(function (x) { return x.han && x.han < homNay && x.trangThai !== 'CHO_GIAO'; })
     .sort(function (a, b) { return a.han < b.han ? -1 : 1; })
-    .map(function (x) { return { so: x.so, ten: x.tieuDe, nguoi: x.nguoiLam, han: x.han }; });
+    .map(function (x) { return { so: x.so, ten: hai(x.tieuDe, x.tieuDeDich), nguoi: x.nguoiLam, han: x.han }; });
   t.cvCho = cv.filter(function (x) { return x.trangThai === 'CHO_GIAO'; }).length;
   return t;
 }
@@ -2206,6 +2321,7 @@ function noiDungNhac(t, homNay, c, thu) {
 // Trigger hằng ngày (tạo bằng datLichNhac)
 function nhacHangNgay() {
   try { taoViecLap(false); } catch (e) { console.log('taoViecLap: ' + (e && e.message || e)); }
+  try { dichBu(60, true); } catch (e) { console.log('dichBu: ' + (e && e.message || e)); }
   var c = docCaiDat();
   if (!c.tgBat && !c.mailBat) return;
   var homNay = homNayStr(), t = tomTat(homNay, c.nhacTruoc);
@@ -2269,7 +2385,7 @@ var TEN_UU_CV = { GAP: '🔴 Gấp · 紧急', CAO: '🟠 Cao · 高', TB: '' };
 function tinGiaoViec(tin, c) {
   var t = '📋 <b>GIAO VIỆC · 派工</b> → ' + escH(tin.lam.ten) + (tin.phu.length ? ' + ' + escH(tin.phu.map(function (n) { return n.ten; }).join(', ')) : '') + '\n' +
       tin.ds.map(function (x) {
-        return '• #' + x.so + ' ' + escH(x.tieuDe) + (TEN_UU_CV[x.uuTien] ? ' ' + TEN_UU_CV[x.uuTien] : '') + (x.han ? ' — hạn · 期限 ' + ngayVN(x.han).slice(0, 5) : '');
+        return '• #' + x.so + ' ' + escH(hai(x.tieuDe, x.tieuDeDich)) + (TEN_UU_CV[x.uuTien] ? ' ' + TEN_UU_CV[x.uuTien] : '') + (x.han ? ' — hạn · 期限 ' + ngayVN(x.han).slice(0, 5) : '');
       }).join('\n') + '\nGiao bởi · 派工人: ' + escH(tin.boi);
   if (c.linkApp) t += '\n👉 <a href="' + escH(c.linkApp) + '">Mở app · 打开应用</a>';
   return t;

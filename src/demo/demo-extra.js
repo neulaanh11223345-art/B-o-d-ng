@@ -180,6 +180,18 @@ function mauKho() {
   if (meta.nhap) { meta.nhap.luc = '2026-09-26 16:30:00'; ghiKhoMeta(meta); }
 }
 
+// Câu mẫu cho Google Dịch giả của bản xem thử (bản thật dùng Google Dịch, dịch được mọi câu)
+__dichMau.push(
+  ['Thay vòi nước nhà vệ sinh xưởng 1', '更换一车间卫生间水龙头'], ['Máy hút bụi VKY03 không chạy', '吸尘器VKY03不运转'],
+  ['Thay chổi than motor', '更换电机碳刷'], ['Đã thay 2 vòi, hết rò', '已更换2个水龙头，不再漏水'],
+  ['Đã thay 4 bóng LED, kiểm tra sáng đều', '已更换4个LED灯，检查亮度均匀'], ['Thay aptomat 3 pha, siết lại đầu cốt motor', '更换三相空气开关，重新紧固电机接线端子'],
+  ['Hao mòn', '自然磨损'], ['Thiếu bảo dưỡng', '保养不足'], ['Vận hành sai', '操作不当'], ['Lỗi điện', '电气故障'], ['Lỗi cơ khí', '机械故障'],
+  ['Lỗi khí nén / thuỷ lực', '气动/液压故障'], ['Chờ vật tư', '等待材料'], ['Chờ bóng đèn', '等灯泡'], ['Chờ dừng máy', '等待停机'],
+  ['Còn 1 bóng chập chờn', '还有1个灯时亮时不亮'], ['Thay bóng đèn', '更换灯泡'], ['Vệ sinh máy', '清洁设备'], ['Kiểm tra', '检查'],
+  ['Kiểm tra bình chữa cháy', '检查灭火器'], ['Vệ sinh nhà ăn', '清洁食堂'], ['Sửa máy', '修理设备'], ['Thay dầu máy nén khí', '更换空压机机油'],
+  ['Thay vòi nước xưởng 1', '更换一车间水龙头'], ['Lắp quạt', '安装风扇'], ['Không cần nữa', '不需要了']
+);
+
 // Thêm 3 kỹ thuật viên mẫu và công việc mẫu (đủ trạng thái), việc lặp lại mẫu
 function mauNhanVien() {
   if (dsNguoiDung().length > 3) return;
@@ -197,9 +209,13 @@ function mauCongViec() {
   var nv = {}; nvs.forEach(function (n) { nv[n.maNV] = n; });
   var ql = nv.NV002, so = 0;
   function luc(n, gio) { return congNgay(hn, n) + ' ' + gio + ':00'; }
+  // Câu mẫu viết sẵn "tiếng Việt · 中文" → [chữ gốc, bản dịch] (không gọi dịch)
+  function tach(t) { var i = String(t || '').indexOf(' · '); return i > 0 ? [t.slice(0, i), t.slice(i + 3)] : [t || '', '']; }
   function viec(o) {
     so++;
-    var tao = o.tao || ql, x = { id: 'CVMAU' + (so < 10 ? '0' : '') + so, so: so, tieuDe: o.t, moTa: o.mt || '', loai: o.l, uuTien: o.u || 'TB', ma: o.ma || '',
+    var td = tach(o.t), mt = tach(o.mt);
+    var tao = o.tao || ql, x = { id: 'CVMAU' + (so < 10 ? '0' : '') + so, so: so, tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1],
+      ketQuaDich: '', nguyenNhanDich: '', loai: o.l, uuTien: o.u || 'TB', ma: o.ma || '',
       han: o.han === undefined ? '' : congNgay(hn, o.han), trangThai: 'CHO_GIAO', uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '',
       nguoiTao: tao.ten, uidTao: tao.id, lucTao: luc(o.tu || -1, '08:05'), lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: [], anhXong: [],
       canKiemTra: o.kt === undefined ? !!CV_LOAI[o.l] || o.u === 'GAP' : o.kt, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: '', capNhat: bay, nguyenNhan: '', phutDung: '',
@@ -211,13 +227,14 @@ function mauCongViec() {
     }
     (o.buoc || []).forEach(function (b) {
       var ng = nv[o.lam], l = luc(b[1], b[2]);
-      x.nhatKy.push({ b: b[0], luc: l, uid: ng.id, nguoi: ng.ten, gc: b[3] || '', op: '' });
+      var gc = tach(b[3]);
+      x.nhatKy.push({ b: b[0], luc: l, uid: ng.id, nguoi: ng.ten, gc: b[0] === 'xong' ? '' : gc[0], gcDich: b[0] === 'xong' ? '' : gc[1], op: '' });
       if (b[0] === 'batdau') { x.trangThai = 'DANG_LAM'; x.lucBatDau = l; }
       if (b[0] === 'hoan') x.trangThai = 'TAM_HOAN';
-      if (b[0] === 'xong') { x.trangThai = x.canKiemTra ? 'XONG' : 'DONG'; x.lucXong = l; x.ketQua = b[3]; x.nhatKy[x.nhatKy.length - 1].gc = ''; }
+      if (b[0] === 'xong') { x.trangThai = x.canKiemTra ? 'XONG' : 'DONG'; x.lucXong = l; x.ketQua = gc[0]; x.ketQuaDich = gc[1]; }
     });
     if (o.lk) x.linhKien = o.lk;
-    if (o.nn) x.nguyenNhan = o.nn;
+    if (o.nn) { x.nguyenNhan = tach(o.nn)[0]; x.nguyenNhanDich = tach(o.nn)[1]; }
     if (o.dung !== undefined) x.phutDung = o.dung;
     if (o.dong && x.trangThai === 'XONG') {
       x.trangThai = 'DONG'; x.nguoiKiemTra = ql.ten; x.lucKiemTra = congNgay(hn, o.han) + ' 16:30:00';
@@ -260,11 +277,11 @@ function mauCongViec() {
   ];
   themNhieu('CongViec', ds.map(cvThanhDong));
   themNhieu('ViecLap', [
-    { id: 'VLMAU1', tieuDe: 'Kiểm tra bình chữa cháy toàn nhà máy · 检查全厂灭火器', moTa: '', loai: 'KHAC', uuTien: 'TB', ma: '', kieu: 'tuan', ngay: '1',
+    { id: 'VLMAU1', tieuDe: 'Kiểm tra bình chữa cháy toàn nhà máy', tieuDeDich: '检查全厂灭火器', moTa: '', moTaDich: '', loai: 'KHAC', uuTien: 'TB', ma: '', kieu: 'tuan', ngay: '1',
       uidLam: nv.NV006.id, canKiemTra: false, hoatDong: true, taoDen: congNgay(hn, -1), nguoiTao: ql.ten, capNhat: bay },
-    { id: 'VLMAU2', tieuDe: 'Xả nước bình chứa khí nén · 储气罐排水', moTa: '', loai: 'VS', uuTien: 'TB', ma: 'M038', kieu: 'ngay', ngay: '',
+    { id: 'VLMAU2', tieuDe: 'Xả nước bình chứa khí nén', tieuDeDich: '储气罐排水', moTa: '', moTaDich: '', loai: 'VS', uuTien: 'TB', ma: 'M038', kieu: 'ngay', ngay: '',
       uidLam: nv.NV005.id, canKiemTra: false, hoatDong: true, taoDen: congNgay(hn, -1), nguoiTao: ql.ten, capNhat: bay },
-    { id: 'VLMAU3', tieuDe: 'Chạy thử máy phát điện 15 phút · 发电机试运行15分钟', moTa: '', loai: 'KHAC', uuTien: 'CAO', ma: 'M037', kieu: 'thang', ngay: '1,15',
+    { id: 'VLMAU3', tieuDe: 'Chạy thử máy phát điện 15 phút', tieuDeDich: '发电机试运行15分钟', moTa: '', moTaDich: '', loai: 'KHAC', uuTien: 'CAO', ma: 'M037', kieu: 'thang', ngay: '1,15',
       uidLam: '', canKiemTra: true, hoatDong: true, taoDen: congNgay(hn, -1), nguoiTao: ql.ten, capNhat: bay }
   ].map(vlThanhDong));
 }

@@ -163,7 +163,14 @@ assert.match(await text('#syncBtn'), /Chờ mạng|Chờ gửi/);
 await page.click('#meBtn'); await wait();
 await page.uncheck('#simOff'); await wait(1800);
 assert.match(await text('#syncBtn'), /Đã đồng bộ/);
-ok('Kỹ thuật tự ghi việc sửa chữa khi mất mạng, ghi nguyên nhân và giờ dừng máy, có mạng tự gửi');
+// Có mạng lại: máy chủ đã tự dịch tên việc, kết quả, nguyên nhân sang tiếng Trung
+await page.click('.tabs .tab[data-v="cv"]'); await wait();
+await page.click('.chip[data-act="cvLoc"][data-v="all"]'); await wait();
+await page.click('.scrow:has-text("Máy hút bụi VKY03")'); await wait();
+assert.match(await text('.schead'), /吸尘器VKY03不运转/);
+assert.match(await text('.scres'), /更换电机碳刷/);
+assert.match(await text('.scres'), /自然磨损/);
+ok('Kỹ thuật tự ghi việc sửa chữa khi mất mạng, ghi nguyên nhân và giờ dừng máy, có mạng tự gửi và tự dịch sang tiếng Trung');
 
 // 10. Công việc: Quản lý ghi việc và giao luôn; giao nhiều việc một lần; nhân viên thấy ở "Việc của tôi", làm xong; Quản lý kiểm tra
 await logout();
@@ -181,6 +188,14 @@ await shot('12-ghi-viec');
 await page.click('#cvOk'); await wait(900);
 assert.match(await text('.schead'), /Đã giao/);
 assert.match(await text('.schead'), /Lê Minh Tiến/);
+assert.match(await text('.schead'), /更换一车间卫生间水龙头/, 'tự dịch tên việc sang tiếng Trung');
+// Quản lý sửa tay bản dịch
+await page.click('[data-act="cvEdit"]'); await wait();
+assert.equal(await page.inputValue('#cvTDd'), '更换一车间卫生间水龙头');
+await page.fill('#cvTDd', '更换一车间厕所水龙头');
+await shot('12b-sua-ban-dich');
+await page.click('#cvOk'); await wait(900);
+assert.match(await text('.schead'), /更换一车间厕所水龙头/);
 await page.click('.tabs .tab[data-v="home"]'); await wait();
 await page.click('.mtile:has-text("Công việc")'); await wait();
 await page.click('[data-act="go"][data-v="cvGiao"]'); await wait();
@@ -200,6 +215,7 @@ await page.click('[data-act="cvXong"]'); await wait();
 await page.fill('#cxKQ', 'Đã thay 2 vòi, hết rò');
 await page.click('#cxOk'); await wait(900);
 assert.match(await text('.schead'), /Chờ kiểm tra/);
+assert.match(await text('.scres'), /已更换2个水龙头，不再漏水/, 'kết quả nhân viên ghi cũng được dịch');
 await logout();
 await login('NV002', '222222');
 await page.click('.alert:has-text("chờ kiểm tra")'); await wait();

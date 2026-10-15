@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.3.0');
+  assert.equal(d.phienBan, '2.4.0');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -372,4 +372,91 @@ test('việc lặp lại: sinh việc đúng ngày, giao sẵn người làm, kh
   // Nhắc hằng ngày có mục việc quá hạn
   const t = b.ctx.tomTat('2026-10-17', 3);
   assert.ok(t.cvQua.length > 0);
+});
+
+// ===================== Tự dịch Việt ↔ Trung =====================
+test('tự dịch: dịch khi lưu (Việt → Trung, Trung → Việt), tách "Việt · 中文", sửa tay không bị dịch đè, kết quả / nguyên nhân / lý do cũng dịch', () => {
+  const b = setupSC();
+  b.ctx.__dichMau.push(['Thay đèn xưởng 2', '更换二车间灯'], ['Đèn xưởng 2 bị cháy', '二车间灯烧坏了'], ['Thay phớt máy bơm', '更换水泵密封圈'],
+    ['Đã thay 4 bóng', '已更换4个灯泡'], ['Lỗi điện', '电气故障'], ['Chờ bóng đèn', '等灯泡'], ['Thay đèn xưởng 3', '更换三车间灯']);
+  const a = ok(viec(b, b.ql, { tieuDe: 'Thay đèn xưởng 2', moTa: 'Đèn xưởng 2 bị cháy', loai: 'SUA' })).congViec;
+  assert.deepEqual([a.tieuDe, a.tieuDeDich, a.moTaDich], ['Thay đèn xưởng 2', '更换二车间灯', '二车间灯烧坏了']);
+  // Người Trung gõ tiếng Trung → dịch sang tiếng Việt
+  const z = ok(viec(b, b.kt, { tieuDe: '更换水泵密封圈' })).congViec;
+  assert.deepEqual([z.tieuDe, z.tieuDeDich], ['更换水泵密封圈', 'Thay phớt máy bơm']);
+  // Gõ sẵn hai thứ tiếng → tách đôi, không gọi Google
+  let goi = b.ctx.__dich.goi;
+  const h = ok(viec(b, b.ql, { tieuDe: 'Lắp quạt · 安装风扇' })).congViec;
+  assert.deepEqual([h.tieuDe, h.tieuDeDich, b.ctx.__dich.goi], ['Lắp quạt', '安装风扇', goi]);
+  // Chỉ có mã / số → không dịch
+  assert.equal(ok(viec(b, b.ql, { tieuDe: 'M001 - 2026' })).congViec.tieuDeDich, '');
+  // Sửa hạn, không đổi chữ → giữ bản dịch, không gọi Google lại
+  goi = b.ctx.__dich.goi;
+  const sua = (more) => ok(viec(b, b.ql, Object.assign({ id: a.id, tieuDe: 'Thay đèn xưởng 2', moTa: 'Đèn xưởng 2 bị cháy', loai: 'SUA' }, more))).congViec;
+  assert.equal(sua({ han: '2026-10-07' }).tieuDeDich, '更换二车间灯');
+  assert.equal(b.ctx.__dich.goi, goi);
+  // Sửa tay bản dịch → dùng bản sửa tay; lần sửa sau không bị dịch đè
+  assert.equal(sua({ tieuDeDich: '更换2号车间照明灯' }).tieuDeDich, '更换2号车间照明灯');
+  assert.equal(sua({ han: '2026-10-08' }).tieuDeDich, '更换2号车间照明灯');
+  // Gửi bản dịch rỗng = nhờ dịch lại; đổi chữ gốc → dịch lại
+  assert.equal(sua({ tieuDeDich: '' }).tieuDeDich, '更换二车间灯');
+  assert.equal(sua({ tieuDe: 'Thay đèn xưởng 3' }).tieuDeDich, '更换三车间灯');
+  // Lý do tạm hoãn, kết quả, nguyên nhân được dịch
+  const kt = ok(b.call('data', {}, b.ql)).nhanVien.find((n) => n.maNV === 'NV003');
+  ok(b.call('assignTasks', { ids: [a.id], uidLam: kt.id }, b.ql));
+  const hn = ok(buocCV(b, b.kt, a.id, 'hoan', { ghiChu: 'Chờ bóng đèn' })).congViec;
+  assert.equal(hn.nhatKy[hn.nhatKy.length - 1].gcDich, '等灯泡');
+  const xg = ok(buocCV(b, b.kt, a.id, 'xong', { ketQua: 'Đã thay 4 bóng', nguyenNhan: 'Lỗi điện' })).congViec;
+  assert.deepEqual([xg.ketQuaDich, xg.nguyenNhanDich], ['已更换4个灯泡', '电气故障']);
+  // Đọc được bản dịch trực tiếp trên sheet
+  const H = b.ctx.BANG.CongViec, row = b.ctx.docTho('CongViec').find((r) => r[0] === a.id);
+  assert.deepEqual([row[H.indexOf('TieuDeDich')], row[H.indexOf('KetQuaDich')]], ['更换三车间灯', '已更换4个灯泡']);
+  // Tin Telegram giao việc có cả hai thứ tiếng
+  ok(b.call('notifySave', { tgToken: '123:abc', tgChat: '-100123', tgBat: true }, b.ad));
+  b.ctx.__net.log.length = 0;
+  ok(viec(b, b.ql, { tieuDe: 'Thay phớt máy bơm', uidLam: kt.id }));
+  assert.match(String(b.ctx.__net.log.find((l) => /sendMessage/.test(l.url)).opt.payload), /Thay phớt máy bơm · 更换水泵密封圈/);
+});
+
+test('tự dịch: Google lỗi / hết hạn mức thì việc vẫn lưu, 1 giờ sau tự dịch bù; việc lặp lại dịch một lần ở mẫu', () => {
+  const b = setupSC();
+  b.ctx.__dichMau.push(['Kiểm tra bình chữa cháy', '检查灭火器'], ['Vệ sinh nhà ăn', '清洁食堂']);
+  b.ctx.__dich.loi = true;
+  const l = ok(viec(b, b.ql, { tieuDe: 'Kiểm tra bình chữa cháy' })).congViec;
+  assert.deepEqual([l.trangThai, l.tieuDeDich], ['CHO_GIAO', '']);
+  assert.ok(b.ctx.PropertiesService.getScriptProperties().getProperty('DICH_THIEU'), 'đánh dấu còn thiếu bản dịch');
+  b.ctx.__dich.loi = false;
+  let d = ok(b.call('data', {}, b.ql));
+  assert.equal(d.congViec.find((v) => v.id === l.id).tieuDeDich, '', 'chưa đủ 1 giờ thì chưa dịch bù');
+  b.setNow('2026-10-05T04:30:00Z');
+  d = ok(b.call('data', {}, b.ql));
+  assert.equal(d.congViec.find((v) => v.id === l.id).tieuDeDich, '检查灭火器');
+  assert.equal(b.ctx.PropertiesService.getScriptProperties().getProperty('DICH_THIEU'), null, 'dịch xong thì bỏ dấu');
+  // Việc lặp lại: dịch ở mẫu một lần, việc sinh ra mỗi ngày dùng lại bản dịch
+  const goi = b.ctx.__dich.goi;
+  const r = ok(b.call('saveRecurring', { tieuDe: 'Vệ sinh nhà ăn', loai: 'VS', kieu: 'ngay' }, b.ql));
+  assert.equal(r.viecLap.tieuDeDich, '清洁食堂');
+  assert.equal(r.dsCongViec[0].tieuDeDich, '清洁食堂');
+  b.setNow('2026-10-07T03:00:00Z');
+  d = ok(b.call('data', {}, b.ql));
+  assert.ok(d.congViec.filter((v) => v.lapLai === r.viecLap.id).every((v) => v.tieuDeDich === '清洁食堂'));
+  assert.equal(b.ctx.__dich.goi, goi + 1, 'chỉ gọi Google một lần cho mẫu');
+  // Xác nhận bảo dưỡng đóng việc bảo dưỡng: kết quả có sẵn hai thứ tiếng
+  const kt = d.nhanVien.find((n) => n.maNV === 'NV003');
+  ok(viec(b, b.ql, { tieuDe: 'Bảo dưỡng M001', loai: 'BD', ma: 'M001', uidLam: kt.id }));
+  const c = ok(b.call('confirm', { ma: 'M001', ngay: '2026-10-07', nguoi: 'Kỹ thuật' }, b.kt)).dsCongViec[0];
+  assert.match(c.ketQuaDich, /已确认保养 07\/10\/2026/);
+});
+test('tự dịch: nâng cấp từ bản cũ thì việc đã ghi trước đó cũng được dịch dần', () => {
+  const b = setupSC();
+  b.ctx.__dichMau.push(['Thay bóng đèn kho', '更换仓库灯泡']);
+  ok(b.call('data', {}, b.ql));
+  const id = ok(viec(b, b.ql, { tieuDe: 'Thay bóng đèn kho' })).congViec.id;
+  const x = b.ctx.docCongViec().find((v) => v.id === id);
+  x.tieuDeDich = ''; b.ctx.suaDong('CongViec', x._r, b.ctx.cvThanhDong(x));    // như việc ghi ở bản 2.3, chưa có cột dịch
+  const pr = b.ctx.PropertiesService.getScriptProperties();
+  pr.setProperty('NANG_CAP', '2.3.0');
+  const d = ok(b.call('data', {}, b.ql));
+  assert.equal(d.congViec.find((v) => v.id === id).tieuDeDich, '更换仓库灯泡');
+  assert.equal(pr.getProperty('DICH_THIEU'), null, 'dịch hết thì bỏ dấu');
 });
