@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.9.0
+# Credible Việt Nam CMMS · 设备管理 — v2.10.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.9.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.10.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.9.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.9.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.10.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.10.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,14 +24,14 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.9.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.10.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
-| Mã nhân viên | PIN | Vai trò |
-|---|---|---|
-| NV001 | 111111 | Quản trị |
-| NV002 | 222222 | Quản lý |
-| NV003 | 333333 | Kỹ thuật |
-| NV004 / NV005 / NV006 | 444444 / 555555 / 666666 | Kỹ thuật (chỉ có trong bản xem thử, để thử giao việc) |
+| Mã nhân viên | PIN | Vai trò | Xem được |
+|---|---|---|---|
+| NV001 | 111111 | Quản trị | Tất cả, thêm phần cài đặt máy chủ |
+| NV002 | 222222 | Quản lý | Tất cả |
+| NV003 | 333333 | Kỹ thuật | Điện/Nước, Sửa chữa, Bảo dưỡng |
+| NV004 / NV005 / NV006 | 444444 / 555555 / 666666 | Kỹ thuật (chỉ có trong bản xem thử, để thử giao việc) | Điện/Nước, Sửa chữa, Bảo dưỡng |
 
 Muốn thử cảnh mất mạng: vào **Cá nhân → Giả lập mất mạng**.
 
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.9.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.10.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.9.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.10.0.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -96,6 +96,45 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Việc chờ gửi chỉ được gửi khi app đang mở và có mạng. iOS không có gửi ngầm.
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
+
+## Điểm mới của v2.10.0: phân quyền xem theo vai trò
+
+- **Quản lý, Quản trị:** xem được tất cả, như trước.
+- **Kỹ thuật** (các tài khoản còn lại) chỉ xem được ba mục:
+  - **Điện / Nước:** ghi số, xem kỳ, công tơ;
+  - **Sửa chữa:** việc sửa chữa, Ghi sửa chữa, Lịch sử sửa chữa, sổ tay xử lý;
+  - **Bảo dưỡng:** lịch bảo dưỡng, xác nhận bảo dưỡng, lịch sử bảo dưỡng.
+- **Thanh dưới của kỹ thuật:** Trang chủ · Bảo dưỡng · [Quét QR] · Sửa chữa · Điện/Nước. Trên máy tính, thanh bên cũng chỉ còn các mục đó.
+- **Trang chủ của kỹ thuật:** Tổng quan còn các ô Sửa chữa, Bảo dưỡng, Điện, Nước. Không còn ô Thiết bị, Công việc, Linh kiện. Cảnh báo "Máy quá hạn / đến hạn" mở thẳng nhóm máy đó ở Bảo dưỡng.
+- **Kỹ thuật không xem được:**
+  - danh sách Thiết bị;
+  - kho Linh kiện, tab Linh kiện trong hồ sơ máy, phần linh kiện / ERP của chuyền;
+  - Giao việc, Việc lặp lại, Báo cáo tháng, In tem QR;
+  - việc của người khác không thuộc Sửa chữa / Bảo dưỡng.
+
+  Mở các màn đó (ví dụ bằng link cũ) thì app báo "Chỉ Quản lý".
+- **Kỹ thuật vẫn làm được:**
+  - mở hồ sơ máy, hồ sơ chuyền từ Bảo dưỡng, Sửa chữa hoặc quét QR;
+  - xem mọi việc Sửa chữa / Bảo dưỡng và việc của mình;
+  - ghi việc, báo hỏng;
+  - chọn linh kiện của máy khi xác nhận bảo dưỡng hoặc báo xong việc. Không thấy số tồn kho.
+- **Máy chủ cũng chặn**, không chỉ ẩn trên app:
+  - tài khoản kỹ thuật không nhận dữ liệu kho, việc lặp lại, việc ngoài phạm vi;
+  - gọi tải kho thì báo "Không có quyền".
+- **Nâng cấp:** dán `Code.gs-v2.10.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Khi máy chủ còn bản cũ, app vẫn ẩn các mục trên nhưng máy chủ chưa chặn dữ liệu.
+
+## Điểm mới của v2.9.1: sửa chữa chọn theo chuyền sản xuất
+
+- Ô **Thiết bị** ở **Ghi sửa chữa** và ở việc loại **Sửa chữa** chỉ còn:
+  - **chuyền sản xuất** (máy chính), ví dụ VKY01 hoặc mã hiển thị H2506;
+  - **máy ngoài chuyền**: máy nén khí, máy đóng bao, điều hoà, bơm, tủ điện…
+- Máy thuộc chuyền (máy in phun, máy hút bụi…) không chọn riêng. Mở Ghi sửa chữa từ hồ sơ của máy đó thì app tự chọn chuyền của nó.
+- Việc bảo dưỡng vẫn chọn từng máy như cũ.
+- **Hiển thị:**
+  - sửa chữa ghi theo chuyền hiện ở **Lịch sử sự cố của chuyền**, Lịch sử sửa chữa, file Excel 疑难故障 (cột mã thiết bị là mã chuyền + tên chuyền), gợi ý cách xử lý và sổ tay xử lý;
+  - trang chuyền có nút **Ghi sửa chữa chuyền …**;
+  - hồ sơ máy thuộc chuyền có lối sang lịch sử sửa chữa của chuyền.
+- Nâng cấp: dán `Code.gs-v2.9.1.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ cũ (2.9.0) chưa nhận mã chuyền, nên app giữ danh sách máy như trước cho tới khi cập nhật.
 
 ## Điểm mới của v2.9.0: sao lưu tự động, tài liệu máy, tiền điện, gợi ý cách xử lý
 
@@ -398,6 +437,6 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 23 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
-node tests/e2e.mjs                      # 11 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
+node --test tests/backend.test.mjs      # 32 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node tests/e2e.mjs                      # 12 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```

@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.9.0');
+  assert.equal(d.phienBan, '2.10.0');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -716,4 +716,52 @@ test('giá điện: mặc định giá EVN 22 kV, sửa theo ngày áp dụng, V
   assert.deepEqual(ok(b.call('saveSanLuong', { thang: '2026-09', sl: '12 500 000' }, ql)).caiDat.sanLuong, { '2026-09': 12500000 });
   assert.deepEqual(ok(b.call('saveSanLuong', { thang: '2026-09', sl: '' }, ql)).caiDat.sanLuong, {});
   err(b.call('saveSanLuong', { thang: '2026-13', sl: 5 }, ql), 'SO_SAI');
+});
+
+test('sửa chữa ghi theo chuyền: thiết bị là mã chuyền (máy chính) hoặc máy ngoài chuyền; mã lạ báo lỗi', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222');
+  ok(b.call('data', {}, ql));
+  const r = ok(b.call('saveRepair', { moTa: 'Chuyền 01 dừng do kẹt vật liệu ở cụm cắt', ketQua: 'Gỡ kẹt, chỉnh dao cắt', ma: 'vky01', gioDung: 0.5 }, ql)).congViec;
+  assert.deepEqual([r.ma, r.trangThai, r.nguon], ['VKY01', 'DONG', 'SC']);
+  const v = ok(b.call('saveTask', { tieuDe: 'Kiểm tra cụm dán keo chuyền 16', loai: 'SUA', ma: 'VKY16' }, ql)).congViec;
+  assert.equal(v.ma, 'VKY16');
+  err(b.call('saveRepair', { moTa: 'x', ketQua: 'y', ma: 'VKY99' }, ql), 'KHONG_CO_MAY');
+  // Máy ngoài chuyền vẫn chọn được
+  assert.equal(ok(b.call('saveRepair', { moTa: 'Máy nén khí kêu to', ketQua: 'Siết bu lông', ma: 'M038' }, ql)).congViec.ma, 'M038');
+});
+
+test('phân quyền xem: Quản lý, Quản trị thấy hết; kỹ thuật chỉ việc của mình và mọi việc Sửa chữa / Bảo dưỡng, không xem kho, việc lặp', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ad = b.login('NV001', '111111'), ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333'), kt2 = b.login('NV004', '444444');
+  const d0 = ok(b.call('data', {}, ql)), uid = (ma) => d0.nhanVien.find((n) => n.maNV === ma).id;
+  const viec = (p) => ok(b.call('saveTask', p, ql)).congViec;
+  const vs = viec({ tieuDe: 'Vệ sinh kho nguyên liệu', loai: 'VS', uidLam: uid('NV004') });
+  const sua = viec({ tieuDe: 'Sửa băng tải chuyền 02', loai: 'SUA', ma: 'VKY02', uidLam: uid('NV004') });
+  const bd = viec({ tieuDe: 'Bảo dưỡng máy nén khí', loai: 'BD', ma: 'M038' });
+  const ct = viec({ tieuDe: 'Cải tiến máng hứng dầu', loai: 'CT', uidLam: uid('NV003') });
+  const khac = viec({ tieuDe: 'Sắp xếp tủ dụng cụ', loai: 'KHAC' });
+  const ids = (u) => new Set(ok(b.call('data', {}, u)).congViec.map((x) => x.id));
+  [ad, ql].forEach((u) => { const s = ids(u); [vs, sua, bd, ct, khac].forEach((x) => assert.ok(s.has(x.id), 'quản lý / quản trị thấy ' + x.tieuDe)); });
+  const s = ids(kt);
+  assert.ok(s.has(sua.id) && s.has(bd.id), 'kỹ thuật thấy mọi việc Sửa chữa, Bảo dưỡng (kể cả giao người khác, chưa giao)');
+  assert.ok(s.has(ct.id), 'thấy việc giao cho mình');
+  assert.ok(!s.has(vs.id) && !s.has(khac.id), 'không thấy việc loại khác của người khác');
+  // Việc mình tự ghi (loại khác) thì mình thấy, người khác không
+  const lap = ok(b.call('saveTask', { tieuDe: 'Lắp quạt thông gió', loai: 'LAP' }, kt)).congViec;
+  assert.ok(ids(kt).has(lap.id) && !ids(kt2).has(lap.id) && ids(ql).has(lap.id));
+  // Thấy việc sửa chữa giao người khác nhưng không làm thay được
+  err(b.call('updateTask', { id: sua.id, buoc: 'batdau' }, kt), 'KHONG_QUYEN');
+  // Kho linh kiện, việc lặp lại: chỉ Quản lý, Quản trị
+  const dk = ok(b.call('data', {}, kt)), dq = ok(b.call('data', {}, ql));
+  assert.equal(dk.kho, null);
+  assert.ok(dq.kho && typeof dq.kho === 'object');
+  assert.deepEqual(dk.viecLap, []);
+  err(b.call('catalog', {}, kt), 'KHONG_QUYEN');
+  ok(b.call('catalog', {}, ql)); ok(b.call('catalog', {}, ad));
+  // Điện / nước, máy, lịch sử bảo dưỡng: vẫn đủ để làm việc
+  assert.ok(dk.congTo.length > 0 && dk.may.length === dq.may.length && dk.lichSu.length === dq.lichSu.length);
+  // Lịch sử sửa chữa (bản ghi SC) của người khác: kỹ thuật vẫn xem được
+  const sc = ok(b.call('saveRepair', { moTa: 'Máy nén khí kêu to', ketQua: 'Siết bu lông', ma: 'M038' }, ql)).congViec;
+  assert.ok(ids(kt).has(sc.id));
 });

@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.9.0';
+var PHIEN_BAN = '2.10.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -95,6 +95,7 @@ var QUYEN = {
   thongso: ['admin'],
   khoaky: ['admin', 'quanly'],      // khoá / mở lại kỳ điện, duyệt ngoại lệ, sửa số kỳ đã khoá
   nhatky: ['admin', 'quanly'],
+  xemhet: ['admin', 'quanly'],      // xem mọi mục; tài khoản khác chỉ Điện/Nước, Sửa chữa, Bảo dưỡng
   giaoviec: ['admin', 'quanly']     // giao việc, kiểm tra việc xong, việc lặp lại
 };
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
@@ -269,7 +270,7 @@ function dieuHuong(a, p, req) {
     case 'audit': canQuyen(u, 'nhatky'); return docNhatKy(p);
     case 'saveMeter': canQuyen(u, 'may'); return luuCongTo(u, p);
     case 'saveParams': canQuyen(u, 'thongso'); return luuThongSo(p);
-    case 'catalog': return layKho();
+    case 'catalog': canQuyen(u, 'xemhet'); return layKho();
     case 'importKho': canQuyen(u, 'may'); return nhapKho(u, p);
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
     case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
@@ -524,6 +525,12 @@ function coQuyen(u, q) { return (QUYEN[q] || []).indexOf(u.vaiTro) >= 0; }
 function canQuyen(u, q) { if (!coQuyen(u, q)) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限'); }
 
 // ===================== Dữ liệu =====================
+// Quản lý, Quản trị xem mọi việc. Tài khoản khác (kỹ thuật): việc của mình (tạo / làm / làm cùng) và mọi việc Sửa chữa, Bảo dưỡng
+function xemViec(u, x) {
+  if (coQuyen(u, 'xemhet')) return true;
+  if (x.uidLam === u.id || x.uidTao === u.id || (x.uidPhu || []).indexOf(u.id) >= 0) return true;
+  return x.loai === 'SUA' || x.loai === 'BD';
+}
 function layDuLieu(u) {
   var homNay = homNayStr(), tu = (Number(homNay.slice(0, 4)) - 1) + '-01-01';
   var cd = docCaiDat();
@@ -542,10 +549,10 @@ function layDuLieu(u) {
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam },
     taiLieu: docTaiLieu().filter(function (x) { return !x.xoa; }).map(sachTL),
     khoaKy: docKhoaKy(),
-    congViec: docCongViec().filter(function (x) { return CV_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG' || x.lucTao >= tu; }).map(sachCV),
-    viecLap: docViecLap().map(sachCV),
+    congViec: docCongViec().filter(function (x) { return (CV_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG' || x.lucTao >= tu) && xemViec(u, x); }).map(sachCV),
+    viecLap: coQuyen(u, 'xemhet') ? docViecLap().map(sachCV) : [],
     nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) { return { id: x.id, ten: x.ten, tenZh: x.tenZh, vaiTro: x.vaiTro, maNV: x.maNV }; }),
-    kho: khoTomTat(),
+    kho: coQuyen(u, 'xemhet') ? khoTomTat() : null,
     me: congKhai(u),
     phienBan: PHIEN_BAN
   };
@@ -843,7 +850,8 @@ function cvTruong(p, nvs) {
   var tieuDe = catChu(p.tieuDe, 200);
   if (!tieuDe) throw loi('CAN_TIEU_DE', 'Cần ghi tên việc · 请填写工作名称');
   var ma = s(p.ma).toUpperCase();
-  if (ma && !timMay(ma)) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
+  // Thiết bị: mã máy, hoặc mã chuyền sản xuất (việc sửa chữa ghi theo chuyền = máy chính)
+  if (ma && !timMay(ma) && !dsChuyen().some(function (c) { return c.ma === ma; })) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
   var lam = s(p.uidLam) ? timNV(p.uidLam, nvs) : null;
   if (s(p.uidLam) && !lam) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
   var phu = [];

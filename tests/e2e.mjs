@@ -127,19 +127,36 @@ assert.ok(await page.$eval('#dnForm fieldset', (f) => f.disabled), 'kỳ đã kh
 assert.match(await text('#main'), /Chỉ Quản lý sửa được/);
 ok('Khoá kỳ; kỹ thuật không sửa được số kỳ đã khoá');
 
-// 7. Cảnh báo trang chủ mở đúng danh sách lọc
+// 7. Phân quyền: kỹ thuật chỉ thấy Điện/Nước, Sửa chữa, Bảo dưỡng; cảnh báo trang chủ mở đúng nhóm máy
+await page.click('.tabs .tab[data-v="home"]'); await wait();
+assert.equal(await page.locator('.tabs .tab[data-v="list"]').count(), 0, 'kỹ thuật: không có tab Thiết bị');
+assert.match(await text('.tabs .tab[data-v="cal"]'), /Bảo dưỡng/);
+assert.match(await text('.tabs .tab[data-v="cv"]'), /Sửa chữa/);
+assert.match(await text('.mtiles'), /Sửa chữa/);
+assert.doesNotMatch(await text('.mtiles'), /Linh kiện|Thiết bị|Công việc/, 'Tổng quan chỉ còn Sửa chữa, Bảo dưỡng, Điện, Nước');
+await shot('16-ky-thuat-trang-chu');
+for (const v of ['list', 'kho', 'cvBC', 'labels']) {
+  await page.evaluate((x) => go(x), v); await wait();
+  assert.match(await text('#main'), /chỉ xem được Điện\/Nước, Sửa chữa và Bảo dưỡng/, 'chặn màn ' + v);
+}
+assert.equal(await page.evaluate(() => S.kho.ds.length), 0, 'kỹ thuật không tải kho linh kiện');
+await page.click('.tabs .tab[data-v="cv"]'); await wait();
+assert.match(await text('#barTitle'), /Sửa chữa/);
+assert.equal(await page.locator('[data-act="go"][data-v="cvBC"], [data-act="go"][data-v="cvLap"]').count(), 0, 'không có báo cáo tháng, việc lặp lại');
 await page.click('.tabs .tab[data-v="home"]'); await wait();
 await page.click('.alert:has-text("Máy quá hạn")'); await wait();
-assert.ok(await page.isVisible('.stchips .chip.on:has-text("Quá hạn")'), 'danh sách máy lọc Quá hạn');
-ok('Cảnh báo "Máy quá hạn" mở danh sách máy đã lọc');
+assert.match(await text('#barTitle'), /Bảo dưỡng/);
+assert.ok(await page.locator('.gap.g-qua.mo .gapb .row').count() > 0, 'mở Bảo dưỡng, nhóm Quá hạn mở sẵn');
+ok('Kỹ thuật chỉ thấy Điện/Nước, Sửa chữa, Bảo dưỡng (không Thiết bị, Linh kiện, báo cáo); "Máy quá hạn" mở nhóm quá hạn ở Bảo dưỡng');
 
 // 8. Hồ sơ thiết bị có nút xác nhận bảo dưỡng; xác nhận được
-await page.click('#listBody .row >> nth=0'); await wait();
+await page.click('.gap.g-qua .gapb .row >> nth=0'); await wait();
+assert.equal(await page.locator('.ptabs [data-t="lk"]').count(), 0, 'hồ sơ máy: kỹ thuật không thấy tab Linh kiện');
 await page.click('.bigbtn[data-act="xn"]'); await wait();
 if (await page.isVisible('[data-act="ktAll"]')) await page.click('[data-act="ktAll"]');
 await page.click('#fOk'); await wait(900);
 // Bảo dưỡng · Tổng quan: máy quá hạn gom lại, bấm mới hiện; mỗi chuyền một ô, mở ra thấy máy trong chuyền
-await page.evaluate(() => tab('cal')); await wait();
+await page.evaluate(() => { S.f.mo = {}; tab('cal'); }); await wait();
 assert.ok(await page.isVisible('.gaph[data-k="qua"]'), 'có dòng Quá hạn');
 assert.equal(await page.locator('.gap .gapb').count(), 0, 'mặc định thu gọn');
 await page.click('.gaph[data-k="qua"]'); await wait();
@@ -148,13 +165,7 @@ await page.click('.chtile[data-ma="VKY01"]'); await wait();
 assert.match(await text('#barTitle'), /Chuyền sản xuất/);
 assert.match(await text('#main'), /喷印机 VKY01/);
 assert.match(await text('#main'), /HNJX-HD2000/);
-// Linh kiện của chuyền: đối chiếu tồn ERP, xuất Excel
-await page.click('.gaph[data-k="lkch:VKY01"]'); await wait();
-assert.ok(await page.locator('.lkch .dctag').count() > 0, 'mỗi linh kiện có kết quả đối chiếu ERP');
-assert.ok(await page.evaluate(() => lkChXlsx(chDangDung()).size) > 2000, 'xuất được Excel linh kiện các chuyền');
-// Bảng mẫu linh kiện: tải về rồi đọc lại được (nhập từ Excel)
-const mau = await page.evaluate(async () => { const r = await lkDocFile(new File([lkMauXlsx()], 'mau.xlsx')); return [r.ds.length, r.ds.filter((o) => o.loi.length).length]; });
-assert.ok(mau[0] > 0 && mau[1] === 0, 'bảng mẫu đọc lại đủ dòng, không lỗi máy: ' + mau);
+assert.equal(await page.locator('.gaph[data-k="lkch:VKY01"]').count(), 0, 'kỹ thuật không thấy linh kiện / ERP của chuyền');
 ok('Xác nhận bảo dưỡng từ hồ sơ thiết bị; Bảo dưỡng gọn (quá hạn bấm mới hiện), xem máy theo chuyền');
 
 // 9. Kỹ thuật thấy máy hỏng: tự ghi việc sửa chữa (mất mạng vẫn ghi được), ghi nguyên nhân + giờ dừng máy
@@ -166,9 +177,13 @@ await page.click('.cta2'); await wait();
 assert.match(await text('#barTitle'), /Ghi việc/);
 await page.fill('#cvTD', 'Máy hút bụi VKY03 không chạy');
 await page.check('#cvTuLam'); await wait();
-await page.selectOption('#cvMa', 'M020');
+// Việc sửa chữa chỉ chọn chuyền (máy chính) hoặc máy ngoài chuyền: máy hút bụi VKY03 thuộc chuyền VKY03 nên không có trong danh sách
+assert.equal(await page.locator('#cvMa option[value="M020"]').count(), 0, 'máy thuộc chuyền không chọn riêng khi sửa chữa');
+assert.equal(await page.locator('#cvMa option[value="M038"]').count(), 1, 'máy ngoài chuyền vẫn chọn được');
+await page.selectOption('#cvMa', 'VKY03');
 await page.click('#cvOk'); await wait(900);
 assert.match(await text('.schead'), /Đã giao/);
+assert.match(await text('.scmayl'), /Chuyền VKY03/);
 await page.click('[data-act="cvXong"]'); await wait();
 await page.fill('#cxKQ', 'Thay chổi than motor');
 await page.click('[data-act="cxNNChon"][data-k="nn_mon"]');
@@ -216,12 +231,16 @@ assert.match(await text('.schead'), /更换一车间厕所水龙头/);
 await page.click('.tabs .tab[data-v="home"]'); await wait();
 await page.click('.mtile:has-text("Công việc")'); await wait();
 await page.click('[data-act="go"][data-v="cvGiao"]'); await wait();
+// Số việc chờ giao đổi theo ngày chạy (việc lặp lại ngày 1 và 15 hằng tháng), nên đếm trước khi giao
+const choTruoc = await page.evaluate(() => S.V.cv.filter((x) => x.trangThai === 'CHO_GIAO').length);
 await page.click('.cvpick >> nth=0'); await page.click('.cvpick >> nth=1');
 await page.click('.nvc:has-text("Nguyễn Tuấn")'); await wait();
 assert.match(await text('#cgLbl'), /Giao 2 việc cho Nguyễn Tuấn/);
 await shot('13-giao-viec');
 await page.click('#cgOk'); await wait(900);
-assert.match(await text('.chip[data-act="cvLoc"][data-v="cho"]'), /Chờ giao.*2/s, 'còn 2 việc chờ giao');
+const chipCho = await text('.chip[data-act="cvLoc"][data-v="cho"]');
+if (choTruoc > 2) assert.match(chipCho, new RegExp('Chờ giao.*' + (choTruoc - 2), 's'), 'còn ' + (choTruoc - 2) + ' việc chờ giao');
+else assert.doesNotMatch(chipCho, /\d/, 'hết việc chờ giao');
 await logout();
 await login('NV004', '444444');
 assert.match(await text('#main'), /Việc của tôi/);
@@ -258,11 +277,22 @@ assert.equal(await page.inputValue('#cvTD'), 'Bảo dưỡng 喷印机 VKY01');
 await page.click('.nvc:has-text("Nguyễn Tuấn")'); await wait();
 await page.click('#cvOk'); await wait(900);
 assert.match(await text('.schead'), /保养 喷印机 VKY01/);
-ok('Công việc: ghi và giao, giao nhiều việc, nhân viên làm xong, Quản lý kiểm tra; báo cáo tháng + Excel; giao bảo dưỡng có sẵn tiếng Trung');
+// Quản lý xem được linh kiện của chuyền: đối chiếu tồn ERP, xuất Excel
+await page.evaluate(() => khoLoad()); await wait();
+await page.evaluate(() => go('chuyen', { ma: 'VKY01' })); await wait();
+await page.click('.gaph[data-k="lkch:VKY01"]'); await wait();
+assert.ok(await page.locator('.lkch .dctag').count() > 0, 'mỗi linh kiện có kết quả đối chiếu ERP');
+assert.ok(await page.evaluate(() => S.kho.ds.length) > 0, 'Quản lý tải lại kho linh kiện');
+assert.ok(await page.evaluate(() => lkChXlsx(chDangDung()).size) > 2000, 'xuất được Excel linh kiện các chuyền');
+// Bảng mẫu linh kiện: tải về rồi đọc lại được (nhập từ Excel)
+const mau = await page.evaluate(async () => { const r = await lkDocFile(new File([lkMauXlsx()], 'mau.xlsx')); return [r.ds.length, r.ds.filter((o) => o.loi.length).length]; });
+assert.ok(mau[0] > 0 && mau[1] === 0, 'bảng mẫu đọc lại đủ dòng, không lỗi máy: ' + mau);
+ok('Công việc: ghi và giao, giao nhiều việc, nhân viên làm xong, Quản lý kiểm tra; báo cáo tháng + Excel; giao bảo dưỡng có sẵn tiếng Trung; linh kiện chuyền');
 
 // 11. Máy tính: sidebar, bảng có tiêu đề, phân trang
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.click('.side .nav[data-v="list"]'); await wait(600);
+await page.click('.stchips .chip[data-st="qua"]'); await wait(600);
 assert.ok(await page.isVisible('table.dt thead'), 'bảng thiết bị trên máy tính');
 assert.match(await text('.pager'), /kết quả/);
 await shot('07-desktop-list');
