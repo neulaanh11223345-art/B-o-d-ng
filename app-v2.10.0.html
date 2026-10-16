@@ -1277,7 +1277,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.9.1";
+const APP_VER = "2.10.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -1582,7 +1582,7 @@ let DEV = store.get('bd_dev', '');
 if (!DEV) { DEV = 'd' + uid(); store.set('bd_dev', DEV); }
 
 function apiUrl() { return (typeof API_URL === 'string' && API_URL) || store.get('bd_api', ''); }
-const ROLE_OK = { confirm: ['admin', 'quanly', 'kythuat'], may: ['admin', 'quanly'], huy: ['admin', 'quanly'], admin: ['admin'], giaoviec: ['admin', 'quanly'] };
+const ROLE_OK = { confirm: ['admin', 'quanly', 'kythuat'], may: ['admin', 'quanly'], huy: ['admin', 'quanly'], admin: ['admin'], giaoviec: ['admin', 'quanly'], xemhet: ['admin', 'quanly'] };
 const can = (q) => !!(S.me && ROLE_OK[q].indexOf(S.me.vaiTro) >= 0);
 function errMsg(e) {
   const c = (e && e.code) || 'LOI';
@@ -1639,9 +1639,12 @@ function saveQ() { store.set('bd_q', S.Q); }
 async function refresh(silent) {
   try {
     const d = await api('data');
+    // Cập nhật người dùng trước khi dựng lại dữ liệu: vai trò quyết định phần được xem
+    const vtCu = S.me && S.me.vaiTro;
+    if (d.me) { S.me = d.me; store.set('bd_me', d.me); }
     S.base = d; S.lastLoad = Date.now(); saveSnap(); rebuild();
     khoSync();
-    if (d.me) { S.me = d.me; store.set('bd_me', d.me); }
+    if (vtCu && S.me && vtCu !== S.me.vaiTro && $('#main')) { shell(); render(); }
     softRender();
     openDeep(true);
     if (S.Q.some((q) => q.st === 'cho')) flush();
@@ -1833,29 +1836,41 @@ function openSheet(html, after) {
 function closeSheet() { const b = $('#sheetBg'); if (b) b.remove(); }
 const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefined && extra !== '' ? `<span class="cnt">${extra}</span>` : ''}</h2></div>`;
 
+// ----- Phân quyền xem -----
+// Quản lý, Quản trị: xem hết. Tài khoản khác (kỹ thuật): chỉ Điện/Nước, Sửa chữa, Bảo dưỡng
+// (kèm hồ sơ máy / chuyền mở từ các mục đó, quét QR, trang cá nhân).
+const xemHet = () => can('xemhet');
+const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
+  'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo']);
+const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
+// Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
 const SIDE = [['home', 'home', 'home'], ['cv', 'navCV', 'list'], ['list', 'navMay', 'gear'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'],
   ['dien', 'navDien', 'bolt'], ['kho', 'segKho', 'box'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
+const SIDE_HC = [['home', 'home', 'home'], ['cv', 'navSC', 'wrench'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'], ['dien', 'navDien', 'bolt'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
+const sideDS = () => (xemHet() ? SIDE : SIDE_HC);
+const tabGoc = (v) => { const g = TAB_OF[v] || v; return !xemHet() && g === 'list' ? 'cal' : g; };
 function shell() {
   $('#root').innerHTML = `
   <aside class="side" aria-label="${esc(tp('appName'))}">
     <div class="brandrow">${LOGO}<div><b>${esc(tv('factoryShort'))}</b><small>${esc(tz('factoryShort'))}</small></div></div>
-    ${SIDE.map(([v, k, ic]) => `<button class="nav" data-act="tab" data-v="${v}">${IC[ic]}<span>${esc(tv(k))}<small>${esc(tz(k))}</small></span><span class="bdg" id="sb_${v}" hidden></span></button>`).join('')}
+    ${sideDS().map(([v, k, ic]) => `<button class="nav" data-act="tab" data-v="${v}">${IC[ic]}<span>${esc(tv(k))}<small>${esc(tz(k))}</small></span><span class="bdg" id="sb_${v}" hidden></span></button>`).join('')}
     <div class="grow"></div><div class="ver">v${esc(APP_VER)}${IS_DEMO ? ' · demo' : ''}</div>
   </aside>
   <header class="bar"><div class="bar-in">
     <span id="barLead"></span>
     <div class="ttl"><b id="barTitle"></b><small id="barSub"></small></div>
-    <div class="search-g">${IC.search}<input class="inp" id="gq" type="search" placeholder="${esc(tp('timChung'))}" autocomplete="off" enterkeyhint="search"></div>
+    <div class="search-g">${IC.search}<input class="inp" id="gq" type="search" placeholder="${esc(tp(xemHet() ? 'timChung' : 'timChungHC'))}" autocomplete="off" enterkeyhint="search"></div>
     <button class="sync" id="syncBtn" data-act="go" data-v="sync"></button>
     <button class="me" data-act="tab" data-v="me" id="meBtn"></button>
   </div></header>
   <main id="main"></main>
   <nav class="tabs" aria-label="${esc(tp('appName'))}"><div class="tabs-in">
     <button class="tab" data-act="tab" data-v="home"><span class="tabic">${IC.home}<span class="badge" id="bdg" hidden></span></span>${tv('home')}<small>${tz('home')}</small></button>
-    <button class="tab" data-act="tab" data-v="list"><span class="tabic">${IC.gear}</span>${tv('machines')}<small>${tz('machines')}</small></button>
+    ${xemHet() ? `<button class="tab" data-act="tab" data-v="list"><span class="tabic">${IC.gear}</span>${tv('machines')}<small>${tz('machines')}</small></button>`
+    : `<button class="tab" data-act="tab" data-v="cal"><span class="tabic">${IC.cal}</span>${tv('navBD')}<small>${tz('navBD')}</small></button>`}
     <button class="tab" data-act="tab" data-v="scan" aria-label="${esc(tp('scan'))}"><span class="sc">${IC.scan}</span></button>
-    <button class="tab" data-act="tab" data-v="cv"><span class="tabic">${IC.list}<span class="badge" id="bdgC" hidden></span></span>${tv('navCV')}<small>${tz('navCV')}</small></button>
+    <button class="tab" data-act="tab" data-v="cv"><span class="tabic">${xemHet() ? IC.list : IC.wrench}<span class="badge" id="bdgC" hidden></span></span>${tv(xemHet() ? 'navCV' : 'navSC')}<small>${tz(xemHet() ? 'navCV' : 'navSC')}</small></button>
     <button class="tab" data-act="tab" data-v="dien"><span class="tabic">${IC.bolt}<span class="badge" id="bdgE" hidden></span></span>${tv('navDienN')}<small>${tz('navDienN')}</small></button>
   </div></nav>`;
   const gq = $('#gq');
@@ -1878,18 +1893,18 @@ function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w
 function render() {
   const cur = topV(); if (!cur || !$('#main')) return;
   if (cur.v !== 'scan') stopScan();
-  const V = VIEWS[cur.v];
+  const V = xemDuoc(cur.v) ? VIEWS[cur.v] : VIEWS.khongQuyen;
   S.wideNow = isWide();
   $('#main').innerHTML = V.html(cur.p);
   if (V.after) V.after(cur.p);
-  const tk = cur.v === 'mayEdit' && !cur.p.ma ? 't_mayNew' : cur.v === 'dsEdit' && cur.p.k === 'lk' ? 't_dsLK' : TITLES[cur.v];
+  const tk = !xemDuoc(cur.v) ? 't_khongQuyen' : cur.v === 'mayEdit' && !cur.p.ma ? 't_mayNew' : cur.v === 'dsEdit' && cur.p.k === 'lk' ? 't_dsLK' : cur.v === 'cv' && !xemHet() ? 't_cvSC' : TITLES[cur.v];
   $('#barTitle').textContent = tv(tk); $('#barSub').textContent = tz(tk);
   $('#barLead').innerHTML = S.stack.length > 1
     ? `<button class="back" data-act="back" aria-label="${tp('back')}">${IC.left}</button>`
     : `<button class="logo" data-act="tab" data-v="home" aria-label="${tp('home')}">${LOGO}</button>`;
-  const r0 = S.stack[0].v, tabRoot = TAB_OF[r0] || r0;
+  const r0 = S.stack[0].v, tabRoot = tabGoc(r0);
   $$('.tab').forEach((b) => b.classList.toggle('on', b.dataset.v === tabRoot));
-  const sideRoot = S.stack.length > 1 && TAB_OF[cur.v] && SIDE.some((x) => x[0] === cur.v) ? cur.v : r0;
+  const sideRoot = S.stack.length > 1 && TAB_OF[cur.v] && sideDS().some((x) => x[0] === cur.v) ? cur.v : r0;
   $$('.side .nav').forEach((b) => b.classList.toggle('on', b.dataset.v === sideRoot || (b.dataset.v === 'me' && TAB_OF[r0] === 'me')));
   $('#meBtn').textContent = initials(S.me ? S.me.ten : '?');
   $('#meBtn').setAttribute('aria-label', S.me ? S.me.ten : '');
@@ -1961,6 +1976,11 @@ window.addEventListener('popstate', () => {
 
 // ===================== Các màn =====================
 const VIEWS = {};
+VIEWS.khongQuyen = {
+  html() {
+    return `<div class="card empty">${t('khongQuyenXem')}<div class="btns" style="justify-content:center;margin-top:14px"><button class="btn" data-act="tab" data-v="home">${IC.home} ${t('home')}</button></div></div>`;
+  }
+};
 
 // ===================== Chữ mới của bản 2 =====================
 Object.assign(TX, {
@@ -1989,7 +2009,7 @@ Object.assign(TX, {
   aKhoa: ['Kỳ {d} chưa khoá', '{d}期未锁定'], aKho: ['File kho ERP đã {n} ngày chưa cập nhật', 'ERP库存文件已{n}天未更新'],
   aKhoChua: ['Chưa nhập file kho ERP', '尚未导入ERP库存文件'],
   mThietBi: ['Thiết bị', '设备'], mBaoDuong: ['Bảo dưỡng tháng {m}', '{m}月保养'], mDien: ['Điện kỳ {d}', '{d}期用电'], mNuoc: ['Nước kỳ {d}', '{d}期用水'],
-  mLinhKien: ['Linh kiện trong kho', '库存零件'], mDangTD: ['đang theo dõi', '在跟踪'], mXongKH: ['đã xong / kế hoạch', '已完成/计划'],
+  mLinhKien: ['Linh kiện trong kho', '库存零件'], mSuaChua: ['Sửa chữa', '维修'], mScThang: ['{n} lần sửa trong tháng', '本月维修{n}次'], mDangTD: ['đang theo dõi', '在跟踪'], mXongKH: ['đã xong / kế hoạch', '已完成/计划'],
   mDaGhi: ['đã ghi {a}/{b}', '已抄{a}/{b}'], mDuoiMin: ['{n} dưới tối thiểu', '{n}种低于最低库存'], mConHang: ['{n} còn hàng', '{n}种有货'],
   mTongHa: ['tổng hạ áp kỳ {d}', '{d}期低压合计'], mChuaDu: ['kỳ {d} chưa đủ số', '{d}期未抄完'],
   meInfo: ['Tài khoản', '账号'], meMa: ['Mã nhân viên', '员工编号'], meVai: ['Vai trò', '角色'],
@@ -2029,7 +2049,7 @@ function homeAlerts(g) {
       if (kt > kh && dt.ky !== today) add(2, 'lock', 'aKhoa', { d: fmtDM(kt) }, 1, 'data-act="tab" data-v="dien"', ' ');
     }
   }
-  add(1, 'box', 'aLK', null, lkThapDS().length, 'data-act="khoLoc" data-v="thap"');
+  if (xemHet()) add(1, 'box', 'aLK', null, lkThapDS().length, 'data-act="khoLoc" data-v="thap"');
   if (st.k !== 'loi') add(1, 'cloud', 'aCho', null, st.cho, 'data-act="go" data-v="sync"');
   add(2, 'cal', 'aSap', { n: nhacTruoc() }, g.sap.length, 'data-act="listSt" data-st="sap"');
   if (can('may') && S.base && S.base.kho && !srvOld('kho')) {
@@ -2055,10 +2075,15 @@ function modTiles() {
   const act = activeMay(), done = S.V.ls.filter((x) => x.trangThai !== 'HUY' && x.ngay.slice(0, 7) === ym).length;
   let plan = 0; act.forEach((m) => planFor(m, +today.slice(0, 4), today).forEach((k, d) => { if (d.slice(0, 7) === ym) plan++; }));
   const tile = (cls, ic, k, v, big, sub, a) => `<button class="mtile ${cls}" ${a}><span class="mic">${IC[ic]}</span><span class="mtx"><span>${tv(k, v)}<small>${tz(k, v)}</small></span><b>${big}</b>${sub ? `<em>${sub}</em>` : ''}</span></button>`;
-  let h = tile('mt-blue', 'gear', 'mThietBi', null, act.length, t('mDangTD'), 'data-act="tab" data-v="list"');
+  let h = xemHet() ? tile('mt-blue', 'gear', 'mThietBi', null, act.length, t('mDangTD'), 'data-act="tab" data-v="list"') : '';
   const cvm = S.V.cv.filter(cvMo), cvq = cvm.filter(cvQua).length, cvc = cvm.filter((x) => x.trangThai === 'CHO_GIAO').length;
-  h += tile('mt-orange', 'list', 'mCongViec', null, `${cvm.length}<small> ${esc(tv('mCvMo'))}</small>`,
+  if (xemHet()) h += tile('mt-orange', 'list', 'mCongViec', null, `${cvm.length}<small> ${esc(tv('mCvMo'))}</small>`,
     cvq ? `<span class="warnx">${t('mCvQua', { n: cvq })}</span>` : cvc ? t('mCvCho', { n: cvc }) : t('mCvOk'), 'data-act="cvLoc" data-v="' + (can('giaoviec') ? 'mo' : 'toi') + '"');
+  if (!xemHet()) {
+    const scm = cvm.filter((x) => x.loai === 'SUA'), scq = scm.filter(cvQua).length, scT = scTatCa().filter((x) => scNgay(x).slice(0, 7) === ym).length;
+    h += tile('mt-orange', 'wrench', 'mSuaChua', null, `${scm.length}<small> ${esc(tv('mCvMo'))}</small>`,
+      scq ? `<span class="warnx">${t('mCvQua', { n: scq })}</span>` : t('mScThang', { n: scT }), 'data-act="tab" data-v="cv"');
+  }
   h += tile('mt-teal', 'cal', 'mBaoDuong', { m: mo }, `${done}<small>/${plan}</small>`, t('mXongKH'), 'data-act="tab" data-v="cal"');
   if (activeCT().some((c) => ctLoai(c) !== 'nuoc')) {
     const dt = dienThieu(), elec = activeCT().filter((c) => ctLoai(c) !== 'nuoc'), ghi = elec.filter((c) => S.V.csKey[c.ma + '|' + dt.ky]).length;
@@ -2073,7 +2098,7 @@ function modTiles() {
     while (v === null && g++ < 3) { v = kyTong('nuoc', k); if (v === null) k = kyTruoc(k); }
     h += tile('mt-cyan', 'drop', 'mNuoc', { d: fmtDM(k) }, v === null ? '—' : `${fmtNum(v)}<small> m³</small>`, '', 'data-act="dienLoai" data-l="nuoc"');
   }
-  if (S.kho.ds.length) {
+  if (S.kho.ds.length && xemHet()) {
     const vis = S.kho.ds.filter((x) => !x.an && !x.gop), thap = lkThapDS().length;
     h += tile('mt-purple', 'box', 'mLinhKien', null, fmtNum(vis.length, 0), thap ? `<span class="warnx">${t('mDuoiMin', { n: thap })}</span>` : t('mConHang', { n: fmtNum(vis.filter((x) => (tonOf(x) || 0) > 0).length, 0) }), 'data-act="tab" data-v="kho"');
   }
@@ -2184,7 +2209,7 @@ VIEWS.queue = VIEWS.sync;
 function timKiemBody(q) {
   const n = norm(q);
   if (n.length < 2) return `<div class="card empty">${t('nhapItNhat')}</div>`;
-  const ms = findMay(q, S.V.may).slice(0, 30), cs = findCT(q).slice(0, 20), ks = S.kho.ds.length ? khoFind(q).slice(0, 20) : [];
+  const ms = findMay(q, S.V.may).slice(0, 30), cs = findCT(q).slice(0, 20), ks = S.kho.ds.length && xemHet() ? khoFind(q).slice(0, 20) : [];
   let o = '';
   if (ms.length) o += sec('tkMay', ms.length) + `<div class="list">${ms.map((m) => mRow(m, stOf(m), false)).join('')}</div>`;
   if (cs.length) o += sec('tkCT', cs.length) + `<div class="list">${cs.map(ctRow).join('')}</div>`;
@@ -2384,7 +2409,7 @@ VIEWS.may = {
   html(p) {
     const m = S.V.byMa[p.ma];
     if (!m) return `<div class="card empty">${t('notFound')}</div>`;
-    const h = histOf(m.ma), tb = p.tab || 'tt', cvDs = S.V.cvAll.filter((x) => x.ma === m.ma && x.trangThai !== 'HUY');
+    const h = histOf(m.ma), tb = p.tab === 'lk' && !xemHet() ? 'tt' : p.tab || 'tt', cvDs = S.V.cvAll.filter((x) => x.ma === m.ma && x.trangThai !== 'HUY');
     let o = mayHead(m);
     const cvM = cvDs.filter(cvMo);
     if (cvM.length) o += `<div class="alerts" style="margin-top:10px">${cvM.map(cvAlert).join('')}</div>`;
@@ -2393,7 +2418,7 @@ VIEWS.may = {
         <button class="btn g bigbtn" data-act="xn" data-ma="${esc(m.ma)}">${IC.check}<span class="stk">${tv('confirmBD')}<span class="zi">${tz('confirmBD')}</span></span></button></div>`;
     }
     const tabs = [['tt', 'tabTT', ''], ['sc', 'tabSC', scCuaMay(m.ma).length || ''], ['tl', 'tabTL', tlCua(m.ma).length + (m.chuyen ? tlCua(m.chuyen).length : 0) || ''], ['lk', 'tabLK', lkOf(m).length || ''], ['bd', 'tabBD', hmOf(m).length || ''],
-      ['ls', 'tabLS', h.filter((x) => x.trangThai !== 'HUY').length + cvDs.length || '']];
+      ['ls', 'tabLS', h.filter((x) => x.trangThai !== 'HUY').length + cvDs.length || '']].filter(([k]) => k !== 'lk' || xemHet());
     o += `<div class="ptabs" role="tablist">${tabs.map(([k, l, n]) => `<button role="tab" aria-selected="${tb === k}" class="${tb === k ? 'on' : ''}" data-act="mayTab" data-t="${k}">${tv(l)}${n !== '' ? ` <span class="n">${n}</span>` : ''}<small>${tz(l)}</small></button>`).join('')}</div>`;
     if (tb === 'tt') {
       o += `<div class="card pad"><dl class="kv kvwide">
@@ -2811,9 +2836,12 @@ VIEWS.chuyen = {
     o += sec('tlSec', tls.length) + gap('tl:' + c.ma, tls.length ? esc(tls.slice(0, 3).map((x) => x.ten).join(' · ')) : t('tlChuaCo'), tls.length, '', () => tlSection(c.ma));
     const scs = scCuaCh(c.ma);
     o += sec('scLSCh', scs.length) + (can('confirm') && !srvOld('sc') ? `<div class="btns" style="margin:0 0 10px"><button class="btn sm" data-act="scGhiCh" data-ma="${esc(c.ma)}">${IC.edit} ${t('scGhiChBtn', { c: mh(c.ma) })}</button></div>` : '') + (scs.length ? gap('scch:' + c.ma, `${esc(tv('scLanN', { n: scs.length }))} · ${esc(tv('scGanNhat'))} ${esc(fmtD(scNgay(scs[0])))}`, scs.length, '', () => scLichSu(scs, true)) : `<div class="card empty">${t('scChuaCo')}</div>`);
-    const lk = lkCuaCh(c.ma), nl = lkLoiN(lk);
-    o += sec('lkChSec', lk.length) + gap('lkch:' + c.ma, nl ? `<b class="warnx">${tv('xLoiN', { n: nl })}</b> ${tz('xLoiN', { n: nl })}` : t('lkChXem'), lk.length, nl ? 'g-qua' : '', () => lkChHtml(c.ma));
-    o += `<div class="btns" style="margin:4px 0 10px">${can('may') && a.length ? `<button class="btn ghost sm" data-act="lkChThem" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkChThem')}</button>` : ''}<button class="btn ghost sm" data-act="lkChXuat" data-ma="${esc(c.ma)}">${IC.dl} ${t('lkChXuat')}</button></div>`;
+    // Linh kiện / ERP của chuyền: chỉ Quản lý, Quản trị
+    if (xemHet()) {
+      const lk = lkCuaCh(c.ma), nl = lkLoiN(lk);
+      o += sec('lkChSec', lk.length) + gap('lkch:' + c.ma, nl ? `<b class="warnx">${tv('xLoiN', { n: nl })}</b> ${tz('xLoiN', { n: nl })}` : t('lkChXem'), lk.length, nl ? 'g-qua' : '', () => lkChHtml(c.ma));
+      o += `<div class="btns" style="margin:4px 0 10px">${can('may') && a.length ? `<button class="btn ghost sm" data-act="lkChThem" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkChThem')}</button>` : ''}<button class="btn ghost sm" data-act="lkChXuat" data-ma="${esc(c.ma)}">${IC.dl} ${t('lkChXuat')}</button></div>`;
+    }
     const tt = ['maTaiSan', 'quyCach', 'nhaSX', 'tinhNang', 'tocDoChuan', 'tocDoThucTe', 'viTri', 'soXuatXuong', 'ngaySX', 'ngayCaiTao', 'ngayVN', 'ghiChu'].filter((k) => c[k]);
     if (tt.length) o += sec('chTT') + `<div class="card pad"><dl class="kv kvwide">${tt.map((k) => `<dt>${t('ch_' + k)}</dt><dd>${esc(c[k])}</dd>`).join('')}</dl></div>`;
     return o;
@@ -2925,7 +2953,7 @@ Object.assign(TX, {
   thCode: ['Mã', '编号'], thTen: ['Thiết bị', '设备'], thNhom: ['Nhóm', '类别'], thViTri: ['Vị trí', '位置'], thChuKy: ['Chu kỳ', '周期'],
   thGanNhat: ['Lần gần nhất', '上次'], thHan: ['Hạn kế tiếp', '下次到期'], thTT: ['Trạng thái', '状态'], segLich: ['Bảo dưỡng', '保养']
 });
-const listSeg = (cur) => `<div class="seg wide3 seg4" style="margin-bottom:12px">${[['list', 'segList'], ['cal', 'segLich'], ['hist', 'history'], ['kho', 'segKho']].map(([v, k]) =>
+const listSeg = (cur) => `<div class="seg wide3${xemHet() ? ' seg4' : ''}" style="margin-bottom:12px">${(xemHet() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history'], ['kho', 'segKho']] : [['cal', 'segLich'], ['hist', 'history']]).map(([v, k]) =>
   `<button class="${cur === v ? 'on' : ''}" data-act="tab" data-v="${v}">${tv(k)}<small>${tz(k)}</small></button>`).join('')}</div>`;
 // ----- Bảng dữ liệu cho máy tính: tiêu đề cố định khi cuộn, phân trang, tổng số kết quả -----
 const PER_PAGE = 50;
@@ -3616,6 +3644,7 @@ function openDeep(final) {
   else if (final) { S.deepMa = null; toast(t('qrUnknown') + '<br><span class="mono">' + esc(dm) + '</span>', true); }
 }
 function startApp() {
+  if (!xemHet()) khoSync();
   shell();
   S.stack = [{ v: 'home', p: {} }];
   if (!IS_DEMO) { try { history.replaceState({ d: 1 }, ''); } catch (e) { /* bỏ qua */ } }
@@ -3652,7 +3681,10 @@ const ACT = {
   go: (el) => go(el.dataset.v),
   menu: () => tab('me'),
   forgotPin: () => openSheet(`<div class="grab"></div><h3>${tv('forgotPin')}<span class="zi">${tz('forgotPin')}</span></h3><p class="help" style="font-size:14.5px">${t('forgotHelp')}</p><div class="btns"><button class="btn" data-act="closeSheet">${t('close')}</button></div>`),
-  listSt: (el) => { S.f.st = el.dataset.st; S.f.grp = ''; S.f.q = ''; tab('list'); },
+  listSt: (el) => {
+    if (!xemHet()) { S.f.calMode = 'tong'; S.f.mo = Object.assign({}, S.f.mo, { [el.dataset.st]: true }); tab('cal'); return; }
+    S.f.st = el.dataset.st; S.f.grp = ''; S.f.q = ''; tab('list');
+  },
   dienLoc: (el) => { S.f.dTab = 'ghi'; S.f.dKy = ''; S.f.dLoc = el.dataset.loc; tab('dien'); },
   dienLoai: (el) => { S.f.dTab = 'bang'; S.f.dLoai = el.dataset.l; tab('dien'); },
   khoLoc: (el) => { S.f.khoF = el.dataset.v; S.f.khoQ = ''; tab('kho'); },
@@ -4264,14 +4296,14 @@ Object.assign(ERR, {
 });
 
 // Máy chủ cũ hơn bản app cần (ví dụ triển khai chưa lên Phiên bản mới): báo rõ cách sửa
-const SRV_CAN = '2.9.1';
+const SRV_CAN = '2.10.0';
 function verLt(a, b) {
   const x = String(a || '0').split('.').map((n) => +n || 0), y = String(b).split('.').map((n) => +n || 0);
   for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0);
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -6894,12 +6926,14 @@ function khoFind(q, filt) {
 // Đồng bộ sau khi tải dữ liệu: bản kho trên máy chủ khác bản đang lưu thì tải lại
 function khoSync() {
   const m = S.base && S.base.kho;
+  if (!xemHet()) { if (S.kho.ds.length || S.kho.ver) khoSet({}); return; }
   if (!m) return;
   if (m.nhap) S.kho.nhap = m.nhap;
   if (!m.ver) { if (S.kho.ds.length) khoSet({ ver: '', ds: [], nhap: null }); return; }
   if (m.ver !== S.kho.ver) khoLoad();
 }
 function khoLoad() {
+  if (!xemHet()) return Promise.resolve(false);
   if (S.khoLoading) return S.khoLoading;
   S.khoLoading = (async () => {
     try { const d = await api('catalog', {}, { timeout: 90 }); khoSet(d); return true; }
@@ -6910,7 +6944,7 @@ function khoLoad() {
 }
 // Phần thay đổi máy chủ trả về sau khi lưu (linh kiện mới tự thêm…)
 function khoApply(k) {
-  if (!k || !k.ver) return;
+  if (!k || !k.ver || !xemHet()) return;
   const ds = S.kho.ds.slice(), ix = {};
   ds.forEach((x, i) => { ix[x.ma] = i; });
   (k.ds || []).forEach((x) => { if (x.ma in ix) ds[ix[x.ma]] = x; else ds.push(x); });
@@ -7352,11 +7386,15 @@ Object.assign(TX, {
   srvMissSCXoa: ['Bản 2.8: xoá bản ghi sửa chữa.', '2.8版：删除维修记录。'],
   srvMissSaoLuu: ['Bản 2.9: sao lưu tự động, tài liệu máy, tiền điện.', '2.9版：自动备份、设备资料、电费。'],
   srvMissSCCh: ['Bản 2.9.1: sửa chữa chọn theo chuyền sản xuất.', '2.9.1版：维修按产线选择。'],
+  srvMissQuyen: ['Bản 2.10.0: máy chủ chặn tài khoản kỹ thuật xem kho và việc ngoài Sửa chữa / Bảo dưỡng.', '2.10.0版：服务器限制技术账号查看仓库及维修/保养以外的工作。'],
   t_scDS: ['Lịch sử sửa chữa', '维修记录'], scDSBtn: ['Lịch sử sửa chữa', '维修记录'], scTatCa: ['Tất cả', '全部'],
   scTimPh: ['Tìm máy, mã, nội dung, người sửa', '搜索设备、编号、内容、维修人'], scXuatBtn: ['Xuất Excel (gộp mọi máy)', '导出Excel（所有设备）'],
   scXoa: ['Xoá bản ghi sửa chữa', '删除维修记录'], scDaXoa: ['Đã xoá', '已删除'],
   scXoaHelp: ['Bản ghi sẽ không còn trong lịch sử và file Excel. Quản lý vẫn tra được trong nhật ký.', '删除后不再显示在记录和Excel中，管理员仍可在日志中查到。'],
   scNhomChuyen: ['Chuyền sản xuất (máy chính)', '生产线（主机）'],
+  navSC: ['Sửa chữa', '维修'], t_cvSC: ['Sửa chữa', '维修'], t_khongQuyen: ['Chỉ Quản lý', '仅限主管'],
+  khongQuyenXem: ['Tài khoản của bạn chỉ xem được Điện/Nước, Sửa chữa và Bảo dưỡng. Cần xem mục khác thì nhờ Quản lý.', '您的账号只能查看电/水、维修和保养。如需查看其他内容，请联系管理员。'],
+  timChungHC: ['Tìm thiết bị, công tơ', '搜索设备、电表'],
   scTbHelp: ['Chọn chuyền sản xuất, hoặc máy không thuộc chuyền nào. Máy in phun, máy hút bụi… của chuyền thì chọn chuyền đó.', '请选择生产线，或不属于任何产线的设备。产线上的喷印机、吸尘器等请选择该产线。'],
   scTheoCh: ['Sửa chữa ghi theo chuyền {c}', '维修按产线{c}记录'], scGhiChBtn: ['Ghi sửa chữa chuyền {c}', '记录产线{c}维修'],
   gyTieuDe: ['Lần sửa tương tự trước đây', '以往类似维修'], gyCungMay: ['Cùng máy', '同一设备'], gyCungLoai: ['Cùng loại máy', '同类设备'],
@@ -7481,11 +7519,13 @@ function cvApDung(x, p, luc, nguoi, op) {
   x.nhatKy.push({ b, luc, nguoi, gc: p.ghiChu || '', op });
 }
 const laSC = (x) => x.nguon === 'SC' || (x.loai === 'SUA' && x.nhatKy && x.nhatKy[0] && x.nhatKy[0].gc === 'Ghi sửa chữa');
+// Kỹ thuật: việc của mình và mọi việc Sửa chữa / Bảo dưỡng (máy chủ 2.10.0 đã lọc sẵn, máy chủ cũ thì lọc ở đây)
+const xemViecCV = (x, uid) => xemHet() || x.loai === 'SUA' || x.loai === 'BD' || x.uidLam === uid || x.uidTao === uid || (x.uidPhu || []).indexOf(uid) >= 0;
 function rebuildCV() {
   const b = S.base, me = S.me || {}, nv = b.nhanVien || [], nvById = {};
   nv.forEach((n) => { nvById[n.id] = n; });
   S.V.nv = nv; S.V.nvById = nvById;
-  const list = (b.congViec || []).map((x) => Object.assign({}, x, { nhatKy: (x.nhatKy || []).slice(), uidPhu: x.uidPhu || [], linhKien: x.linhKien || [], anhTao: x.anhTao || [], anhXong: x.anhXong || [] }));
+  const list = (b.congViec || []).filter((x) => xemViecCV(x, me.id)).map((x) => Object.assign({}, x, { nhatKy: (x.nhatKy || []).slice(), uidPhu: x.uidPhu || [], linhKien: x.linhKien || [], anhTao: x.anhTao || [], anhXong: x.anhXong || [] }));
   const byId = {};
   list.forEach((x) => { byId[x.id] = x; });
   const daCo = (x, q) => x.nhatKy.some((n) => n.op === q.opId);
@@ -7533,7 +7573,7 @@ function rebuildCV() {
     }
   });
   // Bản ghi "Ghi sửa chữa" chỉ là lịch sử: không vào danh sách / bảng / thống kê công việc, xem ở Lịch sử sửa chữa
-  Object.assign(S.V, { cv: list.filter((x) => !laSC(x)), cvAll: list, cvById: byId, vl: b.viecLap || [] });
+  Object.assign(S.V, { cv: list.filter((x) => !laSC(x)), cvAll: list, cvById: byId, vl: xemHet() ? b.viecLap || [] : [] });
 }
 
 // ---------- Chọn người làm (dùng ở màn giao việc, ghi việc, bảng nhỏ) ----------
