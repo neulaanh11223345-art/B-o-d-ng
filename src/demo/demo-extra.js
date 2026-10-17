@@ -198,10 +198,42 @@ function mauNhanVien() {
   if (dsNguoiDung().length > 3) return;
   var bay = thoiGianStr();
   themNhieu('NguoiDung', [
-    ['U004', 'Lê Minh Tiến', 'kythuat', bamPin('444444'), '', 1, bay, 'NV004', '黎明进'],
-    ['U005', 'Nguyễn Tuấn', 'kythuat', bamPin('555555'), '', 1, bay, 'NV005', '阮俊'],
-    ['U006', 'Đỗ Văn Hồng', 'kythuat', bamPin('666666'), '', 1, bay, 'NV006', '杜文红']
+    ['U004', 'Lê Minh Tiến', 'kythuat', bamPin('444444'), '', 1, bay, 'NV004', '黎明进', 'V25071', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ điện'],
+    ['U005', 'Nguyễn Tuấn', 'kythuat', bamPin('555555'), '', 1, bay, 'NV005', '阮俊', 'V25088', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ cơ khí'],
+    ['U006', 'Đỗ Văn Hồng', 'kythuat', bamPin('666666'), '', 1, bay, 'NV006', '杜文红', 'V25092', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ bảo trì']
   ]);
+  // Ba tài khoản cài sẵn chưa có mã số thẻ: điền cho đủ để in đơn tăng ca
+  [['U001', 'V25001', 'Hành chính nhân sự', '行政人事部', 'Quản trị hệ thống'],
+    ['U002', 'V25010', 'Kỹ thuật sản xuất', '生产技术部', 'Trưởng bộ phận'],
+    ['U003', 'V25066', 'Kỹ thuật sản xuất', '生产技术部', 'Kỹ sư']].forEach(function (a) {
+    var x = dsNguoiDung().filter(function (n) { return n.id === a[0]; })[0];
+    if (!x || x.maThe) return;
+    x.maThe = a[1]; x.boPhan = a[2]; x.boPhanZh = a[3]; x.chucVu = a[4];
+    suaDong('NguoiDung', x._r, ndThanhDong(x));
+  });
+}
+// Tăng ca mẫu: vài lần trong tuần này và tuần trước, đủ bốn ca
+function mauTangCa() {
+  if (docTangCa().length) return;
+  capNhatTieuDe('TangCa');
+  var hn = homNayStr(), bay = thoiGianStr(), nvs = dsNguoiDung(), nv = {};
+  nvs.forEach(function (n) { nv[n.maNV] = n; });
+  var w = new Date(hn + 'T00:00:00Z').getUTCDay(), t2 = congNgay(hn, -((w + 6) % 7));   // thứ Hai tuần này
+  var so = 0;
+  function tc(ma, ngay, ca, tu, den, ly, lyZh) {
+    var n = nv[ma]; if (!n) return;
+    so++;
+    themDong('TangCa', ['TCMAU' + (so < 10 ? '0' : '') + so, n.id, ngay, ca, tu, den, gioTC(tu, den),
+      ly, lyZh, n.ten, n.id, bay, 0, bay]);
+  }
+  tc('NV003', congNgay(t2, 0), 'HC', '17:30', '19:30', 'Sửa máy in phun VKY01', '维修喷印机VKY01');
+  tc('NV003', congNgay(t2, 2), 'HC', '17:30', '20:00', 'Thay chổi than motor hút bụi', '更换吸尘器电机碳刷');
+  tc('NV003', congNgay(t2, -1), 'CN', '08:00', '17:00', 'Bảo dưỡng định kỳ chuyền VKY03', '产线VKY03定期保养');
+  tc('NV004', congNgay(t2, 1), 'DEM', '06:00', '08:00', 'Trực sự cố mất điện xưởng 2', '二车间停电值班');
+  tc('NV004', congNgay(t2, -2), 'NGAY', '20:00', '22:00', 'Hỗ trợ chuyển khuôn máy in VKY08', '协助喷印机VKY08换模');
+  tc('NV005', congNgay(t2, 1), 'HC', '17:30', '19:30', 'Kiểm tra tủ điện xưởng 1', '检查一车间电柜');
+  tc('NV005', congNgay(t2, -1), 'CN', '08:00', '12:00', 'Vệ sinh máy nén khí', '清洁空压机');
+  tc('NV006', congNgay(t2, 3), 'HC', '17:30', '21:00', 'Sửa băng tải chuyền VKY02', '维修产线VKY02输送带');
 }
 function mauCongViec() {
   if (docCongViec().length) return;
@@ -294,4 +326,5 @@ mauSoDien();
 mauKiemTra();
 mauKho();
 mauCongViec();
+mauTangCa();
 return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };

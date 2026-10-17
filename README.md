@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.10.0
+# Credible Việt Nam CMMS · 设备管理 — v2.11.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.10.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.11.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.10.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.10.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.11.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.11.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,14 +24,14 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.10.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.11.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò | Xem được |
 |---|---|---|---|
 | NV001 | 111111 | Quản trị | Tất cả, thêm phần cài đặt máy chủ |
 | NV002 | 222222 | Quản lý | Tất cả |
-| NV003 | 333333 | Kỹ thuật | Điện/Nước, Sửa chữa, Bảo dưỡng |
-| NV004 / NV005 / NV006 | 444444 / 555555 / 666666 | Kỹ thuật (chỉ có trong bản xem thử, để thử giao việc) | Điện/Nước, Sửa chữa, Bảo dưỡng |
+| NV003 | 333333 | Kỹ thuật | Điện/Nước, Sửa chữa, Bảo dưỡng, Tăng ca của mình |
+| NV004 / NV005 / NV006 | 444444 / 555555 / 666666 | Kỹ thuật (chỉ có trong bản xem thử, để thử giao việc) | Điện/Nước, Sửa chữa, Bảo dưỡng, Tăng ca của mình |
 
 Muốn thử cảnh mất mạng: vào **Cá nhân → Giả lập mất mạng**.
 
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.10.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.11.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.10.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.11.0.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -97,6 +97,29 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
+## Điểm mới của v2.11.0: đăng ký tăng ca, in đơn theo mẫu công ty
+
+Mục **Tăng ca** riêng, ai cũng dùng được. Ở điện thoại vào từ ô **Tăng ca** trên Trang chủ hoặc từ trang **Cá nhân**; trên máy tính có ở thanh bên.
+
+- **Đăng ký theo tuần** (thứ Hai → Chủ nhật), vì mỗi tuần in một đơn cho nhân viên ký.
+  - Mỗi lần tăng ca ghi: ngày · ca làm việc · từ giờ · đến giờ · lý do.
+  - **Số tiếng TC tự tính** = đến giờ trừ từ giờ, không trừ giờ nghỉ. Qua 0 giờ vẫn đúng (22:00 → 02:00 là 4 tiếng). Sửa tay được.
+  - Bốn ca: **hành chính · ca ngày · ca đêm · chủ nhật** (行政班、日班、夜班、周日班). Bấm chọn ca là hai ô giờ tự điền.
+  - Mất mạng vẫn ghi được, có mạng tự gửi như các mục khác.
+- **Đơn in đúng mẫu giấy của công ty** (ĐƠN XIN TĂNG CA · 自愿加班申请单): tiêu đề công ty, ô Bộ phận và 部门, hàng Họ tên · Mã số thẻ · Chức vụ, bảng 5 cột 6 dòng, dòng TỔNG CỘNG, dòng ghi chú, bốn chỗ ký (Người xin · Người xác nhận · Quản lý bộ phận · Hành chính nhân sự).
+  - Cột **Chú thích** in "tên ca — lý do", ví dụ "Hành chính — Sửa máy in phun VKY01".
+  - Hơn 6 lần trong một tuần thì tự sang tờ thứ hai, mỗi tờ đủ chỗ ký, tờ cuối ghi tổng cả tuần.
+  - **Xuất PDF:** bấm **In / Lưu PDF**. Trên iPhone, Safari hiện trang in → **Chia sẻ → Lưu vào Tệp**. Trên máy tính, chọn máy in **Save as PDF**.
+- **Tổng hợp theo tháng:** mỗi người một dòng, tách theo bốn ca, có cột tổng. Vượt 40 giờ/tháng thì số chuyển màu cam. Xuất **Excel** hai trang: tổng hợp và chi tiết từng lần.
+  - Không cần xoá gì sau mỗi tuần: app tự gom các tuần trong tháng.
+- **Phân quyền:**
+  - nhân viên chỉ thấy và in tăng ca **của mình**;
+  - Quản lý, Quản trị thấy cả nhà máy, chọn người để xem, ghi hộ và in hộ được;
+  - máy chủ cũng lọc, không chỉ ẩn trên app.
+- **Thông tin in trên đơn** (mã số thẻ 工号, bộ phận, bộ phận tiếng Trung 部门, chức vụ) lưu trong hồ sơ người dùng. Mỗi người tự điền một lần ở mục Tăng ca, hoặc Quản trị nhập trong **Cá nhân → Quản trị → Người dùng**. App tự dịch tên bộ phận sang tiếng Trung.
+- **Giờ các ca và giới hạn 40 giờ/tháng, 200 giờ/năm:** Quản lý sửa trong **Tăng ca → Sửa ca làm việc**.
+- Nâng cấp: dán `Code.gs-v2.11.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa` và thêm 4 cột mới vào trang `NguoiDung`.
+
 ## Điểm mới của v2.10.0: phân quyền xem theo vai trò
 
 - **Quản lý, Quản trị:** xem được tất cả, như trước.
@@ -121,7 +144,7 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - **Máy chủ cũng chặn**, không chỉ ẩn trên app:
   - tài khoản kỹ thuật không nhận dữ liệu kho, việc lặp lại, việc ngoài phạm vi;
   - gọi tải kho thì báo "Không có quyền".
-- **Nâng cấp:** dán `Code.gs-v2.10.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Khi máy chủ còn bản cũ, app vẫn ẩn các mục trên nhưng máy chủ chưa chặn dữ liệu.
+- **Nâng cấp:** dán `Code.gs-v2.11.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Khi máy chủ còn bản cũ, app vẫn ẩn các mục trên nhưng máy chủ chưa chặn dữ liệu.
 
 ## Điểm mới của v2.9.1: sửa chữa chọn theo chuyền sản xuất
 
@@ -437,6 +460,6 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 32 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
-node tests/e2e.mjs                      # 12 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
+node --test tests/backend.test.mjs      # 33 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node tests/e2e.mjs                      # 13 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```

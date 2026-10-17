@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.10.0';
+var PHIEN_BAN = '2.11.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -32,7 +32,8 @@ var BANG = {
   Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
     'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT'],
   LichSu: ['ID', 'Ma', 'TenMay', 'Ngay', 'DenHan', 'NguoiLam', 'GhiChu', 'NguoiXacNhan', 'ThoiGian', 'TrangThai', 'OpId', 'UID', 'Huy', 'ChiTiet'],
-  NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh'],
+  NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh', 'MaThe', 'BoPhan', 'BoPhanZh', 'ChucVu'],
+  TangCa: ['ID', 'UID', 'Ngay', 'Ca', 'Tu', 'Den', 'SoGio', 'LyDo', 'LyDoDich', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat'],
   // Loai: cao (cao áp, nhiều mã OBIS) · ha (tủ tổng hạ áp) · nhanh (công tơ nhánh) · nuoc (đồng hồ nước, m³)
   // Cha: mã công tơ cấp trên (công tơ nhánh nằm sau công tơ nhánh khác thì không cộng lần nữa vào tổng nhánh)
   // NguongTang / NguongGiam: % lệch so với bình quân ngày 3 kỳ trước thì coi là bất thường (trống = theo cài đặt chung)
@@ -99,6 +100,7 @@ var QUYEN = {
   giaoviec: ['admin', 'quanly']     // giao việc, kiểm tra việc xong, việc lặp lại
 };
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
+  'saveOT', 'deleteOT', 'saveProfile', 'saveOTCfg',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg',
@@ -114,7 +116,16 @@ var CAI_DAT_MAC_DINH = {
   vatDien: 8,                        // % thuế GTGT trên hoá đơn điện
   sanLuong: {},                      // { 'yyyy-mm': số sản phẩm của tháng } để tính điện trên 1.000 sản phẩm
   dvSanLuong: 'sản phẩm',
-  nguongTang: 50, nguongGiam: 50     // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
+  nguongTang: 50, nguongGiam: 50,    // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
+  // Ca làm việc ghi trên đơn tăng ca (mẫu giấy 自愿加班申请单). Giờ chỉ là gợi ý điền sẵn, Quản lý sửa trong app.
+  caTangCa: [
+    { k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' },
+    { k: 'NGAY', ten: 'Ca ngày', zh: '日班', tu: '20:00', den: '22:00' },
+    { k: 'DEM', ten: 'Ca đêm', zh: '夜班', tu: '06:00', den: '08:00' },
+    { k: 'CN', ten: 'Chủ nhật', zh: '周日班', tu: '08:00', den: '17:00' }
+  ],
+  gioTCThang: 40,                    // giờ tăng ca tối đa một tháng (Bộ luật Lao động 2019)
+  gioTCNam: 200                      // giờ tăng ca tối đa một năm
 };
 
 var MAU_MAY = [
@@ -275,6 +286,10 @@ function dieuHuong(a, p, req) {
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
     case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
+    case 'saveOT': return luuTangCa(u, p, s(req.opId));
+    case 'deleteOT': return xoaTangCa(u, p);
+    case 'saveProfile': return luuHoSo(u, p);
+    case 'saveOTCfg': canQuyen(u, 'may'); return luuCaTangCa(u, p);
     case 'saveRepair': canQuyen(u, 'xacnhan'); return luuSuaChua(u, p, s(req.opId));
     case 'deleteRepair': canQuyen(u, 'xacnhan'); return xoaSuaChua(u, p);
     case 'assignTasks': canQuyen(u, 'giaoviec'); return giaoNhieuViec(u, p, s(req.opId));
@@ -467,13 +482,22 @@ function maNVHopLe(v) { v = s(v).toUpperCase().replace(/\s+/g, ''); return /^[A-
 function ndTuDong(r, i) {
   var id = s(r[0]);
   return { id: id, ten: s(r[1]), vaiTro: s(r[2]), pinHash: s(r[3]), email: s(r[4]),
-    hoatDong: hd(r[5]), ngayTao: tgStr(r[6]), maNV: maNVHopLe(r[7]) || id.toUpperCase(), tenZh: s(r[8]), _r: i + 2 };
+    hoatDong: hd(r[5]), ngayTao: tgStr(r[6]), maNV: maNVHopLe(r[7]) || id.toUpperCase(), tenZh: s(r[8]),
+    maThe: s(r[9]), boPhan: s(r[10]), boPhanZh: s(r[11]), chucVu: s(r[12]), _r: i + 2 };
 }
-function ndThanhDong(x) { return [x.id, anToan(x.ten), x.vaiTro, x.pinHash, x.email, x.hoatDong ? 1 : 0, x.ngayTao, x.maNV || '', anToan(x.tenZh || '')]; }
+function ndThanhDong(x) {
+  return [x.id, anToan(x.ten), x.vaiTro, x.pinHash, x.email, x.hoatDong ? 1 : 0, x.ngayTao, x.maNV || '', anToan(x.tenZh || ''),
+    anToan(x.maThe || ''), anToan(x.boPhan || ''), anToan(x.boPhanZh || ''), anToan(x.chucVu || '')];
+}
+// Thông tin in trên đơn tăng ca
+function hoSoTC(x) { return { maThe: x.maThe || '', boPhan: x.boPhan || '', boPhanZh: x.boPhanZh || '', chucVu: x.chucVu || '' }; }
 function dsNguoiDung() { return docTho('NguoiDung').map(ndTuDong).filter(function (x) { return x.id; }); }
-function congKhai(u) { return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, maNV: u.maNV, tenZh: u.tenZh || '' }; }
+function congKhai(u) {
+  return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, maNV: u.maNV, tenZh: u.tenZh || '', maThe: u.maThe || '', boPhan: u.boPhan || '', boPhanZh: u.boPhanZh || '', chucVu: u.chucVu || '' };
+}
 function congKhaiAdmin(u) {
-  return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, email: u.email, hoatDong: u.hoatDong, ngayTao: u.ngayTao, maNV: u.maNV, tenZh: u.tenZh || '' };
+  return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, email: u.email, hoatDong: u.hoatDong, ngayTao: u.ngayTao, maNV: u.maNV, tenZh: u.tenZh || '',
+    maThe: u.maThe || '', boPhan: u.boPhan || '', boPhanZh: u.boPhanZh || '', chucVu: u.chucVu || '' };
 }
 
 // ===================== Đăng nhập =====================
@@ -531,6 +555,112 @@ function xemViec(u, x) {
   if (x.uidLam === u.id || x.uidTao === u.id || (x.uidPhu || []).indexOf(u.id) >= 0) return true;
   return x.loai === 'SUA' || x.loai === 'BD';
 }
+// ===================== Tăng ca =====================
+// Mỗi người đăng ký tăng ca của mình. Quản lý, Quản trị xem và ghi hộ được cho mọi người.
+// Đơn in theo tuần (thứ Hai → Chủ nhật) đúng mẫu giấy 自愿加班申请单, tổng hợp theo tháng.
+function tcTuDong(r, i) {
+  return { id: s(r[0]), uid: s(r[1]), ngay: ngayStr(r[2]), ca: s(r[3]), tu: s(r[4]), den: s(r[5]), soGio: Number(r[6]) || 0,
+    lyDo: s(r[7]), lyDoDich: s(r[8]), nguoiTao: s(r[9]), uidTao: s(r[10]), lucTao: tgStr(r[11]), xoa: hd(r[12]), capNhat: tgStr(r[13]), _r: i + 2 };
+}
+function tcThanhDong(x) {
+  return [x.id, x.uid, x.ngay, x.ca, x.tu, x.den, x.soGio, anToan(x.lyDo), anToan(x.lyDoDich), anToan(x.nguoiTao), x.uidTao, x.lucTao, x.xoa ? 1 : 0, x.capNhat];
+}
+function docTangCa() { return docTho('TangCa').map(tcTuDong).filter(function (x) { return x.id && x.uid; }); }
+function sachTC(x) {
+  return { id: x.id, uid: x.uid, ngay: x.ngay, ca: x.ca, tu: x.tu, den: x.den, soGio: x.soGio,
+    lyDo: x.lyDo, lyDoDich: x.lyDoDich, nguoiTao: x.nguoiTao, uidTao: x.uidTao, lucTao: x.lucTao };
+}
+function laGio(t) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(s(t)); }
+// Số giờ tăng ca: đến giờ trừ từ giờ, qua 0 giờ vẫn đúng. Không trừ giờ nghỉ.
+function gioTC(tu, den) {
+  var a = Number(tu.slice(0, 2)) * 60 + Number(tu.slice(3, 5)), b = Number(den.slice(0, 2)) * 60 + Number(den.slice(3, 5));
+  var p = b - a; if (p <= 0) p += 24 * 60;
+  return Math.round(p / 60 * 100) / 100;
+}
+function dsCaTC() {
+  var ds = docCaiDat().caTangCa;
+  return ds && ds.length ? ds : CAI_DAT_MAC_DINH.caTangCa;
+}
+function luuTangCa(u, p, opId) {
+  var ds = docTangCa(), id = s(p.id).toUpperCase();
+  var x = id ? ds.filter(function (r) { return r.id === id && !r.xoa; })[0] : null;
+  if (id && !x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  if (opId && !x) {
+    var cu = ds.filter(function (r) { return r.id === 'TC' + opId.toUpperCase().slice(-18); })[0];
+    if (cu) return { dup: true, tangCa: sachTC(cu) };
+  }
+  // Ghi cho người khác: chỉ Quản lý, Quản trị
+  var uid = s(p.uid) || (x ? x.uid : u.id);
+  if (uid !== u.id && !coQuyen(u, 'xemhet')) throw loi('KHONG_QUYEN', 'Chỉ ghi tăng ca của mình · 只能登记本人加班');
+  if (x && x.uid !== u.id && !coQuyen(u, 'xemhet')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  var nvs = dsNguoiDung();
+  if (!nvs.some(function (n) { return n.id === uid; })) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
+  var ngay = ngayStr(p.ngay);
+  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  var ca = s(p.ca) || 'HC';
+  if (!dsCaTC().some(function (c) { return c.k === ca; })) throw loi('CA_SAI', 'Ca làm việc không hợp lệ · 班次无效');
+  var tu = s(p.tu), den = s(p.den);
+  if (!laGio(tu) || !laGio(den)) throw loi('GIO_SAI', 'Giờ không hợp lệ · 时间无效');
+  if (tu === den) throw loi('GIO_SAI', 'Giờ không hợp lệ · 时间无效');
+  var gio = soHoacRong(p.soGio);
+  if (gio === '' ) gio = gioTC(tu, den);
+  if (!(gio > 0 && gio <= 24)) throw loi('GIO_TC_SAI', 'Số tiếng tăng ca phải trong khoảng 0 – 24 · 加班工时须在0–24之间');
+  gio = Math.round(Number(gio) * 100) / 100;
+  var ly = x ? dichKhiSua(catNhieuDong(p.lyDo, 300).trim(), x.lyDo, x.lyDoDich, p.lyDoDich) : songNgu(catNhieuDong(p.lyDo, 300).trim(), p.lyDoDich);
+  var bay = thoiGianStr(), moi = !x;
+  capNhatTieuDe('TangCa');
+  if (moi) {
+    x = { id: opId ? 'TC' + opId.toUpperCase().slice(-18) : 'TC' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900),
+      uid: uid, nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false };
+  }
+  x.uid = uid; x.ngay = ngay; x.ca = ca; x.tu = tu; x.den = den; x.soGio = gio;
+  x.lyDo = ly[0]; x.lyDoDich = ly[1]; x.capNhat = bay;
+  if (moi) themDong('TangCa', tcThanhDong(x)); else suaDong('TangCa', x._r, tcThanhDong(x));
+  ghiNhatKy(u, moi ? 'GHI_TANG_CA' : 'SUA_TANG_CA', 'TangCa', x.id, '', ngay + ' ' + tu + '-' + den + ' ' + gio + 'h', '');
+  return { tangCa: sachTC(x) };
+}
+function xoaTangCa(u, p) {
+  var x = docTangCa().filter(function (r) { return r.id === s(p.id); })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  if (x.xoa) return { xoaTC: x.id };
+  if (x.uid !== u.id && !coQuyen(u, 'xemhet')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  capNhatTieuDe('TangCa');
+  x.xoa = true; x.capNhat = thoiGianStr();
+  suaDong('TangCa', x._r, tcThanhDong(x));
+  ghiNhatKy(u, 'XOA_TANG_CA', 'TangCa', x.id, x.ngay + ' ' + x.tu + '-' + x.den, '', catChu(p.lyDo, 200));
+  return { xoaTC: x.id };
+}
+// Mỗi người tự sửa thông tin in trên đơn của mình (mã số thẻ, bộ phận, chức vụ)
+function luuCaTangCa(u, p) {
+  var ds = [], ten = {};
+  (p.ca || []).forEach(function (c) {
+    var k = s(c.k).toUpperCase().slice(0, 8), t = catChu(c.ten, 40);
+    if (!k || !t || ten[k]) return;
+    if (!laGio(c.tu) || !laGio(c.den)) throw loi('GIO_SAI', 'Giờ không hợp lệ · 时间无效');
+    ten[k] = 1;
+    ds.push({ k: k, ten: t, zh: catChu(c.zh, 40), tu: s(c.tu), den: s(c.den) });
+  });
+  if (!ds.length) throw loi('CAN_CA', 'Cần ít nhất một ca làm việc · 至少需要一个班次');
+  var th = Math.round(Number(p.gioTCThang)), nam = Math.round(Number(p.gioTCNam));
+  var cd = { caTangCa: ds };
+  if (th > 0 && th <= 400) cd.gioTCThang = th;
+  if (nam > 0 && nam <= 2000) cd.gioTCNam = nam;
+  ghiCaiDat(cd);
+  ghiNhatKy(u, 'SUA_CA_TANG_CA', 'CaiDat', 'caTangCa', '', ds.length + ' ca', '');
+  return { caiDat: { caTangCa: ds, gioTCThang: docCaiDat().gioTCThang, gioTCNam: docCaiDat().gioTCNam } };
+}
+function luuHoSo(u, p) {
+  var ds = dsNguoiDung(), x = ds.filter(function (d) { return d.id === u.id; })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  capNhatTieuDe('NguoiDung');
+  if (p.maThe !== undefined) x.maThe = catChu(p.maThe, 30);
+  if (p.boPhan !== undefined) x.boPhan = catChu(p.boPhan, 60);
+  if (p.boPhanZh !== undefined) x.boPhanZh = catChu(p.boPhanZh, 60);
+  if (p.chucVu !== undefined) x.chucVu = catChu(p.chucVu, 60);
+  if (p.boPhan !== undefined && !s(p.boPhanZh) && x.boPhan) x.boPhanZh = songNgu(x.boPhan)[1];
+  suaDong('NguoiDung', x._r, ndThanhDong(x));
+  return { me: congKhai(x) };
+}
 function layDuLieu(u) {
   var homNay = homNayStr(), tu = (Number(homNay.slice(0, 4)) - 1) + '-01-01';
   var cd = docCaiDat();
@@ -545,13 +675,20 @@ function layDuLieu(u) {
     thongSo: docThongSo(),
     chiSo: docChiSo().filter(function (x) { return x.ky >= tu && x.trangThai !== 'HUY'; }).map(sachCS),
     caiDat: coQuyen(u, 'may')
-      ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong }
-      : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam },
+      ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam }
+      : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam },
     taiLieu: docTaiLieu().filter(function (x) { return !x.xoa; }).map(sachTL),
     khoaKy: docKhoaKy(),
     congViec: docCongViec().filter(function (x) { return (CV_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG' || x.lucTao >= tu) && xemViec(u, x); }).map(sachCV),
     viecLap: coQuyen(u, 'xemhet') ? docViecLap().map(sachCV) : [],
-    nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) { return { id: x.id, ten: x.ten, tenZh: x.tenZh, vaiTro: x.vaiTro, maNV: x.maNV }; }),
+    tangCa: docTangCa().filter(function (x) { return !x.xoa && x.ngay >= tu && (coQuyen(u, 'xemhet') || x.uid === u.id); }).map(sachTC),
+    nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) {
+      var o = { id: x.id, ten: x.ten, tenZh: x.tenZh, vaiTro: x.vaiTro, maNV: x.maNV };
+      if (coQuyen(u, 'xemhet')) { o.maThe = x.maThe || ''; o.boPhan = x.boPhan || ''; o.boPhanZh = x.boPhanZh || ''; o.chucVu = x.chucVu || ''; }
+      return o;
+    }),
     kho: coQuyen(u, 'xemhet') ? khoTomTat() : null,
     me: congKhai(u),
     phienBan: PHIEN_BAN
@@ -1637,6 +1774,10 @@ function luuNguoiDung(u, p) {
   x.ten = ten; x.vaiTro = vai; x.pinHash = hash; x.email = email; x.hoatDong = hoatDong;
   if (maNV) x.maNV = maNV;
   if (p.tenZh !== undefined) x.tenZh = catChu(p.tenZh, 60);
+  if (p.maThe !== undefined) x.maThe = catChu(p.maThe, 30);
+  if (p.boPhan !== undefined) x.boPhan = catChu(p.boPhan, 60);
+  if (p.boPhanZh !== undefined) x.boPhanZh = catChu(p.boPhanZh, 60);
+  if (p.chucVu !== undefined) x.chucVu = catChu(p.chucVu, 60);
   if (moi) themDong('NguoiDung', ndThanhDong(x)); else suaDong('NguoiDung', x._r, ndThanhDong(x));
   return { user: congKhaiAdmin(x) };
 }
@@ -2613,7 +2754,8 @@ function khoiPhuc(u, p) {
 var LUU_TRU_BANG = {
   LichSu: function (r, c) { return namCua(r[c.Ngay]); },
   CongViec: function (r, c) { var tt = s(r[c.TrangThai]); return tt === 'DONG' || tt === 'HUY' ? namCua(r[c.LucXong] || r[c.LucTao]) : 0; },
-  NhatKy: function (r, c) { return namCua(r[c.ThoiGian]); }
+  NhatKy: function (r, c) { return namCua(r[c.ThoiGian]); },
+  TangCa: function (r, c) { return namCua(r[c.Ngay]); }
 };
 function namCua(v) { var t = v instanceof Date ? tgStr(v) : s(v); return /^\d{4}-/.test(t) ? Number(t.slice(0, 4)) : 0; }
 function cotCua(ten) { var o = {}; BANG[ten].forEach(function (k, i) { o[k] = i; }); return o; }
@@ -3023,14 +3165,14 @@ function mauKiemTra() {
 // ===================== Cài đặt lần đầu =====================
 // Chạy hàm này một lần trong trình soạn Apps Script (nó cũng hỏi cấp quyền).
 function caiDatBanDau() {
-  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'CongViec', 'ViecLap', 'Chuyen'].forEach(trang);
+  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'CongViec', 'ViecLap', 'Chuyen', 'TangCa'].forEach(trang);
   thuocTinh('SALT'); thuocTinh('TOKEN_KEY');
   if (!dsNguoiDung().length) {
     var bay = thoiGianStr();
     themNhieu('NguoiDung', [
-      ['U001', 'Quản trị', 'admin', bamPin('111111'), '', 1, bay, 'NV001', ''],
-      ['U002', 'Quản lý', 'quanly', bamPin('222222'), '', 1, bay, 'NV002', ''],
-      ['U003', 'Kỹ thuật', 'kythuat', bamPin('333333'), '', 1, bay, 'NV003', '']
+      ['U001', 'Quản trị', 'admin', bamPin('111111'), '', 1, bay, 'NV001', '', '', '', '', ''],
+      ['U002', 'Quản lý', 'quanly', bamPin('222222'), '', 1, bay, 'NV002', '', '', '', '', ''],
+      ['U003', 'Kỹ thuật', 'kythuat', bamPin('333333'), '', 1, bay, 'NV003', '', '', '', '', '']
     ]);
   }
   if (!dsMay().length) {

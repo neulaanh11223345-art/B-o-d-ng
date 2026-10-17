@@ -225,7 +225,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.10.0');
+  assert.equal(d.phienBan, '2.11.0');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -764,4 +764,62 @@ test('phân quyền xem: Quản lý, Quản trị thấy hết; kỹ thuật ch�
   // Lịch sử sửa chữa (bản ghi SC) của người khác: kỹ thuật vẫn xem được
   const sc = ok(b.call('saveRepair', { moTa: 'Máy nén khí kêu to', ketQua: 'Siết bu lông', ma: 'M038' }, ql)).congViec;
   assert.ok(ids(kt).has(sc.id));
+});
+
+test('tăng ca: mỗi người ghi của mình, Quản lý ghi hộ và xem hết; số giờ tự tính kể cả qua 0 giờ; xoá được; ca làm việc sửa được', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333'), kt2 = b.login('NV004', '444444'), ad = b.login('NV001', '111111');
+  const d0 = ok(b.call('data', {}, ql)), uid = (ma) => d0.nhanVien.find((n) => n.maNV === ma).id;
+  const cua = (u) => ok(b.call('data', {}, u)).tangCa;
+  const goc = { kt: cua(kt).length, kt2: cua(kt2).length, ql: cua(ql).length };   // bản xem thử có sẵn vài bản ghi mẫu
+  // Ca làm việc mặc định gửi cho mọi người để điền sẵn giờ
+  assert.deepEqual(ok(b.call('data', {}, kt)).caiDat.caTangCa.map((c) => c.k), ['HC', 'NGAY', 'DEM', 'CN']);
+  assert.equal(ok(b.call('data', {}, kt)).caiDat.gioTCThang, 40);
+  // Kỹ thuật ghi tăng ca của mình, số giờ tự tính
+  const x = ok(b.call('saveOT', { ngay: '2026-10-14', ca: 'HC', tu: '17:30', den: '19:30', lyDo: 'Sửa máy in phun VKY01' }, kt)).tangCa;
+  assert.deepEqual([x.uid, x.soGio, x.ca], [uid('NV003'), 2, 'HC']);
+  assert.ok(x.lyDoDich, 'lý do được dịch sang tiếng Trung');
+  // Qua 0 giờ: 22:00 → 02:00 là 4 tiếng
+  assert.equal(ok(b.call('saveOT', { ngay: '2026-10-15', ca: 'DEM', tu: '22:00', den: '02:00' }, kt)).tangCa.soGio, 4);
+  // Sửa tay số giờ thì giữ nguyên số đã sửa
+  const y = ok(b.call('saveOT', { id: x.id, ngay: x.ngay, ca: 'HC', tu: '17:30', den: '19:30', soGio: 1.5 }, kt)).tangCa;
+  assert.deepEqual([y.id, y.soGio], [x.id, 1.5]);
+  // Giờ sai, ca lạ: báo lỗi
+  err(b.call('saveOT', { ngay: '2026-10-14', ca: 'HC', tu: '25:00', den: '19:30' }, kt), 'GIO_SAI');
+  err(b.call('saveOT', { ngay: '2026-10-14', ca: 'XX', tu: '17:30', den: '19:30' }, kt), 'CA_SAI');
+  err(b.call('saveOT', { ngay: '2026-10-14', ca: 'HC', tu: '17:30', den: '19:30', soGio: 0 }, kt), 'GIO_TC_SAI');
+  // Không ghi hộ người khác được
+  err(b.call('saveOT', { uid: uid('NV004'), ngay: '2026-10-14', ca: 'HC', tu: '17:30', den: '19:30' }, kt), 'KHONG_QUYEN');
+  // Quản lý ghi hộ được
+  const z = ok(b.call('saveOT', { uid: uid('NV004'), ngay: '2026-10-14', ca: 'CN', tu: '08:00', den: '17:00' }, ql)).tangCa;
+  assert.deepEqual([z.uid, z.soGio], [uid('NV004'), 9]);
+  // Ai thấy gì: kỹ thuật chỉ thấy của mình, Quản lý và Quản trị thấy hết
+  assert.ok(cua(kt).every((r) => r.uid === uid('NV003')), 'kỹ thuật chỉ nhận bản ghi của mình');
+  assert.equal(cua(kt).length, goc.kt + 2);
+  assert.ok(cua(kt2).every((r) => r.uid === uid('NV004')));
+  assert.equal(cua(kt2).length, goc.kt2 + 1);
+  assert.equal(cua(ql).length, goc.ql + 3);
+  assert.equal(cua(ad).length, goc.ql + 3);
+  assert.ok(cua(ql).length > cua(kt).length, 'Quản lý thấy nhiều hơn kỹ thuật');
+  // Xoá: của mình được, của người khác thì không; Quản lý xoá được mọi bản ghi
+  err(b.call('deleteOT', { id: z.id }, kt), 'KHONG_QUYEN');
+  assert.equal(ok(b.call('deleteOT', { id: x.id }, kt)).xoaTC, x.id);
+  assert.equal(cua(kt).length, goc.kt + 1);
+  assert.equal(ok(b.call('deleteOT', { id: z.id }, ql)).xoaTC, z.id);
+  // Thông tin in trên đơn: mỗi người tự sửa của mình
+  const me = ok(b.call('saveProfile', { maThe: 'V25066', boPhan: 'Kỹ thuật sản xuất', chucVu: 'Kỹ sư' }, kt)).me;
+  assert.deepEqual([me.maThe, me.chucVu], ['V25066', 'Kỹ sư']);
+  assert.ok(me.boPhanZh, 'bộ phận tự dịch sang tiếng Trung');
+  assert.equal(ok(b.call('data', {}, kt)).me.maThe, 'V25066');
+  // Kỹ thuật không thấy mã thẻ của người khác, Quản lý thì thấy
+  assert.equal(ok(b.call('data', {}, kt2)).nhanVien.find((n) => n.maNV === 'NV003').maThe, undefined);
+  assert.equal(ok(b.call('data', {}, ql)).nhanVien.find((n) => n.maNV === 'NV003').maThe, 'V25066');
+  // Ca làm việc: chỉ Quản lý sửa
+  err(b.call('saveOTCfg', { ca: [{ k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:00', den: '19:00' }] }, kt), 'KHONG_QUYEN');
+  const cd = ok(b.call('saveOTCfg', { ca: [{ k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:00', den: '19:00' },
+    { k: 'DEM', ten: 'Ca đêm', zh: '夜班', tu: '06:00', den: '08:00' }], gioTCThang: 36, gioTCNam: 180 }, ql)).caiDat;
+  assert.deepEqual([cd.caTangCa.length, cd.caTangCa[0].tu, cd.gioTCThang, cd.gioTCNam], [2, '17:00', 36, 180]);
+  err(b.call('saveOTCfg', { ca: [{ k: 'HC', ten: 'Hành chính', tu: '99:00', den: '19:00' }] }, ql), 'GIO_SAI');
+  // Ca đã bỏ thì không ghi tăng ca theo ca đó nữa
+  err(b.call('saveOT', { ngay: '2026-10-16', ca: 'CN', tu: '08:00', den: '17:00' }, kt), 'CA_SAI');
 });

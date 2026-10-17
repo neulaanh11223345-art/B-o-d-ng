@@ -31,6 +31,7 @@
   --f-ui:'Be Vietnam Pro','Noto Sans SC',system-ui,-apple-system,'Segoe UI',sans-serif;
   --f-zh:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
   --f-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --f-giay:'Times New Roman',Times,'Noto Serif SC',serif;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
@@ -407,6 +408,46 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .checkrow{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line)}
 .checkrow:first-child{border-top:0}
 .checkrow input{width:22px;height:22px;flex:none;accent-color:var(--brand)}
+/* ---- Tăng ca: tờ đơn theo mẫu giấy 自愿加班申请单 ---- */
+.tcwrap{overflow-x:auto}
+.tcsheet{background:#fff;color:#111;font-family:var(--f-giay);padding:22px 18px 16px;max-width:760px;margin:0 auto}
+.tcsheet+.tcsheet{margin-top:16px;border-top:1px dashed var(--line);padding-top:26px}
+.tcsheet .co{text-align:center;font-weight:700;font-size:clamp(14px,3.4vw,17px);line-height:1.3}
+.tcsheet .co .zh{font-family:var(--f-zh);font-size:.92em}
+.tcsheet .tt{text-align:center;font-weight:700;font-size:clamp(17px,4.8vw,23px);letter-spacing:.5px;margin-top:12px}
+.tcsheet .tt .zh{display:block;font-family:var(--f-zh);font-size:.72em;letter-spacing:0;margin-top:3px}
+.tcsheet .bo{display:flex;gap:14px;flex-wrap:wrap;margin:15px 0 4px;font-size:clamp(12px,3vw,14.5px);font-weight:700}
+.tcsheet .bo u{text-decoration:none;border-bottom:1px solid #333;min-width:96px;display:inline-block;font-weight:400}
+.tcsheet table{width:100%;border-collapse:collapse;font-size:clamp(11px,2.8vw,13.5px)}
+.tcsheet .ai td{border:1px solid #333;padding:7px 8px;vertical-align:top}
+.tcsheet .ai b{font-weight:700;display:block;font-size:.95em}
+.tcsheet .ai .vl{display:block;margin-top:5px;border-bottom:1px dotted #333;min-height:18px;font-weight:400}
+.tcsheet .ot{margin-top:9px}
+.tcsheet .ot th,.tcsheet .ot td{border:1px solid #333;padding:7px 5px;text-align:center}
+.tcsheet .ot th{font-weight:700;line-height:1.25}
+.tcsheet .ot th .zh{display:block;font-family:var(--f-zh);font-weight:400;font-size:.88em}
+.tcsheet .ot td{height:32px}
+.tcsheet .ot td.ct{text-align:left;padding-left:8px}
+.tcsheet .ot tr.tg td{font-weight:700}
+.tcsheet .gc{margin-top:11px;font-size:clamp(10.5px,2.6vw,12.5px);line-height:1.5}
+.tcsheet .gc .zh{font-family:var(--f-zh)}
+.tcsheet .ky{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:26px;text-align:center;font-size:clamp(10.5px,2.6vw,13px);font-weight:700}
+.tcsheet .ky span{display:block;font-family:var(--f-zh);font-weight:400;font-size:.88em;margin-top:2px}
+.tcsheet .pg{text-align:right;font-size:11px;color:#555;margin-top:12px}
+.tcrow{width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);color:var(--ink);display:flex;flex-direction:column;gap:8px;cursor:pointer;font:inherit}
+.tcrow:hover{border-color:var(--brand)}
+.tcrow .h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.tcrow .no{width:26px;height:26px;flex:none;border-radius:8px;background:var(--brand-bg);color:var(--brand);font:700 12.5px var(--f-mono);display:grid;place-items:center}
+.tcrow .g{margin-left:auto;font:700 17px var(--f-mono);color:var(--green)}
+.tcrow .g i{font-style:normal;font-size:12px;font-weight:500;color:var(--ink3);margin-left:2px}
+.tcrow .sub{font-size:13px;color:var(--ink2)}
+.tctot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.tctot .k{font-size:13.5px;color:var(--ink2);font-weight:600}
+.tctot .v{font:700 23px var(--f-mono);color:var(--brand);font-variant-numeric:tabular-nums}
+.tcadd{width:100%;margin-top:11px;border:1.5px dashed color-mix(in srgb,var(--brand) 45%,transparent);background:var(--brand-bg);color:var(--brand);font:600 15px var(--f-ui);padding:13px;border-radius:12px;cursor:pointer}
+.tcgio{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--green-bg);border:1px solid color-mix(in srgb,var(--green) 25%,transparent);border-radius:10px;padding:10px 12px;margin:12px 0}
+.tcgio span{font-size:13.5px;font-weight:600;color:var(--ink2)}
+.tcgio input{width:78px;text-align:center;font:700 16px var(--f-mono);color:var(--green);background:var(--card);border:1px solid color-mix(in srgb,var(--green) 35%,transparent);border-radius:9px;padding:7px}
 #printArea{display:none}
 @media print{
   body{background:#fff}
@@ -414,6 +455,11 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
   #printArea{display:block}
   @page{size:A4;margin:0}
   .psheet{width:210mm;height:297mm;display:grid;page-break-after:always;break-after:page;overflow:hidden}
+  .tcsheet{width:210mm;min-height:296mm;max-width:none;margin:0;padding:15mm 13mm;page-break-after:always;break-after:page;border:0}
+  .tcsheet:last-child{page-break-after:auto;break-after:auto}
+  .tcsheet+.tcsheet{border-top:0;margin-top:0;padding-top:15mm}
+  .tcsheet .co{font-size:15pt}.tcsheet .tt{font-size:20pt}.tcsheet table{font-size:11pt}.tcsheet .bo{font-size:12pt}
+  .tcsheet .gc{font-size:9.5pt}.tcsheet .ky{font-size:11pt;margin-top:16mm}.tcsheet .ot td{height:9mm}
   .psheet:last-child{page-break-after:auto;break-after:auto}
   .psheet.s24{grid-template-columns:repeat(3,70mm);grid-auto-rows:37.125mm}
   .psheet.s8{grid-template-columns:repeat(2,105mm);grid-auto-rows:74.25mm}
@@ -1277,7 +1323,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.10.0";
+const APP_VER = "2.11.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -1723,6 +1769,13 @@ function mergeResult(d) {
     const i = L.findIndex((x) => x.id === v.id);
     if (i >= 0) L[i] = v; else L.push(v);
   });
+  if (d.tangCa) {
+    const L = S.base.tangCa = S.base.tangCa || [];
+    const i = L.findIndex((x) => x.id === d.tangCa.id);
+    if (i >= 0) L[i] = d.tangCa; else L.push(d.tangCa);
+  }
+  if (d.xoaTC) S.base.tangCa = (S.base.tangCa || []).filter((x) => x.id !== d.xoaTC);
+  if (d.me) { S.me = Object.assign({}, S.me, d.me); store.set('bd_me', S.me); S.base.me = S.me; }
   if (d.kho) khoApply(d.kho);
   if (d.taiLieu && d.ma) S.base.taiLieu = (S.base.taiLieu || []).filter((x) => x.ma !== d.ma).concat(d.taiLieu);
   saveSnap(); rebuild();
@@ -1841,13 +1894,14 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 // (kèm hồ sơ máy / chuyền mở từ các mục đó, quét QR, trang cá nhân).
 const xemHet = () => can('xemhet');
 const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
-  'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo']);
+  'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
 const SIDE = [['home', 'home', 'home'], ['cv', 'navCV', 'list'], ['list', 'navMay', 'gear'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'],
-  ['dien', 'navDien', 'bolt'], ['kho', 'segKho', 'box'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
-const SIDE_HC = [['home', 'home', 'home'], ['cv', 'navSC', 'wrench'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'], ['dien', 'navDien', 'bolt'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
+  ['dien', 'navDien', 'bolt'], ['kho', 'segKho', 'box'], ['tc', 'navTC', 'clock'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
+const SIDE_HC = [['home', 'home', 'home'], ['cv', 'navSC', 'wrench'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'], ['dien', 'navDien', 'bolt'],
+  ['tc', 'navTC', 'clock'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
 const sideDS = () => (xemHet() ? SIDE : SIDE_HC);
 const tabGoc = (v) => { const g = TAB_OF[v] || v; return !xemHet() && g === 'list' ? 'cal' : g; };
 function shell() {
@@ -1882,10 +1936,12 @@ function shell() {
 }
 const TITLES = { dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
-  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi', scDS: 't_scDS', saoLuu: 't_saoLuu' };
-const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv'];
+  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi', scDS: 't_scDS', saoLuu: 't_saoLuu',
+  tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg' };
+const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc'];
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
-  dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me' };
+  dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
+  tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
 function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w.length > 1 ? w[w.length - 1][0] : w[0].slice(0, 2)).toUpperCase(); }
@@ -2098,6 +2154,13 @@ function modTiles() {
     while (v === null && g++ < 3) { v = kyTong('nuoc', k); if (v === null) k = kyTruoc(k); }
     h += tile('mt-cyan', 'drop', 'mNuoc', { d: fmtDM(k) }, v === null ? '—' : `${fmtNum(v)}<small> m³</small>`, '', 'data-act="dienLoai" data-l="nuoc"');
   }
+  {
+    const ym = today.slice(0, 7), uid = (S.me || {}).id;
+    const mine = (S.V.tc || []).filter((x) => x.uid === uid && x.ngay.slice(0, 7) === ym);
+    const g = tcCong(mine);
+    h += tile('mt-purple', 'clock', 'mTangCa', { m: mo }, `${tcSo(g)}<small> ${esc(tv('mTCGio'))}</small>`,
+      mine.length ? t('mTCLan', { n: mine.length }) : t('mTCChua'), 'data-act="tab" data-v="tc"');
+  }
   if (S.kho.ds.length && xemHet()) {
     const vis = S.kho.ds.filter((x) => !x.an && !x.gop), thap = lkThapDS().length;
     h += tile('mt-purple', 'box', 'mLinhKien', null, fmtNum(vis.length, 0), thap ? `<span class="warnx">${t('mDuoiMin', { n: thap })}</span>` : t('mConHang', { n: fmtNum(vis.filter((x) => (tonOf(x) || 0) > 0).length, 0) }), 'data-act="tab" data-v="kho"');
@@ -2150,6 +2213,7 @@ VIEWS.me = {
       <div class="list" style="margin-top:14px">
       <button class="row" data-act="go" data-v="sync"><span class="sync s-${st.k}" style="pointer-events:none"><i></i><span>${esc(tv(SYNC_SHORT[st.k], { n: st.n }))}</span></span><div class="main"><div class="nm">${t('t_sync')}</div><div class="sub">${t('lanCuoi')}: ${esc(lucTxt(S.lastSync))}</div></div>${IC.chev}</button>
       <button class="row" data-act="doRefresh">${IC.refresh}<div class="main"><div class="nm">${t('refresh')}</div></div></button>
+      <button class="row" data-act="tab" data-v="tc">${IC.clock}<div class="main"><div class="nm">${t('t_tc')}</div><div class="sub">${t('tcCuaToi')}</div></div>${IC.chev}</button>
       <button class="row" data-act="pinForm">${IC.key}<div class="main"><div class="nm">${t('changePin')}</div></div></button>
       ${can('huy') ? `<button class="row" data-act="go" data-v="duyet">${IC.bolt}<div class="main"><div class="nm">${t('t_duyet')}</div></div>${choDuyetDS().length ? `<span class="pill p-qua">${choDuyetDS().length}</span>` : ''}${IC.chev}</button>
       <button class="row" data-act="go" data-v="nhatKy">${IC.hist}<div class="main"><div class="nm">${t('nhatKy')}</div></div>${IC.chev}</button>` : ''}
@@ -3560,7 +3624,7 @@ async function doPin(el) {
 function logout(expired) {
   closeSheet(); stopScan();
   S.tk = null; S.me = null; S.base = null; S.V = null; S.stack = [];
-  Object.assign(S.f, { dTab: 'ghi', dKy: '', dCT: '', dYear: 0, q: '', histQ: '' });
+  Object.assign(S.f, { dTab: 'ghi', dKy: '', dCT: '', dYear: 0, q: '', histQ: '', tcUid: '', tcTuan: '', tcThang: '' });
   store.del('bd_tk'); store.del('bd_me'); store.del('bd_snap');
   renderLogin(expired ? t('HET_PHIEN') : '');
 }
@@ -4296,14 +4360,14 @@ Object.assign(ERR, {
 });
 
 // Máy chủ cũ hơn bản app cần (ví dụ triển khai chưa lên Phiên bản mới): báo rõ cách sửa
-const SRV_CAN = '2.10.0';
+const SRV_CAN = '2.11.0';
 function verLt(a, b) {
   const x = String(a || '0').split('.').map((n) => +n || 0), y = String(b).split('.').map((n) => +n || 0);
   for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0);
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -7572,6 +7636,21 @@ function rebuildCV() {
       list.forEach((x) => { if (x.loai === 'BD' && x.ma === q.p.ma && cvMo(x)) { x.trangThai = 'DONG'; x.ketQua = tv('cvXacNhanBD') + ' ' + fmtD(q.p.ngay); x.ketQuaDich = tz('cvXacNhanBD') + ' ' + fmtD(q.p.ngay); x.cho = true; } });
     }
   });
+  // Tăng ca: dữ liệu máy chủ + việc đang chờ gửi
+  const tcL = (b.tangCa || []).map((x) => Object.assign({}, x));
+  S.Q.forEach((q) => {
+    if (q.st !== 'cho') return;
+    if (q.action === 'saveOT') {
+      const o = { id: q.p.id || 'tmp-' + q.opId, uid: q.p.uid || q.uid, ngay: q.p.ngay, ca: q.p.ca, tu: q.p.tu, den: q.p.den,
+        soGio: +q.p.soGio || 0, lyDo: q.p.lyDo || '', lyDoDich: '', cho: true };
+      const i = tcL.findIndex((x) => x.id === o.id);
+      if (i >= 0) tcL[i] = Object.assign({}, tcL[i], o); else tcL.push(o);
+    } else if (q.action === 'deleteOT') {
+      const i = tcL.findIndex((x) => x.id === q.p.id);
+      if (i >= 0) tcL.splice(i, 1);
+    }
+  });
+  S.V.tc = tcL;
   // Bản ghi "Ghi sửa chữa" chỉ là lịch sử: không vào danh sách / bảng / thống kê công việc, xem ở Lịch sử sửa chữa
   Object.assign(S.V, { cv: list.filter((x) => !laSC(x)), cvAll: list, cvById: byId, vl: xemHet() ? b.viecLap || [] : [] });
 }
@@ -8337,6 +8416,443 @@ Object.assign(ACT, {
     await saveFile(blob, 'Bao-cao-cong-viec-' + ym + '.xlsx');
   }
 });
+// ===================== Tăng ca =====================
+// Mỗi người đăng ký tăng ca của mình, xem và in đơn của mình. Quản lý, Quản trị xem cả nhà máy.
+// Đơn in theo tuần đúng mẫu giấy "ĐƠN XIN TĂNG CA · 自愿加班申请单", tổng hợp và xuất Excel theo tháng.
+Object.assign(TX, {
+  navTC: ['Tăng ca', '加班'], t_tc: ['Đăng ký tăng ca', '加班登记'], t_tcGhi: ['Ghi tăng ca', '记录加班'],
+  t_tcXem: ['Đơn xin tăng ca', '加班申请单'], t_tcThang: ['Tổng hợp tăng ca', '加班汇总'], t_tcCfg: ['Ca làm việc', '班次设置'],
+  tcNV: ['Thông tin nhân viên', '员工信息'], tcHoTen: ['Họ tên', '姓名'], tcMaThe: ['Mã số thẻ', '工号'],
+  tcBoPhan: ['Bộ phận', '部门'], tcBoPhanZh: ['Bộ phận tiếng Trung', '部门（中文）'], tcChucVu: ['Chức vụ', '职务/职称'],
+  tcSuaHoSo: ['Sửa thông tin in trên đơn', '修改申请单信息'], tcHoSoHelp: ['Thông tin này in lên đơn tăng ca. Điền một lần, lần sau app tự điền.', '此信息将打印在加班申请单上。填写一次，以后自动填充。'],
+  tcChuaHoSo: ['Chưa có mã số thẻ, bộ phận, chức vụ — bấm để điền', '尚未填写工号、部门、职务 — 点击填写'],
+  tcDaLuuHoSo: ['Đã lưu thông tin', '信息已保存'],
+  tcTuanN: ['Tuần {a} – {b}', '{a} – {b} 周'], tcDS: ['Danh sách tăng ca', '加班明细'], tcLanN: ['{n} lần', '{n}次'],
+  tcTrong: ['Tuần này chưa có lần tăng ca nào', '本周暂无加班记录'], tcThem: ['Thêm ngày tăng ca', '添加加班日期'],
+  tcCa: ['Ca làm việc', '班次'], tcNgay: ['Ngày tăng ca', '加班日期'], tcTu: ['Từ giờ', '开始'], tcDen: ['Đến giờ', '结束'],
+  tcSoGio: ['Số tiếng TC', '加班工时'], tcTuTinh: ['tự tính theo giờ, sửa được', '按时间自动计算，可修改'],
+  tcLyDo: ['Lý do tăng ca', '加班原因'], tcLyDoPh: ['Ví dụ: Sửa máy in phun VKY01', '例如：维修喷印机VKY01'],
+  tcLyDoHelp: ['In ở cột Chú thích của đơn, sau tên ca.', '打印在申请单备注栏，位于班次名称之后。'],
+  tcTongTuan: ['Tổng giờ tuần này', '本周合计'], tcTongThang: ['Đã có trong tháng {m}', '{m}月累计'],
+  tcQuaThang: ['Vượt {g} giờ/tháng theo luật lao động — đang là {n} giờ', '超过法定每月{g}小时 — 当前{n}小时'],
+  tcQuaNam: ['Vượt {g} giờ/năm theo luật lao động — đang là {n} giờ', '超过法定每年{g}小时 — 当前{n}小时'],
+  tcXemDon: ['Xem trước & in đơn', '预览并打印申请单'], tcInPdf: ['In / Lưu PDF', '打印 / 保存PDF'],
+  tcInHelp: ['Trên iPhone: bấm nút này, Safari hiện trang in, chọn Chia sẻ → Lưu vào Tệp là ra PDF. Trên máy tính: chọn máy in "Save as PDF".', 'iPhone：点击后Safari显示打印页，选择"共享→存储到文件"即可生成PDF。电脑：打印机选择"Save as PDF"。'],
+  tcXuatTuan: ['Xuất Excel tuần', '导出本周Excel'], tcXuatThang: ['Xuất Excel tổng hợp tháng', '导出月度汇总Excel'],
+  tcMoThang: ['Tổng hợp theo tháng', '月度汇总'], tcNguoiXem: ['Đang xem', '正在查看'], tcCuaToi: ['Tăng ca của tôi', '我的加班'],
+  tcLuu: ['Lưu', '保存'], tcXoa: ['Xoá lần tăng ca này', '删除此条加班'], tcXoaHoi: ['Xoá rồi thì bảng tổng hợp tháng sẽ thiếu phần này.', '删除后月度汇总将不含此条。'],
+  tcDaXoa: ['Đã xoá', '已删除'], tcDaLuu: ['Đã lưu tăng ca', '加班已保存'],
+  tcGioSai: ['Giờ bắt đầu và kết thúc không hợp lệ', '开始或结束时间无效'],
+  tcChuaAi: ['Tháng này chưa có ai đăng ký tăng ca', '本月暂无加班登记'],
+  tcThangN: ['Tháng {m}/{y}', '{y}年{m}月'], tcCongBP: ['Cộng', '合计'], tcThGio: ['Tổng', '合计'],
+  tcChiTiet: ['Chi tiết trong tháng', '本月明细'], tcChiTietN: ['Chi tiết của {t}', '{t} 明细'],
+  tcCamLegend: ['Số màu cam: vượt {g} giờ/tháng theo luật lao động.', '橙色数字：超过法定每月{g}小时。'],
+  tcCaDat: ['Giờ điền sẵn cho từng ca', '各班次默认时间'],
+  tcCaHelp: ['Chọn ca ở màn ghi tăng ca thì app điền sẵn hai ô giờ này. Nhân viên vẫn sửa được từng lần.', '在记录加班时选择班次，系统自动填入以下时间，员工仍可逐次修改。'],
+  tcCaMa: ['Mã', '代码'], tcCaTen: ['Tên ca', '班次名称'], tcCaZh: ['Tiếng Trung', '中文'],
+  tcGioThang: ['Giới hạn giờ/tháng', '每月上限'], tcGioNam: ['Giới hạn giờ/năm', '每年上限'],
+  tcCfgLuu: ['Lưu ca làm việc', '保存班次'], tcCfgOk: ['Đã lưu ca làm việc', '班次已保存'],
+  tcMoCfg: ['Sửa ca làm việc', '修改班次'],
+  mTangCa: ['Tăng ca tháng {m}', '{m}月加班'], mTCGio: ['giờ', '小时'], mTCLan: ['{n} lần đăng ký', '登记{n}次'], mTCChua: ['chưa đăng ký lần nào', '暂无登记'],
+  srvMissTC: ['Bản 2.11: đăng ký tăng ca và in đơn.', '2.11版：加班登记与打印申请单。'],
+  xlTCNgay: ['Ngày tháng · 日期'], xlTCThu: ['Thứ · 星期'], xlTCNV: ['Họ tên · 姓名'], xlTCThe: ['Mã số thẻ · 工号'],
+  xlTCBP: ['Bộ phận · 部门'], xlTCCa: ['Ca làm việc · 班次'], xlTCTG: ['Thời gian tăng ca · 加班时间'],
+  xlTCGio: ['Số tiếng TC · 工时'], xlTCCT: ['Chú thích · 备注'], xlTCTong: ['Tổng · 合计']
+});
+
+const TC_MAC_DINH = [{ k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' },
+  { k: 'NGAY', ten: 'Ca ngày', zh: '日班', tu: '20:00', den: '22:00' },
+  { k: 'DEM', ten: 'Ca đêm', zh: '夜班', tu: '06:00', den: '08:00' },
+  { k: 'CN', ten: 'Chủ nhật', zh: '周日班', tu: '08:00', den: '17:00' }];
+const tcCaDS = () => { const a = (S.base && S.base.caiDat && S.base.caiDat.caTangCa) || []; return a.length ? a : TC_MAC_DINH; };
+const tcCaOf = (k) => tcCaDS().filter((c) => c.k === k)[0] || tcCaDS()[0];
+const tcMaxThang = () => +((S.base && S.base.caiDat && S.base.caiDat.gioTCThang) || 40);
+const tcMaxNam = () => +((S.base && S.base.caiDat && S.base.caiDat.gioTCNam) || 200);
+const tcLaGio = (t) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(t || ''));
+// Số tiếng tăng ca: đến giờ trừ từ giờ, qua 0 giờ vẫn đúng. Không trừ giờ nghỉ.
+function tcGio(tu, den) {
+  if (!tcLaGio(tu) || !tcLaGio(den)) return 0;
+  let p = (+den.slice(0, 2) * 60 + +den.slice(3, 5)) - (+tu.slice(0, 2) * 60 + +tu.slice(3, 5));
+  if (p <= 0) p += 24 * 60;
+  return Math.round(p / 60 * 100) / 100;
+}
+const tcSo = (n) => fmtNum(Math.round((+n || 0) * 100) / 100);
+// Tuần bắt đầu thứ Hai
+function tcThuHai(d) { const w = wday(d); return addD(d, -((w + 6) % 7)); }
+const tcTuanHT = () => S.f.tcTuan || tcThuHai(TODAY());
+const tcThangHT = () => S.f.tcThang || TODAY().slice(0, 7);
+const tcUid = () => S.f.tcUid || (S.me ? S.me.id : '');
+const tcSuaDuoc = (uid) => uid === (S.me ? S.me.id : '') || xemHet();
+function tcNguoi(uid) {
+  const me = S.me || {}, n = (S.V && S.V.nvById && S.V.nvById[uid]) || {};
+  const b = uid === me.id ? Object.assign({}, n, me) : n;
+  return { id: uid, ten: b.ten || '', tenZh: b.tenZh || '', maNV: b.maNV || '', maThe: b.maThe || '',
+    boPhan: b.boPhan || '', boPhanZh: b.boPhanZh || '', chucVu: b.chucVu || '' };
+}
+const tcLoc = (uid, tu, den) => (S.V.tc || []).filter((x) => x.uid === uid && x.ngay >= tu && x.ngay <= den)
+  .sort((a, b) => (a.ngay < b.ngay ? -1 : a.ngay > b.ngay ? 1 : a.tu < b.tu ? -1 : 1));
+const tcCong = (ds) => Math.round(ds.reduce((s, x) => s + (+x.soGio || 0), 0) * 100) / 100;
+const tcThangCua = (uid, ym) => tcCong((S.V.tc || []).filter((x) => x.uid === uid && x.ngay.slice(0, 7) === ym));
+const tcNamCua = (uid, y) => tcCong((S.V.tc || []).filter((x) => x.uid === uid && x.ngay.slice(0, 4) === y));
+function tcCanhBao(uid, ym) {
+  const th = tcThangCua(uid, ym), nam = tcNamCua(uid, ym.slice(0, 4));
+  if (th > tcMaxThang()) return t('tcQuaThang', { g: tcMaxThang(), n: tcSo(th) });
+  if (nam > tcMaxNam()) return t('tcQuaNam', { g: tcMaxNam(), n: tcSo(nam) });
+  return '';
+}
+
+// ---------- Màn đăng ký theo tuần ----------
+VIEWS.tc = {
+  html() {
+    const uid = tcUid(), n = tcNguoi(uid), tu = tcTuanHT(), den = addD(tu, 6), ds = tcLoc(uid, tu, den);
+    const sua = tcSuaDuoc(uid), ym = tu.slice(0, 7), cb = tcCanhBao(uid, ym);
+    let o = srvOld('tc') ? srvWarn('tc') : '';
+    if (xemHet()) {
+      o += `<div class="fld" style="margin-bottom:12px"><span>${t('tcNguoiXem')}</span>
+        <select class="inp" id="tcNguoi">${nvDS().map((v) => `<option value="${esc(v.id)}"${v.id === uid ? ' selected' : ''}>${esc(v.ten)}${v.maNV ? ' · ' + esc(v.maNV) : ''}</option>`).join('')}</select></div>`;
+    }
+    const thieu = !n.maThe || !n.boPhan || !n.chucVu;
+    o += sec('tcNV') + `<div class="card pad">
+      <dl class="kv kvwide"><dt>${t('tcHoTen')}</dt><dd>${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ` <span class="zi">${esc(n.tenZh)}</span>` : ''}</dd>
+        <dt>${t('tcMaThe')}</dt><dd class="mono">${esc(n.maThe || '—')}</dd>
+        <dt>${t('tcBoPhan')}</dt><dd>${esc(n.boPhan || '—')}${n.boPhanZh ? ` <span class="zi">${esc(n.boPhanZh)}</span>` : ''}</dd>
+        <dt>${t('tcChucVu')}</dt><dd>${esc(n.chucVu || '—')}</dd></dl>
+      ${uid === (S.me || {}).id ? `<div class="btns" style="margin-top:12px"><button class="btn ghost sm" data-act="tcHoSo">${IC.edit} ${t('tcSuaHoSo')}</button></div>
+        ${thieu ? `<div class="note" style="margin-top:10px">${t('tcChuaHoSo')}</div>` : ''}` : ''}</div>`;
+
+    o += sec('tcDS', tv('tcLanN', { n: ds.length })) + `<div class="caltools"><div class="stepper">
+      <button data-act="tcTuan" data-d="-1" aria-label="-">${IC.left}</button>
+      <b>${tv('tcTuanN', { a: fmtDM(tu), b: fmtDM(den) })}</b>
+      <button data-act="tcTuan" data-d="1" aria-label="+">${IC.right}</button></div></div>`;
+    o += `<div class="list" style="margin-top:12px">${ds.length ? ds.map((x, i) => tcRowHtml(x, i + 1)).join('')
+      : `<div class="card empty">${t('tcTrong')}</div>`}</div>`;
+    if (sua) o += `<button class="tcadd" data-act="tcThem">+ ${t('tcThem')}</button>`;
+    o += `<div class="card pad" style="margin-top:14px"><div class="tctot" style="margin:0;padding:0;border:0">
+      <span class="k">${t('tcTongTuan')}</span><span class="v">${tcSo(tcCong(ds))}</span>
+      <span class="k" style="margin-left:auto">${tv('tcTongThang', { m: +ym.slice(5, 7) })}</span>
+      <span class="v" style="font-size:18px">${tcSo(tcThangCua(uid, ym))}</span></div>
+      ${cb ? `<div class="note warn" style="margin-top:12px;background:var(--orange-bg);border-color:var(--orange);color:var(--orange)"><b>${esc(cb)}</b></div>` : ''}</div>`;
+    o += `<div class="btns" style="margin-top:14px">
+      <button class="btn" data-act="go" data-v="tcXem">${IC.dl} ${t('tcXemDon')}</button>
+      <button class="btn ghost" data-act="tcXuatTuan">${IC.dl} ${t('tcXuatTuan')}</button>
+      <button class="btn ghost" data-act="go" data-v="tcThang">${IC.cal} ${t('tcMoThang')}</button>
+      ${can('may') ? `<button class="btn ghost" data-act="go" data-v="tcCfg">${IC.gear} ${t('tcMoCfg')}</button>` : ''}</div>`;
+    return o;
+  },
+  after() {
+    const sl = $('#tcNguoi');
+    if (sl) sl.addEventListener('change', () => { S.f.tcUid = sl.value; render(); });
+  }
+};
+function tcRowHtml(x, i) {
+  const c = tcCaOf(x.ca), w = wday(x.ngay);
+  return `<button class="tcrow" data-act="tcSua" data-id="${esc(x.id)}">
+    <div class="h"><span class="no">${i}</span><b>${WD_VI_F[w]}, ${fmtDM(x.ngay)}</b>
+      <span class="mdtag md-KHONG">${esc(c.ten)}<i>${esc(c.zh || '')}</i></span>
+      ${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}
+      <span class="g">${tcSo(x.soGio)}<i>${t('mTCGio')}</i></span></div>
+    <div class="sub"><span class="mono">${esc(x.tu)} – ${esc(x.den)}</span>${x.lyDo ? ' · ' + svH(x.lyDo, x.lyDoDich) : ''}</div></button>`;
+}
+
+// ---------- Ghi / sửa một lần tăng ca ----------
+VIEWS.tcGhi = {
+  html(p) {
+    if (!p.init) {
+      const cu = p.id ? (S.V.tc || []).filter((x) => x.id === p.id)[0] : null;
+      const tu = tcTuanHT(), ht = TODAY();
+      const ngay = cu ? cu.ngay : (ht >= tu && ht <= addD(tu, 6) ? ht : tu);
+      const ca = cu ? cu.ca : (wday(ngay) === 0 ? 'CN' : tcCaDS()[0].k), c = tcCaOf(ca);
+      Object.assign(p, { init: 1, uid: (cu && cu.uid) || tcUid(), ngay, ca,
+        tu: cu ? cu.tu : c.tu, den: cu ? cu.den : c.den, gio: cu ? tcSo(cu.soGio) : tcSo(tcGio(c.tu, c.den)), ly: cu ? cu.lyDo : '' });
+    }
+    const n = tcNguoi(p.uid);
+    return `<form id="tcF" class="card pad" autocomplete="off">
+      <div class="help" style="margin-bottom:12px">${esc(n.ten)}${n.maThe ? ' · ' + esc(n.maThe) : ''}</div>
+      <div class="fld"><span>${t('tcCa')}</span><div class="chips">${tcCaDS().map((c) => `<button type="button" class="chip${c.k === p.ca ? ' on' : ''}" data-act="tcCaChon" data-k="${esc(c.k)}">${esc(c.ten)} <span class="zi">${esc(c.zh || '')}</span></button>`).join('')}</div></div>
+      <div class="row2f" style="margin-top:12px">
+        <label class="fld"><span>${t('tcNgay')}</span><input class="inp" id="tcNgay" type="date" value="${esc(p.ngay)}"></label>
+        <div class="row2f" style="gap:10px">
+          <label class="fld"><span>${t('tcTu')}</span><input class="inp mono" id="tcTu" type="time" value="${esc(p.tu)}"></label>
+          <label class="fld"><span>${t('tcDen')}</span><input class="inp mono" id="tcDen" type="time" value="${esc(p.den)}"></label></div></div>
+      <div class="tcgio"><span>${tv('tcSoGio')} <span class="zi">${tz('tcSoGio')}</span></span><input id="tcGioIn" inputmode="decimal" maxlength="6" value="${esc(p.gio)}"><small class="help">${t('tcTuTinh')}</small></div>
+      <label class="fld"><span>${t('tcLyDo')}</span><textarea class="inp" id="tcLy" rows="2" maxlength="300" placeholder="${esc(tp('tcLyDoPh'))}">${esc(p.ly)}</textarea></label>
+      <div class="help" style="margin-top:6px">${t('tcLyDoHelp')}</div>
+      <div id="tcErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:16px"><button type="button" class="btn pri" id="tcOk">${IC.check} ${t('tcLuu')}</button>
+        ${p.id ? `<button type="button" class="btn ghost" data-act="tcXoa" data-id="${esc(p.id)}">${t('tcXoa')}</button>` : ''}</div>
+    </form>`;
+  },
+  after(p) {
+    const tu = $('#tcTu'), den = $('#tcDen'), g = $('#tcGioIn'), ng = $('#tcNgay'), ly = $('#tcLy');
+    const lai = () => { p.tu = tu.value; p.den = den.value; if (tcLaGio(p.tu) && tcLaGio(p.den)) { p.gio = tcSo(tcGio(p.tu, p.den)); g.value = p.gio; } };
+    tu.addEventListener('change', lai); den.addEventListener('change', lai);
+    g.addEventListener('input', () => { p.gio = g.value; });
+    ng.addEventListener('change', () => { p.ngay = ng.value; });
+    ly.addEventListener('input', () => { p.ly = ly.value; });
+    $('#tcOk').addEventListener('click', tcGui);
+  }
+};
+async function tcGui() {
+  const p = topV().p, e = $('#tcErr');
+  const bao = (m) => { e.hidden = false; e.textContent = m; };
+  if (!tcLaGio(p.tu) || !tcLaGio(p.den) || p.tu === p.den) { bao(t('tcGioSai')); return; }
+  const gio = Number(String(p.gio || '').replace(',', '.'));
+  if (!(gio > 0 && gio <= 24)) { bao(t('tcGioSai')); return; }
+  e.hidden = true;
+  const btn = $('#tcOk'); btn.disabled = true;
+  const r = await send('saveOT', { id: p.id || '', uid: p.uid, ngay: p.ngay, ca: p.ca, tu: p.tu, den: p.den, soGio: gio, lyDo: p.ly || '' });
+  btn.disabled = false;
+  if (r.err) { bao(errMsg(r.err)); return; }
+  toast(r.queued ? t('savedLocal') : t('tcDaLuu'));
+  S.f.tcTuan = tcThuHai(p.ngay); S.f.tcUid = p.uid;
+  back();
+}
+
+// ---------- Tờ đơn ----------
+function tcDonHtml(uid, tu) {
+  const n = tcNguoi(uid), den = addD(tu, 6), ds = tcLoc(uid, tu, den);
+  const so = Math.max(1, Math.ceil(ds.length / 6)), tongAll = tcCong(ds);
+  let o = '';
+  for (let t0 = 0; t0 < so; t0++) {
+    const a = ds.slice(t0 * 6, t0 * 6 + 6);
+    let tr = '';
+    for (let i = 0; i < Math.max(6, a.length); i++) {
+      const x = a[i];
+      if (!x) { tr += `<tr><td>${t0 * 6 + i + 1}</td><td></td><td></td><td></td><td class="ct"></td></tr>`; continue; }
+      const c = tcCaOf(x.ca), ct = x.lyDo ? c.ten + ' — ' + x.lyDo : c.ten;
+      tr += `<tr><td>${t0 * 6 + i + 1}</td><td>${fmtDM(x.ngay)}</td><td>${esc(x.tu)} - ${esc(x.den)}</td><td>${tcSo(x.soGio)}</td><td class="ct">${esc(ct)}</td></tr>`;
+    }
+    o += `<div class="tcsheet">
+      <div class="co">CÔNG TY TNHH CREDIBLE VIỆT NAM<br><span class="zh">可悦（越南）有限公司</span></div>
+      <div class="tt">ĐƠN XIN TĂNG CA<span class="zh">自愿加班申请单</span></div>
+      <div class="bo"><div>Bộ phận: <u>${esc(n.boPhan)}</u></div><div><span class="zh">部门</span>: <u class="zh">${esc(n.boPhanZh || n.boPhan)}</u></div></div>
+      <table class="ai"><tr>
+        <td style="width:42%"><b>Họ tên 姓名:</b><span class="vl">${esc(n.ten)}</span></td>
+        <td style="width:28%"><b>Mã số thẻ 工号:</b><span class="vl">${esc(n.maThe)}</span></td>
+        <td><b>Chức vụ 职务/职称:</b><span class="vl">${esc(n.chucVu)}</span></td></tr></table>
+      <table class="ot">
+        <tr><th style="width:11%">STT</th><th style="width:17%">Ngày tháng<span class="zh">日期</span></th>
+          <th style="width:23%">Thời gian tăng ca<span class="zh">加班时间</span></th>
+          <th style="width:13%">Số tiếng TC<span class="zh">工时</span></th><th>Chú thích<span class="zh">备注</span></th></tr>
+        ${tr}
+        <tr class="tg"><td colspan="3">TỔNG CỘNG</td><td>${tcSo(tcCong(a))}</td><td class="ct">${so > 1 && t0 === so - 1 ? 'Cả ' + so + ' tờ: ' + tcSo(tongAll) + ' giờ' : ''}</td></tr>
+      </table>
+      <div class="gc"><b>Ghi chú / <span class="zh">备注</span>:</b> 1. CNV chú thích đầy đủ ca làm việc (hành chính, ca ngày, ca đêm, chủ nhật). <span class="zh">员工需完整注明工作班次（行政班、日班、夜班、周日班）。</span></div>
+      <div class="ky"><div>Người xin<span>申请人</span></div><div>Người xác nhận<span>审核人</span></div>
+        <div>Quản lý bộ phận<span>部门经理</span></div><div>Hành chính nhân sự<span>行政人事</span></div></div>
+      <div class="pg">Tuần ${fmtDM(tu)} – ${fmtDM(den)} · Tờ ${t0 + 1}/${so}</div></div>`;
+  }
+  return o;
+}
+VIEWS.tcXem = {
+  html() {
+    const uid = tcUid(), tu = tcTuanHT();
+    return `<div class="card" style="padding:10px"><div class="tcwrap">${tcDonHtml(uid, tu)}</div></div>
+      <div class="btns" style="margin-top:13px"><button class="btn pri" data-act="tcIn">${IC.dl} ${t('tcInPdf')}</button>
+        <button class="btn ghost" data-act="tcXuatTuan">${IC.dl} ${t('tcXuatTuan')}</button></div>
+      <p class="help" style="margin-top:12px">${t('tcInHelp')}</p>`;
+  }
+};
+
+// ---------- Tổng hợp tháng ----------
+function tcThangDS(ym) {
+  const by = {};
+  (S.V.tc || []).forEach((x) => { if (x.ngay.slice(0, 7) === ym) (by[x.uid] = by[x.uid] || []).push(x); });
+  return Object.keys(by).map((uid) => {
+    const a = by[uid], theo = {};
+    a.forEach((x) => { theo[x.ca] = Math.round(((theo[x.ca] || 0) + (+x.soGio || 0)) * 100) / 100; });
+    return { uid, n: tcNguoi(uid), theo, tong: tcCong(a), ds: a.sort((p, q) => (p.ngay < q.ngay ? -1 : 1)) };
+  }).sort((p, q) => q.tong - p.tong || (p.n.ten < q.n.ten ? -1 : 1));
+}
+VIEWS.tcThang = {
+  html() {
+    const ym = tcThangHT(), [y, mo] = ym.split('-').map(Number), ds = tcThangDS(ym), ca = tcCaDS();
+    let o = `<div class="caltools"><div class="stepper">
+      <button data-act="tcThangStep" data-d="-1" aria-label="-">${IC.left}</button><b>${tv('tcThangN', { m: mo, y })}</b>
+      <button data-act="tcThangStep" data-d="1" aria-label="+">${IC.right}</button></div>
+      <button class="btn ghost sm" data-act="tcXuatThang">${IC.dl} ${t('tcXuatThang')}</button></div>`;
+    if (!ds.length) return o + `<div class="card empty" style="margin-top:12px">${t('tcChuaAi')}</div>`;
+    const tong = {}; let all = 0;
+    ds.forEach((p) => { ca.forEach((c) => { tong[c.k] = Math.round(((tong[c.k] || 0) + (p.theo[c.k] || 0)) * 100) / 100; }); all += p.tong; });
+    const tr = ds.map((p) => `<tr><td><button class="cellnm" data-act="tcNguoiMo" data-uid="${esc(p.uid)}"><b>${esc(p.n.ten)}</b></button>
+      <br><small class="mono" style="color:var(--ink3)">${esc(p.n.maThe || p.n.maNV || '')}</small></td>
+      ${ca.map((c) => `<td class="num mono">${p.theo[c.k] ? tcSo(p.theo[c.k]) : '—'}</td>`).join('')}
+      <td class="num mono"><b${p.tong > tcMaxThang() ? ' class="warnx"' : ''}>${tcSo(p.tong)}</b></td></tr>`).join('')
+      + `<tr style="background:var(--soft)"><td><b>${t('tcCongBP')}</b></td>${ca.map((c) => `<td class="num mono"><b>${tcSo(tong[c.k] || 0)}</b></td>`).join('')}<td class="num mono"><b>${tcSo(all)}</b></td></tr>`;
+    if (isWide()) {
+      const th = `<th>${esc(tv('tcHoTen'))}<small>${esc(tz('tcHoTen'))}</small></th>`
+        + ca.map((c) => `<th class="num">${esc(c.ten)}<small>${esc(c.zh || '')}</small></th>`).join('')
+        + `<th class="num">${esc(tv('tcThGio'))}<small>${esc(tz('tcThGio'))}</small></th>`;
+      o += `<div class="dtwrap" style="margin-top:12px"><table class="dt"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
+    } else {
+      o += `<div class="list" style="margin-top:12px">${ds.map((x) => `<button class="tcrow" data-act="tcNguoiMo" data-uid="${esc(x.uid)}">
+        <div class="h"><b>${esc(x.n.ten)}</b><span class="mono" style="font-size:12px;color:var(--ink3)">${esc(x.n.maThe || x.n.maNV || '')}</span>
+          <span class="g"${x.tong > tcMaxThang() ? ' style="color:var(--orange)"' : ''}>${tcSo(x.tong)}<i>${t('mTCGio')}</i></span></div>
+        <div class="sub">${ca.filter((c) => x.theo[c.k]).map((c) => esc(c.ten) + ' <b class="mono">' + tcSo(x.theo[c.k]) + '</b>').join(' · ') || '—'}</div></button>`).join('')}
+        <div class="card pad" style="display:flex;align-items:center;gap:10px"><b>${t('tcCongBP')}</b>
+          <span style="margin-left:auto;font:700 20px var(--f-mono);color:var(--brand)">${tcSo(all)}</span><span class="help">${t('mTCGio')}</span></div></div>`;
+    }
+    o += `<p class="help" style="margin-top:10px">${tv('tcCamLegend', { g: tcMaxThang() })} ${tz('tcCamLegend', { g: tcMaxThang() })}</p>`;
+    const mo1 = ds.filter((x) => x.uid === tcUid())[0] || (ds.length === 1 ? ds[0] : null);
+    if (mo1) {
+      o += sec('tcChiTietN', tv('tcLanN', { n: mo1.ds.length }), { t: mo1.n.ten })
+        + `<div class="list">${mo1.ds.map((x, i) => tcRowHtml(x, i + 1)).join('')}</div>`;
+    }
+    return o;
+  }
+};
+
+// ---------- Ca làm việc (Quản lý) ----------
+VIEWS.tcCfg = {
+  html(p) {
+    if (!p.init) Object.assign(p, { init: 1, ca: tcCaDS().map((c) => Object.assign({}, c)), th: tcMaxThang(), nam: tcMaxNam() });
+    return `<div class="card pad"><div class="help" style="margin-bottom:12px">${t('tcCaHelp')}</div>
+      ${sec('tcCaDat')}
+      <div class="list">${p.ca.map((c, i) => `<div class="card pad" style="margin-bottom:10px">
+        <div class="row2f"><label class="fld"><span>${t('tcCaTen')}</span><input class="inp" data-cf="${i}:ten" value="${esc(c.ten)}" maxlength="40"></label>
+          <label class="fld"><span>${t('tcCaZh')}</span><input class="inp" data-cf="${i}:zh" value="${esc(c.zh || '')}" maxlength="40" style="font-family:var(--f-zh)"></label></div>
+        <div class="row2f" style="margin-top:10px"><label class="fld"><span>${t('tcTu')}</span><input class="inp mono" type="time" data-cf="${i}:tu" value="${esc(c.tu)}"></label>
+          <label class="fld"><span>${t('tcDen')}</span><input class="inp mono" type="time" data-cf="${i}:den" value="${esc(c.den)}"></label></div>
+        <div class="help" style="margin-top:8px">${t('tcCaMa')}: <span class="mono">${esc(c.k)}</span></div></div>`).join('')}</div>
+      <div class="row2f" style="margin-top:12px">
+        <label class="fld"><span>${t('tcGioThang')}</span><input class="inp mono" id="tcMaxTh" inputmode="numeric" maxlength="4" value="${esc(p.th)}"></label>
+        <label class="fld"><span>${t('tcGioNam')}</span><input class="inp mono" id="tcMaxNam" inputmode="numeric" maxlength="4" value="${esc(p.nam)}"></label></div>
+      <div id="tcCfgErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:16px"><button class="btn pri" id="tcCfgOk">${IC.check} ${t('tcCfgLuu')}</button></div></div>`;
+  },
+  after(p) {
+    $$('[data-cf]').forEach((el) => el.addEventListener('input', () => {
+      const [i, k] = el.dataset.cf.split(':'); p.ca[+i][k] = el.value;
+    }));
+    $('#tcMaxTh').addEventListener('input', (e) => { p.th = e.target.value; });
+    $('#tcMaxNam').addEventListener('input', (e) => { p.nam = e.target.value; });
+    $('#tcCfgOk').addEventListener('click', async () => {
+      const e = $('#tcCfgErr');
+      if (p.ca.some((c) => !c.ten.trim() || !tcLaGio(c.tu) || !tcLaGio(c.den))) { e.hidden = false; e.textContent = t('tcGioSai'); return; }
+      e.hidden = true;
+      const r = await send('saveOTCfg', { ca: p.ca, gioTCThang: +p.th || 40, gioTCNam: +p.nam || 200 });
+      if (r.err) { e.hidden = false; e.textContent = errMsg(r.err); return; }
+      toast(r.queued ? t('savedLocal') : t('tcCfgOk'));
+      back();
+    });
+  }
+};
+
+// ---------- Excel ----------
+function tcSheet(ds, ten, phu) {
+  const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
+  const rows = [[{ v: 'TĂNG CA · 加班 — ' + ten, s: { b: 1, sz: 14 } }], [{ v: phu, s: { i: 1, color: '#55625F' } }], [],
+    hd(['xlTCNgay', 'xlTCThu', 'xlTCNV', 'xlTCThe', 'xlTCBP', 'xlTCCa', 'xlTCTG', 'xlTCGio', 'xlTCCT'])];
+  let tong = 0;
+  ds.forEach((x) => {
+    const n = tcNguoi(x.uid), ca = tcCaOf(x.ca); tong += +x.soGio || 0;
+    rows.push([c(excelSerial(x.ngay), { fmt: 'dd/mm/yyyy', align: 'center' }), c(WD_VI_F[wday(x.ngay)], { align: 'center' }),
+      c(n.ten + (n.tenZh && n.tenZh !== n.ten ? '\n' + n.tenZh : '')), c(n.maThe || n.maNV, { align: 'center' }),
+      c(n.boPhan + (n.boPhanZh ? '\n' + n.boPhanZh : '')), c(ca.ten + (ca.zh ? ' · ' + ca.zh : '')),
+      c(x.tu + ' - ' + x.den, { align: 'center' }), c(Math.round((+x.soGio || 0) * 100) / 100, { align: 'center', fmt: '0.##' }), c(x.lyDo || '')]);
+  });
+  rows.push([c(''), c(''), c(''), c(''), c(''), c(''), c(tp('xlTCTong'), { b: 1, align: 'right' }),
+    c(Math.round(tong * 100) / 100, { b: 1, align: 'center', fmt: '0.##' }), c('')]);
+  return { name: 'Tang ca', rows, cols: [12, 10, 24, 12, 22, 18, 16, 11, 40], merges: ['A1:I1', 'A2:I2'], heights: { 1: 30, 4: 32 }, freeze: { r: 4, c: 0 }, landscape: true };
+}
+function tcThangWorkbook(ym) {
+  const [y, mo] = ym.split('-').map(Number), ds = tcThangDS(ym), ca = tcCaDS();
+  const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const num = (v) => c(Math.round((+v || 0) * 100) / 100, { align: 'center', fmt: '0.##' });
+  const r1 = [[{ v: 'TỔNG HỢP TĂNG CA · 加班汇总 — tháng ' + mo + '/' + y + ' · ' + y + '年' + mo + '月', s: { b: 1, sz: 14 } }], [],
+    [{ v: tp('xlTCNV'), s: H }, { v: tp('xlTCThe'), s: H }, { v: tp('xlTCBP'), s: H }]
+      .concat(ca.map((x) => ({ v: x.ten + '\n' + (x.zh || ''), s: H }))).concat([{ v: tp('xlTCTong'), s: H }])];
+  const tong = {}; let all = 0;
+  ds.forEach((p) => {
+    ca.forEach((x) => { tong[x.k] = (tong[x.k] || 0) + (p.theo[x.k] || 0); });
+    all += p.tong;
+    r1.push([c(p.n.ten + (p.n.tenZh && p.n.tenZh !== p.n.ten ? '\n' + p.n.tenZh : '')), c(p.n.maThe || p.n.maNV, { align: 'center' }),
+      c(p.n.boPhan || '')].concat(ca.map((x) => num(p.theo[x.k] || 0))).concat([num(p.tong)]));
+  });
+  r1.push([c(tp('tcCongBP'), { b: 1 }), c(''), c('')].concat(ca.map((x) => num(tong[x.k] || 0))).concat([num(all)]));
+  const s1 = { name: 'Tong hop', rows: r1, cols: [26, 13, 24].concat(ca.map(() => 12)).concat([12]), merges: ['A1:' + String.fromCharCode(65 + 3 + ca.length) + '1'], heights: { 1: 30, 3: 34 }, freeze: { r: 3, c: 0 } };
+  const chiTiet = [];
+  ds.forEach((p) => p.ds.forEach((x) => chiTiet.push(x)));
+  chiTiet.sort((a, b) => (a.ngay < b.ngay ? -1 : a.ngay > b.ngay ? 1 : 0));
+  return XW.build([s1, tcSheet(chiTiet, y + '年' + mo + '月', 'tháng ' + mo + '/' + y)]);
+}
+
+Object.assign(ACT, {
+  tcTuan: (el) => { S.f.tcTuan = addD(tcTuanHT(), 7 * +el.dataset.d); render(); window.scrollTo(0, 0); },
+  tcThangStep: (el) => {
+    let [y, m] = tcThangHT().split('-').map(Number);
+    m += +el.dataset.d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
+    S.f.tcThang = y + '-' + String(m).padStart(2, '0'); render();
+  },
+  tcThem: () => go('tcGhi', {}),
+  tcSua: (el) => go('tcGhi', { id: el.dataset.id }),
+  tcNguoiMo: (el) => { S.f.tcUid = el.dataset.uid; tab('tc'); },
+  tcCaChon: (el) => {
+    const p = topV().p, c = tcCaOf(el.dataset.k);
+    p.ca = c.k; p.tu = c.tu; p.den = c.den; p.gio = tcSo(tcGio(c.tu, c.den));
+    render();
+  },
+  tcXoa: (el) => {
+    const id = el.dataset.id;
+    openSheet(`<div class="grab"></div><h3>${tv('tcXoa')}<span class="zi">${tz('tcXoa')}</span></h3>
+      <p class="help">${t('tcXoaHoi')}</p>
+      <div class="btns"><button class="btn r" data-act="tcXoaOk" data-id="${esc(id)}">${t('del')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('cancel')}</button></div>`);
+  },
+  tcXoaOk: async (el) => {
+    closeSheet();
+    const r = await send('deleteOT', { id: el.dataset.id });
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('tcDaXoa'));
+    if (topV().v === 'tcGhi') back(); else render();
+  },
+  tcHoSo: () => {
+    const n = tcNguoi((S.me || {}).id);
+    openSheet(`<div class="grab"></div><h3>${tv('tcSuaHoSo')}<span class="zi">${tz('tcSuaHoSo')}</span></h3>
+      <p class="help">${t('tcHoSoHelp')}</p>
+      <label class="fld"><span>${t('tcMaThe')} <span class="zi">工号</span></span><input class="inp mono" id="hsThe" value="${esc(n.maThe)}" maxlength="30"></label>
+      <label class="fld" style="margin-top:10px"><span>${t('tcBoPhan')}</span><input class="inp" id="hsBP" value="${esc(n.boPhan)}" maxlength="60"></label>
+      <label class="fld" style="margin-top:10px"><span>${t('tcBoPhanZh')} <span class="zi">部门</span></span><input class="inp" id="hsBPZ" value="${esc(n.boPhanZh)}" maxlength="60" style="font-family:var(--f-zh)"></label>
+      <label class="fld" style="margin-top:10px"><span>${t('tcChucVu')} <span class="zi">职务/职称</span></span><input class="inp" id="hsCV" value="${esc(n.chucVu)}" maxlength="60"></label>
+      <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="tcHoSoLuu">${t('tcLuu')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('cancel')}</button></div>`);
+  },
+  tcHoSoLuu: async () => {
+    const p = { maThe: $('#hsThe').value, boPhan: $('#hsBP').value, boPhanZh: $('#hsBPZ').value, chucVu: $('#hsCV').value };
+    closeSheet();
+    const r = await send('saveProfile', p);
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('tcDaLuuHoSo'));
+    render();
+  },
+  tcIn: () => {
+    $('#printArea').innerHTML = tcDonHtml(tcUid(), tcTuanHT());
+    setTimeout(() => window.print(), 300);
+  },
+  tcXuatTuan: async () => {
+    const uid = tcUid(), tu = tcTuanHT(), ds = tcLoc(uid, tu, addD(tu, 6));
+    if (!ds.length) { toast(t('tcTrong'), true); return; }
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try { blob = XW.build([tcSheet(ds, tcNguoi(uid).ten + ' ' + fmtDM(tu) + '-' + fmtDM(addD(tu, 6)), tv('tcTuanN', { a: fmtD(tu), b: fmtD(addD(tu, 6)) }))]); }
+    catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'Tang-ca-' + KHONG_DAU(tcNguoi(uid).ten).replace(/\s+/g, '-') + '_' + tu + '.xlsx');
+  },
+  tcXuatThang: async () => {
+    const ym = tcThangHT();
+    if (!tcThangDS(ym).length) { toast(t('tcChuaAi'), true); return; }
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try { blob = tcThangWorkbook(ym); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'Tong-hop-tang-ca-' + ym + '.xlsx');
+  }
+});
+
 // Link từ tem QR: ...?m=M001
 try {
   const q = new URLSearchParams(location.search), m = q.get('m');
