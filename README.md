@@ -107,8 +107,7 @@ Mục **Tăng ca** riêng, ai cũng dùng được. Ở điện thoại vào t�
   - Bốn ca: **hành chính · ca ngày · ca đêm · chủ nhật** (行政班、日班、夜班、周日班). Bấm chọn ca là hai ô giờ tự điền.
   - Mất mạng vẫn ghi được, có mạng tự gửi như các mục khác.
 - **Đơn in đúng mẫu giấy của công ty** (ĐƠN XIN TĂNG CA · 自愿加班申请单): tiêu đề công ty, ô Bộ phận và 部门, hàng Họ tên · Mã số thẻ · Chức vụ, bảng 5 cột 6 dòng, dòng TỔNG CỘNG, dòng ghi chú, bốn chỗ ký (Người xin · Người xác nhận · Quản lý bộ phận · Hành chính nhân sự).
-  - **Song ngữ như mọi chỗ khác trong app:** họ tên, chức vụ, bộ phận (ô 部门) và cột Chú thích đều in kèm tiếng Trung.
-  - Cột **Chú thích** in "tên ca — lý do", ví dụ "Hành chính 行政班 — Sửa máy in phun VKY01 维修喷印机VKY01".
+  - Cột **Chú thích** in "tên ca — lý do", ví dụ "Hành chính — Sửa máy in phun VKY01".
   - Hơn 6 lần trong một tuần thì tự sang tờ thứ hai, mỗi tờ đủ chỗ ký, tờ cuối ghi tổng cả tuần.
   - **Xuất PDF:** bấm **In / Lưu PDF**. Trên iPhone, Safari hiện trang in → **Chia sẻ → Lưu vào Tệp**. Trên máy tính, chọn máy in **Save as PDF**.
 - **Tổng hợp theo tháng:** mỗi người một dòng, tách theo bốn ca, có cột tổng. Vượt 40 giờ/tháng thì số chuyển màu cam. Xuất **Excel** hai trang: tổng hợp và chi tiết từng lần.
@@ -117,9 +116,9 @@ Mục **Tăng ca** riêng, ai cũng dùng được. Ở điện thoại vào t�
   - nhân viên chỉ thấy và in tăng ca **của mình**;
   - Quản lý, Quản trị thấy cả nhà máy, chọn người để xem, ghi hộ và in hộ được;
   - máy chủ cũng lọc, không chỉ ẩn trên app.
-- **Thông tin in trên đơn** (mã số thẻ 工号, bộ phận và 部门, chức vụ và 职务) lưu trong hồ sơ người dùng. Mỗi người tự điền một lần ở mục Tăng ca, hoặc Quản trị nhập trong **Cá nhân → Quản trị → Người dùng**. Để trống ô tiếng Trung thì app tự dịch.
+- **Thông tin in trên đơn** (mã số thẻ 工号, bộ phận, bộ phận tiếng Trung 部门, chức vụ) lưu trong hồ sơ người dùng. Mỗi người tự điền một lần ở mục Tăng ca, hoặc Quản trị nhập trong **Cá nhân → Quản trị → Người dùng**. App tự dịch tên bộ phận sang tiếng Trung.
 - **Giờ các ca và giới hạn 40 giờ/tháng, 200 giờ/năm:** Quản lý sửa trong **Tăng ca → Sửa ca làm việc**.
-- Nâng cấp: dán `Code.gs-v2.11.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa` và thêm 5 cột mới vào trang `NguoiDung` (`MaThe`, `BoPhan`, `BoPhanZh`, `ChucVu`, `ChucVuZh`).
+- Nâng cấp: dán `Code.gs-v2.11.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa` và thêm 4 cột mới vào trang `NguoiDung`.
 
 ## Điểm mới của v2.10.0: phân quyền xem theo vai trò
 
@@ -461,6 +460,6 @@ Mục **Tăng ca** riêng, ai cũng dùng được. Ở điện thoại vào t�
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 34 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node --test tests/backend.test.mjs      # 33 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
 node tests/e2e.mjs                      # 13 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```

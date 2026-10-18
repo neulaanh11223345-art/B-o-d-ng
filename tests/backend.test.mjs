@@ -823,21 +823,3 @@ test('tăng ca: mỗi người ghi của mình, Quản lý ghi hộ và xem hế
   // Ca đã bỏ thì không ghi tăng ca theo ca đó nữa
   err(b.call('saveOT', { ngay: '2026-10-16', ca: 'CN', tu: '08:00', den: '17:00' }, kt), 'CA_SAI');
 });
-
-test('tăng ca song ngữ: tên, bộ phận, chức vụ và lý do đều có bản tiếng Trung để in lên đơn', () => {
-  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
-  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
-  // Tự dịch bộ phận và chức vụ khi để trống ô tiếng Trung
-  const me = ok(b.call('saveProfile', { maThe: 'V25066', boPhan: 'Kỹ thuật sản xuất', chucVu: 'Kỹ sư' }, kt)).me;
-  assert.ok(me.boPhanZh && me.chucVuZh, 'bộ phận và chức vụ tự dịch');
-  // Nhập tay bản tiếng Trung thì giữ nguyên
-  const me2 = ok(b.call('saveProfile', { boPhan: 'Kỹ thuật sản xuất', boPhanZh: '生产技术部', chucVu: 'Kỹ sư', chucVuZh: '工程师' }, kt)).me;
-  assert.deepEqual([me2.boPhanZh, me2.chucVuZh], ['生产技术部', '工程师']);
-  // Lý do tăng ca cũng có bản dịch
-  const x = ok(b.call('saveOT', { ngay: '2026-10-14', ca: 'HC', tu: '17:30', den: '19:30', lyDo: 'Sửa máy in phun VKY01' }, kt)).tangCa;
-  assert.ok(x.lyDoDich && x.lyDoDich !== x.lyDo);
-  // Quản lý nhận đủ thông tin của người khác để in hộ đơn
-  const n = ok(b.call('data', {}, ql)).nhanVien.find((v) => v.maNV === 'NV003');
-  assert.deepEqual([n.boPhanZh, n.chucVuZh], ['生产技术部', '工程师']);
-  assert.ok(n.tenZh, 'tên tiếng Trung');
-});

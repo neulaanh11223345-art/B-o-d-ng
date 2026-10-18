@@ -32,7 +32,7 @@ var BANG = {
   Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
     'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT'],
   LichSu: ['ID', 'Ma', 'TenMay', 'Ngay', 'DenHan', 'NguoiLam', 'GhiChu', 'NguoiXacNhan', 'ThoiGian', 'TrangThai', 'OpId', 'UID', 'Huy', 'ChiTiet'],
-  NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh', 'MaThe', 'BoPhan', 'BoPhanZh', 'ChucVu', 'ChucVuZh'],
+  NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh', 'MaThe', 'BoPhan', 'BoPhanZh', 'ChucVu'],
   TangCa: ['ID', 'UID', 'Ngay', 'Ca', 'Tu', 'Den', 'SoGio', 'LyDo', 'LyDoDich', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat'],
   // Loai: cao (cao áp, nhiều mã OBIS) · ha (tủ tổng hạ áp) · nhanh (công tơ nhánh) · nuoc (đồng hồ nước, m³)
   // Cha: mã công tơ cấp trên (công tơ nhánh nằm sau công tơ nhánh khác thì không cộng lần nữa vào tổng nhánh)
@@ -483,22 +483,21 @@ function ndTuDong(r, i) {
   var id = s(r[0]);
   return { id: id, ten: s(r[1]), vaiTro: s(r[2]), pinHash: s(r[3]), email: s(r[4]),
     hoatDong: hd(r[5]), ngayTao: tgStr(r[6]), maNV: maNVHopLe(r[7]) || id.toUpperCase(), tenZh: s(r[8]),
-    maThe: s(r[9]), boPhan: s(r[10]), boPhanZh: s(r[11]), chucVu: s(r[12]), chucVuZh: s(r[13]), _r: i + 2 };
+    maThe: s(r[9]), boPhan: s(r[10]), boPhanZh: s(r[11]), chucVu: s(r[12]), _r: i + 2 };
 }
 function ndThanhDong(x) {
   return [x.id, anToan(x.ten), x.vaiTro, x.pinHash, x.email, x.hoatDong ? 1 : 0, x.ngayTao, x.maNV || '', anToan(x.tenZh || ''),
-    anToan(x.maThe || ''), anToan(x.boPhan || ''), anToan(x.boPhanZh || ''), anToan(x.chucVu || ''), anToan(x.chucVuZh || '')];
+    anToan(x.maThe || ''), anToan(x.boPhan || ''), anToan(x.boPhanZh || ''), anToan(x.chucVu || '')];
 }
 // Thông tin in trên đơn tăng ca
-function hoSoTC(x) { return { maThe: x.maThe || '', boPhan: x.boPhan || '', boPhanZh: x.boPhanZh || '', chucVu: x.chucVu || '', chucVuZh: x.chucVuZh || '' }; }
+function hoSoTC(x) { return { maThe: x.maThe || '', boPhan: x.boPhan || '', boPhanZh: x.boPhanZh || '', chucVu: x.chucVu || '' }; }
 function dsNguoiDung() { return docTho('NguoiDung').map(ndTuDong).filter(function (x) { return x.id; }); }
 function congKhai(u) {
-  return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, maNV: u.maNV, tenZh: u.tenZh || '', maThe: u.maThe || '', boPhan: u.boPhan || '', boPhanZh: u.boPhanZh || '',
-    chucVu: u.chucVu || '', chucVuZh: u.chucVuZh || '' };
+  return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, maNV: u.maNV, tenZh: u.tenZh || '', maThe: u.maThe || '', boPhan: u.boPhan || '', boPhanZh: u.boPhanZh || '', chucVu: u.chucVu || '' };
 }
 function congKhaiAdmin(u) {
   return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, email: u.email, hoatDong: u.hoatDong, ngayTao: u.ngayTao, maNV: u.maNV, tenZh: u.tenZh || '',
-    maThe: u.maThe || '', boPhan: u.boPhan || '', boPhanZh: u.boPhanZh || '', chucVu: u.chucVu || '', chucVuZh: u.chucVuZh || '' };
+    maThe: u.maThe || '', boPhan: u.boPhan || '', boPhanZh: u.boPhanZh || '', chucVu: u.chucVu || '' };
 }
 
 // ===================== Đăng nhập =====================
@@ -658,9 +657,7 @@ function luuHoSo(u, p) {
   if (p.boPhan !== undefined) x.boPhan = catChu(p.boPhan, 60);
   if (p.boPhanZh !== undefined) x.boPhanZh = catChu(p.boPhanZh, 60);
   if (p.chucVu !== undefined) x.chucVu = catChu(p.chucVu, 60);
-  if (p.chucVuZh !== undefined) x.chucVuZh = catChu(p.chucVuZh, 60);
   if (p.boPhan !== undefined && !s(p.boPhanZh) && x.boPhan) x.boPhanZh = songNgu(x.boPhan)[1];
-  if (p.chucVu !== undefined && !s(p.chucVuZh) && x.chucVu) x.chucVuZh = songNgu(x.chucVu)[1];
   suaDong('NguoiDung', x._r, ndThanhDong(x));
   return { me: congKhai(x) };
 }
@@ -689,7 +686,7 @@ function layDuLieu(u) {
     tangCa: docTangCa().filter(function (x) { return !x.xoa && x.ngay >= tu && (coQuyen(u, 'xemhet') || x.uid === u.id); }).map(sachTC),
     nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) {
       var o = { id: x.id, ten: x.ten, tenZh: x.tenZh, vaiTro: x.vaiTro, maNV: x.maNV };
-      if (coQuyen(u, 'xemhet')) { o.maThe = x.maThe || ''; o.boPhan = x.boPhan || ''; o.boPhanZh = x.boPhanZh || ''; o.chucVu = x.chucVu || ''; o.chucVuZh = x.chucVuZh || ''; }
+      if (coQuyen(u, 'xemhet')) { o.maThe = x.maThe || ''; o.boPhan = x.boPhan || ''; o.boPhanZh = x.boPhanZh || ''; o.chucVu = x.chucVu || ''; }
       return o;
     }),
     kho: coQuyen(u, 'xemhet') ? khoTomTat() : null,
@@ -1781,7 +1778,6 @@ function luuNguoiDung(u, p) {
   if (p.boPhan !== undefined) x.boPhan = catChu(p.boPhan, 60);
   if (p.boPhanZh !== undefined) x.boPhanZh = catChu(p.boPhanZh, 60);
   if (p.chucVu !== undefined) x.chucVu = catChu(p.chucVu, 60);
-  if (p.chucVuZh !== undefined) x.chucVuZh = catChu(p.chucVuZh, 60);
   if (moi) themDong('NguoiDung', ndThanhDong(x)); else suaDong('NguoiDung', x._r, ndThanhDong(x));
   return { user: congKhaiAdmin(x) };
 }
@@ -3174,9 +3170,9 @@ function caiDatBanDau() {
   if (!dsNguoiDung().length) {
     var bay = thoiGianStr();
     themNhieu('NguoiDung', [
-      ['U001', 'Quản trị', 'admin', bamPin('111111'), '', 1, bay, 'NV001', '管理员', '', '', '', '', ''],
-      ['U002', 'Quản lý', 'quanly', bamPin('222222'), '', 1, bay, 'NV002', '主管', '', '', '', '', ''],
-      ['U003', 'Kỹ thuật', 'kythuat', bamPin('333333'), '', 1, bay, 'NV003', '技术员', '', '', '', '', '']
+      ['U001', 'Quản trị', 'admin', bamPin('111111'), '', 1, bay, 'NV001', '管理员', '', '', '', ''],
+      ['U002', 'Quản lý', 'quanly', bamPin('222222'), '', 1, bay, 'NV002', '主管', '', '', '', ''],
+      ['U003', 'Kỹ thuật', 'kythuat', bamPin('333333'), '', 1, bay, 'NV003', '技术员', '', '', '', '']
     ]);
   }
   if (!dsMay().length) {
