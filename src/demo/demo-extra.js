@@ -319,6 +319,53 @@ function mauCongViec() {
   ].map(vlThanhDong));
 }
 
+// Thư mục Drive mẫu của nhà máy: xếp theo loại tài liệu, tên tệp có mã máy. Quét xong là có sẵn danh mục để xem thử.
+function mauTaiLieu() {
+  if (docTaiLieu().length) return;
+  var nvs = dsNguoiDung(), ql = nvs.filter(function (n) { return n.maNV === 'NV002'; })[0] || nvs[0];
+  if (!ql) return;
+  var goc = DriveApp.createFolder('Tài liệu thiết bị nhà máy');
+  var cay = [
+    ['Huong dan su dung', 'HDSD', [
+      ['M001 may in phun VKY01 - huong dan su dung.pdf', 'application/pdf', 1830000],
+      ['喷印机 M005 使用说明书.pdf', 'application/pdf', 2140000],
+      ['M011 may dong bao 01 - manual.pdf', 'application/pdf', 3650000],
+      ['Catalogue may nen khi M038.pdf', 'application/pdf', 11200000]
+    ]],
+    ['Ban ve', 'BANVE', [
+      ['M037 so do dien phong may phat.pdf', 'application/pdf', 940000],
+      ['VKY01 layout chuyen in phun.pdf', 'application/pdf', 1260000],
+      ['M039 tu dien xuong 1.dwg', 'application/acad', 24800000],
+      ['So do khi nen toan nha may.pdf', 'application/pdf', 1480000]
+    ]],
+    ['Quy trinh SOP', 'QUYTRINH', [
+      ['SOP bao duong may in phun M001.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 86000],
+      ['SOP ve sinh may hut bui M018.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 74000],
+      ['SOP van hanh may nen khi.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 69000]
+    ]],
+    ['Kiem dinh', 'KIEMDINH', [
+      ['Giay kiem dinh binh chiu ap luc M038.pdf', 'application/pdf', 520000],
+      ['Kiem dinh thiet bi nang 2026.pdf', 'application/pdf', 610000]
+    ]],
+    ['Anh thiet bi', 'ANH', [
+      ['M033 may bam phe xuong 1.jpg', 'image/jpeg', 420000],
+      ['anh tu dien M040.jpg', 'image/jpeg', 380000]
+    ]]
+  ];
+  var map = {};
+  cay.forEach(function (x) {
+    var tm = goc.createFolder(x[0]);
+    map[tm.getId()] = x[1];
+    x[2].forEach(function (t) { DriveApp.__addFileIn(tm, t[0], t[1], t[2]); });
+  });
+  // Một tệp để ngay thư mục gốc, chưa xếp vào loại nào
+  DriveApp.__addFileIn(goc, 'Hop dong mua may dong bao 2024.pdf', 'application/pdf', 760000);
+  var ps = PropertiesService.getScriptProperties();
+  ps.setProperty('TL_FOLDER_ID', goc.getId());
+  ps.setProperty('TL_FOLDER_MAP', JSON.stringify(map));
+  quetDrive(ql, {});
+}
+
 __tz.off = -new Date().getTimezoneOffset() * 60000;
 caiDatBanDau();
 mauNhanVien();
@@ -327,4 +374,5 @@ mauKiemTra();
 mauKho();
 mauCongViec();
 mauTangCa();
+mauTaiLieu();
 return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };

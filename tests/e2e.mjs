@@ -368,6 +368,43 @@ await page.evaluate(() => go('tcCfg')); await wait(500);
 assert.equal(await page.locator('[data-cf$=":ten"]').count(), 4, 'bốn ca làm việc');
 ok('Bản 2.11: đăng ký tăng ca theo tuần, in đơn đúng mẫu công ty, tổng hợp tháng, Excel; kỹ thuật chỉ thấy của mình');
 
+// 14. Bản 2.11: nối thư mục Drive của nhà máy, quét vào danh mục, sắp xếp, tra cứu; kỹ thuật không mở được tài liệu
+await page.evaluate(() => go('tlCfg')); await wait(600);
+assert.match(await text('#main'), /Tài liệu thiết bị nhà máy/, 'đang nối thư mục Drive của nhà máy');
+assert.ok(await page.isVisible('#tlQuetOk'), 'có nút quét Drive');
+const chuaGan = await page.evaluate(() => S.base.taiLieu.filter((x) => !x.ma).length);
+assert.ok(chuaGan > 0, 'quét xong còn tài liệu chưa gán máy');
+assert.equal(await page.evaluate(() => S.base.taiLieu.filter((x) => x.ma === 'M001' && x.nhom === 'HDSD').length), 1,
+  'tên tệp có M001 trong thư mục Hướng dẫn sử dụng thì tự vào đúng máy, đúng nhóm');
+assert.equal(await page.evaluate(() => S.base.taiLieu.filter((x) => /tu dien xuong 1/.test(x.ten))[0].moDuoc), false,
+  'bản vẽ CAD 24 MB mở bằng link Drive, không đi qua máy chủ');
+await shot('20-tai-lieu-drive');
+// Sắp xếp: chọn tài liệu chưa gán máy rồi gán cho máy nén khí M038
+await page.evaluate(() => go('tlGan')); await wait(500);
+assert.equal(await page.locator('[data-tlc]').count(), chuaGan, 'lọc đúng số tài liệu chưa gán máy');
+await page.click('[data-tlc]'); await wait(400);
+assert.match(await text('#main'), /Đã chọn 1 tài liệu/);
+await shot('21-tai-lieu-sap-xep');
+await page.click('[data-act="tlGanMay"]'); await wait(400);
+await page.fill('#tlMayQ', 'M038'); await wait(400);
+await page.click('#tlMayDS [data-act="tlGanGo"]'); await wait(900);
+assert.equal(await page.evaluate(() => S.base.taiLieu.filter((x) => !x.ma).length), chuaGan - 1, 'đã gán một tài liệu cho máy');
+// Tra cứu toàn nhà máy
+await page.evaluate(() => go('tlDS')); await wait(500);
+await page.fill('#tlDSQ', 'kiem dinh'); await page.dispatchEvent('#tlDSQ', 'change'); await wait(500);
+assert.match(await text('#main'), /Kiem dinh/, 'tìm được tài liệu kiểm định trong toàn nhà máy');
+// Hồ sơ máy: thẻ Tài liệu có tài liệu quét từ Drive, kèm đường dẫn thư mục
+await page.evaluate(() => go('may', { ma: 'M001', tab: 'tl' })); await wait(600);
+assert.match(await text('#main'), /Huong dan su dung/, 'dòng tài liệu ghi đường dẫn thư mục trên Drive');
+// Kỹ thuật: không có thẻ Tài liệu, không mở được mục Tài liệu
+await logout(); await login('NV003', '333333');
+await page.evaluate(() => go('may', { ma: 'M001' })); await wait(600);
+assert.equal(await page.locator('.ptabs [data-t="tl"]').count(), 0, 'kỹ thuật không thấy thẻ Tài liệu');
+assert.equal(await page.evaluate(() => S.base.taiLieu.some((x) => !x.daiDien)), false, 'kỹ thuật chỉ nhận ảnh đại diện của máy');
+await page.evaluate(() => go('tlCfg')); await wait(500);
+assert.match(await text('#barTitle'), /Chỉ Quản lý/);
+ok('Bản 2.11: nối thư mục Drive, quét và sắp xếp tài liệu, tra cứu toàn nhà máy; kỹ thuật không mở được tài liệu');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

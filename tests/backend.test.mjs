@@ -658,46 +658,134 @@ test('lưu trữ: chuyển lịch sử, việc đã đóng, nhật ký của m�
   assert.equal(ok(b.call('archiveInfo', {}, ad)).nam['2023'], undefined);
 });
 
-test('tài liệu máy: tải tệp, ảnh có ảnh nhỏ và ảnh đại diện, liên kết, chặn loại tệp nguy hiểm và tệp quá lớn, xoá; tài liệu của chuyền', () => {
-  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+test('tài liệu máy: chỉ Quản lý và Quản trị xem được; tải tệp, ảnh đại diện, liên kết, chặn tệp nguy hiểm và tệp quá lớn, xoá', () => {
+  const b = loadBackend({ seed: 'empty', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
   ok(b.call('data', {}, ql));
   const pdf = 'data:application/pdf;base64,' + Buffer.from('%PDF-1.4 sach huong dan may in phun').toString('base64');
   const jpg = 'data:image/jpeg;base64,' + Buffer.from('x'.repeat(400)).toString('base64');
-  let r = ok(b.call('docUpload', { ma: 'm001', ten: 'Sách hướng dẫn 喷印机', nhom: 'HDSD', data: pdf }, kt));
+  // Kỹ thuật không tải lên, không mở, không xoá tài liệu
+  err(b.call('docUpload', { ma: 'M001', ten: 'x', nhom: 'HDSD', data: pdf }, kt), 'KHONG_QUYEN');
+  let r = ok(b.call('docUpload', { ma: 'm001', ten: 'Sách hướng dẫn 喷印机', nhom: 'HDSD', data: pdf }, ql));
   assert.equal(r.ma, 'M001'); assert.equal(r.taiLieu.length, 1);
   const tep = r.moi;
-  assert.deepEqual([tep.kieu, tep.nhom, tep.mime, tep.nguoiTao], ['TEP', 'HDSD', 'application/pdf', 'Kỹ thuật']);
-  const g = ok(b.call('docGet', { id: tep.id }, kt));
+  assert.deepEqual([tep.kieu, tep.nhom, tep.mime, tep.nguoiTao, tep.nguon, tep.hienHanh], ['TEP', 'HDSD', 'application/pdf', 'Quản lý', 'APP', true]);
+  const g = ok(b.call('docGet', { id: tep.id }, ql));
   assert.equal(Buffer.from(g.data.split(',')[1], 'base64').toString(), '%PDF-1.4 sach huong dan may in phun');
+  err(b.call('docGet', { id: tep.id }, kt), 'KHONG_QUYEN');
   // Ảnh: kèm ảnh nhỏ, đặt làm ảnh đại diện; ảnh thứ hai làm đại diện thì ảnh đầu bỏ cờ
-  const a1 = ok(b.call('docUpload', { ma: 'M001', ten: 'Ảnh máy', data: jpg, anhNho: jpg, daiDien: true }, kt)).moi;
+  const a1 = ok(b.call('docUpload', { ma: 'M001', ten: 'Ảnh máy', data: jpg, anhNho: jpg, daiDien: true }, ql)).moi;
   assert.deepEqual([a1.kieu, a1.nhom, a1.daiDien, !!a1.anhNho], ['ANH', 'ANH', true, true]);
   ok(b.call('photo', { id: a1.anhNho }, kt));
-  const a2 = ok(b.call('docUpload', { ma: 'M001', ten: 'Ảnh tủ điện', data: jpg, daiDien: true }, ql)).moi;
+  const a2 = ok(b.call('docUpload', { ma: 'M001', ten: 'Ảnh tủ điện', data: jpg, anhNho: jpg, daiDien: true }, ql)).moi;
   r = ok(b.call('data', {}, ql));
-  const ds = r.taiLieu.filter((x) => x.ma === 'M001');
-  assert.deepEqual(ds.filter((x) => x.daiDien).map((x) => x.id), [a2.id]);
-  r = ok(b.call('docCover', { id: a1.id }, kt));
+  assert.deepEqual(r.taiLieu.filter((x) => x.daiDien).map((x) => x.id), [a2.id]);
+  r = ok(b.call('docCover', { id: a1.id }, ql));
   assert.deepEqual(r.taiLieu.filter((x) => x.daiDien).map((x) => x.id), [a1.id]);
-  err(b.call('docCover', { id: tep.id }, kt), 'KHONG_PHAI_ANH');
+  err(b.call('docCover', { id: tep.id }, ql), 'KHONG_PHAI_ANH');
   // Liên kết
-  const lk = ok(b.call('docLink', { ma: 'VKY01', ten: 'Bản vẽ điện chuyền 01', nhom: 'BANVE', url: 'https://drive.google.com/file/d/abc/view' }, kt)).moi;
+  const lk = ok(b.call('docLink', { ma: 'VKY01', ten: 'Bản vẽ điện chuyền 01', nhom: 'BANVE', url: 'https://drive.google.com/file/d/abc/view' }, ql)).moi;
   assert.deepEqual([lk.kieu, lk.ma, lk.url], ['LINK', 'VKY01', 'https://drive.google.com/file/d/abc/view']);
-  err(b.call('docLink', { ma: 'VKY01', ten: 'x', url: 'javascript:alert(1)' }, kt), 'LINK_SAI');
-  err(b.call('docGet', { id: lk.id }, kt), 'KHONG_CO');
+  err(b.call('docLink', { ma: 'VKY01', ten: 'x', url: 'javascript:alert(1)' }, ql), 'LINK_SAI');
+  err(b.call('docGet', { id: lk.id }, ql), 'KHONG_CO');
   // Chặn tệp nguy hiểm, tệp quá lớn, máy không có
-  err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:text/html;base64,PGI+eDwvYj4=' }, kt), 'TEP_KHONG_HO_TRO');
-  err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:image/svg+xml;base64,PHN2Zy8+' }, kt), 'TEP_KHONG_HO_TRO');
-  err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:application/pdf;base64,' + Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64') }, kt), 'TEP_QUA_LON');
-  err(b.call('docUpload', { ma: 'M999', ten: 'x', data: pdf }, kt), 'KHONG_CO_MAY');
-  // Xoá: kỹ thuật chỉ xoá tài liệu mình tải; quản lý xoá được mọi tài liệu
-  err(b.call('docDelete', { id: a2.id }, kt), 'KHONG_QUYEN');
-  ok(b.call('docDelete', { id: tep.id }, kt));
-  ok(b.call('docDelete', { id: a2.id }, ql));
-  err(b.call('docGet', { id: tep.id }, kt), 'KHONG_CO');
-  r = ok(b.call('data', {}, kt));
-  assert.deepEqual(r.taiLieu.map((x) => x.id).sort(), [a1.id, lk.id].sort());
+  err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:text/html;base64,PGI+eDwvYj4=' }, ql), 'TEP_KHONG_HO_TRO');
+  err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:image/svg+xml;base64,PHN2Zy8+' }, ql), 'TEP_KHONG_HO_TRO');
+  err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:application/pdf;base64,' + Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64') }, ql), 'TEP_QUA_LON');
+  err(b.call('docUpload', { ma: 'M999', ten: 'x', data: pdf }, ql), 'KHONG_CO_MAY');
+  // Kỹ thuật chỉ nhận ảnh đại diện của máy, không nhận cả danh mục
+  assert.deepEqual(ok(b.call('data', {}, kt)).taiLieu.map((x) => x.id), [a1.id]);
+  // Xoá: tệp do app tải lên thì vào thùng rác Drive
+  const fid = b.ctx.docTaiLieu().filter((x) => x.id === tep.id)[0].fileId;
+  err(b.call('docDelete', { id: tep.id }, kt), 'KHONG_QUYEN');
+  ok(b.call('docDelete', { id: tep.id }, ql));
+  assert.equal(b.ctx.DriveApp.getFileById(fid).isTrashed(), true);
+  err(b.call('docGet', { id: tep.id }, ql), 'KHONG_CO');
+  r = ok(b.call('data', {}, ql));
+  assert.deepEqual(r.taiLieu.map((x) => x.id).sort(), [a1.id, a2.id, lk.id].sort());
+});
+
+test('tài liệu trên Drive: nối thư mục của tài khoản khác, quét vào danh mục, đoán nhóm và đoán máy, gán hàng loạt, bản hiện hành, quét lại', () => {
+  const b = loadBackend({ seed: 'empty', now: '2026-10-14T03:00:00Z' });
+  const ad = b.login('NV001', '111111'), ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  ok(b.call('data', {}, ql));
+  // Mã hiển thị tự đặt: tên tệp ghi QTN-16 thì app vẫn tìm ra máy M031
+  ok(b.call('saveMachine', { ma: 'M031', ten: '空调01车间', chuKy: 30, hanKeTiep: '2026-10-05', maHT: 'QTN-16' }, ql));
+  // Thư mục Drive của nhà máy: xếp theo loại tài liệu
+  const D = b.ctx.DriveApp;
+  const goc = D.createFolder('Tai lieu thiet bi');
+  const fHd = goc.createFolder('Huong dan su dung'), fBv = goc.createFolder('Ban ve'), fKd = goc.createFolder('Kiem dinh');
+  const sub = fBv.createFolder('Nam 2026');
+  D.__addFileIn(fHd, 'M001 may in phun - huong dan.pdf', 'application/pdf', 120000);
+  D.__addFileIn(fHd, '喷印机 M002 使用说明书.pdf', 'application/pdf', 130000);
+  D.__addFileIn(fHd, 'Quat tan nhiet QTN-16 manual.pdf', 'application/pdf', 90000);
+  const dwg = D.__addFileIn(sub, 'M039 tu dien xuong 1.dwg', 'application/acad', 24 * 1024 * 1024);
+  D.__addFileIn(fKd, 'Kiem dinh thiet bi nang 2026.pdf', 'application/pdf', 60000);
+  const roi = D.__addFileIn(goc, 'Hop dong mua may dong bao.pdf', 'application/pdf', 70000);
+  // Chưa nối thư mục thì không quét được; link sai và thư mục không đọc được đều báo rõ
+  err(b.call('docScan', {}, ql), 'TL_CHUA_NOI');
+  err(b.call('docFolder', { link: 'khong-phai-link' }, ql), 'TL_LINK_SAI');
+  err(b.call('docFolder', { link: 'https://drive.google.com/drive/folders/KHONGCOTHUMUCNAYDAUNHE123' }, ql), 'TL_KHONG_DOC_DUOC');
+  err(b.call('docFolder', { link: 'https://drive.google.com/drive/folders/' + goc.getId() }, kt), 'KHONG_QUYEN');
+  let r = ok(b.call('docFolder', { link: 'https://drive.google.com/drive/folders/' + goc.getId() }, ql));
+  assert.equal(r.tlInfo.ten, 'Tai lieu thiet bi');
+  assert.equal(r.tlInfo.doc, true);
+  assert.deepEqual(r.tlInfo.con.map((c) => c.ten), ['Ban ve', 'Huong dan su dung', 'Kiem dinh']);
+  // Gán nhóm cho thư mục cấp 1: mọi tệp bên trong (kể cả thư mục con) vào nhóm đó
+  r = ok(b.call('docFolderMap', { map: [{ id: fBv.getId(), nhom: 'BANVE' }, { id: fHd.getId(), nhom: 'HDSD' }, { id: fKd.getId(), nhom: 'XXX' }] }, ql));
+  assert.deepEqual(Object.keys(r.tlInfo.map).sort(), [fBv.getId(), fHd.getId()].sort());
+  err(b.call('docScan', {}, kt), 'KHONG_QUYEN');
+  r = ok(b.call('docScan', {}, ql));
+  assert.deepEqual([r.quet.moi, r.quet.tep, r.quet.conNua], [6, 6, false]);
+  const byTen = {};
+  r.taiLieu.forEach((x) => { byTen[x.ten] = x; });
+  assert.equal(Object.keys(byTen).length, 6);
+  // Nhóm theo thư mục đã gán, máy theo mã trong tên tệp
+  assert.deepEqual([byTen['M001 may in phun - huong dan'].ma, byTen['M001 may in phun - huong dan'].nhom], ['M001', 'HDSD']);
+  assert.deepEqual([byTen['喷印机 M002 使用说明书'].ma, byTen['喷印机 M002 使用说明书'].nhom], ['M002', 'HDSD']);
+  assert.equal(byTen['Quat tan nhiet QTN-16 manual'].ma, 'M031', 'tìm máy theo mã hiển thị tự đặt');
+  // Thư mục con nhận nhóm của thư mục cha, đường dẫn ghi đủ hai cấp
+  const cad = byTen['M039 tu dien xuong 1'];
+  assert.deepEqual([cad.ma, cad.nhom, cad.duongDan, cad.nguon, cad.moDuoc], ['M039', 'BANVE', 'Ban ve / Nam 2026', 'DRIVE', false]);
+  // Thư mục chưa gán nhóm thì đoán theo tên tệp; tệp ngoài mọi thư mục con thì chưa gán máy, vào nhóm Khác
+  assert.equal(byTen['Kiem dinh thiet bi nang 2026'].nhom, 'KIEMDINH');
+  assert.deepEqual([byTen['Hop dong mua may dong bao'].ma, byTen['Hop dong mua may dong bao'].nhom], ['', 'KHAC']);
+  // Tệp lớn hoặc loại tệp app không xem được: trả link Drive, không đưa nội dung qua máy chủ
+  const mo = ok(b.call('docGet', { id: cad.id }, ql));
+  assert.equal(mo.data, undefined); assert.ok(/drive\.google\.com/.test(mo.link));
+  // Gán hàng loạt: hợp đồng vào máy M011 và nhóm Khác, kiểm định thiết bị nâng vào M037
+  const hd = byTen['Hop dong mua may dong bao'], knang = byTen['Kiem dinh thiet bi nang 2026'];
+  err(b.call('docAssign', { ids: [], ma: 'M011' }, ql), 'THIEU_CHON');
+  err(b.call('docAssign', { ids: [hd.id], ma: 'M999' }, ql), 'KHONG_CO_MAY');
+  err(b.call('docAssign', { ids: [hd.id], nhom: 'XXX' }, ql), 'NHOM_SAI');
+  err(b.call('docAssign', { ids: [hd.id], ma: 'M011' }, kt), 'KHONG_QUYEN');
+  r = ok(b.call('docAssign', { ids: [hd.id, knang.id], ma: 'M011', nhom: 'KIEMDINH' }, ql));
+  assert.equal(r.n, 2);
+  assert.equal(r.tlInfo.dem.chuaGanMay, 0);
+  let ds = {}; r.taiLieu.forEach((x) => { ds[x.id] = x; });
+  assert.deepEqual([ds[hd.id].ma, ds[hd.id].nhom], ['M011', 'KIEMDINH']);
+  // Bản hiện hành: cùng máy, cùng nhóm thì chỉ một bản là hiện hành
+  assert.deepEqual([ds[hd.id].hienHanh, ds[knang.id].hienHanh], [true, true]);
+  r = ok(b.call('docCurrent', { id: knang.id }, ql));
+  ds = {}; r.taiLieu.forEach((x) => { ds[x.id] = x; });
+  assert.deepEqual([ds[knang.id].hienHanh, ds[hd.id].hienHanh], [true, false]);
+  // Kỹ thuật không nhận danh mục và không nhận thông tin thư mục
+  const dkt = ok(b.call('data', {}, kt));
+  assert.deepEqual(dkt.taiLieu, []); assert.equal(dkt.tlInfo, null);
+  assert.ok(ok(b.call('data', {}, ad)).tlInfo.id);
+  // Bỏ khỏi danh mục: tệp gốc trên Drive của nhà máy không bị xoá; quét lại không thêm lại tài liệu đã bỏ
+  ok(b.call('docDelete', { id: hd.id }, ql));
+  assert.equal(D.getFileById(roi.getId()).isTrashed(), false, 'tệp gốc trên Drive không bị xoá');
+  r = ok(b.call('docScan', {}, ql));
+  assert.equal(r.quet.moi, 0, 'tài liệu đã bỏ khỏi danh mục thì quét lại không thêm lại');
+  assert.equal(r.taiLieu.filter((x) => x.id === hd.id).length, 0);
+  // Tệp bị xoá trên Drive: đánh dấu không còn, giữ nguyên dòng đã gán
+  dwg.setTrashed(true);
+  r = ok(b.call('docScan', {}, ql));
+  assert.equal(r.quet.moi, 0);
+  ds = {}; r.taiLieu.forEach((x) => { ds[x.id] = x; });
+  assert.deepEqual([ds[cad.id].conTrenDrive, ds[cad.id].ma], [false, 'M039']);
+  assert.equal(r.tlInfo.dem.mat, 1);
 });
 
 test('giá điện: mặc định giá EVN 22 kV, sửa theo ngày áp dụng, VAT, sản lượng tháng; chỉ quản lý thấy và sửa', () => {

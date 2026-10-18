@@ -97,7 +97,11 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
-## Điểm mới của v2.11.0: đăng ký tăng ca, in đơn theo mẫu công ty
+## Điểm mới của v2.11.0: đăng ký tăng ca và tài liệu nhà máy trên Drive
+
+Bản này có hai phần mới: **Tăng ca** (đăng ký, in đơn, tổng hợp tháng) và **Tài liệu** (nối thư mục Drive sẵn có của nhà máy, quét vào danh mục, sắp xếp, tra cứu).
+
+### Tăng ca
 
 Mục **Tăng ca** riêng, ai cũng dùng được. Ở điện thoại vào từ ô **Tăng ca** trên Trang chủ hoặc từ trang **Cá nhân**; trên máy tính có ở thanh bên.
 
@@ -118,7 +122,29 @@ Mục **Tăng ca** riêng, ai cũng dùng được. Ở điện thoại vào t�
   - máy chủ cũng lọc, không chỉ ẩn trên app.
 - **Thông tin in trên đơn** (mã số thẻ 工号, bộ phận, bộ phận tiếng Trung 部门, chức vụ) lưu trong hồ sơ người dùng. Mỗi người tự điền một lần ở mục Tăng ca, hoặc Quản trị nhập trong **Cá nhân → Quản trị → Người dùng**. App tự dịch tên bộ phận sang tiếng Trung.
 - **Giờ các ca và giới hạn 40 giờ/tháng, 200 giờ/năm:** Quản lý sửa trong **Tăng ca → Sửa ca làm việc**.
-- Nâng cấp: dán `Code.gs-v2.11.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa` và thêm 4 cột mới vào trang `NguoiDung`.
+
+### Tài liệu nhà máy: nối thư mục Drive có sẵn
+
+Tài liệu đã để trên Google Drive thì **không cần tải lại**. App chỉ ghi mã tệp vào danh mục: Drive giữ tệp, app giữ cách sắp xếp và tra cứu. App **không chép, không sửa và không xoá** tệp gốc.
+
+- **Chỉ Quản lý và Quản trị** mở được mục Tài liệu. Kỹ thuật không thấy thẻ **Tài liệu** trong hồ sơ máy, không mở được tệp; máy chủ cũng chặn chứ không chỉ ẩn trên app. Riêng **ảnh đại diện** của máy thì ai cũng xem được, vì nó chỉ để nhận ra máy.
+- **Nối thư mục** (Cá nhân → Quản trị → **Tài liệu**):
+  1. Mở thư mục tài liệu trên Drive → **Chia sẻ** → thêm địa chỉ Gmail của tài khoản đang chạy app (màn hình Tài liệu ghi sẵn địa chỉ này). **Người xem** là đủ để đọc; để **Người chỉnh sửa** nếu muốn tải tệp mới lên từ app.
+  2. Sao chép link thư mục (có `/folders/…`) rồi dán vào ô **Link thư mục Drive** → **Nối thư mục**.
+  - Thư mục nằm trên Drive của tài khoản khác cũng được. Nếu chưa chia sẻ, app báo rõ "App chưa đọc được thư mục này" kèm địa chỉ cần chia sẻ, bấm **Kiểm tra lại** sau khi chia sẻ xong.
+- **Thư mục này là nhóm nào:** tài liệu xếp theo loại thì gán một lần cho từng thư mục cấp 1 (`Bản vẽ` → Bản vẽ, `Huong dan su dung` → Hướng dẫn sử dụng…). Mọi tệp trong đó, kể cả thư mục con và tệp thêm sau này, tự vào đúng nhóm. Sáu nhóm: Hướng dẫn sử dụng · Bản vẽ · Quy trình (SOP) · Kiểm định · Ảnh · Khác.
+- **Quét Drive:** app đi hết cây thư mục (sâu tối đa 8 cấp) và ghi từng tệp vào danh mục, mỗi lần nhận tối đa 300 tệp mới — còn nữa thì bấm quét thêm lần nữa.
+  - **Đoán máy theo tên tệp và tên thư mục:** nhận cả mã hệ thống (`M005`, `VKY01`) và **mã hiển thị tự đặt** (`H2506`, `QTN-16`).
+  - **Đoán nhóm** theo từ khoá tiếng Việt, tiếng Trung và tiếng Anh khi thư mục chưa gán nhóm (`说明书`, `manual`, `ban ve`, `图纸`, `SOP`, `kiem dinh`, `校准`…).
+  - **Quét lại** bất cứ lúc nào: tệp mới được thêm, tệp đã đổi chỗ thì cập nhật đường dẫn, tệp đã xoá hoặc chuyển đi bị đánh dấu **Không còn trên Drive** (dòng vẫn giữ, không mất phần đã gán).
+- **Sắp xếp** (Tài liệu → **Sắp xếp tài liệu**): lọc theo *Chưa gán máy · Chưa gán nhóm · Không còn trên Drive · Tất cả*, tìm theo tên tệp hoặc thư mục, chọn nhiều dòng rồi **gán một máy / chuyền** hoặc **một nhóm** cho cả nhóm đã chọn. Đây là chỗ xử lý một lượt đống tài liệu cũ.
+- **Tra cứu tài liệu** (Tài liệu → **Tra cứu tài liệu**): tìm toàn nhà máy theo tên tệp, thư mục, mã máy, mã hiển thị hay tên máy; lọc theo nhóm; kết quả gom theo từng máy, tài liệu chưa gán máy xếp cuối.
+- **Mở tệp:** tệp xem được và dưới 8 MB thì mở ngay trong app qua máy chủ, không cần tài khoản Google. Tệp lớn hơn hoặc loại app không xem được (bản vẽ CAD, tệp nén) thì mở bằng **link Drive** — cần tài khoản Google có quyền vào thư mục, nên vẫn chỉ người quản lý mở được.
+- **Bản hiện hành:** một máy có nhiều tệp cùng nhóm thì đánh dấu **Đặt làm bản hiện hành**; các bản còn lại hiện nhãn **Bản cũ**, không bị xoá.
+- **Bỏ khỏi danh mục:** tài liệu quét từ Drive chỉ bị gỡ khỏi danh mục của app, tệp gốc trên Drive không bị xoá và những lần quét sau cũng không thêm lại. Muốn nhận lại thì xoá dấu ở cột `Xoa` của dòng đó trên trang `TaiLieu`. Tệp do app tải lên thì vẫn vào thùng rác Drive như trước.
+- Trang `TaiLieu` có thêm 5 cột: `DuongDan` (đường dẫn thư mục trên Drive), `Nguon` (`APP` tải từ app · `DRIVE` tài liệu có sẵn), `ConTrenDrive`, `HienHanh`, `LucQuet`.
+
+- Nâng cấp: dán `Code.gs-v2.11.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
 
 ## Điểm mới của v2.10.0: phân quyền xem theo vai trò
 
@@ -133,6 +159,7 @@ Mục **Tăng ca** riêng, ai cũng dùng được. Ở điện thoại vào t�
   - danh sách Thiết bị;
   - kho Linh kiện, tab Linh kiện trong hồ sơ máy, phần linh kiện / ERP của chuyền;
   - Giao việc, Việc lặp lại, Báo cáo tháng, In tem QR;
+  - tài liệu máy và chuyền (từ v2.11.0), trừ ảnh đại diện của máy;
   - việc của người khác không thuộc Sửa chữa / Bảo dưỡng.
 
   Mở các màn đó (ví dụ bằng link cũ) thì app báo "Chỉ Quản lý".

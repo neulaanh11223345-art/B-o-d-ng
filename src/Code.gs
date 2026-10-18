@@ -64,13 +64,16 @@ var BANG = {
   // Kieu: ngay (hằng ngày) · tuan (Ngay = các thứ 0–6, 0 = Chủ nhật) · thang (Ngay = các ngày trong tháng) · TaoDen: đã sinh việc đến ngày
   ViecLap: ['ID', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Kieu', 'Ngay', 'UIDLam', 'CanKiemTra', 'HoatDong', 'TaoDen', 'NguoiTao', 'CapNhat',
     'TieuDeDich', 'MoTaDich'],
-  // Tài liệu của máy / chuyền: Ma = mã máy hoặc mã chuyền · Kieu: TEP (tệp) · ANH (ảnh) · LINK (liên kết)
-  // Nhom: HDSD · BANVE · QUYTRINH · ANH · KHAC · FileId: tệp trong thư mục Drive "CMMS_TaiLieu" (riêng tư)
-  // AnhNho: ảnh thu nhỏ (thư mục ảnh của app) · DaiDien = 1: ảnh đại diện của máy · Xoa = 1: đã xoá
-  TaiLieu: ['ID', 'Ma', 'Ten', 'Nhom', 'Kieu', 'FileId', 'Mime', 'KichThuoc', 'Url', 'DaiDien', 'AnhNho', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat']
+  // Tài liệu của máy / chuyền: Ma = mã máy hoặc mã chuyền (để trống là chưa gán) · Kieu: TEP (tệp) · ANH (ảnh) · LINK (liên kết)
+  // Nhom: HDSD · BANVE · QUYTRINH · KIEMDINH · ANH · KHAC · FileId: mã tệp trên Drive
+  // AnhNho: ảnh thu nhỏ (thư mục ảnh của app) · DaiDien = 1: ảnh đại diện của máy · Xoa = 1: đã xoá khỏi danh mục
+  // DuongDan: đường dẫn thư mục trên Drive · Nguon: APP (app tải lên) · DRIVE (tài liệu có sẵn, app không chép và không xoá)
+  // ConTrenDrive = 0: lần quét gần nhất không còn thấy tệp · HienHanh = 1: bản đang dùng của máy đó, nhóm đó · LucQuet: lần quét gần nhất
+  TaiLieu: ['ID', 'Ma', 'Ten', 'Nhom', 'Kieu', 'FileId', 'Mime', 'KichThuoc', 'Url', 'DaiDien', 'AnhNho', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat',
+    'DuongDan', 'Nguon', 'ConTrenDrive', 'HienHanh', 'LucQuet']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
-  CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa'] };
+  CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
 
@@ -97,11 +100,12 @@ var QUYEN = {
   khoaky: ['admin', 'quanly'],      // khoá / mở lại kỳ điện, duyệt ngoại lệ, sửa số kỳ đã khoá
   nhatky: ['admin', 'quanly'],
   xemhet: ['admin', 'quanly'],      // xem mọi mục; tài khoản khác chỉ Điện/Nước, Sửa chữa, Bảo dưỡng
-  giaoviec: ['admin', 'quanly']     // giao việc, kiểm tra việc xong, việc lặp lại
+  giaoviec: ['admin', 'quanly'],    // giao việc, kiểm tra việc xong, việc lặp lại
+  tailieu: ['admin', 'quanly']      // xem, mở, sắp xếp tài liệu; tài khoản khác chỉ thấy ảnh đại diện của máy
 };
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
   'saveOT', 'deleteOT', 'saveProfile', 'saveOTCfg',
-  'docUpload', 'docLink', 'docDelete', 'docCover', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
+  'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring'];
@@ -264,11 +268,17 @@ function dieuHuong(a, p, req) {
     case 'lockPeriod': canQuyen(u, 'khoaky'); return khoaKy(u, p);
     case 'unlockPeriod': canQuyen(u, 'khoaky'); return moKhoaKy(u, p);
     case 'saveDienCfg': canQuyen(u, 'caidat'); return luuCauHinhDien(u, p);
-    case 'docUpload': canQuyen(u, 'xacnhan'); return taiLenTaiLieu(u, p);
-    case 'docLink': canQuyen(u, 'xacnhan'); return themLienKet(u, p);
-    case 'docDelete': canQuyen(u, 'xacnhan'); return xoaTaiLieu(u, p);
-    case 'docCover': canQuyen(u, 'xacnhan'); return datDaiDien(u, p);
-    case 'docGet': return layTaiLieu(p);
+    case 'docUpload': canQuyen(u, 'tailieu'); return taiLenTaiLieu(u, p);
+    case 'docLink': canQuyen(u, 'tailieu'); return themLienKet(u, p);
+    case 'docDelete': canQuyen(u, 'tailieu'); return xoaTaiLieu(u, p);
+    case 'docCover': canQuyen(u, 'tailieu'); return datDaiDien(u, p);
+    case 'docGet': canQuyen(u, 'tailieu'); return layTaiLieu(p);
+    case 'docFolder': canQuyen(u, 'tailieu'); return datThuMucTL(u, p);
+    case 'docFolderMap': canQuyen(u, 'tailieu'); return datNhomThuMuc(u, p);
+    case 'docScan': canQuyen(u, 'tailieu'); return quetDrive(u, p);
+    case 'docAssign': canQuyen(u, 'tailieu'); return ganTaiLieu(u, p);
+    case 'docCurrent': canQuyen(u, 'tailieu'); return datHienHanh(u, p);
+    case 'docInfo': canQuyen(u, 'tailieu'); return { tlInfo: tlThongTin() };
     case 'saveGiaDien': canQuyen(u, 'may'); return luuGiaDien(u, p);
     case 'saveSanLuong': canQuyen(u, 'may'); return luuSanLuong(u, p);
     case 'backupInfo': canQuyen(u, 'caidat'); try { datLichSaoLuu(); } catch (e) { /* chưa cấp quyền ScriptApp */ } return thongTinSaoLuu();
@@ -679,7 +689,8 @@ function layDuLieu(u) {
         caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam }
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
         caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam },
-    taiLieu: docTaiLieu().filter(function (x) { return !x.xoa; }).map(sachTL),
+    taiLieu: tlChoNguoi(u),
+    tlInfo: coQuyen(u, 'tailieu') ? tlThongTinNhe() : null,
     khoaKy: docKhoaKy(),
     congViec: docCongViec().filter(function (x) { return (CV_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG' || x.lucTao >= tu) && xemViec(u, x); }).map(sachCV),
     viecLap: coQuyen(u, 'xemhet') ? docViecLap().map(sachCV) : [],
@@ -2512,8 +2523,18 @@ function mauSoDien() {
 }
 
 // ===================== TÀI LIỆU MÁY · 设备资料 =====================
-// Tệp lưu trong thư mục Drive "CMMS_TaiLieu" của chủ sheet, để riêng tư. App lấy tệp qua máy chủ (hành động 'docGet').
-var TL_KEY = 'TL_FOLDER_ID', TL_TOI_DA = 10 * 1024 * 1024, TL_NHOM = ['HDSD', 'BANVE', 'QUYTRINH', 'ANH', 'KHAC'];
+// Hai nguồn tài liệu:
+//   APP   — tệp tải lên từ app, nằm trong thư mục Drive của tài khoản chạy app (mặc định "CMMS_TaiLieu").
+//   DRIVE — tài liệu nhà máy đã có sẵn trên Drive: app chỉ ghi mã tệp vào danh mục, không chép và không xoá tệp gốc.
+// Thư mục gốc lưu ở Script Properties TL_FOLDER_ID (Quản lý dán link thư mục trong app). Thư mục có thể nằm trên
+// Drive của tài khoản khác, chỉ cần chia sẻ cho tài khoản chạy app (Người xem là đủ để đọc, Người chỉnh sửa để tải lên).
+// Bản đồ "thư mục → nhóm tài liệu" lưu ở TL_FOLDER_MAP, lần quét gần nhất ở TL_QUET_LUC.
+// Chỉ Quản trị và Quản lý xem được tài liệu; tài khoản khác chỉ nhận ảnh đại diện của máy.
+var TL_KEY = 'TL_FOLDER_ID', TL_MAP_KEY = 'TL_FOLDER_MAP', TL_QUET_KEY = 'TL_QUET_LUC';
+var TL_TOI_DA = 10 * 1024 * 1024;              // tệp tải lên từ app
+var TL_MO_TOI_DA = 8 * 1024 * 1024;            // mở trong app qua máy chủ; lớn hơn thì mở bằng link Drive
+var TL_QUET_TOI_DA = 300, TL_SAU_TOI_DA = 8;   // mỗi lần quét nhận tối đa 300 tệp mới, đi sâu tối đa 8 cấp thư mục
+var TL_NHOM = ['HDSD', 'BANVE', 'QUYTRINH', 'KIEMDINH', 'ANH', 'KHAC'];
 // Chỉ nhận loại tệp an toàn để xem trên điện thoại (không nhận HTML, SVG, tệp chạy được)
 var TL_MIME = {
   'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'text/plain': 'txt', 'text/csv': 'csv',
@@ -2521,29 +2542,261 @@ var TL_MIME = {
   'application/vnd.ms-excel': 'xls', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
   'application/vnd.ms-powerpoint': 'ppt', 'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx'
 };
-var TL_KHOA = ['id', 'ma', 'ten', 'nhom', 'kieu', 'fileId', 'mime', 'kichThuoc', 'url', 'daiDien', 'anhNho', 'nguoiTao', 'uidTao', 'lucTao', 'xoa', 'capNhat'];
+// Từ khoá đoán nhóm theo tên tệp và tên thư mục. Chữ Việt bỏ dấu, viết hoa, cách nhau bằng khoảng trắng.
+// Từ Latin chỉ nhận khi đứng riêng (tránh "QTN-16" thành Quy trình), từ tiếng Trung nhận cả khi lẫn trong tên.
+var TL_TU_KHOA = [
+  ['KIEMDINH', ['KIEM DINH', 'KIEMDINH', 'HIEU CHUAN', 'HIEUCHUAN', 'CHUNG NHAN', 'CHUNG CHI', 'GIAY PHEP', 'CALIBRATION', 'CERTIFICATE'],
+    ['检验', '检定', '校准', '合格证', '检测报告']],
+  ['HDSD', ['HDSD', 'HUONG DAN SU DUNG', 'HUONG DAN VAN HANH', 'HUONG DAN', 'HUONGDAN', 'MANUAL', 'USER GUIDE', 'CATALOGUE', 'CATALOG'],
+    ['说明书', '使用说明', '操作手册', '操作说明']],
+  ['BANVE', ['BAN VE', 'BANVE', 'DRAWING', 'SO DO DIEN', 'SO DO', 'LAYOUT', 'DWG', 'DXF'],
+    ['图纸', '圖紙', '电路图', '接线图', '布置图']],
+  ['QUYTRINH', ['SOP', 'QUY TRINH', 'QUYTRINH', 'HUONG DAN CONG VIEC', 'TIEU CHUAN', 'BAO DUONG', 'BAO TRI', 'KIEM TRA DINH KY'],
+    ['作业指导', '作業指導', '工艺', '保养', '点检']],
+  ['ANH', ['ANH', 'HINH ANH', 'HINH', 'PHOTO', 'IMAGE'], ['照片', '图片']]
+];
+var TL_KHOA = ['id', 'ma', 'ten', 'nhom', 'kieu', 'fileId', 'mime', 'kichThuoc', 'url', 'daiDien', 'anhNho', 'nguoiTao', 'uidTao', 'lucTao', 'xoa', 'capNhat',
+  'duongDan', 'nguon', 'conTrenDrive', 'hienHanh', 'lucQuet'];
 function laCo(v) { return v === true || v === 1 || s(v) === '1' || s(v).toUpperCase() === 'TRUE'; }
 function tlTuDong(r, i) {
   var o = { _r: i + 2 };
   TL_KHOA.forEach(function (k, j) { o[k] = r[j] instanceof Date ? tgStr(r[j]) : s(r[j]); });
   o.kichThuoc = Number(o.kichThuoc) || 0; o.daiDien = laCo(o.daiDien); o.xoa = laCo(o.xoa);
+  o.nguon = o.nguon === 'DRIVE' ? 'DRIVE' : 'APP';
+  // Dòng của bản cũ (v2.9–v2.11 trước khi có 5 cột mới) coi như còn trên Drive và là bản hiện hành
+  o.conTrenDrive = s(r[18]) === '' ? true : laCo(o.conTrenDrive);
+  o.hienHanh = s(r[19]) === '' ? true : laCo(o.hienHanh);
   return o;
 }
 function tlThanhDong(o) {
   return [o.id, o.ma, anToan(o.ten), o.nhom, o.kieu, o.fileId, o.mime, o.kichThuoc || 0, anToan(o.url || ''), o.daiDien ? 1 : 0, o.anhNho || '',
-    anToan(o.nguoiTao || ''), o.uidTao || '', o.lucTao, o.xoa ? 1 : 0, o.capNhat];
+    anToan(o.nguoiTao || ''), o.uidTao || '', o.lucTao, o.xoa ? 1 : 0, o.capNhat,
+    anToan(o.duongDan || ''), o.nguon || 'APP', o.conTrenDrive ? 1 : 0, o.hienHanh ? 1 : 0, o.lucQuet || ''];
 }
-function docTaiLieu() { return docTho('TaiLieu').map(tlTuDong).filter(function (x) { return x.id && x.ma; }); }
+function docTaiLieu() { return docTho('TaiLieu').map(tlTuDong).filter(function (x) { return x.id; }); }
+// Tệp mở được ngay trong app: loại tệp xem được trên điện thoại và không quá lớn để đi qua máy chủ
+function tlMoDuoc(x) { return x.kieu !== 'LINK' && !!TL_MIME[x.mime] && x.kichThuoc > 0 && x.kichThuoc <= TL_MO_TOI_DA; }
 function sachTL(x) {
   return { id: x.id, ma: x.ma, ten: x.ten, nhom: x.nhom, kieu: x.kieu, mime: x.mime, kichThuoc: x.kichThuoc, url: x.kieu === 'LINK' ? x.url : '',
-    daiDien: x.daiDien, anhNho: x.anhNho, nguoiTao: x.nguoiTao, uidTao: x.uidTao, lucTao: x.lucTao };
+    daiDien: x.daiDien, anhNho: x.anhNho, nguoiTao: x.nguoiTao, uidTao: x.uidTao, lucTao: x.lucTao,
+    duongDan: x.duongDan, nguon: x.nguon, conTrenDrive: x.conTrenDrive, hienHanh: x.hienHanh, moDuoc: tlMoDuoc(x) };
 }
+// Tài liệu gửi về app: Quản trị và Quản lý nhận cả danh mục, tài khoản khác chỉ nhận ảnh đại diện của máy
+function tlChoNguoi(u) {
+  var ds = docTaiLieu().filter(function (x) { return !x.xoa; });
+  if (!coQuyen(u, 'tailieu')) ds = ds.filter(function (x) { return x.daiDien && x.anhNho; });
+  return ds.map(sachTL);
+}
+// ----- Thư mục Drive -----
+function tlGocId() { return s(PropertiesService.getScriptProperties().getProperty(TL_KEY)); }
+// Nhận cả link thư mục Drive và mã thư mục dán trực tiếp
+function tlIdTuLink(v) {
+  var t = s(v);
+  var m = t.match(/\/folders\/([A-Za-z0-9_-]{10,})/) || t.match(/[?&]id=([A-Za-z0-9_-]{10,})/);
+  if (m) return m[1];
+  // Dán trực tiếp mã thư mục: mã của Drive dài trên 20 ký tự, chuỗi ngắn hơn coi như gõ sai
+  return /^[A-Za-z0-9_-]{20,}$/.test(t) ? t : '';
+}
+// Mở thư mục và báo lỗi rõ ràng khi tài khoản chạy app chưa được chia sẻ
+function tlMoThuMuc(id) {
+  try { var f = DriveApp.getFolderById(id); f.getName(); return f; }
+  catch (e) { throw loi('TL_KHONG_DOC_DUOC', 'App không đọc được thư mục này. Hãy chia sẻ thư mục cho tài khoản chạy app · 应用无法访问此文件夹，请把文件夹共享给运行应用的账号'); }
+}
+// Thư mục để tải tệp lên từ app: thư mục đã nối, hoặc "CMMS_TaiLieu" riêng của tài khoản chạy app
 function tlFolder() {
   var ps = PropertiesService.getScriptProperties(), id = ps.getProperty(TL_KEY);
-  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { /* thư mục đã bị xoá → tạo lại */ } }
+  // Thư mục đã nối mà đọc không được thì báo lỗi, không tự chuyển sang thư mục khác (kẻo mất đường dẫn đã cài)
+  if (id) return tlMoThuMuc(id);
   var f = DriveApp.createFolder('CMMS_TaiLieu');
   ps.setProperty(TL_KEY, f.getId());
   return f;
+}
+// Địa chỉ tài khoản Google đang chạy app: thư mục trên Drive của tài khoản khác phải chia sẻ cho địa chỉ này
+function tlTaiKhoan() { try { return s(Session.getEffectiveUser().getEmail()); } catch (e) { return ''; } }
+function tlMap() { return docJson(PropertiesService.getScriptProperties().getProperty(TL_MAP_KEY), {}) || {}; }
+function ghiTlMap(m) { PropertiesService.getScriptProperties().setProperty(TL_MAP_KEY, JSON.stringify(m || {})); }
+// Số liệu danh mục, đọc từ sheet. Dùng cho lúc tải dữ liệu: mở app không phải gọi sang Drive.
+function tlThongTinNhe() {
+  var ds = docTaiLieu().filter(function (x) { return !x.xoa; });
+  return {
+    nhe: true, id: tlGocId(), taiKhoan: tlTaiKhoan(), lucQuet: s(PropertiesService.getScriptProperties().getProperty(TL_QUET_KEY)),
+    dem: {
+      tong: ds.length,
+      drive: ds.filter(function (x) { return x.nguon === 'DRIVE'; }).length,
+      chuaGanMay: ds.filter(function (x) { return !x.ma; }).length,
+      mat: ds.filter(function (x) { return x.nguon === 'DRIVE' && !x.conTrenDrive; }).length
+    }
+  };
+}
+// Thông tin đầy đủ cho màn Quản trị → Tài liệu: tên thư mục, link, thư mục cấp 1 và nhóm đã gán. Có gọi sang Drive.
+function tlThongTin() {
+  var id = tlGocId(), map = tlMap(), ds = docTaiLieu().filter(function (x) { return !x.xoa; });
+  var o = {
+    id: id, ten: '', url: '', doc: false, con: [], map: map, lucQuet: s(PropertiesService.getScriptProperties().getProperty(TL_QUET_KEY)),
+    taiKhoan: tlTaiKhoan(),
+    dem: {
+      tong: ds.length,
+      drive: ds.filter(function (x) { return x.nguon === 'DRIVE'; }).length,
+      chuaGanMay: ds.filter(function (x) { return !x.ma; }).length,
+      mat: ds.filter(function (x) { return x.nguon === 'DRIVE' && !x.conTrenDrive; }).length
+    }
+  };
+  if (!id) return o;
+  var f;
+  try { f = DriveApp.getFolderById(id); o.ten = f.getName(); o.url = f.getUrl(); o.doc = true; }
+  catch (e) { return o; }
+  var it = f.getFolders(), n = 0;
+  while (it.hasNext() && n < 60) { var c = it.next(); n++; o.con.push({ id: c.getId(), ten: c.getName(), nhom: s(map[c.getId()]) }); }
+  o.con.sort(function (a, b) { return a.ten < b.ten ? -1 : 1; });
+  return o;
+}
+function datThuMucTL(u, p) {
+  var id = tlIdTuLink(p.link);
+  if (!id) throw loi('TL_LINK_SAI', 'Dán link thư mục Drive (có /folders/…) · 请粘贴云端硬盘文件夹链接');
+  var f = tlMoThuMuc(id), truoc = tlGocId();
+  PropertiesService.getScriptProperties().setProperty(TL_KEY, id);
+  ghiNhatKy(u, 'DAT_THU_MUC_TL', 'TaiLieu', id, { id: truoc }, { id: id, ten: f.getName() }, '');
+  return { tlInfo: tlThongTin() };
+}
+function datNhomThuMuc(u, p) {
+  var map = {}, ds = Array.isArray(p.map) ? p.map : [];
+  ds.forEach(function (x) {
+    var id = s(x && x.id), nhom = s(x && x.nhom);
+    if (id && TL_NHOM.indexOf(nhom) >= 0) map[id] = nhom;
+  });
+  ghiTlMap(map);
+  ghiNhatKy(u, 'DAT_NHOM_THU_MUC', 'TaiLieu', '', null, map, '');
+  return { tlInfo: tlThongTin() };
+}
+// ----- Đoán nhóm và đoán máy từ tên tệp, tên thư mục -----
+// Bỏ dấu, viết hoa, mọi ký tự không phải chữ/số thành khoảng trắng, thêm khoảng trắng hai đầu để so từ đứng riêng
+function tlChuan(v) {
+  var t = s(v);
+  try { t = t.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) { /* không có normalize */ }
+  return ' ' + t.replace(/[đĐ]/g, 'D').toUpperCase().replace(/[^0-9A-Z一-鿿]+/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+}
+function tlNhomTuTen(ten, duongDan) {
+  var a = tlChuan(ten), b = tlChuan(duongDan);
+  for (var i = 0; i < TL_TU_KHOA.length; i++) {
+    var nhom = TL_TU_KHOA[i][0], latin = TL_TU_KHOA[i][1], han = TL_TU_KHOA[i][2];
+    for (var j = 0; j < latin.length; j++) { var k = ' ' + latin[j] + ' '; if (a.indexOf(k) >= 0 || b.indexOf(k) >= 0) return nhom; }
+    for (var h = 0; h < han.length; h++) { if (a.indexOf(han[h]) >= 0 || b.indexOf(han[h]) >= 0) return nhom; }
+  }
+  return '';
+}
+// Mã máy và mã chuyền để đoán, cả mã hệ thống (M005, VKY01) và mã hiển thị tự đặt (H2506, QTN-16). Mã dài so trước.
+function tlDsMa() {
+  var ds = [];
+  function them(ma, ra) { var k = tlChuan(ma).trim(); if (k && k.length >= 2) ds.push({ k: ' ' + k + ' ', ma: ra }); }
+  dsMay().forEach(function (m) { them(m.ma, m.ma); if (m.maHT) them(m.maHT, m.ma); });
+  dsChuyen().forEach(function (c) { them(c.ma, c.ma); if (c.maHT) them(c.maHT, c.ma); });
+  ds.sort(function (a, b) { return b.k.length - a.k.length; });
+  return ds;
+}
+function tlMaTuTen(ten, duongDan, dsMa) {
+  var a = tlChuan(ten), b = tlChuan(duongDan);
+  for (var i = 0; i < dsMa.length; i++) if (a.indexOf(dsMa[i].k) >= 0) return dsMa[i].ma;
+  for (var j = 0; j < dsMa.length; j++) if (b.indexOf(dsMa[j].k) >= 0) return dsMa[j].ma;
+  return '';
+}
+// ----- Quét thư mục Drive -----
+// Đi hết cây thư mục, mỗi tệp chưa có trong danh mục thì thêm một dòng trỏ tới mã tệp (không chép tệp).
+// Tệp đã có thì cập nhật đường dẫn và đánh dấu còn trên Drive. Tệp không gặp lại bị đánh dấu mất.
+// Tài liệu đã bỏ khỏi danh mục (Xoa = 1) không được thêm lại: muốn nhận lại thì xoá dấu ở cột Xoa trên trang TaiLieu.
+function quetDrive(u, p) {
+  var id = tlGocId();
+  if (!id) throw loi('TL_CHUA_NOI', 'Chưa nối thư mục Drive · 未连接云端硬盘文件夹');
+  var goc = tlMoThuMuc(id), map = tlMap(), dsMa = tlDsMa(), bay = thoiGianStr();
+  capNhatTieuDe('TaiLieu');
+  var cu = docTaiLieu(), theoFile = {}, daCoId = {}, sua = [];
+  cu.forEach(function (x) { if (x.fileId) theoFile[x.fileId] = x; daCoId[x.id] = 1; });
+  var dem = 0;
+  function maTLMoi() {
+    var dau = 'TL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + 'Q';
+    do { dem++; } while (daCoId[dau + dem]);
+    daCoId[dau + dem] = 1;
+    return dau + dem;
+  }
+  var moi = [], gap = {}, demTep = 0, conNua = false;
+  var hangDoi = [{ f: goc, duong: '', sau: 0, nhom: s(map[id]) }];
+  while (hangDoi.length && !conNua) {
+    var cur = hangDoi.shift(), it = cur.f.getFiles();
+    while (it.hasNext()) {
+      var tep = it.next();
+      if (tep.isTrashed()) continue;
+      demTep++;
+      var fid = tep.getId();
+      gap[fid] = true;
+      var da = theoFile[fid];
+      if (da) {
+        if (!da.xoa && (da.duongDan !== cur.duong || !da.conTrenDrive)) {
+          da.duongDan = cur.duong; da.conTrenDrive = true; da.lucQuet = bay; da.capNhat = bay; sua.push(da);
+        }
+        continue;
+      }
+      if (moi.length >= TL_QUET_TOI_DA) { conNua = true; break; }
+      var mime = s(tep.getMimeType()).toLowerCase(), ten = catChu(s(tep.getName()).replace(/\.[^.]+$/, ''), 120) || s(tep.getName()).slice(0, 120);
+      if (mime === 'application/vnd.google-apps.shortcut') continue;
+      var o = tlMoi(u, '', ten, '', mime.indexOf('image/') === 0 ? 'ANH' : 'TEP');
+      o.id = maTLMoi();
+      o.ma = tlMaTuTen(tep.getName(), cur.duong, dsMa);
+      o.nhom = cur.nhom || tlNhomTuTen(tep.getName(), cur.duong) || (mime.indexOf('image/') === 0 ? 'ANH' : 'KHAC');
+      o.fileId = fid; o.mime = mime; o.kichThuoc = Number(tep.getSize()) || 0;
+      o.duongDan = cur.duong; o.nguon = 'DRIVE'; o.conTrenDrive = true; o.hienHanh = true; o.lucQuet = bay;
+      o.nguoiTao = u.ten; o.uidTao = u.id;
+      moi.push(o);
+    }
+    if (conNua) break;
+    if (cur.sau < TL_SAU_TOI_DA) {
+      var fs = cur.f.getFolders();
+      while (fs.hasNext()) {
+        var con = fs.next(), tenCon = con.getName();
+        hangDoi.push({ f: con, duong: cur.duong ? cur.duong + ' / ' + tenCon : tenCon, sau: cur.sau + 1, nhom: s(map[con.getId()]) || cur.nhom });
+      }
+    }
+  }
+  // Tệp của lần quét trước không gặp lại: đánh dấu mất, giữ nguyên dòng để không mất thông tin đã gán
+  if (!conNua) {
+    cu.forEach(function (x) {
+      if (x.nguon === 'DRIVE' && !x.xoa && x.conTrenDrive && !gap[x.fileId]) { x.conTrenDrive = false; x.capNhat = bay; sua.push(x); }
+    });
+  }
+  sua.forEach(function (x) { suaDong('TaiLieu', x._r, tlThanhDong(x)); });
+  if (moi.length) themNhieu('TaiLieu', moi.map(tlThanhDong));
+  PropertiesService.getScriptProperties().setProperty(TL_QUET_KEY, bay);
+  ghiNhatKy(u, 'QUET_DRIVE', 'TaiLieu', id, null, { moi: moi.length, tep: demTep, conNua: conNua }, '');
+  return { tlInfo: tlThongTin(), taiLieu: tlChoNguoi(u), tlFull: true, quet: { moi: moi.length, tep: demTep, conNua: conNua } };
+}
+// ----- Gán máy và nhóm hàng loạt -----
+function ganTaiLieu(u, p) {
+  var ids = (Array.isArray(p.ids) ? p.ids : []).map(function (v) { return s(v); }).filter(function (v) { return v; });
+  if (!ids.length) throw loi('THIEU_CHON', 'Chưa chọn tài liệu nào · 未选择资料');
+  var ma = s(p.ma).toUpperCase(), nhom = s(p.nhom);
+  if (ma) kiemMaTL(ma);
+  if (nhom && TL_NHOM.indexOf(nhom) < 0) throw loi('NHOM_SAI', 'Nhóm không hợp lệ · 分组无效');
+  if (!ma && !nhom && p.ma === undefined) throw loi('THIEU_GAN', 'Chưa chọn máy hay nhóm · 未选择设备或分组');
+  capNhatTieuDe('TaiLieu');
+  var bay = thoiGianStr(), n = 0;
+  docTaiLieu().forEach(function (x) {
+    if (x.xoa || ids.indexOf(x.id) < 0) return;
+    if (p.ma !== undefined) x.ma = ma;
+    if (nhom) x.nhom = nhom;
+    x.capNhat = bay; suaDong('TaiLieu', x._r, tlThanhDong(x)); n++;
+  });
+  ghiNhatKy(u, 'GAN_TAI_LIEU', 'TaiLieu', ids.slice(0, 20).join(','), null, { ma: ma, nhom: nhom, n: n }, '');
+  return { taiLieu: tlChoNguoi(u), tlFull: true, tlInfo: tlThongTin(), n: n };
+}
+// Đánh dấu bản hiện hành: các tài liệu khác cùng máy và cùng nhóm thành bản cũ
+function datHienHanh(u, p) {
+  var x = timTL(p.id);
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  var bay = thoiGianStr();
+  docTaiLieu().forEach(function (v) {
+    if (v.xoa || !v.ma || v.ma !== x.ma || v.nhom !== x.nhom) return;
+    var can = v.id === x.id;
+    if (v.hienHanh !== can) { v.hienHanh = can; v.capNhat = bay; suaDong('TaiLieu', v._r, tlThanhDong(v)); }
+  });
+  return { ma: x.ma, taiLieu: tlChoNguoi(u), tlFull: true };
 }
 function kiemMaTL(ma) {
   if (!ma || (!timMay(ma) && !dsChuyen().some(function (c) { return c.ma === ma; }))) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy / chuyền · 找不到设备/产线');
@@ -2553,7 +2806,8 @@ function tlMoi(u, ma, ten, nhom, kieu) {
   var bay = thoiGianStr();
   return { id: 'TL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900), ma: ma, ten: ten,
     nhom: TL_NHOM.indexOf(s(nhom)) >= 0 ? s(nhom) : (kieu === 'ANH' ? 'ANH' : 'KHAC'), kieu: kieu, fileId: '', mime: '', kichThuoc: 0, url: '',
-    daiDien: false, anhNho: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false, capNhat: bay };
+    daiDien: false, anhNho: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false, capNhat: bay,
+    duongDan: '', nguon: 'APP', conTrenDrive: true, hienHanh: true, lucQuet: '' };
 }
 // Bỏ cờ ảnh đại diện của các tài liệu khác cùng máy
 function boDaiDien(ma, giuId) {
@@ -2575,7 +2829,8 @@ function taiLenTaiLieu(u, p) {
   capNhatTieuDe('TaiLieu');
   var kieu = mime.indexOf('image/') === 0 ? 'ANH' : 'TEP', o = tlMoi(u, ma, ten, p.nhom, kieu);
   var tenFile = ma + ' - ' + ten.replace(/[\\/:*?"<>|]/g, ' ') + '.' + TL_MIME[mime];
-  o.fileId = tlFolder().createFile(Utilities.newBlob(bytes, mime, tenFile)).getId();
+  try { o.fileId = tlFolder().createFile(Utilities.newBlob(bytes, mime, tenFile)).getId(); }
+  catch (e) { throw loi('TL_KHONG_GHI_DUOC', 'App không ghi được vào thư mục Drive. Hãy chia sẻ thư mục với quyền Người chỉnh sửa · 应用无法写入该文件夹，请给予编辑权限'); }
   o.mime = mime; o.kichThuoc = bytes.length;
   if (kieu === 'ANH' && p.anhNho) { var a = luuAnhDrive(p.anhNho, ma + '_' + o.id + '_nho.jpg'); if (a) o.anhNho = a.id; }
   if (kieu === 'ANH' && p.daiDien) { boDaiDien(ma, o.id); o.daiDien = true; }
@@ -2593,31 +2848,56 @@ function themLienKet(u, p) {
   return { ma: ma, taiLieu: tlCua(ma), moi: sachTL(o) };
 }
 function timTL(id) { return docTaiLieu().filter(function (x) { return x.id === s(id) && !x.xoa; })[0] || null; }
+// Xoá khỏi danh mục. Tệp do app tải lên thì cho vào thùng rác Drive; tài liệu gốc của nhà máy (nguồn DRIVE) không bị xoá.
 function xoaTaiLieu(u, p) {
   var x = timTL(p.id);
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
-  if (!coQuyen(u, 'may') && x.uidTao !== u.id) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
-  x.xoa = true; x.daiDien = false; x.capNhat = thoiGianStr();
+  x.xoa = true; x.daiDien = false; x.hienHanh = false; x.capNhat = thoiGianStr();
   suaDong('TaiLieu', x._r, tlThanhDong(x));
-  if (x.fileId) { try { DriveApp.getFileById(x.fileId).setTrashed(true); } catch (e) { /* tệp đã mất: bỏ qua */ } }
-  ghiNhatKy(u, 'XOA_TAI_LIEU', 'TaiLieu', x.id, { ma: x.ma, ten: x.ten, kieu: x.kieu }, null, '');
-  return { ma: x.ma, taiLieu: tlCua(x.ma) };
+  if (x.fileId && x.nguon !== 'DRIVE') { try { DriveApp.getFileById(x.fileId).setTrashed(true); } catch (e) { /* tệp đã mất: bỏ qua */ } }
+  ghiNhatKy(u, 'XOA_TAI_LIEU', 'TaiLieu', x.id, { ma: x.ma, ten: x.ten, kieu: x.kieu, nguon: x.nguon }, null, '');
+  return { ma: x.ma, taiLieu: tlChoNguoi(u), tlFull: true, tlInfo: tlThongTinNhe() };
 }
 function datDaiDien(u, p) {
   var x = timTL(p.id);
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
   if (x.kieu !== 'ANH') throw loi('KHONG_PHAI_ANH', 'Chỉ đặt ảnh làm ảnh đại diện · 只能设置照片为封面');
+  if (!x.ma) throw loi('CHUA_GAN_MAY', 'Tài liệu chưa gán máy · 资料未关联设备');
+  // Ảnh quét từ Drive chưa có ảnh nhỏ: app gửi kèm ảnh nhỏ đã nén để mọi người xem được ở đầu hồ sơ máy
+  if (!x.anhNho && p.anhNho) { var a = luuAnhDrive(p.anhNho, x.ma + '_' + x.id + '_nho.jpg'); if (a) x.anhNho = a.id; }
   boDaiDien(x.ma, x.id);
-  if (!x.daiDien) { x.daiDien = true; x.capNhat = thoiGianStr(); suaDong('TaiLieu', x._r, tlThanhDong(x)); }
-  return { ma: x.ma, taiLieu: tlCua(x.ma) };
+  x.daiDien = true; x.capNhat = thoiGianStr();
+  suaDong('TaiLieu', x._r, tlThanhDong(x));
+  return { ma: x.ma, taiLieu: tlChoNguoi(u), tlFull: true };
 }
+// Mở tài liệu: tệp xem được và dưới 8 MB thì đưa nội dung về app; tệp lớn hoặc lạ (CAD, nén) thì trả link Drive
 function layTaiLieu(p) {
   var x = timTL(p.id);
   if (!x || x.kieu === 'LINK') throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
   var f;
   try { f = DriveApp.getFileById(x.fileId); } catch (e) { throw loi('KHONG_CO', 'Không tìm thấy tệp · 找不到文件'); }
-  if (!trongThuMuc(f, tlFolder())) throw loi('KHONG_CO', 'Không tìm thấy tệp · 找不到文件');
+  if (!tlTrongCay(f)) throw loi('KHONG_CO', 'Không tìm thấy tệp · 找不到文件');
+  if (!tlMoDuoc(x)) return { id: x.id, ten: x.ten, mime: x.mime, link: f.getUrl() };
   return { id: x.id, ten: x.ten, mime: x.mime, data: 'data:' + x.mime + ';base64,' + Utilities.base64Encode(f.getBlob().getBytes()) };
+}
+// Tệp phải nằm trong thư mục tài liệu hoặc một thư mục con của nó (đi ngược lên cây cha)
+function tlTrongCay(f) {
+  var gocId = tlGocId();
+  if (!gocId) return false;
+  var da = {}, doi = [f], sau = 0;
+  while (doi.length && sau <= TL_SAU_TOI_DA + 2) {
+    var tiep = [];
+    for (var i = 0; i < doi.length; i++) {
+      var it = doi[i].getParents();
+      while (it.hasNext()) {
+        var cha = it.next(), id = cha.getId();
+        if (id === gocId) return true;
+        if (!da[id]) { da[id] = 1; tiep.push(cha); }
+      }
+    }
+    doi = tiep; sau++;
+  }
+  return false;
 }
 
 // ===================== TIỀN ĐIỆN · 电费 =====================
