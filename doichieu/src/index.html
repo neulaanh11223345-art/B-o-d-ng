@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Đối chiếu 2 file Excel ngay trên máy: tự dò dòng tiêu đề, tự ghép cột, tự chọn cột khóa rồi chỉ ra dòng lệch, dòng thiếu, dòng trùng.">
+<meta name="theme-color" content="#2563eb">
+<title>Đối chiếu Excel</title>
+<style>
+/*@CSS*/
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Đối chiếu Excel</h1>
+      <div class="sub">Đưa 2 file vào là tự so — dữ liệu chỉ xử lý trên máy bạn, không tải lên mạng.</div>
+    </div>
+    <div class="grow"></div>
+    <button class="icon-btn" id="btnTheme" title="Đổi màu sáng/tối" type="button">◐</button>
+  </header>
+
+  <div class="files">
+    <div class="drop" id="dropA"></div>
+    <div class="drop" id="dropB"></div>
+  </div>
+  <input type="file" id="fileA" class="hidden" accept=".xlsx,.xlsm,.xls,.csv,.txt">
+  <input type="file" id="fileB" class="hidden" accept=".xlsx,.xlsm,.xls,.csv,.txt">
+
+  <div class="row mt-s">
+    <button class="btn" id="btnDemo" type="button">Thử dữ liệu mẫu</button>
+    <span class="note">Chưa có file? Bấm thử để xem kết quả trông như thế nào.</span>
+  </div>
+
+  <div id="status" class="banner hidden"></div>
+  <div id="error" class="err hidden"></div>
+
+  <details class="opts hidden" id="optsBox">
+    <summary>Tùy chọn đối chiếu — máy đã tự chọn, chỉ sửa khi cần</summary>
+    <div class="body">
+      <div class="opt-grid">
+        <div>
+          <label class="lbl">Cột khóa (dùng để ghép dòng của 2 file với nhau)</label>
+          <div class="chk-list" id="keyList"></div>
+        </div>
+        <div>
+          <label class="lbl">Cột đem ra so sánh giá trị</label>
+          <div class="chk-list" id="valList"></div>
+        </div>
+      </div>
+      <div class="note mt-s" id="unmatched"></div>
+      <div class="mt-s row">
+        <div>
+          <label class="lbl">Dung sai số (chênh lệch nhỏ hơn mức này coi như khớp)</label>
+          <input type="number" id="fTol" min="0" step="0.01" style="width:110px">
+        </div>
+        <div style="flex:1;min-width:260px">
+          <label class="lbl">Quy tắc so sánh</label>
+          <div class="flags">
+            <label><input type="checkbox" id="fCase"> Bỏ qua chữ hoa / chữ thường</label>
+            <label><input type="checkbox" id="fSpace"> Bỏ qua khoảng trắng thừa</label>
+            <label><input type="checkbox" id="fDia"> Bỏ qua dấu tiếng Việt</label>
+            <label><input type="checkbox" id="fDate"> Ngày: bỏ qua giờ phút</label>
+            <label><input type="checkbox" id="fZero"> Mã "001" = số 1</label>
+            <label><input type="checkbox" id="fAgg"> Gộp dòng trùng khóa (cộng số lượng, số tiền)</label>
+          </div>
+        </div>
+      </div>
+      <div class="mt-s">
+        <button class="btn" id="btnAuto" type="button">Để máy chọn lại cột khóa</button>
+      </div>
+    </div>
+  </details>
+
+  <div id="resultBox" class="hidden">
+    <div class="mt">
+      <div class="cards" id="statCards"></div>
+      <div class="note mt-s" id="keyInfo"></div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <div class="row" style="margin-bottom:10px">
+      <input type="search" id="search" placeholder="Tìm trong kết quả…" style="flex:1;min-width:200px">
+      <button class="btn primary" id="btnExport" type="button">⬇ Tải kết quả Excel</button>
+    </div>
+
+    <div id="tblWrap"></div>
+  </div>
+
+  <footer class="foot">
+    Đối chiếu Excel · chạy offline, mở bằng Chrome hoặc Safari · đọc file bằng SheetJS
+  </footer>
+</div>
+
+<script>
+/*@XLSX*/
+</script>
+<script>
+/*@CORE*/
+</script>
+<script>
+/*@UI*/
+</script>
+</body>
+</html>

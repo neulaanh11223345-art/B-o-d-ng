@@ -1,0 +1,11 @@
+{
+  "name": "doi-chieu-excel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App độc lập: đưa 2 file Excel vào là tự đối chiếu và ra kết quả",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/core.test.mjs",
+    "e2e": "node build.mjs && node test/e2e.mjs"
+  }
+}
