@@ -8,7 +8,11 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (p) => fs.readFileSync(path.join(here, p), 'utf8');
 
 // Không để chuỗi kết thúc thẻ script trong nội dung nhúng làm đứt file HTML.
-const safe = (js) => js.replace(/<\/script/gi, '<\\/script');
+// SheetJS có hàng chục nghìn ký tự U+FFFD thật trong bảng mã — viết dưới dạng
+// escape \uFFFD để file HTML không chứa ký tự thay thế (nghĩa không đổi).
+const safe = (js) => js
+  .replace(/<\/script/gi, '<\\/script')
+  .replace(/\uFFFD/g, '\\uFFFD');
 
 const out = read('src/index.html')
   .replace('/*@CSS*/', () => read('src/style.css'))

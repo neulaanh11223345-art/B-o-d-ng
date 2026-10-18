@@ -570,7 +570,31 @@
     var now = new Date();
     var stamp = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate())
       + '-' + pad(now.getHours()) + pad(now.getMinutes());
-    XL.writeFile(wb, 'ket-qua-doi-chieu-' + stamp + '.xlsx');
+    saveWorkbook(wb, 'ket-qua-doi-chieu-' + stamp + '.xlsx');
+  }
+
+  /* Tải file về: mở trực tiếp thì dùng cách thường; xem qua link claude.ai thì
+     phải xin phép người xem mới lưu được. */
+  function saveWorkbook(wb, filename) {
+    function direct() { XL.writeFile(wb, filename); }
+    var c = window.claude;
+    if (!c || typeof c.use !== 'function') { direct(); return; }
+
+    setStatus('Đang chuẩn bị file kết quả …', true);
+    c.use('downloads').then(function (dl) {
+      if (!dl) {
+        setStatus('Bản xem online không cho tải file. Hãy mở file doi-chieu-excel.html trên máy để tải kết quả.');
+        return;
+      }
+      return dl.save({
+        filename: filename,
+        data: XL.write(wb, { bookType: 'xlsx', type: 'array' })
+      }).then(function () { setStatus(''); }, function (err) {
+        var code = err && err.code;
+        if (code === 'declined') { setStatus(''); return; }
+        setStatus('Không tải được file' + (err && err.message ? ': ' + err.message : '') + '.');
+      });
+    }, function () { setStatus(''); direct(); });
   }
 
   /* ---------- dữ liệu mẫu ---------- */
