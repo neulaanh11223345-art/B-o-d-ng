@@ -178,16 +178,19 @@
   }
 
   function buildTable(rows, headerIdx) {
-    var hRow = rows[headerIdx] || [];
+    // headerIdx < 0 (hoặc null): file không có dòng tiêu đề, đặt tên cột là "Cột 1", "Cột 2"…
+    var noHeader = headerIdx == null || headerIdx < 0;
+    var hRow = noHeader ? [] : (rows[headerIdx] || []);
+    var start = noHeader ? 0 : headerIdx + 1;
     var width = hRow.length;
-    for (var i = headerIdx + 1; i < rows.length; i++) {
+    for (var i = start; i < rows.length; i++) {
       if (rows[i] && rows[i].length > width) width = rows[i].length;
     }
     // bỏ cột rỗng hoàn toàn (không tên, không dữ liệu)
     var keep = [];
     for (var c = 0; c < width; c++) {
       var hasHeader = !isBlank(hRow[c]), hasData = false;
-      for (var r = headerIdx + 1; r < rows.length; r++) {
+      for (var r = start; r < rows.length; r++) {
         if (rows[r] && !isBlank(rows[r][c])) { hasData = true; break; }
       }
       if (hasHeader || hasData) keep.push(c);
@@ -202,7 +205,7 @@
       headers.push(name);
     }
     var data = [];
-    for (var d = headerIdx + 1; d < rows.length; d++) {
+    for (var d = start; d < rows.length; d++) {
       var src = rows[d] || [], out = new Array(keep.length), any = false;
       for (var m = 0; m < keep.length; m++) {
         var val = src[keep[m]];
@@ -211,7 +214,7 @@
       }
       if (any) data.push(out);
     }
-    return { headers: headers, rows: data, headerIdx: headerIdx, srcRowOf: null };
+    return { headers: headers, rows: data, headerIdx: noHeader ? -1 : headerIdx, noHeader: noHeader };
   }
 
   /* ---------- ghép cột giữa 2 file ---------- */
@@ -266,6 +269,137 @@
     return { pairs: pairs, onlyA: onlyA, onlyB: onlyB };
   }
 
+  /* ---------- ghép cột theo nội dung dữ liệu ----------
+     Dùng khi tên cột không nói lên điều gì (Column1, F3…) hoặc 2 file đặt tên
+     khác hẳn nhau. Ý tưởng: so bộ giá trị bên trong từng cột — cách này không
+     phụ thuộc thứ tự cột lẫn thứ tự dòng. */
+
+  var MATCH_SAMPLE = 4000;    // số dòng lấy mẫu khi dò nội dung cột
+  var MATCH_MAX_SET = 40000;  // số giá trị khác nhau giữ lại tối đa mỗi cột
+
+  function matchProfile(table, col, cfg) {
+    var rows = table.rows, n = rows.length;
+    var step = n > MATCH_SAMPLE ? Math.ceil(n / MATCH_SAMPLE) : 1;
+    var set = Object.create(null), distinct = 0, nonEmpty = 0, seen = 0;
+    var num = 0, dat = 0, sum = 0, sum2 = 0, lenSum = 0, nums = 0;
+    for (var i = 0; i < n; i += step) {
+      var v = rows[i][col];
+      seen++;
+      if (isBlank(v)) continue;
+      nonEmpty++;
+      if (toDate(v)) dat++;
+      else {
+        var x = parseNumberLoose(v);
+        if (x !== null) { num++; sum += x; sum2 += x * x; nums++; }
+      }
+      lenSum += String(v).length;
+      var k = normKeyValue(v, cfg);
+      if (set[k] === undefined && distinct < MATCH_MAX_SET) { set[k] = 1; distinct++; }
+    }
+    var kind = 'text';
+    if (nonEmpty) {
+      if (dat / nonEmpty >= 0.7) kind = 'date';
+      else if (num / nonEmpty >= 0.7) kind = 'number';
+    }
+    var mean = nums ? sum / nums : 0;
+    var variance = nums ? Math.max(0, sum2 / nums - mean * mean) : 0;
+    return {
+      set: set, distinct: distinct, nonEmpty: nonEmpty, seen: seen, kind: kind,
+      mean: mean, sd: Math.sqrt(variance),
+      avgLen: nonEmpty ? lenSum / nonEmpty : 0,
+      fill: seen ? nonEmpty / seen : 0,
+      uniq: nonEmpty ? distinct / nonEmpty : 0
+    };
+  }
+
+  function closeness(a, b) {
+    var m = Math.max(Math.abs(a), Math.abs(b));
+    if (m < 1e-9) return 1;
+    return Math.max(0, 1 - Math.abs(a - b) / m);
+  }
+
+  /* Hai cột giống nhau tới đâu nếu chỉ nhìn dữ liệu bên trong: 0..1 */
+  function contentSimilarity(pa, pb) {
+    if (!pa.nonEmpty || !pb.nonEmpty) return 0;
+    if (pa.kind !== pb.kind) return 0;
+    var ov = overlapRatio(pa.set, pb.set, pa.distinct, pb.distinct);
+    var shape = pa.kind === 'number'
+      ? 0.6 * closeness(pa.mean, pb.mean) + 0.4 * closeness(pa.sd, pb.sd)
+      : closeness(pa.avgLen, pb.avgLen);
+    return 0.72 * ov + 0.18 * shape + 0.1 * (1 - Math.abs(pa.uniq - pb.uniq));
+  }
+
+  var MATCH_MODES = ['auto', 'name', 'content', 'order'];
+
+  function describeMatch(nameSim, cont) {
+    var pct = Math.round(cont * 100);
+    if (nameSim >= 0.999) return cont >= 0.5 ? 'tên + dữ liệu đều khớp' : 'tên giống nhau';
+    if (nameSim >= 0.95) return cont >= 0.5 ? 'tên tương đương, dữ liệu khớp' : 'tên tương đương';
+    if (cont >= 0.7) return 'dữ liệu trùng ' + pct + '%';
+    if (cont >= 0.3) return 'dữ liệu gần giống (' + pct + '%)';
+    return 'tên gần giống';
+  }
+
+  /**
+   * Ghép cột giữa 2 bảng.
+   * mode: 'auto' (tên + nội dung), 'name' (chỉ tên), 'content' (chỉ nội dung),
+   *       'order' (theo thứ tự cột).
+   */
+  function matchColumnsSmart(tA, tB, cfg, mode) {
+    cfg = withDefaults(cfg);
+    mode = MATCH_MODES.indexOf(mode) >= 0 ? mode : 'auto';
+    var hA = tA.headers, hB = tB.headers, i, j;
+
+    function finish(ps) {
+      ps.sort(function (x, y) { return x.a - y.a; });
+      var uA = {}, uB = {}, oA = [], oB = [], k;
+      ps.forEach(function (p) { uA[p.a] = true; uB[p.b] = true; });
+      for (k = 0; k < hA.length; k++) if (!uA[k]) oA.push(k);
+      for (k = 0; k < hB.length; k++) if (!uB[k]) oB.push(k);
+      return { pairs: ps, onlyA: oA, onlyB: oB, mode: mode };
+    }
+
+    if (mode === 'order') {
+      var seq = [], n0 = Math.min(hA.length, hB.length);
+      for (i = 0; i < n0; i++) {
+        seq.push({ a: i, b: i, how: 'cùng thứ tự cột', score: 1, nameSim: 0, content: 0 });
+      }
+      return finish(seq);
+    }
+    if (mode === 'name') {
+      var m = matchColumns(hA, hB);
+      m.pairs.forEach(function (p) { p.nameSim = p.score; p.content = 0; });
+      m.mode = mode;
+      return m;
+    }
+
+    var profA = [], profB = [];
+    for (i = 0; i < hA.length; i++) profA.push(matchProfile(tA, i, cfg));
+    for (j = 0; j < hB.length; j++) profB.push(matchProfile(tB, j, cfg));
+
+    var cands = [], floor = mode === 'content' ? 0.3 : 0.32;
+    for (i = 0; i < hA.length; i++) {
+      for (j = 0; j < hB.length; j++) {
+        var cont = contentSimilarity(profA[i], profB[j]);
+        var nm = mode === 'content' ? 0 : headerSimilarity(hA[i], hB[j]);
+        var sc = mode === 'content' ? cont : 0.45 * nm + 0.55 * cont;
+        if (mode !== 'content' && nm >= 0.95) sc += 0.35; // tên trùng là bằng chứng mạnh
+        if (sc >= floor) cands.push({ a: i, b: j, score: sc, nameSim: nm, content: cont });
+      }
+    }
+    cands.sort(function (x, y) { return y.score - x.score; });
+
+    var usedA = {}, usedB = {}, pairs = [];
+    for (var c = 0; c < cands.length; c++) {
+      var p = cands[c];
+      if (usedA[p.a] || usedB[p.b]) continue;
+      usedA[p.a] = usedB[p.b] = true;
+      p.how = describeMatch(p.nameSim, p.content);
+      pairs.push(p);
+    }
+    return finish(pairs);
+  }
+
   /* ---------- khóa đối chiếu ---------- */
 
   var DEFAULTS = {
@@ -277,7 +411,9 @@
     dateIgnoreTime: true,
     stripLeadingZeros: true,
     keyIgnoreDiacritics: true,
-    aggregateDup: false
+    aggregateDup: false,
+    matchMode: 'auto',
+    keyMode: 'columns'
   };
 
   function withDefaults(cfg) {
@@ -444,10 +580,10 @@
     return pa.numericRatio >= 0.7 && pb.numericRatio >= 0.7;
   }
 
-  function groupByKey(table, cols, cfg) {
+  function groupByKey(table, cols, cfg, byRow) {
     var map = Object.create(null), order = [];
     for (var i = 0; i < table.rows.length; i++) {
-      var k = keyOf(table.rows[i], cols, cfg);
+      var k = byRow ? 'Dòng ' + (i + 1) : keyOf(table.rows[i], cols, cfg);
       if (!map[k]) { map[k] = []; order.push(k); }
       map[k].push(i);
     }
@@ -471,11 +607,13 @@
     cfg = withDefaults(cfg);
     var keyPairs = cfg.keyPairs || [];
     var valuePairs = cfg.valuePairs || [];
-    if (!keyPairs.length) throw new Error('Chưa chọn cột khóa để đối chiếu.');
+    var byRow = cfg.keyMode === 'rowOrder';
+    if (!byRow && !keyPairs.length) throw new Error('Chưa chọn cột khóa để đối chiếu.');
+    if (byRow) keyPairs = [];
 
     var colsA = keyPairs.map(function (p) { return p.a; });
     var colsB = keyPairs.map(function (p) { return p.b; });
-    var keyNames = keyPairs.map(function (p) { return tA.headers[p.a]; });
+    var keyNames = byRow ? ['(theo thứ tự dòng)'] : keyPairs.map(function (p) { return tA.headers[p.a]; });
 
     var cols = valuePairs.map(function (p) {
       return {
@@ -487,10 +625,10 @@
       };
     });
 
-    var gA = groupByKey(tA, colsA, cfg), gB = groupByKey(tB, colsB, cfg);
+    var gA = groupByKey(tA, colsA, cfg, byRow), gB = groupByKey(tB, colsB, cfg, byRow);
     var onlyA = [], onlyB = [], diffs = [], dups = [];
     var identical = 0, matchedRows = 0, dupKeysA = 0, dupKeysB = 0;
-    var emptyKey = keyPairs.map(function () { return ''; }).join('\u0001');
+    var emptyKey = byRow ? null : keyPairs.map(function () { return ''; }).join('\u0001');
 
     function keyLabel(k) { return k.split('\u0001').join(' | '); }
 
@@ -620,7 +758,7 @@
 
   /* Chạy toàn bộ: dò cột, dò khóa, so sánh. */
   function autoCompare(tA, tB, cfg) {
-    var m = matchColumns(tA.headers, tB.headers);
+    var m = matchColumnsSmart(tA, tB, cfg, (cfg && cfg.matchMode) || 'auto');
     var sug = suggestKeys(tA, tB, m.pairs, cfg);
     var keyPairs = sug.keys.map(function (i) { return m.pairs[i]; });
     var keySet = {};
@@ -650,6 +788,9 @@
     detectHeaderRow: detectHeaderRow,
     buildTable: buildTable,
     matchColumns: matchColumns,
+    matchColumnsSmart: matchColumnsSmart,
+    matchProfile: matchProfile,
+    contentSimilarity: contentSimilarity,
     profileColumn: profileColumn,
     multiProfile: multiProfile,
     suggestKeys: suggestKeys,

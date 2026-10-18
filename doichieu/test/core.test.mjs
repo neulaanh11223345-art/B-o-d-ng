@@ -218,3 +218,70 @@ test('đọc file .xlsx thật rồi đối chiếu', () => {
   assert.equal(r.diffs[0].key, 'VT-02');
   assert.equal(r.diffs[0].cells[0].delta, 2);
 });
+
+test('cột lộn xộn + tên cột vô nghĩa + dòng lộn xộn: ghép theo nội dung', () => {
+  const A = tableOf([
+    ['Column1', 'Column2', 'Column3', 'Column4'],
+    ['VT-003', 'Dây curoa', 12, 1440000],
+    ['VT-001', 'Bulong M10', 500, 750000],
+    ['VT-002', 'Vòng bi', 20, 1700000]
+  ]);
+  const B = tableOf([
+    ['F1', 'F2', 'F3', 'F4'],
+    [750000, 'Bulong M10', 500, 'VT-001'],
+    [1530000, 'Vòng bi', 18, 'VT-002'],
+    [1440000, 'Dây curoa', 12, 'VT-003']
+  ]);
+  const out = DC.autoCompare(A, B);
+  const map = {};
+  out.match.pairs.forEach((p) => { map[A.headers[p.a]] = B.headers[p.b]; });
+  assert.deepEqual(map, { Column1: 'F4', Column2: 'F2', Column3: 'F3', Column4: 'F1' });
+  assert.equal(out.result.keyNames.join(), 'Column1');
+  assert.equal(out.result.summary.identical, 2);
+  assert.equal(out.result.summary.differing, 1);
+  assert.equal(out.result.diffs[0].key, 'VT-002');
+});
+
+test('file không có dòng tiêu đề (headerIdx = -1)', () => {
+  const t = DC.buildTable([['A1', 10], ['A2', 20]], -1);
+  assert.deepEqual(t.headers, ['Cột 1', 'Cột 2']);
+  assert.equal(t.rows.length, 2);
+  assert.equal(t.noHeader, true);
+});
+
+test('ghép cột theo thứ tự khi mọi cách khác bó tay', () => {
+  const A = tableOf([['x', 'y'], ['a', 1], ['b', 2]]);
+  const B = tableOf([['p', 'q'], ['a', 1], ['b', 2]]);
+  const m = DC.matchColumnsSmart(A, B, {}, 'order');
+  assert.deepEqual(m.pairs.map((p) => [p.a, p.b]), [[0, 0], [1, 1]]);
+  assert.equal(m.pairs[0].how, 'cùng thứ tự cột');
+});
+
+test('chỉ ghép theo tên: bỏ qua nội dung', () => {
+  const A = tableOf([['Mã', 'Số tiền'], ['X', 10]]);
+  const B = tableOf([['Số tiền', 'Mã'], [10, 'X']]);
+  const m = DC.matchColumnsSmart(A, B, {}, 'name');
+  const map = {};
+  m.pairs.forEach((p) => { map[A.headers[p.a]] = B.headers[p.b]; });
+  assert.deepEqual(map, { 'Mã': 'Mã', 'Số tiền': 'Số tiền' });
+});
+
+test('không có cột khóa nào: so theo thứ tự dòng', () => {
+  const A = tableOf([['Giá trị'], ['a'], ['b'], ['c']]);
+  const B = tableOf([['Giá trị'], ['a'], ['x'], ['c']]);
+  const m = DC.matchColumnsSmart(A, B, {}, 'auto');
+  const r = DC.compare(A, B, { keyMode: 'rowOrder', keyPairs: [], valuePairs: m.pairs });
+  assert.equal(r.keyNames.join(), '(theo thứ tự dòng)');
+  assert.equal(r.summary.matched, 3);
+  assert.equal(r.summary.differing, 1);
+  assert.equal(r.diffs[0].key, 'Dòng 2');
+});
+
+test('ghép theo nội dung không nhầm cột số với cột chữ', () => {
+  const A = tableOf([['c1', 'c2'], ['100', 'xin chào'], ['200', 'tạm biệt']]);
+  const B = tableOf([['d1', 'd2'], ['xin chào', '100'], ['tạm biệt', '200']]);
+  const m = DC.matchColumnsSmart(A, B, {}, 'content');
+  const map = {};
+  m.pairs.forEach((p) => { map[A.headers[p.a]] = B.headers[p.b]; });
+  assert.deepEqual(map, { c1: 'd2', c2: 'd1' });
+});

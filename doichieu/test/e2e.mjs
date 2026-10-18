@@ -120,6 +120,78 @@ check('file kết quả có đủ 5 sheet',
 const diffSheet = XLSX.utils.sheet_to_json(wb.Sheets['Lệch giá trị'], { header: 1 });
 check('sheet lệch giá trị có 2 dòng dữ liệu', diffSheet.length === 3, JSON.stringify(diffSheet));
 
+console.log('— cột lộn xộn, tên cột vô nghĩa, dòng lộn xộn —');
+const mixA = writeXlsx(path.join(TMP, 'e2e-mix-a.xlsx'), [
+  ['Column1', 'Column2', 'Column3', 'Column4'],
+  ['VT-003', 'Dây curoa', 12, 1440000],
+  ['VT-001', 'Bulong M10', 500, 750000],
+  ['VT-002', 'Vòng bi', 20, 1700000]
+], 'A');
+const mixB = writeXlsx(path.join(TMP, 'e2e-mix-b.xlsx'), [
+  ['F1', 'F2', 'F3', 'F4'],
+  [750000, 'Bulong M10', 500, 'VT-001'],
+  [1530000, 'Vòng bi', 18, 'VT-002'],
+  [1440000, 'Dây curoa', 12, 'VT-003']
+], 'B');
+
+await page.reload();
+await page.setInputFiles('#fileA', mixA);
+await page.setInputFiles('#fileB', mixB);
+await page.waitForSelector('#resultBox:not(.hidden)', { timeout: 15000 });
+await page.waitForTimeout(300);
+
+const mixKey = await page.textContent('#keyInfo');
+check('tự tìm ra khóa dù tên cột vô nghĩa', /Column1/.test(mixKey), mixKey);
+const mixDiff = await page.$$eval('#tblWrap tbody tr', (rs) =>
+  rs.map((r) => Array.from(r.cells).map((c) => c.textContent.trim())));
+check('tìm đúng 2 ô lệch của VT-002',
+  mixDiff.length === 2 && mixDiff.every((r) => r[0] === 'VT-002'), JSON.stringify(mixDiff));
+
+await page.click('#optsBox > summary');
+await page.waitForTimeout(200);
+const mapRows = await page.$$eval('#colMap tbody tr', (rs) =>
+  rs.map((r) => [r.cells[0].textContent.trim(),
+    r.cells[1].querySelector('select').selectedOptions[0].textContent.trim(),
+    r.cells[3].textContent.trim()]));
+check('bảng ghép cột hiện đủ 4 cột của file 1', mapRows.length === 4, JSON.stringify(mapRows));
+check('Column1 được ghép với F4 theo dữ liệu',
+  mapRows[0][1].startsWith('F4') && /dữ liệu/.test(mapRows[0][2]), JSON.stringify(mapRows[0]));
+
+console.log('— tự tay đổi cột ghép —');
+const SEL4 = '#colMap tbody tr:nth-child(4) td:nth-child(2) select';
+await page.selectOption(SEL4, { label: '— không ghép —' });
+await page.waitForTimeout(400);
+const afterUnmap = await page.$$eval('#tblWrap tbody tr td:nth-child(2)', (ns) =>
+  ns.map((n) => n.textContent.trim()));
+check('bỏ ghép cột tiền thì chỉ còn 1 ô lệch',
+  afterUnmap.length === 1 && afterUnmap[0] === 'Column3', JSON.stringify(afterUnmap));
+const freeNote = await page.textContent('#unmatched');
+check('báo đúng cột file 2 chưa dùng', /F1/.test(freeNote), freeNote);
+await page.selectOption(SEL4, { index: 1 });
+await page.waitForTimeout(400);
+
+console.log('— ghép dòng theo thứ tự thay vì theo khóa —');
+await page.selectOption('#fKey', 'rowOrder');
+await page.waitForTimeout(500);
+const rowOrderKey = await page.textContent('#keyInfo');
+check('chuyển sang so theo thứ tự dòng', /thứ tự dòng/.test(rowOrderKey), rowOrderKey);
+const rowOrderDiff = await page.$$eval('#tblWrap tbody tr td:first-child', (ns) =>
+  ns.map((n) => n.textContent.trim()));
+check('so theo thứ tự dòng thì dòng nào cũng lệch',
+  rowOrderDiff.length > 0 && rowOrderDiff.every((k) => /^Dòng \d+$/.test(k)), JSON.stringify(rowOrderDiff));
+await page.selectOption('#fKey', 'columns');
+await page.waitForTimeout(400);
+
+console.log('— ghép cột chỉ theo tên: không ghép được gì —');
+await page.selectOption('#fMatch', 'name');
+await page.waitForTimeout(500);
+const nameErr = await page.textContent('#error');
+check('báo rõ khi không ghép được cột nào', /cột khóa|Thứ tự dòng/i.test(nameErr), nameErr);
+await page.selectOption('#fMatch', 'auto');
+await page.waitForTimeout(500);
+check('quay lại tự động thì đối chiếu lại được',
+  await page.isVisible('#resultBox'), 'kết quả không hiện lại');
+
 console.log('— dữ liệu mẫu —');
 await page.reload();
 await page.click('#btnDemo');

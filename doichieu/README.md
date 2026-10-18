@@ -20,8 +20,16 @@ Chưa có file thì bấm **Thử dữ liệu mẫu** để xem trước.
 ## Máy tự làm những gì
 
 - **Dò dòng tiêu đề**: bỏ qua dòng tên công ty, tên báo cáo, dòng trống ở đầu sheet.
-- **Ghép cột giữa 2 file**: theo tên giống nhau, tên đồng nghĩa (`Số lượng` ↔ `SL` ↔ `Qty`,
-  `Thành tiền` ↔ `Amount`, `Mã hàng` ↔ `Ma hang`…), rồi tới tên gần giống.
+  File không có dòng tiêu đề thì đặt ô "Dòng tiêu đề" = 0, cột sẽ tên là `Cột 1`, `Cột 2`…
+- **Ghép cột giữa 2 file** — thứ tự cột khác nhau không ảnh hưởng gì:
+  - theo **tên**: giống nhau, đồng nghĩa (`Số lượng` ↔ `SL` ↔ `Qty`, `Thành tiền` ↔ `Amount`,
+    `Mã hàng` ↔ `Ma hang`…), rồi tới tên gần giống;
+  - theo **nội dung bên trong cột**: so bộ giá trị của từng cột với nhau. Cách này cứu được
+    trường hợp tên cột vô nghĩa (`Column1`, `F3`) hoặc 2 file đặt tên khác hẳn — và không
+    phụ thuộc thứ tự dòng, vì nó so tập hợp giá trị chứ không so theo vị trí.
+
+  Mặc định máy dùng cả hai, cân nhắc cùng lúc. Đổi được sang *chỉ theo tên*, *chỉ theo nội
+  dung*, hoặc *theo thứ tự cột* trong Tùy chọn.
 - **Chọn cột khóa** để ghép dòng của 2 file với nhau — ưu tiên cột mã / số chứng từ, tránh
   cột STT. Nếu một cột chưa đủ phân biệt, máy tự ghép 2 cột làm khóa (ví dụ `Ngày` + `Mã KH`).
 - **So sánh**: số so theo dung sai, ngày so theo ngày, chữ bỏ qua hoa/thường và khoảng trắng thừa.
@@ -29,8 +37,21 @@ Chưa có file thì bấm **Thử dữ liệu mẫu** để xem trước.
   có đuôi `đ` / `VNĐ` / `%`.
 - Mã `001` và số `1` được coi là cùng một mã.
 
-Mọi thứ máy tự chọn đều sửa được trong phần **Tùy chọn đối chiếu**: đổi cột khóa, chọn cột nào
-đem so, đổi dung sai, bật/tắt từng quy tắc, hoặc **gộp dòng trùng khóa** (cộng số lượng, số tiền
+## Khi cột lộn xộn, dòng lộn xộn
+
+- **Dòng lộn xộn**: không cần làm gì. App ghép dòng theo *cột khóa* chứ không theo vị trí,
+  nên 2 file sắp xếp khác nhau vẫn ra đúng kết quả.
+- **Cột khác thứ tự**: không cần làm gì, app ghép theo tên hoặc nội dung.
+- **Tên cột vô nghĩa hoặc khác hẳn nhau**: app so nội dung từng cột để đoán, và nói rõ nó
+  đoán theo cái gì (`dữ liệu trùng 82%`, `tên tương đương`…) để bạn kiểm lại.
+- **Máy đoán sai**: bảng *"Cột nào so với cột nào"* trong Tùy chọn cho bạn tự chọn lại từng
+  cặp cột bằng danh sách thả xuống, và đặt vai trò cho từng cột: **Cột khóa** / **Đem ra so**
+  / **Bỏ qua**.
+- **Không có cột nào làm khóa được**: đổi *"Ghép dòng của 2 file theo"* sang **Thứ tự dòng** —
+  dòng 1 so với dòng 1, dòng 2 với dòng 2. Chỉ dùng khi 2 file chắc chắn cùng thứ tự.
+
+Mọi thứ máy tự chọn đều sửa được trong phần **Tùy chọn đối chiếu**: cách ghép cột, cặp cột,
+cột khóa, dung sai, từng quy tắc so sánh, hoặc **gộp dòng trùng khóa** (cộng số lượng, số tiền
 rồi mới so — hợp khi một bên ghi nhiều dòng cho cùng một mã).
 
 ## Kết quả gồm
@@ -61,7 +82,7 @@ doichieu/
 ```sh
 cd doichieu
 npm run build    # tạo lại ../doi-chieu-excel.html
-npm test         # 12 test của lõi xử lý
+npm test         # 18 test của lõi xử lý
 npm run e2e      # build rồi chạy thử trong Chromium (cần playwright)
 ```
 

@@ -40,16 +40,26 @@
   <details class="opts hidden" id="optsBox">
     <summary>Tùy chọn đối chiếu — máy đã tự chọn, chỉ sửa khi cần</summary>
     <div class="body">
-      <div class="opt-grid">
+      <div class="row">
         <div>
-          <label class="lbl">Cột khóa (dùng để ghép dòng của 2 file với nhau)</label>
-          <div class="chk-list" id="keyList"></div>
+          <label class="lbl">Cách ghép cột giữa 2 file</label>
+          <select id="fMatch">
+            <option value="auto">Tự động — tên cột + dữ liệu bên trong</option>
+            <option value="name">Chỉ theo tên cột</option>
+            <option value="content">Chỉ theo dữ liệu bên trong</option>
+            <option value="order">Theo thứ tự cột (cột 1 với cột 1…)</option>
+          </select>
         </div>
         <div>
-          <label class="lbl">Cột đem ra so sánh giá trị</label>
-          <div class="chk-list" id="valList"></div>
+          <label class="lbl">Ghép dòng của 2 file theo</label>
+          <select id="fKey">
+            <option value="columns">Cột khóa (chọn ở bảng bên dưới)</option>
+            <option value="rowOrder">Thứ tự dòng (dòng 1 với dòng 1…)</option>
+          </select>
         </div>
       </div>
+      <label class="lbl mt-s">Cột nào so với cột nào — sửa trực tiếp ở đây nếu máy ghép chưa đúng</label>
+      <div id="colMap"></div>
       <div class="note mt-s" id="unmatched"></div>
       <div class="mt-s row">
         <div>

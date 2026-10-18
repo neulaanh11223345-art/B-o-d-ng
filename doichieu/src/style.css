@@ -234,6 +234,12 @@ details.opts .body {
 }
 
 .opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.map-wrap { max-height: 320px; }
+.map-wrap td { padding: 5px 10px; }
+.map-wrap select { min-width: 140px; font-size: 13px; padding: 5px 7px; }
+.map-wrap td.how { color: var(--muted); font-size: 12.5px; white-space: normal; }
+tr.is-key td { background: var(--accent-soft); }
+tr.is-skip td:first-child { color: var(--muted); }
 .chk-list {
   border: 1px solid var(--line);
   border-radius: 10px;
