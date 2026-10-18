@@ -198,17 +198,17 @@ function mauNhanVien() {
   if (dsNguoiDung().length > 3) return;
   var bay = thoiGianStr();
   themNhieu('NguoiDung', [
-    ['U004', 'Lê Minh Tiến', 'kythuat', bamPin('444444'), '', 1, bay, 'NV004', '黎明进', 'V25071', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ điện'],
-    ['U005', 'Nguyễn Tuấn', 'kythuat', bamPin('555555'), '', 1, bay, 'NV005', '阮俊', 'V25088', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ cơ khí'],
-    ['U006', 'Đỗ Văn Hồng', 'kythuat', bamPin('666666'), '', 1, bay, 'NV006', '杜文红', 'V25092', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ bảo trì']
+    ['U004', 'Lê Minh Tiến', 'kythuat', bamPin('444444'), '', 1, bay, 'NV004', '黎明进', 'V25071', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ điện', '电工'],
+    ['U005', 'Nguyễn Tuấn', 'kythuat', bamPin('555555'), '', 1, bay, 'NV005', '阮俊', 'V25088', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ cơ khí', '机修工'],
+    ['U006', 'Đỗ Văn Hồng', 'kythuat', bamPin('666666'), '', 1, bay, 'NV006', '杜文红', 'V25092', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ bảo trì', '维修工']
   ]);
   // Ba tài khoản cài sẵn chưa có mã số thẻ: điền cho đủ để in đơn tăng ca
-  [['U001', 'V25001', 'Hành chính nhân sự', '行政人事部', 'Quản trị hệ thống'],
-    ['U002', 'V25010', 'Kỹ thuật sản xuất', '生产技术部', 'Trưởng bộ phận'],
-    ['U003', 'V25066', 'Kỹ thuật sản xuất', '生产技术部', 'Kỹ sư']].forEach(function (a) {
+  [['U001', 'V25001', 'Hành chính nhân sự', '行政人事部', 'Quản trị hệ thống', '系统管理员'],
+    ['U002', 'V25010', 'Kỹ thuật sản xuất', '生产技术部', 'Trưởng bộ phận', '部门主管'],
+    ['U003', 'V25066', 'Kỹ thuật sản xuất', '生产技术部', 'Kỹ sư', '工程师']].forEach(function (a) {
     var x = dsNguoiDung().filter(function (n) { return n.id === a[0]; })[0];
     if (!x || x.maThe) return;
-    x.maThe = a[1]; x.boPhan = a[2]; x.boPhanZh = a[3]; x.chucVu = a[4];
+    x.maThe = a[1]; x.boPhan = a[2]; x.boPhanZh = a[3]; x.chucVu = a[4]; x.chucVuZh = a[5];
     suaDong('NguoiDung', x._r, ndThanhDong(x));
   });
 }
