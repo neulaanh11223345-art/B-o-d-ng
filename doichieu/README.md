@@ -44,9 +44,15 @@ Chưa có file thì bấm **Thử dữ liệu mẫu** để xem trước.
 - **Cột khác thứ tự**: không cần làm gì, app ghép theo tên hoặc nội dung.
 - **Tên cột vô nghĩa hoặc khác hẳn nhau**: app so nội dung từng cột để đoán, và nói rõ nó
   đoán theo cái gì (`dữ liệu trùng 82%`, `tên tương đương`…) để bạn kiểm lại.
-- **Máy đoán sai**: bảng *"Cột nào so với cột nào"* trong Tùy chọn cho bạn tự chọn lại từng
+- **Bạn muốn tự chọn**: bảng *"Cột nào so với cột nào"* trong Tùy chọn cho bạn chọn từng
   cặp cột bằng danh sách thả xuống, và đặt vai trò cho từng cột: **Cột khóa** / **Đem ra so**
-  / **Bỏ qua**.
+  / **Bỏ qua**. Bảng hiện luôn **vài giá trị thật trong mỗi cột** (cả cột file 1 lẫn từng mục
+  trong danh sách thả xuống), nên tên cột có vô nghĩa cỡ nào cũng biết đường mà chọn.
+  Nút **Bỏ hết ghép, tôi tự chọn** xóa sạch để bạn chỉ chọn đúng vài cột cần; nút
+  **Để máy ghép lại từ đầu** trả về như máy đoán.
+- **Chọn một lần, dùng mãi**: cách ghép bạn chọn được nhớ lại theo cấu trúc cột của 2 file.
+  Lần sau mở 2 file cùng kiểu là tự áp dụng luôn, không phải chọn lại (lưu trong trình
+  duyệt của bạn, không gửi đi đâu).
 - **Không có cột nào làm khóa được**: đổi *"Ghép dòng của 2 file theo"* sang **Thứ tự dòng** —
   dòng 1 so với dòng 1, dòng 2 với dòng 2. Chỉ dùng khi 2 file chắc chắn cùng thứ tự.
 
@@ -83,7 +89,7 @@ doichieu/
 cd doichieu
 npm run build    # tạo lại ../doi-chieu-excel.html
 npm test         # 18 test của lõi xử lý
-npm run e2e      # build rồi chạy thử trong Chromium (cần playwright)
+npm run e2e      # build rồi chạy 31 mục kiểm tra thật trong Chromium
 ```
 
 Sửa code trong `src/` rồi **nhớ chạy `npm run build`**, vì file dùng thật là file đã gộp.

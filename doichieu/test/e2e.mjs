@@ -151,14 +151,17 @@ await page.click('#optsBox > summary');
 await page.waitForTimeout(200);
 const mapRows = await page.$$eval('#colMap tbody tr', (rs) =>
   rs.map((r) => [r.cells[0].textContent.trim(),
-    r.cells[1].querySelector('select').selectedOptions[0].textContent.trim(),
-    r.cells[3].textContent.trim()]));
+    r.cells[1].textContent.trim(),
+    r.cells[2].querySelector('select').selectedOptions[0].textContent.trim(),
+    r.cells[4].textContent.trim()]));
 check('bảng ghép cột hiện đủ 4 cột của file 1', mapRows.length === 4, JSON.stringify(mapRows));
 check('Column1 được ghép với F4 theo dữ liệu',
-  mapRows[0][1].startsWith('F4') && /dữ liệu/.test(mapRows[0][2]), JSON.stringify(mapRows[0]));
+  mapRows[0][2].startsWith('F4') && /dữ liệu/.test(mapRows[0][3]), JSON.stringify(mapRows[0]));
+check('có hiện dữ liệu mẫu của cột để biết cột đó chứa gì',
+  /VT-003/.test(mapRows[0][1]), JSON.stringify(mapRows[0]));
 
 console.log('— tự tay đổi cột ghép —');
-const SEL4 = '#colMap tbody tr:nth-child(4) td:nth-child(2) select';
+const SEL4 = '#colMap tbody tr:nth-child(4) td:nth-child(3) select';
 await page.selectOption(SEL4, { label: '— không ghép —' });
 await page.waitForTimeout(400);
 const afterUnmap = await page.$$eval('#tblWrap tbody tr td:nth-child(2)', (ns) =>
@@ -169,6 +172,37 @@ const freeNote = await page.textContent('#unmatched');
 check('báo đúng cột file 2 chưa dùng', /F1/.test(freeNote), freeNote);
 await page.selectOption(SEL4, { index: 1 });
 await page.waitForTimeout(400);
+
+console.log('— nhớ cách ghép cho lần sau —');
+const pickOf = (r) => r.cells[2].querySelector('select').selectedOptions[0].textContent.trim();
+await page.selectOption('#colMap tbody tr:nth-child(2) td:nth-child(3) select', { label: '— không ghép —' });
+await page.waitForTimeout(400);
+check('báo đã nhớ cách ghép', /nhớ/.test(await page.textContent('#memNote')), await page.textContent('#memNote'));
+
+await page.reload();
+await page.setInputFiles('#fileA', mixA);
+await page.setInputFiles('#fileB', mixB);
+await page.waitForSelector('#resultBox:not(.hidden)', { timeout: 15000 });
+await page.click('#optsBox > summary');
+await page.waitForTimeout(300);
+const restored = await page.$$eval('#colMap tbody tr', (rs, f) => rs.map(eval(f)), pickOf.toString());
+check('mở lại 2 file thì giữ nguyên cách ghép đã chọn',
+  restored[1].startsWith('—') && restored[0].startsWith('F4'), JSON.stringify(restored));
+
+await page.click('#btnAuto');
+await page.waitForTimeout(600);
+const afterAuto = await page.$$eval('#colMap tbody tr', (rs, f) => rs.map(eval(f)), pickOf.toString());
+check('bấm "máy ghép lại từ đầu" thì ghép lại đủ', afterAuto[1].startsWith('F2'), JSON.stringify(afterAuto));
+
+await page.click('#btnClear');
+await page.waitForTimeout(600);
+const cleared = await page.$$eval('#colMap tbody tr', (rs, f) => rs.map(eval(f)), pickOf.toString());
+check('bấm "bỏ hết ghép" thì xóa sạch để tự chọn',
+  cleared.every((v) => v.startsWith('—')), JSON.stringify(cleared));
+check('và báo rõ là chưa có cột khóa', /cột khóa/i.test(await page.textContent('#error')),
+  await page.textContent('#error'));
+await page.click('#btnAuto');
+await page.waitForTimeout(600);
 
 console.log('— ghép dòng theo thứ tự thay vì theo khóa —');
 await page.selectOption('#fKey', 'rowOrder');

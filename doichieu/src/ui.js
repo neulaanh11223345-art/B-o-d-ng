@@ -81,7 +81,7 @@
           var aoa0 = sheetToAoa(wb.Sheets[names[i]]);
           if (aoa0.length > 1) { pick = names[i]; break; }
         }
-        state[side] = { name: file.name, wb: wb, sheets: names, sheet: pick, headerIdx: null, aoa: null, table: null };
+        state[side] = { name: file.name, wb: wb, sheets: names, sheet: pick, headerIdx: null, aoa: null, table: null, samples: null };
         loadSheet(side, pick, null);
         showError('');
       } catch (e) {
@@ -99,6 +99,7 @@
     f.aoa = sheetToAoa(f.wb.Sheets[sheetName]);
     f.headerIdx = headerIdx == null ? DC.detectHeaderRow(f.aoa) : headerIdx;
     f.table = DC.buildTable(f.aoa, f.headerIdx);
+    f.samples = null;
     renderCard(side);
     run(false, true);
   }
@@ -179,8 +180,54 @@
 
   /* ---------- tùy chọn ---------- */
 
-  function rebuildCols() {
+  /* Nhớ cách ghép cột người dùng đã chọn, theo "chữ ký" tên cột của 2 file,
+     để lần sau mở 2 file cùng cấu trúc là dùng lại được ngay. */
+  function mapKey() {
+    return 'dc-map:' + state.A.table.headers.join('|') + ' >> ' + state.B.table.headers.join('|');
+  }
+
+  function saveMap() {
+    try {
+      localStorage.setItem(mapKey(), JSON.stringify({
+        cols: state.cols.map(function (c) { return { a: c.a, b: c.b, role: c.role }; }),
+        matchMode: state.cfg.matchMode,
+        keyMode: state.cfg.keyMode
+      }));
+      state.usedSaved = true;
+    } catch (e) { /* trình duyệt chặn lưu thì thôi, không sao */ }
+  }
+
+  function loadMap() {
+    try {
+      var raw = localStorage.getItem(mapKey());
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function forgetMap() {
+    try { localStorage.removeItem(mapKey()); } catch (e) {}
+    state.usedSaved = false;
+  }
+
+  function rebuildCols(fresh) {
     var A = state.A.table, B = state.B.table;
+    state.usedSaved = false;
+
+    if (!fresh) {
+      var saved = loadMap();
+      if (saved && saved.cols && saved.cols.length === A.headers.length) {
+        state.cfg.matchMode = saved.matchMode || state.cfg.matchMode;
+        state.cfg.keyMode = saved.keyMode || state.cfg.keyMode;
+        state.match = DC.matchColumnsSmart(A, B, state.cfg, state.cfg.matchMode);
+        state.cols = saved.cols.map(function (c) {
+          var b = (c.b != null && c.b < B.headers.length) ? c.b : null;
+          return { a: c.a, b: b, how: b == null ? '' : 'bạn đã chọn lần trước', role: b == null ? 'skip' : c.role };
+        });
+        state.usedSaved = true;
+        return;
+      }
+    }
+
     state.match = DC.matchColumnsSmart(A, B, state.cfg, state.cfg.matchMode);
     var sug = DC.suggestKeys(A, B, state.match.pairs, state.cfg);
     var isKey = {};
@@ -199,23 +246,50 @@
 
   var ROLES = [['key', 'Cột khóa'], ['cmp', 'Đem ra so'], ['skip', 'Bỏ qua']];
 
+  /* Vài giá trị thật trong cột, để nhìn là biết cột đó chứa gì — quan trọng khi
+     tên cột không nói lên điều gì (Column1, F3…). */
+  function sampleValues(table, col, n) {
+    var out = [], seen = {};
+    for (var i = 0; i < table.rows.length && out.length < n; i++) {
+      var v = table.rows[i][col];
+      if (DC.isBlank(v)) continue;
+      var t = fmtCell(v);
+      if (t.length > 16) t = t.slice(0, 15) + '…';
+      if (seen[t]) continue;
+      seen[t] = true;
+      out.push(t);
+    }
+    return out;
+  }
+
+  function samplesOf(side) {
+    var f = state[side];
+    if (!f.samples) {
+      f.samples = f.table.headers.map(function (_, j) { return sampleValues(f.table, j, 3); });
+    }
+    return f.samples;
+  }
+
   function renderOptions() {
     var box = $('optsBox');
     if (!state.A || !state.B || !state.cols.length) { box.classList.add('hidden'); return; }
     box.classList.remove('hidden');
 
     var A = state.A.table, B = state.B.table;
+    var sA = samplesOf('A'), sB = samplesOf('B');
     var used = {};
     state.cols.forEach(function (c) { if (c.b != null) used[c.b] = true; });
+
+    $('fMatch').value = state.cfg.matchMode;
+    $('fKey').value = state.cfg.keyMode;
 
     var host = $('colMap');
     clear(host);
     var wrap = el('div', 'tbl-wrap map-wrap');
     var tbl = el('table');
     var thead = el('thead'), htr = el('tr');
-    ['Cột ở file 1', 'Ghép với cột ở file 2', 'Vai trò', 'Máy ghép theo'].forEach(function (h) {
-      htr.appendChild(el('th', null, h));
-    });
+    ['Cột ở file 1', 'Dữ liệu trong cột đó', 'Ghép với cột ở file 2', 'Vai trò', 'Máy ghép theo']
+      .forEach(function (h) { htr.appendChild(el('th', null, h)); });
     thead.appendChild(htr);
     tbl.appendChild(thead);
 
@@ -223,13 +297,15 @@
     state.cols.forEach(function (c) {
       var tr = el('tr', c.role === 'key' ? 'is-key' : (c.role === 'skip' ? 'is-skip' : null));
       tr.appendChild(el('td', 'key', A.headers[c.a]));
+      tr.appendChild(el('td', 'how', sA[c.a].join(' · ') || '(trống)'));
 
       var sel = el('select');
       var none = el('option', null, '— không ghép —');
       none.value = '';
       sel.appendChild(none);
       B.headers.forEach(function (h, j) {
-        var o = el('option', null, h + (used[j] && c.b !== j ? '  (đang dùng)' : ''));
+        var ex = sB[j].slice(0, 2).join(' · ');
+        var o = el('option', null, h + (ex ? '  ·  ' + ex : '') + (used[j] && c.b !== j ? '  (đang dùng)' : ''));
         o.value = String(j);
         if (c.b === j) o.selected = true;
         sel.appendChild(o);
@@ -245,6 +321,7 @@
         c.how = v == null ? '' : 'bạn tự chọn';
         if (v == null) c.role = 'skip';
         else if (c.role === 'skip') c.role = 'cmp';
+        saveMap();
         renderOptions();
         run(true);
       };
@@ -260,7 +337,12 @@
         rs.appendChild(o);
       });
       rs.disabled = c.b == null;
-      rs.onchange = function () { c.role = rs.value; renderOptions(); run(true); };
+      rs.onchange = function () {
+        c.role = rs.value;
+        saveMap();
+        renderOptions();
+        run(true);
+      };
       var tdRole = el('td');
       tdRole.appendChild(rs);
       tr.appendChild(tdRole);
@@ -277,6 +359,9 @@
     $('unmatched').textContent = free.length
       ? 'Cột của file 2 chưa ghép với cột nào: ' + free.join(' · ')
       : 'Mọi cột của file 2 đều đã được ghép.';
+    $('memNote').textContent = state.usedSaved
+      ? 'Đã nhớ cách ghép này cho 2 file cùng cấu trúc — lần sau mở lên là dùng lại ngay.'
+      : '';
   }
 
   function bindFlags() {
@@ -304,10 +389,18 @@
       node.value = state.cfg[key];
       node.onchange = function () {
         state.cfg[key] = node.value;
-        run(false, key === 'matchMode');
+        if (key === 'matchMode') { forgetMap(); run(false, true); }
+        else { saveMap(); run(true); }
       };
     });
-    $('btnAuto').onclick = function () { run(false, true); };
+    $('btnAuto').onclick = function () { forgetMap(); run(false, true); };
+    $('btnClear').onclick = function () {
+      state.cols.forEach(function (c) { c.b = null; c.role = 'skip'; c.how = ''; });
+      saveMap();
+      renderOptions();
+      run(true);
+      $('optsBox').open = true;
+    };
   }
 
   /* ---------- chạy đối chiếu ---------- */
@@ -370,14 +463,16 @@
         renderOptions();
 
         if (!byRow && !keyPairs.length) {
-          showError('Chưa có cột khóa để ghép dòng của 2 file. Mở "Tùy chọn đối chiếu" rồi chọn một cột làm "Cột khóa", '
-            + 'hoặc đổi "Ghép dòng của 2 file theo" sang "Thứ tự dòng".');
+          showError('Chưa có cột khóa để ghép dòng của 2 file. Ở bảng "Cột nào so với cột nào" bên dưới, '
+            + 'đặt vai trò "Cột khóa" cho một cột — hoặc đổi "Ghép dòng của 2 file theo" sang "Thứ tự dòng".');
+          $('optsBox').open = true;
           $('resultBox').classList.add('hidden');
           setStatus('');
           return;
         }
         if (!valuePairs.length) {
           showError('Chưa có cột nào để so sánh giá trị. Hãy đặt vai trò "Đem ra so" cho ít nhất một cột.');
+          $('optsBox').open = true;
           $('resultBox').classList.add('hidden');
           setStatus('');
           return;
