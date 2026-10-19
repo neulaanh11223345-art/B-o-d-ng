@@ -328,6 +328,83 @@ await page.click('[data-act="slNgay"]'); await wait(1500);
 assert.match(await text('#main'), /Sao lưu tay/);
 ok('Bản 2.9: tài liệu máy, tiền điện, gợi ý cách xử lý từ lịch sử, sao lưu dữ liệu');
 
+// 13. Bản 2.11: đăng ký tăng ca theo tuần, in đơn theo mẫu công ty, tổng hợp tháng, phân quyền xem
+await logout(); await login('NV003', '333333');
+await page.evaluate(() => tab('tc')); await wait(600);
+assert.match(await text('#barTitle'), /Đăng ký tăng ca/);
+assert.match(await text('#main'), /V25066/, 'mã số thẻ tự điền từ tài khoản');
+const tcTruoc = await page.locator('.tcrow').count();
+await page.click('[data-act="tcThem"]'); await wait(500);
+await page.click('.chip[data-act="tcCaChon"][data-k="DEM"]'); await wait(400);
+assert.equal(await page.inputValue('#tcTu'), '06:00', 'chọn ca thì giờ điền sẵn theo ca');
+await page.fill('#tcTu', '22:00'); await page.dispatchEvent('#tcTu', 'change'); await wait(250);
+await page.fill('#tcDen', '02:00'); await page.dispatchEvent('#tcDen', 'change'); await wait(300);
+assert.equal(await page.inputValue('#tcGioIn'), '4', 'qua 0 giờ vẫn tính đúng: 22:00 → 02:00 là 4 tiếng');
+await page.fill('#tcLy', 'Trực sự cố máy nén khí');
+await shot('17-tang-ca-ghi');
+await page.click('#tcOk'); await wait(900);
+assert.equal(await page.locator('.tcrow').count(), tcTruoc + 1, 'đã thêm một lần tăng ca');
+// Đơn in theo đúng mẫu giấy của công ty
+await page.evaluate(() => go('tcXem')); await wait(500);
+const don = await text('.tcsheet');
+assert.match(don, /ĐƠN XIN TĂNG CA/); assert.match(don, /自愿加班申请单/);
+assert.match(don, /Trực sự cố máy nén khí/, 'lý do in ở cột Chú thích');
+assert.match(don, /Kỹ thuật 技术员/, 'họ tên in kèm tên tiếng Trung');
+assert.match(don, /TỔNG CỘNG/); assert.match(don, /Hành chính nhân sự/);
+assert.equal(await page.locator('.tcsheet .ot tr').count(), 8, 'bảng 6 dòng + tiêu đề + tổng cộng');
+await shot('18-tang-ca-don');
+assert.ok(await page.evaluate(() => XW.build([tcSheet(tcLoc(tcUid(), tcTuanHT(), addD(tcTuanHT(), 6)), 'x', 'y')]).size) > 2000, 'xuất được Excel tuần');
+// Kỹ thuật chỉ thấy tăng ca của mình
+await page.evaluate(() => go('tcThang')); await wait(600);
+assert.equal(await page.locator('.tcrow[data-act="tcNguoiMo"]').count(), 1, 'kỹ thuật chỉ thấy dòng của mình');
+assert.equal(await page.locator('#tcNguoi').count(), 0, 'kỹ thuật không chọn được người khác');
+// Quản lý thấy cả nhà máy và sửa được ca làm việc
+await logout(); await login('NV002', '222222');
+await page.evaluate(() => go('tcThang')); await wait(600);
+assert.ok(await page.locator('.tcrow[data-act="tcNguoiMo"]').count() > 1, 'Quản lý thấy nhiều người');
+await shot('19-tang-ca-thang');
+assert.ok(await page.evaluate(() => tcThangWorkbook(tcThangHT()).size) > 2000, 'xuất được Excel tổng hợp tháng');
+await page.evaluate(() => go('tcCfg')); await wait(500);
+assert.equal(await page.locator('[data-cf$=":ten"]').count(), 4, 'bốn ca làm việc');
+ok('Bản 2.11: đăng ký tăng ca theo tuần, in đơn đúng mẫu công ty, tổng hợp tháng, Excel; kỹ thuật chỉ thấy của mình');
+
+// 14. Bản 2.11: nối thư mục Drive của nhà máy, quét vào danh mục, sắp xếp, tra cứu; kỹ thuật không mở được tài liệu
+await page.evaluate(() => go('tlCfg')); await wait(600);
+assert.match(await text('#main'), /Tài liệu thiết bị nhà máy/, 'đang nối thư mục Drive của nhà máy');
+assert.ok(await page.isVisible('#tlQuetOk'), 'có nút quét Drive');
+const chuaGan = await page.evaluate(() => S.base.taiLieu.filter((x) => !x.ma).length);
+assert.ok(chuaGan > 0, 'quét xong còn tài liệu chưa gán máy');
+assert.equal(await page.evaluate(() => S.base.taiLieu.filter((x) => x.ma === 'M001' && x.nhom === 'HDSD').length), 1,
+  'tên tệp có M001 trong thư mục Hướng dẫn sử dụng thì tự vào đúng máy, đúng nhóm');
+assert.equal(await page.evaluate(() => S.base.taiLieu.filter((x) => /tu dien xuong 1/.test(x.ten))[0].moDuoc), false,
+  'bản vẽ CAD 24 MB mở bằng link Drive, không đi qua máy chủ');
+await shot('20-tai-lieu-drive');
+// Sắp xếp: chọn tài liệu chưa gán máy rồi gán cho máy nén khí M038
+await page.evaluate(() => go('tlGan')); await wait(500);
+assert.equal(await page.locator('[data-tlc]').count(), chuaGan, 'lọc đúng số tài liệu chưa gán máy');
+await page.click('[data-tlc]'); await wait(400);
+assert.match(await text('#main'), /Đã chọn 1 tài liệu/);
+await shot('21-tai-lieu-sap-xep');
+await page.click('[data-act="tlGanMay"]'); await wait(400);
+await page.fill('#tlMayQ', 'M038'); await wait(400);
+await page.click('#tlMayDS [data-act="tlGanGo"]'); await wait(900);
+assert.equal(await page.evaluate(() => S.base.taiLieu.filter((x) => !x.ma).length), chuaGan - 1, 'đã gán một tài liệu cho máy');
+// Tra cứu toàn nhà máy
+await page.evaluate(() => go('tlDS')); await wait(500);
+await page.fill('#tlDSQ', 'kiem dinh'); await page.dispatchEvent('#tlDSQ', 'change'); await wait(500);
+assert.match(await text('#main'), /Kiem dinh/, 'tìm được tài liệu kiểm định trong toàn nhà máy');
+// Hồ sơ máy: thẻ Tài liệu có tài liệu quét từ Drive, kèm đường dẫn thư mục
+await page.evaluate(() => go('may', { ma: 'M001', tab: 'tl' })); await wait(600);
+assert.match(await text('#main'), /Huong dan su dung/, 'dòng tài liệu ghi đường dẫn thư mục trên Drive');
+// Kỹ thuật: không có thẻ Tài liệu, không mở được mục Tài liệu
+await logout(); await login('NV003', '333333');
+await page.evaluate(() => go('may', { ma: 'M001' })); await wait(600);
+assert.equal(await page.locator('.ptabs [data-t="tl"]').count(), 0, 'kỹ thuật không thấy thẻ Tài liệu');
+assert.equal(await page.evaluate(() => S.base.taiLieu.some((x) => !x.daiDien)), false, 'kỹ thuật chỉ nhận ảnh đại diện của máy');
+await page.evaluate(() => go('tlCfg')); await wait(500);
+assert.match(await text('#barTitle'), /Chỉ Quản lý/);
+ok('Bản 2.11: nối thư mục Drive, quét và sắp xếp tài liệu, tra cứu toàn nhà máy; kỹ thuật không mở được tài liệu');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

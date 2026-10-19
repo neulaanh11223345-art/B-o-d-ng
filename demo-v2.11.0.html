@@ -31,6 +31,7 @@
   --f-ui:'Be Vietnam Pro','Noto Sans SC',system-ui,-apple-system,'Segoe UI',sans-serif;
   --f-zh:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
   --f-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --f-giay:'Times New Roman',Times,'Noto Serif SC',serif;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
@@ -407,6 +408,47 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .checkrow{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line)}
 .checkrow:first-child{border-top:0}
 .checkrow input{width:22px;height:22px;flex:none;accent-color:var(--brand)}
+/* ---- Tăng ca: tờ đơn theo mẫu giấy 自愿加班申请单 ---- */
+.tcwrap{overflow-x:auto}
+.tcsheet{background:#fff;color:#111;font-family:var(--f-giay);padding:22px 18px 24px;max-width:760px;margin:0 auto;position:relative}
+.tcsheet+.tcsheet{margin-top:16px;border-top:1px dashed var(--line);padding-top:26px}
+.tcsheet .co{text-align:center;font-weight:700;font-size:clamp(14px,3.4vw,17px);line-height:1.3}
+.tcsheet .zh{font-family:var(--f-zh);font-size:.92em}
+.tcsheet .co .zh{font-family:var(--f-zh);font-size:.92em}
+.tcsheet .tt{text-align:center;font-weight:700;font-size:clamp(17px,4.8vw,23px);letter-spacing:.5px;margin-top:12px}
+.tcsheet .tt .zh{display:block;font-family:var(--f-zh);font-size:.72em;letter-spacing:0;margin-top:3px}
+.tcsheet .bo{display:flex;gap:14px;flex-wrap:wrap;margin:15px 0 4px;font-size:clamp(12px,3vw,14.5px);font-weight:700}
+.tcsheet .bo u{text-decoration:none;border-bottom:1px solid #333;min-width:96px;display:inline-block;font-weight:400}
+.tcsheet table{width:100%;border-collapse:collapse;font-size:clamp(11px,2.8vw,13.5px)}
+.tcsheet .ai td{border:1px solid #333;padding:7px 8px;vertical-align:top}
+.tcsheet .ai b{font-weight:700;display:block;font-size:.95em}
+.tcsheet .ai .vl{display:block;margin-top:5px;border-bottom:1px dotted #333;min-height:18px;font-weight:400}
+.tcsheet .ot{margin-top:9px}
+.tcsheet .ot th,.tcsheet .ot td{border:1px solid #333;padding:7px 5px;text-align:center}
+.tcsheet .ot th{font-weight:700;line-height:1.25}
+.tcsheet .ot th .zh{display:block;font-family:var(--f-zh);font-weight:400;font-size:.88em}
+.tcsheet .ot td{height:32px}
+.tcsheet .ot td.ct{text-align:left;padding-left:8px}
+.tcsheet .ot tr.tg td{font-weight:700}
+.tcsheet .gc{margin-top:11px;font-size:clamp(10.5px,2.6vw,12.5px);line-height:1.5}
+.tcsheet .gc .zh{font-family:var(--f-zh)}
+.tcsheet .ky{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:26px;text-align:center;font-size:clamp(10.5px,2.6vw,13px);font-weight:700}
+.tcsheet .ky span{display:block;font-family:var(--f-zh);font-weight:400;font-size:.88em;margin-top:2px}
+.tcsheet .tto{position:absolute;right:18px;bottom:7px;margin:0;text-align:right;font-size:6px;line-height:1.2;color:#666}
+.tcrow{width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);color:var(--ink);display:flex;flex-direction:column;gap:8px;cursor:pointer;font:inherit}
+.tcrow:hover{border-color:var(--brand)}
+.tcrow .h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.tcrow .no{width:26px;height:26px;flex:none;border-radius:8px;background:var(--brand-bg);color:var(--brand);font:700 12.5px var(--f-mono);display:grid;place-items:center}
+.tcrow .g{margin-left:auto;font:700 17px var(--f-mono);color:var(--green)}
+.tcrow .g i{font-style:normal;font-size:12px;font-weight:500;color:var(--ink3);margin-left:2px}
+.tcrow .sub{font-size:13px;color:var(--ink2)}
+.tctot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.tctot .k{font-size:13.5px;color:var(--ink2);font-weight:600}
+.tctot .v{font:700 23px var(--f-mono);color:var(--brand);font-variant-numeric:tabular-nums}
+.tcadd{width:100%;margin-top:11px;border:1.5px dashed color-mix(in srgb,var(--brand) 45%,transparent);background:var(--brand-bg);color:var(--brand);font:600 15px var(--f-ui);padding:13px;border-radius:12px;cursor:pointer}
+.tcgio{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--green-bg);border:1px solid color-mix(in srgb,var(--green) 25%,transparent);border-radius:10px;padding:10px 12px;margin:12px 0}
+.tcgio span{font-size:13.5px;font-weight:600;color:var(--ink2)}
+.tcgio input{width:78px;text-align:center;font:700 16px var(--f-mono);color:var(--green);background:var(--card);border:1px solid color-mix(in srgb,var(--green) 35%,transparent);border-radius:9px;padding:7px}
 #printArea{display:none}
 @media print{
   body{background:#fff}
@@ -414,6 +456,12 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
   #printArea{display:block}
   @page{size:A4;margin:0}
   .psheet{width:210mm;height:297mm;display:grid;page-break-after:always;break-after:page;overflow:hidden}
+  .tcsheet{width:210mm;min-height:296mm;max-width:none;margin:0;padding:15mm 13mm;page-break-after:always;break-after:page;border:0}
+  .tcsheet:last-child{page-break-after:auto;break-after:auto}
+  .tcsheet+.tcsheet{border-top:0;margin-top:0;padding-top:15mm}
+  .tcsheet .co{font-size:15pt}.tcsheet .tt{font-size:20pt}.tcsheet table{font-size:11pt}.tcsheet .bo{font-size:12pt}
+  .tcsheet .gc{font-size:9.5pt}.tcsheet .ky{font-size:11pt;margin-top:16mm}.tcsheet .ot td{height:9mm}
+  .tcsheet .tto{right:13mm;bottom:7mm;font-size:5pt}
   .psheet:last-child{page-break-after:auto;break-after:auto}
   .psheet.s24{grid-template-columns:repeat(3,70mm);grid-auto-rows:37.125mm}
   .psheet.s8{grid-template-columns:repeat(2,105mm);grid-auto-rows:74.25mm}
@@ -932,6 +980,10 @@ td .cellnm .zi{display:block;font-size:11.5px;color:var(--ink2)}
 .tlic.t-pdf{background:var(--red-bg);color:var(--red)} .tlic.t-xls{background:var(--green-bg);color:var(--green)} .tlic.t-ppt{background:var(--orange-bg);color:var(--orange)} .tlic.t-url{background:var(--soft);color:var(--ink2)}
 .tlmenu2{padding:12px 14px;font-size:18px;border:0;background:none;color:var(--ink2);cursor:pointer}
 .tlprev{width:56px;height:56px;object-fit:cover;border-radius:8px;vertical-align:middle}
+.tlbad{font-style:normal;font-size:10.5px;font-weight:700;background:var(--soft);color:var(--ink2);border-radius:5px;padding:1px 5px;margin-left:6px;white-space:nowrap}
+.tlbad.bad{background:var(--red-bg);color:var(--red)}
+.list>.tlpick{display:flex;align-items:center;gap:10px;cursor:pointer}
+.tlpick>input{flex:none;width:20px;height:20px;accent-color:var(--blue)}
 .goiy{border:1px solid color-mix(in srgb,var(--blue) 30%,var(--line));background:var(--blue-bg);border-radius:12px;padding:10px;margin:-4px 0 14px;display:flex;flex-direction:column;gap:8px}
 .gyh{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--blue)}
 .gyh .zi{color:var(--ink2)}
@@ -1277,7 +1329,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.10.0";
+const APP_VER = "2.11.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1611,7 +1663,7 @@ var DriveApp = (function () {
   File.prototype.getParents = function () { var a = this.parent ? [this.parent] : [], i = 0; return { hasNext: function () { return i < a.length; }, next: function () { return a[i++]; } }; };
   File.prototype.getBlob = function () { return Utilities.newBlob(this.bytes, this.mime, this.nm); };
   File.prototype.getMimeType = function () { return this.mime; };
-  File.prototype.getSize = function () { return (this.bytes || []).length; };
+  File.prototype.getSize = function () { return this.sz === undefined || this.sz === null ? (this.bytes || []).length : this.sz; };
   File.prototype.getDateCreated = function () { return this.created; };
   File.prototype.isTrashed = function () { return this.trashed; };
   File.prototype.setTrashed = function (v) { this.trashed = !!v; return this; };
@@ -1620,8 +1672,16 @@ var DriveApp = (function () {
   File.prototype.setName = function (n) { this.nm = n; return this; };
   File.prototype.setSharing = function () { this.shared = true; return this; };
   File.prototype.getUrl = function () { return 'https://drive.google.com/file/d/' + this.id + '/view'; };
-  function Folder(id, name) { this.id = id; this.nm = name; }
+  function Folder(id, name, parent) { this.id = id; this.nm = name; this.parent = parent || null; }
   Folder.prototype.getId = function () { return this.id; };
+  Folder.prototype.getParents = function () { var a = this.parent ? [this.parent] : [], i = 0; return { hasNext: function () { return i < a.length; }, next: function () { return a[i++]; } }; };
+  Folder.prototype.createFolder = function (name) {
+    var id = 'FL' + Math.random().toString(36).slice(2, 10), f = new Folder(id, name, this); folders[id] = f; return f;
+  };
+  Folder.prototype.getFolders = function () {
+    var me = this, a = Object.keys(folders).map(function (k) { return folders[k]; }).filter(function (f) { return f.parent === me; }), i = 0;
+    return { hasNext: function () { return i < a.length; }, next: function () { return a[i++]; } };
+  };
   Folder.prototype.getName = function () { return this.nm; };
   Folder.prototype.getUrl = function () { return 'https://drive.google.com/drive/folders/' + this.id; };
   Folder.prototype.createFile = function (blob) {
@@ -1640,6 +1700,10 @@ var DriveApp = (function () {
     Access: { ANYONE_WITH_LINK: 'ANYONE_WITH_LINK', PRIVATE: 'PRIVATE' },
     Permission: { VIEW: 'VIEW', EDIT: 'EDIT' },
     __addFile: function (id, name, mime) { files[id] = new File(id, name, [], null, mime); return files[id]; },
+    __addFileIn: function (folder, name, mime, size) {
+      var id = 'DF' + Math.random().toString(36).slice(2, 14), f = new File(id, name, [], folder, mime);
+      f.sz = size || 0; files[id] = f; return f;
+    },
     __files: files, __reset: function () { folders = {}; files = {}; }
   };
 })();
@@ -1663,7 +1727,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.10.0';
+var PHIEN_BAN = '2.11.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1678,7 +1742,8 @@ var BANG = {
   Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
     'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT'],
   LichSu: ['ID', 'Ma', 'TenMay', 'Ngay', 'DenHan', 'NguoiLam', 'GhiChu', 'NguoiXacNhan', 'ThoiGian', 'TrangThai', 'OpId', 'UID', 'Huy', 'ChiTiet'],
-  NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh'],
+  NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh', 'MaThe', 'BoPhan', 'BoPhanZh', 'ChucVu'],
+  TangCa: ['ID', 'UID', 'Ngay', 'Ca', 'Tu', 'Den', 'SoGio', 'LyDo', 'LyDoDich', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat'],
   // Loai: cao (cao áp, nhiều mã OBIS) · ha (tủ tổng hạ áp) · nhanh (công tơ nhánh) · nuoc (đồng hồ nước, m³)
   // Cha: mã công tơ cấp trên (công tơ nhánh nằm sau công tơ nhánh khác thì không cộng lần nữa vào tổng nhánh)
   // NguongTang / NguongGiam: % lệch so với bình quân ngày 3 kỳ trước thì coi là bất thường (trống = theo cài đặt chung)
@@ -1709,13 +1774,16 @@ var BANG = {
   // Kieu: ngay (hằng ngày) · tuan (Ngay = các thứ 0–6, 0 = Chủ nhật) · thang (Ngay = các ngày trong tháng) · TaoDen: đã sinh việc đến ngày
   ViecLap: ['ID', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Kieu', 'Ngay', 'UIDLam', 'CanKiemTra', 'HoatDong', 'TaoDen', 'NguoiTao', 'CapNhat',
     'TieuDeDich', 'MoTaDich'],
-  // Tài liệu của máy / chuyền: Ma = mã máy hoặc mã chuyền · Kieu: TEP (tệp) · ANH (ảnh) · LINK (liên kết)
-  // Nhom: HDSD · BANVE · QUYTRINH · ANH · KHAC · FileId: tệp trong thư mục Drive "CMMS_TaiLieu" (riêng tư)
-  // AnhNho: ảnh thu nhỏ (thư mục ảnh của app) · DaiDien = 1: ảnh đại diện của máy · Xoa = 1: đã xoá
-  TaiLieu: ['ID', 'Ma', 'Ten', 'Nhom', 'Kieu', 'FileId', 'Mime', 'KichThuoc', 'Url', 'DaiDien', 'AnhNho', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat']
+  // Tài liệu của máy / chuyền: Ma = mã máy hoặc mã chuyền (để trống là chưa gán) · Kieu: TEP (tệp) · ANH (ảnh) · LINK (liên kết)
+  // Nhom: HDSD · BANVE · QUYTRINH · KIEMDINH · ANH · KHAC · FileId: mã tệp trên Drive
+  // AnhNho: ảnh thu nhỏ (thư mục ảnh của app) · DaiDien = 1: ảnh đại diện của máy · Xoa = 1: đã xoá khỏi danh mục
+  // DuongDan: đường dẫn thư mục trên Drive · Nguon: APP (app tải lên) · DRIVE (tài liệu có sẵn, app không chép và không xoá)
+  // ConTrenDrive = 0: lần quét gần nhất không còn thấy tệp · HienHanh = 1: bản đang dùng của máy đó, nhóm đó · LucQuet: lần quét gần nhất
+  TaiLieu: ['ID', 'Ma', 'Ten', 'Nhom', 'Kieu', 'FileId', 'Mime', 'KichThuoc', 'Url', 'DaiDien', 'AnhNho', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat',
+    'DuongDan', 'Nguon', 'ConTrenDrive', 'HienHanh', 'LucQuet']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
-  CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa'] };
+  CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
 
@@ -1742,10 +1810,12 @@ var QUYEN = {
   khoaky: ['admin', 'quanly'],      // khoá / mở lại kỳ điện, duyệt ngoại lệ, sửa số kỳ đã khoá
   nhatky: ['admin', 'quanly'],
   xemhet: ['admin', 'quanly'],      // xem mọi mục; tài khoản khác chỉ Điện/Nước, Sửa chữa, Bảo dưỡng
-  giaoviec: ['admin', 'quanly']     // giao việc, kiểm tra việc xong, việc lặp lại
+  giaoviec: ['admin', 'quanly'],    // giao việc, kiểm tra việc xong, việc lặp lại
+  tailieu: ['admin', 'quanly']      // xem, mở, sắp xếp tài liệu; tài khoản khác chỉ thấy ảnh đại diện của máy
 };
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
-  'docUpload', 'docLink', 'docDelete', 'docCover', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
+  'saveOT', 'deleteOT', 'saveProfile', 'saveOTCfg',
+  'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring'];
@@ -1760,7 +1830,16 @@ var CAI_DAT_MAC_DINH = {
   vatDien: 8,                        // % thuế GTGT trên hoá đơn điện
   sanLuong: {},                      // { 'yyyy-mm': số sản phẩm của tháng } để tính điện trên 1.000 sản phẩm
   dvSanLuong: 'sản phẩm',
-  nguongTang: 50, nguongGiam: 50     // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
+  nguongTang: 50, nguongGiam: 50,    // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
+  // Ca làm việc ghi trên đơn tăng ca (mẫu giấy 自愿加班申请单). Giờ chỉ là gợi ý điền sẵn, Quản lý sửa trong app.
+  caTangCa: [
+    { k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' },
+    { k: 'NGAY', ten: 'Ca ngày', zh: '日班', tu: '20:00', den: '22:00' },
+    { k: 'DEM', ten: 'Ca đêm', zh: '夜班', tu: '06:00', den: '08:00' },
+    { k: 'CN', ten: 'Chủ nhật', zh: '周日班', tu: '08:00', den: '17:00' }
+  ],
+  gioTCThang: 40,                    // giờ tăng ca tối đa một tháng (Bộ luật Lao động 2019)
+  gioTCNam: 200                      // giờ tăng ca tối đa một năm
 };
 
 var MAU_MAY = [
@@ -1899,11 +1978,17 @@ function dieuHuong(a, p, req) {
     case 'lockPeriod': canQuyen(u, 'khoaky'); return khoaKy(u, p);
     case 'unlockPeriod': canQuyen(u, 'khoaky'); return moKhoaKy(u, p);
     case 'saveDienCfg': canQuyen(u, 'caidat'); return luuCauHinhDien(u, p);
-    case 'docUpload': canQuyen(u, 'xacnhan'); return taiLenTaiLieu(u, p);
-    case 'docLink': canQuyen(u, 'xacnhan'); return themLienKet(u, p);
-    case 'docDelete': canQuyen(u, 'xacnhan'); return xoaTaiLieu(u, p);
-    case 'docCover': canQuyen(u, 'xacnhan'); return datDaiDien(u, p);
-    case 'docGet': return layTaiLieu(p);
+    case 'docUpload': canQuyen(u, 'tailieu'); return taiLenTaiLieu(u, p);
+    case 'docLink': canQuyen(u, 'tailieu'); return themLienKet(u, p);
+    case 'docDelete': canQuyen(u, 'tailieu'); return xoaTaiLieu(u, p);
+    case 'docCover': canQuyen(u, 'tailieu'); return datDaiDien(u, p);
+    case 'docGet': canQuyen(u, 'tailieu'); return layTaiLieu(p);
+    case 'docFolder': canQuyen(u, 'tailieu'); return datThuMucTL(u, p);
+    case 'docFolderMap': canQuyen(u, 'tailieu'); return datNhomThuMuc(u, p);
+    case 'docScan': canQuyen(u, 'tailieu'); return quetDrive(u, p);
+    case 'docAssign': canQuyen(u, 'tailieu'); return ganTaiLieu(u, p);
+    case 'docCurrent': canQuyen(u, 'tailieu'); return datHienHanh(u, p);
+    case 'docInfo': canQuyen(u, 'tailieu'); return { tlInfo: tlThongTin() };
     case 'saveGiaDien': canQuyen(u, 'may'); return luuGiaDien(u, p);
     case 'saveSanLuong': canQuyen(u, 'may'); return luuSanLuong(u, p);
     case 'backupInfo': canQuyen(u, 'caidat'); try { datLichSaoLuu(); } catch (e) { /* chưa cấp quyền ScriptApp */ } return thongTinSaoLuu();
@@ -1921,6 +2006,10 @@ function dieuHuong(a, p, req) {
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
     case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
+    case 'saveOT': return luuTangCa(u, p, s(req.opId));
+    case 'deleteOT': return xoaTangCa(u, p);
+    case 'saveProfile': return luuHoSo(u, p);
+    case 'saveOTCfg': canQuyen(u, 'may'); return luuCaTangCa(u, p);
     case 'saveRepair': canQuyen(u, 'xacnhan'); return luuSuaChua(u, p, s(req.opId));
     case 'deleteRepair': canQuyen(u, 'xacnhan'); return xoaSuaChua(u, p);
     case 'assignTasks': canQuyen(u, 'giaoviec'); return giaoNhieuViec(u, p, s(req.opId));
@@ -2113,13 +2202,22 @@ function maNVHopLe(v) { v = s(v).toUpperCase().replace(/\s+/g, ''); return /^[A-
 function ndTuDong(r, i) {
   var id = s(r[0]);
   return { id: id, ten: s(r[1]), vaiTro: s(r[2]), pinHash: s(r[3]), email: s(r[4]),
-    hoatDong: hd(r[5]), ngayTao: tgStr(r[6]), maNV: maNVHopLe(r[7]) || id.toUpperCase(), tenZh: s(r[8]), _r: i + 2 };
+    hoatDong: hd(r[5]), ngayTao: tgStr(r[6]), maNV: maNVHopLe(r[7]) || id.toUpperCase(), tenZh: s(r[8]),
+    maThe: s(r[9]), boPhan: s(r[10]), boPhanZh: s(r[11]), chucVu: s(r[12]), _r: i + 2 };
 }
-function ndThanhDong(x) { return [x.id, anToan(x.ten), x.vaiTro, x.pinHash, x.email, x.hoatDong ? 1 : 0, x.ngayTao, x.maNV || '', anToan(x.tenZh || '')]; }
+function ndThanhDong(x) {
+  return [x.id, anToan(x.ten), x.vaiTro, x.pinHash, x.email, x.hoatDong ? 1 : 0, x.ngayTao, x.maNV || '', anToan(x.tenZh || ''),
+    anToan(x.maThe || ''), anToan(x.boPhan || ''), anToan(x.boPhanZh || ''), anToan(x.chucVu || '')];
+}
+// Thông tin in trên đơn tăng ca
+function hoSoTC(x) { return { maThe: x.maThe || '', boPhan: x.boPhan || '', boPhanZh: x.boPhanZh || '', chucVu: x.chucVu || '' }; }
 function dsNguoiDung() { return docTho('NguoiDung').map(ndTuDong).filter(function (x) { return x.id; }); }
-function congKhai(u) { return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, maNV: u.maNV, tenZh: u.tenZh || '' }; }
+function congKhai(u) {
+  return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, maNV: u.maNV, tenZh: u.tenZh || '', maThe: u.maThe || '', boPhan: u.boPhan || '', boPhanZh: u.boPhanZh || '', chucVu: u.chucVu || '' };
+}
 function congKhaiAdmin(u) {
-  return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, email: u.email, hoatDong: u.hoatDong, ngayTao: u.ngayTao, maNV: u.maNV, tenZh: u.tenZh || '' };
+  return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, email: u.email, hoatDong: u.hoatDong, ngayTao: u.ngayTao, maNV: u.maNV, tenZh: u.tenZh || '',
+    maThe: u.maThe || '', boPhan: u.boPhan || '', boPhanZh: u.boPhanZh || '', chucVu: u.chucVu || '' };
 }
 
 // ===================== Đăng nhập =====================
@@ -2177,6 +2275,112 @@ function xemViec(u, x) {
   if (x.uidLam === u.id || x.uidTao === u.id || (x.uidPhu || []).indexOf(u.id) >= 0) return true;
   return x.loai === 'SUA' || x.loai === 'BD';
 }
+// ===================== Tăng ca =====================
+// Mỗi người đăng ký tăng ca của mình. Quản lý, Quản trị xem và ghi hộ được cho mọi người.
+// Đơn in theo tuần (thứ Hai → Chủ nhật) đúng mẫu giấy 自愿加班申请单, tổng hợp theo tháng.
+function tcTuDong(r, i) {
+  return { id: s(r[0]), uid: s(r[1]), ngay: ngayStr(r[2]), ca: s(r[3]), tu: s(r[4]), den: s(r[5]), soGio: Number(r[6]) || 0,
+    lyDo: s(r[7]), lyDoDich: s(r[8]), nguoiTao: s(r[9]), uidTao: s(r[10]), lucTao: tgStr(r[11]), xoa: hd(r[12]), capNhat: tgStr(r[13]), _r: i + 2 };
+}
+function tcThanhDong(x) {
+  return [x.id, x.uid, x.ngay, x.ca, x.tu, x.den, x.soGio, anToan(x.lyDo), anToan(x.lyDoDich), anToan(x.nguoiTao), x.uidTao, x.lucTao, x.xoa ? 1 : 0, x.capNhat];
+}
+function docTangCa() { return docTho('TangCa').map(tcTuDong).filter(function (x) { return x.id && x.uid; }); }
+function sachTC(x) {
+  return { id: x.id, uid: x.uid, ngay: x.ngay, ca: x.ca, tu: x.tu, den: x.den, soGio: x.soGio,
+    lyDo: x.lyDo, lyDoDich: x.lyDoDich, nguoiTao: x.nguoiTao, uidTao: x.uidTao, lucTao: x.lucTao };
+}
+function laGio(t) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(s(t)); }
+// Số giờ tăng ca: đến giờ trừ từ giờ, qua 0 giờ vẫn đúng. Không trừ giờ nghỉ.
+function gioTC(tu, den) {
+  var a = Number(tu.slice(0, 2)) * 60 + Number(tu.slice(3, 5)), b = Number(den.slice(0, 2)) * 60 + Number(den.slice(3, 5));
+  var p = b - a; if (p <= 0) p += 24 * 60;
+  return Math.round(p / 60 * 100) / 100;
+}
+function dsCaTC() {
+  var ds = docCaiDat().caTangCa;
+  return ds && ds.length ? ds : CAI_DAT_MAC_DINH.caTangCa;
+}
+function luuTangCa(u, p, opId) {
+  var ds = docTangCa(), id = s(p.id).toUpperCase();
+  var x = id ? ds.filter(function (r) { return r.id === id && !r.xoa; })[0] : null;
+  if (id && !x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  if (opId && !x) {
+    var cu = ds.filter(function (r) { return r.id === 'TC' + opId.toUpperCase().slice(-18); })[0];
+    if (cu) return { dup: true, tangCa: sachTC(cu) };
+  }
+  // Ghi cho người khác: chỉ Quản lý, Quản trị
+  var uid = s(p.uid) || (x ? x.uid : u.id);
+  if (uid !== u.id && !coQuyen(u, 'xemhet')) throw loi('KHONG_QUYEN', 'Chỉ ghi tăng ca của mình · 只能登记本人加班');
+  if (x && x.uid !== u.id && !coQuyen(u, 'xemhet')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  var nvs = dsNguoiDung();
+  if (!nvs.some(function (n) { return n.id === uid; })) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
+  var ngay = ngayStr(p.ngay);
+  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  var ca = s(p.ca) || 'HC';
+  if (!dsCaTC().some(function (c) { return c.k === ca; })) throw loi('CA_SAI', 'Ca làm việc không hợp lệ · 班次无效');
+  var tu = s(p.tu), den = s(p.den);
+  if (!laGio(tu) || !laGio(den)) throw loi('GIO_SAI', 'Giờ không hợp lệ · 时间无效');
+  if (tu === den) throw loi('GIO_SAI', 'Giờ không hợp lệ · 时间无效');
+  var gio = soHoacRong(p.soGio);
+  if (gio === '' ) gio = gioTC(tu, den);
+  if (!(gio > 0 && gio <= 24)) throw loi('GIO_TC_SAI', 'Số tiếng tăng ca phải trong khoảng 0 – 24 · 加班工时须在0–24之间');
+  gio = Math.round(Number(gio) * 100) / 100;
+  var ly = x ? dichKhiSua(catNhieuDong(p.lyDo, 300).trim(), x.lyDo, x.lyDoDich, p.lyDoDich) : songNgu(catNhieuDong(p.lyDo, 300).trim(), p.lyDoDich);
+  var bay = thoiGianStr(), moi = !x;
+  capNhatTieuDe('TangCa');
+  if (moi) {
+    x = { id: opId ? 'TC' + opId.toUpperCase().slice(-18) : 'TC' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900),
+      uid: uid, nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false };
+  }
+  x.uid = uid; x.ngay = ngay; x.ca = ca; x.tu = tu; x.den = den; x.soGio = gio;
+  x.lyDo = ly[0]; x.lyDoDich = ly[1]; x.capNhat = bay;
+  if (moi) themDong('TangCa', tcThanhDong(x)); else suaDong('TangCa', x._r, tcThanhDong(x));
+  ghiNhatKy(u, moi ? 'GHI_TANG_CA' : 'SUA_TANG_CA', 'TangCa', x.id, '', ngay + ' ' + tu + '-' + den + ' ' + gio + 'h', '');
+  return { tangCa: sachTC(x) };
+}
+function xoaTangCa(u, p) {
+  var x = docTangCa().filter(function (r) { return r.id === s(p.id); })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  if (x.xoa) return { xoaTC: x.id };
+  if (x.uid !== u.id && !coQuyen(u, 'xemhet')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  capNhatTieuDe('TangCa');
+  x.xoa = true; x.capNhat = thoiGianStr();
+  suaDong('TangCa', x._r, tcThanhDong(x));
+  ghiNhatKy(u, 'XOA_TANG_CA', 'TangCa', x.id, x.ngay + ' ' + x.tu + '-' + x.den, '', catChu(p.lyDo, 200));
+  return { xoaTC: x.id };
+}
+// Mỗi người tự sửa thông tin in trên đơn của mình (mã số thẻ, bộ phận, chức vụ)
+function luuCaTangCa(u, p) {
+  var ds = [], ten = {};
+  (p.ca || []).forEach(function (c) {
+    var k = s(c.k).toUpperCase().slice(0, 8), t = catChu(c.ten, 40);
+    if (!k || !t || ten[k]) return;
+    if (!laGio(c.tu) || !laGio(c.den)) throw loi('GIO_SAI', 'Giờ không hợp lệ · 时间无效');
+    ten[k] = 1;
+    ds.push({ k: k, ten: t, zh: catChu(c.zh, 40), tu: s(c.tu), den: s(c.den) });
+  });
+  if (!ds.length) throw loi('CAN_CA', 'Cần ít nhất một ca làm việc · 至少需要一个班次');
+  var th = Math.round(Number(p.gioTCThang)), nam = Math.round(Number(p.gioTCNam));
+  var cd = { caTangCa: ds };
+  if (th > 0 && th <= 400) cd.gioTCThang = th;
+  if (nam > 0 && nam <= 2000) cd.gioTCNam = nam;
+  ghiCaiDat(cd);
+  ghiNhatKy(u, 'SUA_CA_TANG_CA', 'CaiDat', 'caTangCa', '', ds.length + ' ca', '');
+  return { caiDat: { caTangCa: ds, gioTCThang: docCaiDat().gioTCThang, gioTCNam: docCaiDat().gioTCNam } };
+}
+function luuHoSo(u, p) {
+  var ds = dsNguoiDung(), x = ds.filter(function (d) { return d.id === u.id; })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  capNhatTieuDe('NguoiDung');
+  if (p.maThe !== undefined) x.maThe = catChu(p.maThe, 30);
+  if (p.boPhan !== undefined) x.boPhan = catChu(p.boPhan, 60);
+  if (p.boPhanZh !== undefined) x.boPhanZh = catChu(p.boPhanZh, 60);
+  if (p.chucVu !== undefined) x.chucVu = catChu(p.chucVu, 60);
+  if (p.boPhan !== undefined && !s(p.boPhanZh) && x.boPhan) x.boPhanZh = songNgu(x.boPhan)[1];
+  suaDong('NguoiDung', x._r, ndThanhDong(x));
+  return { me: congKhai(x) };
+}
 function layDuLieu(u) {
   var homNay = homNayStr(), tu = (Number(homNay.slice(0, 4)) - 1) + '-01-01';
   var cd = docCaiDat();
@@ -2191,13 +2395,21 @@ function layDuLieu(u) {
     thongSo: docThongSo(),
     chiSo: docChiSo().filter(function (x) { return x.ky >= tu && x.trangThai !== 'HUY'; }).map(sachCS),
     caiDat: coQuyen(u, 'may')
-      ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong }
-      : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam },
-    taiLieu: docTaiLieu().filter(function (x) { return !x.xoa; }).map(sachTL),
+      ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam }
+      : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam },
+    taiLieu: tlChoNguoi(u),
+    tlInfo: coQuyen(u, 'tailieu') ? tlThongTinNhe() : null,
     khoaKy: docKhoaKy(),
     congViec: docCongViec().filter(function (x) { return (CV_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG' || x.lucTao >= tu) && xemViec(u, x); }).map(sachCV),
     viecLap: coQuyen(u, 'xemhet') ? docViecLap().map(sachCV) : [],
-    nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) { return { id: x.id, ten: x.ten, tenZh: x.tenZh, vaiTro: x.vaiTro, maNV: x.maNV }; }),
+    tangCa: docTangCa().filter(function (x) { return !x.xoa && x.ngay >= tu && (coQuyen(u, 'xemhet') || x.uid === u.id); }).map(sachTC),
+    nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) {
+      var o = { id: x.id, ten: x.ten, tenZh: x.tenZh, vaiTro: x.vaiTro, maNV: x.maNV };
+      if (coQuyen(u, 'xemhet')) { o.maThe = x.maThe || ''; o.boPhan = x.boPhan || ''; o.boPhanZh = x.boPhanZh || ''; o.chucVu = x.chucVu || ''; }
+      return o;
+    }),
     kho: coQuyen(u, 'xemhet') ? khoTomTat() : null,
     me: congKhai(u),
     phienBan: PHIEN_BAN
@@ -3283,6 +3495,10 @@ function luuNguoiDung(u, p) {
   x.ten = ten; x.vaiTro = vai; x.pinHash = hash; x.email = email; x.hoatDong = hoatDong;
   if (maNV) x.maNV = maNV;
   if (p.tenZh !== undefined) x.tenZh = catChu(p.tenZh, 60);
+  if (p.maThe !== undefined) x.maThe = catChu(p.maThe, 30);
+  if (p.boPhan !== undefined) x.boPhan = catChu(p.boPhan, 60);
+  if (p.boPhanZh !== undefined) x.boPhanZh = catChu(p.boPhanZh, 60);
+  if (p.chucVu !== undefined) x.chucVu = catChu(p.chucVu, 60);
   if (moi) themDong('NguoiDung', ndThanhDong(x)); else suaDong('NguoiDung', x._r, ndThanhDong(x));
   return { user: congKhaiAdmin(x) };
 }
@@ -4017,8 +4233,18 @@ function mauSoDien() {
 }
 
 // ===================== TÀI LIỆU MÁY · 设备资料 =====================
-// Tệp lưu trong thư mục Drive "CMMS_TaiLieu" của chủ sheet, để riêng tư. App lấy tệp qua máy chủ (hành động 'docGet').
-var TL_KEY = 'TL_FOLDER_ID', TL_TOI_DA = 10 * 1024 * 1024, TL_NHOM = ['HDSD', 'BANVE', 'QUYTRINH', 'ANH', 'KHAC'];
+// Hai nguồn tài liệu:
+//   APP   — tệp tải lên từ app, nằm trong thư mục Drive của tài khoản chạy app (mặc định "CMMS_TaiLieu").
+//   DRIVE — tài liệu nhà máy đã có sẵn trên Drive: app chỉ ghi mã tệp vào danh mục, không chép và không xoá tệp gốc.
+// Thư mục gốc lưu ở Script Properties TL_FOLDER_ID (Quản lý dán link thư mục trong app). Thư mục có thể nằm trên
+// Drive của tài khoản khác, chỉ cần chia sẻ cho tài khoản chạy app (Người xem là đủ để đọc, Người chỉnh sửa để tải lên).
+// Bản đồ "thư mục → nhóm tài liệu" lưu ở TL_FOLDER_MAP, lần quét gần nhất ở TL_QUET_LUC.
+// Chỉ Quản trị và Quản lý xem được tài liệu; tài khoản khác chỉ nhận ảnh đại diện của máy.
+var TL_KEY = 'TL_FOLDER_ID', TL_MAP_KEY = 'TL_FOLDER_MAP', TL_QUET_KEY = 'TL_QUET_LUC';
+var TL_TOI_DA = 10 * 1024 * 1024;              // tệp tải lên từ app
+var TL_MO_TOI_DA = 8 * 1024 * 1024;            // mở trong app qua máy chủ; lớn hơn thì mở bằng link Drive
+var TL_QUET_TOI_DA = 300, TL_SAU_TOI_DA = 8;   // mỗi lần quét nhận tối đa 300 tệp mới, đi sâu tối đa 8 cấp thư mục
+var TL_NHOM = ['HDSD', 'BANVE', 'QUYTRINH', 'KIEMDINH', 'ANH', 'KHAC'];
 // Chỉ nhận loại tệp an toàn để xem trên điện thoại (không nhận HTML, SVG, tệp chạy được)
 var TL_MIME = {
   'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'text/plain': 'txt', 'text/csv': 'csv',
@@ -4026,29 +4252,261 @@ var TL_MIME = {
   'application/vnd.ms-excel': 'xls', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
   'application/vnd.ms-powerpoint': 'ppt', 'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx'
 };
-var TL_KHOA = ['id', 'ma', 'ten', 'nhom', 'kieu', 'fileId', 'mime', 'kichThuoc', 'url', 'daiDien', 'anhNho', 'nguoiTao', 'uidTao', 'lucTao', 'xoa', 'capNhat'];
+// Từ khoá đoán nhóm theo tên tệp và tên thư mục. Chữ Việt bỏ dấu, viết hoa, cách nhau bằng khoảng trắng.
+// Từ Latin chỉ nhận khi đứng riêng (tránh "QTN-16" thành Quy trình), từ tiếng Trung nhận cả khi lẫn trong tên.
+var TL_TU_KHOA = [
+  ['KIEMDINH', ['KIEM DINH', 'KIEMDINH', 'HIEU CHUAN', 'HIEUCHUAN', 'CHUNG NHAN', 'CHUNG CHI', 'GIAY PHEP', 'CALIBRATION', 'CERTIFICATE'],
+    ['检验', '检定', '校准', '合格证', '检测报告']],
+  ['HDSD', ['HDSD', 'HUONG DAN SU DUNG', 'HUONG DAN VAN HANH', 'HUONG DAN', 'HUONGDAN', 'MANUAL', 'USER GUIDE', 'CATALOGUE', 'CATALOG'],
+    ['说明书', '使用说明', '操作手册', '操作说明']],
+  ['BANVE', ['BAN VE', 'BANVE', 'DRAWING', 'SO DO DIEN', 'SO DO', 'LAYOUT', 'DWG', 'DXF'],
+    ['图纸', '圖紙', '电路图', '接线图', '布置图']],
+  ['QUYTRINH', ['SOP', 'QUY TRINH', 'QUYTRINH', 'HUONG DAN CONG VIEC', 'TIEU CHUAN', 'BAO DUONG', 'BAO TRI', 'KIEM TRA DINH KY'],
+    ['作业指导', '作業指導', '工艺', '保养', '点检']],
+  ['ANH', ['ANH', 'HINH ANH', 'HINH', 'PHOTO', 'IMAGE'], ['照片', '图片']]
+];
+var TL_KHOA = ['id', 'ma', 'ten', 'nhom', 'kieu', 'fileId', 'mime', 'kichThuoc', 'url', 'daiDien', 'anhNho', 'nguoiTao', 'uidTao', 'lucTao', 'xoa', 'capNhat',
+  'duongDan', 'nguon', 'conTrenDrive', 'hienHanh', 'lucQuet'];
 function laCo(v) { return v === true || v === 1 || s(v) === '1' || s(v).toUpperCase() === 'TRUE'; }
 function tlTuDong(r, i) {
   var o = { _r: i + 2 };
   TL_KHOA.forEach(function (k, j) { o[k] = r[j] instanceof Date ? tgStr(r[j]) : s(r[j]); });
   o.kichThuoc = Number(o.kichThuoc) || 0; o.daiDien = laCo(o.daiDien); o.xoa = laCo(o.xoa);
+  o.nguon = o.nguon === 'DRIVE' ? 'DRIVE' : 'APP';
+  // Dòng của bản cũ (v2.9–v2.11 trước khi có 5 cột mới) coi như còn trên Drive và là bản hiện hành
+  o.conTrenDrive = s(r[18]) === '' ? true : laCo(o.conTrenDrive);
+  o.hienHanh = s(r[19]) === '' ? true : laCo(o.hienHanh);
   return o;
 }
 function tlThanhDong(o) {
   return [o.id, o.ma, anToan(o.ten), o.nhom, o.kieu, o.fileId, o.mime, o.kichThuoc || 0, anToan(o.url || ''), o.daiDien ? 1 : 0, o.anhNho || '',
-    anToan(o.nguoiTao || ''), o.uidTao || '', o.lucTao, o.xoa ? 1 : 0, o.capNhat];
+    anToan(o.nguoiTao || ''), o.uidTao || '', o.lucTao, o.xoa ? 1 : 0, o.capNhat,
+    anToan(o.duongDan || ''), o.nguon || 'APP', o.conTrenDrive ? 1 : 0, o.hienHanh ? 1 : 0, o.lucQuet || ''];
 }
-function docTaiLieu() { return docTho('TaiLieu').map(tlTuDong).filter(function (x) { return x.id && x.ma; }); }
+function docTaiLieu() { return docTho('TaiLieu').map(tlTuDong).filter(function (x) { return x.id; }); }
+// Tệp mở được ngay trong app: loại tệp xem được trên điện thoại và không quá lớn để đi qua máy chủ
+function tlMoDuoc(x) { return x.kieu !== 'LINK' && !!TL_MIME[x.mime] && x.kichThuoc > 0 && x.kichThuoc <= TL_MO_TOI_DA; }
 function sachTL(x) {
   return { id: x.id, ma: x.ma, ten: x.ten, nhom: x.nhom, kieu: x.kieu, mime: x.mime, kichThuoc: x.kichThuoc, url: x.kieu === 'LINK' ? x.url : '',
-    daiDien: x.daiDien, anhNho: x.anhNho, nguoiTao: x.nguoiTao, uidTao: x.uidTao, lucTao: x.lucTao };
+    daiDien: x.daiDien, anhNho: x.anhNho, nguoiTao: x.nguoiTao, uidTao: x.uidTao, lucTao: x.lucTao,
+    duongDan: x.duongDan, nguon: x.nguon, conTrenDrive: x.conTrenDrive, hienHanh: x.hienHanh, moDuoc: tlMoDuoc(x) };
 }
+// Tài liệu gửi về app: Quản trị và Quản lý nhận cả danh mục, tài khoản khác chỉ nhận ảnh đại diện của máy
+function tlChoNguoi(u) {
+  var ds = docTaiLieu().filter(function (x) { return !x.xoa; });
+  if (!coQuyen(u, 'tailieu')) ds = ds.filter(function (x) { return x.daiDien && x.anhNho; });
+  return ds.map(sachTL);
+}
+// ----- Thư mục Drive -----
+function tlGocId() { return s(PropertiesService.getScriptProperties().getProperty(TL_KEY)); }
+// Nhận cả link thư mục Drive và mã thư mục dán trực tiếp
+function tlIdTuLink(v) {
+  var t = s(v);
+  var m = t.match(/\/folders\/([A-Za-z0-9_-]{10,})/) || t.match(/[?&]id=([A-Za-z0-9_-]{10,})/);
+  if (m) return m[1];
+  // Dán trực tiếp mã thư mục: mã của Drive dài trên 20 ký tự, chuỗi ngắn hơn coi như gõ sai
+  return /^[A-Za-z0-9_-]{20,}$/.test(t) ? t : '';
+}
+// Mở thư mục và báo lỗi rõ ràng khi tài khoản chạy app chưa được chia sẻ
+function tlMoThuMuc(id) {
+  try { var f = DriveApp.getFolderById(id); f.getName(); return f; }
+  catch (e) { throw loi('TL_KHONG_DOC_DUOC', 'App không đọc được thư mục này. Hãy chia sẻ thư mục cho tài khoản chạy app · 应用无法访问此文件夹，请把文件夹共享给运行应用的账号'); }
+}
+// Thư mục để tải tệp lên từ app: thư mục đã nối, hoặc "CMMS_TaiLieu" riêng của tài khoản chạy app
 function tlFolder() {
   var ps = PropertiesService.getScriptProperties(), id = ps.getProperty(TL_KEY);
-  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { /* thư mục đã bị xoá → tạo lại */ } }
+  // Thư mục đã nối mà đọc không được thì báo lỗi, không tự chuyển sang thư mục khác (kẻo mất đường dẫn đã cài)
+  if (id) return tlMoThuMuc(id);
   var f = DriveApp.createFolder('CMMS_TaiLieu');
   ps.setProperty(TL_KEY, f.getId());
   return f;
+}
+// Địa chỉ tài khoản Google đang chạy app: thư mục trên Drive của tài khoản khác phải chia sẻ cho địa chỉ này
+function tlTaiKhoan() { try { return s(Session.getEffectiveUser().getEmail()); } catch (e) { return ''; } }
+function tlMap() { return docJson(PropertiesService.getScriptProperties().getProperty(TL_MAP_KEY), {}) || {}; }
+function ghiTlMap(m) { PropertiesService.getScriptProperties().setProperty(TL_MAP_KEY, JSON.stringify(m || {})); }
+// Số liệu danh mục, đọc từ sheet. Dùng cho lúc tải dữ liệu: mở app không phải gọi sang Drive.
+function tlThongTinNhe() {
+  var ds = docTaiLieu().filter(function (x) { return !x.xoa; });
+  return {
+    nhe: true, id: tlGocId(), taiKhoan: tlTaiKhoan(), lucQuet: s(PropertiesService.getScriptProperties().getProperty(TL_QUET_KEY)),
+    dem: {
+      tong: ds.length,
+      drive: ds.filter(function (x) { return x.nguon === 'DRIVE'; }).length,
+      chuaGanMay: ds.filter(function (x) { return !x.ma; }).length,
+      mat: ds.filter(function (x) { return x.nguon === 'DRIVE' && !x.conTrenDrive; }).length
+    }
+  };
+}
+// Thông tin đầy đủ cho màn Quản trị → Tài liệu: tên thư mục, link, thư mục cấp 1 và nhóm đã gán. Có gọi sang Drive.
+function tlThongTin() {
+  var id = tlGocId(), map = tlMap(), ds = docTaiLieu().filter(function (x) { return !x.xoa; });
+  var o = {
+    id: id, ten: '', url: '', doc: false, con: [], map: map, lucQuet: s(PropertiesService.getScriptProperties().getProperty(TL_QUET_KEY)),
+    taiKhoan: tlTaiKhoan(),
+    dem: {
+      tong: ds.length,
+      drive: ds.filter(function (x) { return x.nguon === 'DRIVE'; }).length,
+      chuaGanMay: ds.filter(function (x) { return !x.ma; }).length,
+      mat: ds.filter(function (x) { return x.nguon === 'DRIVE' && !x.conTrenDrive; }).length
+    }
+  };
+  if (!id) return o;
+  var f;
+  try { f = DriveApp.getFolderById(id); o.ten = f.getName(); o.url = f.getUrl(); o.doc = true; }
+  catch (e) { return o; }
+  var it = f.getFolders(), n = 0;
+  while (it.hasNext() && n < 60) { var c = it.next(); n++; o.con.push({ id: c.getId(), ten: c.getName(), nhom: s(map[c.getId()]) }); }
+  o.con.sort(function (a, b) { return a.ten < b.ten ? -1 : 1; });
+  return o;
+}
+function datThuMucTL(u, p) {
+  var id = tlIdTuLink(p.link);
+  if (!id) throw loi('TL_LINK_SAI', 'Dán link thư mục Drive (có /folders/…) · 请粘贴云端硬盘文件夹链接');
+  var f = tlMoThuMuc(id), truoc = tlGocId();
+  PropertiesService.getScriptProperties().setProperty(TL_KEY, id);
+  ghiNhatKy(u, 'DAT_THU_MUC_TL', 'TaiLieu', id, { id: truoc }, { id: id, ten: f.getName() }, '');
+  return { tlInfo: tlThongTin() };
+}
+function datNhomThuMuc(u, p) {
+  var map = {}, ds = Array.isArray(p.map) ? p.map : [];
+  ds.forEach(function (x) {
+    var id = s(x && x.id), nhom = s(x && x.nhom);
+    if (id && TL_NHOM.indexOf(nhom) >= 0) map[id] = nhom;
+  });
+  ghiTlMap(map);
+  ghiNhatKy(u, 'DAT_NHOM_THU_MUC', 'TaiLieu', '', null, map, '');
+  return { tlInfo: tlThongTin() };
+}
+// ----- Đoán nhóm và đoán máy từ tên tệp, tên thư mục -----
+// Bỏ dấu, viết hoa, mọi ký tự không phải chữ/số thành khoảng trắng, thêm khoảng trắng hai đầu để so từ đứng riêng
+function tlChuan(v) {
+  var t = s(v);
+  try { t = t.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) { /* không có normalize */ }
+  return ' ' + t.replace(/[đĐ]/g, 'D').toUpperCase().replace(/[^0-9A-Z一-鿿]+/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+}
+function tlNhomTuTen(ten, duongDan) {
+  var a = tlChuan(ten), b = tlChuan(duongDan);
+  for (var i = 0; i < TL_TU_KHOA.length; i++) {
+    var nhom = TL_TU_KHOA[i][0], latin = TL_TU_KHOA[i][1], han = TL_TU_KHOA[i][2];
+    for (var j = 0; j < latin.length; j++) { var k = ' ' + latin[j] + ' '; if (a.indexOf(k) >= 0 || b.indexOf(k) >= 0) return nhom; }
+    for (var h = 0; h < han.length; h++) { if (a.indexOf(han[h]) >= 0 || b.indexOf(han[h]) >= 0) return nhom; }
+  }
+  return '';
+}
+// Mã máy và mã chuyền để đoán, cả mã hệ thống (M005, VKY01) và mã hiển thị tự đặt (H2506, QTN-16). Mã dài so trước.
+function tlDsMa() {
+  var ds = [];
+  function them(ma, ra) { var k = tlChuan(ma).trim(); if (k && k.length >= 2) ds.push({ k: ' ' + k + ' ', ma: ra }); }
+  dsMay().forEach(function (m) { them(m.ma, m.ma); if (m.maHT) them(m.maHT, m.ma); });
+  dsChuyen().forEach(function (c) { them(c.ma, c.ma); if (c.maHT) them(c.maHT, c.ma); });
+  ds.sort(function (a, b) { return b.k.length - a.k.length; });
+  return ds;
+}
+function tlMaTuTen(ten, duongDan, dsMa) {
+  var a = tlChuan(ten), b = tlChuan(duongDan);
+  for (var i = 0; i < dsMa.length; i++) if (a.indexOf(dsMa[i].k) >= 0) return dsMa[i].ma;
+  for (var j = 0; j < dsMa.length; j++) if (b.indexOf(dsMa[j].k) >= 0) return dsMa[j].ma;
+  return '';
+}
+// ----- Quét thư mục Drive -----
+// Đi hết cây thư mục, mỗi tệp chưa có trong danh mục thì thêm một dòng trỏ tới mã tệp (không chép tệp).
+// Tệp đã có thì cập nhật đường dẫn và đánh dấu còn trên Drive. Tệp không gặp lại bị đánh dấu mất.
+// Tài liệu đã bỏ khỏi danh mục (Xoa = 1) không được thêm lại: muốn nhận lại thì xoá dấu ở cột Xoa trên trang TaiLieu.
+function quetDrive(u, p) {
+  var id = tlGocId();
+  if (!id) throw loi('TL_CHUA_NOI', 'Chưa nối thư mục Drive · 未连接云端硬盘文件夹');
+  var goc = tlMoThuMuc(id), map = tlMap(), dsMa = tlDsMa(), bay = thoiGianStr();
+  capNhatTieuDe('TaiLieu');
+  var cu = docTaiLieu(), theoFile = {}, daCoId = {}, sua = [];
+  cu.forEach(function (x) { if (x.fileId) theoFile[x.fileId] = x; daCoId[x.id] = 1; });
+  var dem = 0;
+  function maTLMoi() {
+    var dau = 'TL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + 'Q';
+    do { dem++; } while (daCoId[dau + dem]);
+    daCoId[dau + dem] = 1;
+    return dau + dem;
+  }
+  var moi = [], gap = {}, demTep = 0, conNua = false;
+  var hangDoi = [{ f: goc, duong: '', sau: 0, nhom: s(map[id]) }];
+  while (hangDoi.length && !conNua) {
+    var cur = hangDoi.shift(), it = cur.f.getFiles();
+    while (it.hasNext()) {
+      var tep = it.next();
+      if (tep.isTrashed()) continue;
+      demTep++;
+      var fid = tep.getId();
+      gap[fid] = true;
+      var da = theoFile[fid];
+      if (da) {
+        if (!da.xoa && (da.duongDan !== cur.duong || !da.conTrenDrive)) {
+          da.duongDan = cur.duong; da.conTrenDrive = true; da.lucQuet = bay; da.capNhat = bay; sua.push(da);
+        }
+        continue;
+      }
+      if (moi.length >= TL_QUET_TOI_DA) { conNua = true; break; }
+      var mime = s(tep.getMimeType()).toLowerCase(), ten = catChu(s(tep.getName()).replace(/\.[^.]+$/, ''), 120) || s(tep.getName()).slice(0, 120);
+      if (mime === 'application/vnd.google-apps.shortcut') continue;
+      var o = tlMoi(u, '', ten, '', mime.indexOf('image/') === 0 ? 'ANH' : 'TEP');
+      o.id = maTLMoi();
+      o.ma = tlMaTuTen(tep.getName(), cur.duong, dsMa);
+      o.nhom = cur.nhom || tlNhomTuTen(tep.getName(), cur.duong) || (mime.indexOf('image/') === 0 ? 'ANH' : 'KHAC');
+      o.fileId = fid; o.mime = mime; o.kichThuoc = Number(tep.getSize()) || 0;
+      o.duongDan = cur.duong; o.nguon = 'DRIVE'; o.conTrenDrive = true; o.hienHanh = true; o.lucQuet = bay;
+      o.nguoiTao = u.ten; o.uidTao = u.id;
+      moi.push(o);
+    }
+    if (conNua) break;
+    if (cur.sau < TL_SAU_TOI_DA) {
+      var fs = cur.f.getFolders();
+      while (fs.hasNext()) {
+        var con = fs.next(), tenCon = con.getName();
+        hangDoi.push({ f: con, duong: cur.duong ? cur.duong + ' / ' + tenCon : tenCon, sau: cur.sau + 1, nhom: s(map[con.getId()]) || cur.nhom });
+      }
+    }
+  }
+  // Tệp của lần quét trước không gặp lại: đánh dấu mất, giữ nguyên dòng để không mất thông tin đã gán
+  if (!conNua) {
+    cu.forEach(function (x) {
+      if (x.nguon === 'DRIVE' && !x.xoa && x.conTrenDrive && !gap[x.fileId]) { x.conTrenDrive = false; x.capNhat = bay; sua.push(x); }
+    });
+  }
+  sua.forEach(function (x) { suaDong('TaiLieu', x._r, tlThanhDong(x)); });
+  if (moi.length) themNhieu('TaiLieu', moi.map(tlThanhDong));
+  PropertiesService.getScriptProperties().setProperty(TL_QUET_KEY, bay);
+  ghiNhatKy(u, 'QUET_DRIVE', 'TaiLieu', id, null, { moi: moi.length, tep: demTep, conNua: conNua }, '');
+  return { tlInfo: tlThongTin(), taiLieu: tlChoNguoi(u), tlFull: true, quet: { moi: moi.length, tep: demTep, conNua: conNua } };
+}
+// ----- Gán máy và nhóm hàng loạt -----
+function ganTaiLieu(u, p) {
+  var ids = (Array.isArray(p.ids) ? p.ids : []).map(function (v) { return s(v); }).filter(function (v) { return v; });
+  if (!ids.length) throw loi('THIEU_CHON', 'Chưa chọn tài liệu nào · 未选择资料');
+  var ma = s(p.ma).toUpperCase(), nhom = s(p.nhom);
+  if (ma) kiemMaTL(ma);
+  if (nhom && TL_NHOM.indexOf(nhom) < 0) throw loi('NHOM_SAI', 'Nhóm không hợp lệ · 分组无效');
+  if (!ma && !nhom && p.ma === undefined) throw loi('THIEU_GAN', 'Chưa chọn máy hay nhóm · 未选择设备或分组');
+  capNhatTieuDe('TaiLieu');
+  var bay = thoiGianStr(), n = 0;
+  docTaiLieu().forEach(function (x) {
+    if (x.xoa || ids.indexOf(x.id) < 0) return;
+    if (p.ma !== undefined) x.ma = ma;
+    if (nhom) x.nhom = nhom;
+    x.capNhat = bay; suaDong('TaiLieu', x._r, tlThanhDong(x)); n++;
+  });
+  ghiNhatKy(u, 'GAN_TAI_LIEU', 'TaiLieu', ids.slice(0, 20).join(','), null, { ma: ma, nhom: nhom, n: n }, '');
+  return { taiLieu: tlChoNguoi(u), tlFull: true, tlInfo: tlThongTin(), n: n };
+}
+// Đánh dấu bản hiện hành: các tài liệu khác cùng máy và cùng nhóm thành bản cũ
+function datHienHanh(u, p) {
+  var x = timTL(p.id);
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  var bay = thoiGianStr();
+  docTaiLieu().forEach(function (v) {
+    if (v.xoa || !v.ma || v.ma !== x.ma || v.nhom !== x.nhom) return;
+    var can = v.id === x.id;
+    if (v.hienHanh !== can) { v.hienHanh = can; v.capNhat = bay; suaDong('TaiLieu', v._r, tlThanhDong(v)); }
+  });
+  return { ma: x.ma, taiLieu: tlChoNguoi(u), tlFull: true };
 }
 function kiemMaTL(ma) {
   if (!ma || (!timMay(ma) && !dsChuyen().some(function (c) { return c.ma === ma; }))) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy / chuyền · 找不到设备/产线');
@@ -4058,7 +4516,8 @@ function tlMoi(u, ma, ten, nhom, kieu) {
   var bay = thoiGianStr();
   return { id: 'TL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900), ma: ma, ten: ten,
     nhom: TL_NHOM.indexOf(s(nhom)) >= 0 ? s(nhom) : (kieu === 'ANH' ? 'ANH' : 'KHAC'), kieu: kieu, fileId: '', mime: '', kichThuoc: 0, url: '',
-    daiDien: false, anhNho: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false, capNhat: bay };
+    daiDien: false, anhNho: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false, capNhat: bay,
+    duongDan: '', nguon: 'APP', conTrenDrive: true, hienHanh: true, lucQuet: '' };
 }
 // Bỏ cờ ảnh đại diện của các tài liệu khác cùng máy
 function boDaiDien(ma, giuId) {
@@ -4080,7 +4539,8 @@ function taiLenTaiLieu(u, p) {
   capNhatTieuDe('TaiLieu');
   var kieu = mime.indexOf('image/') === 0 ? 'ANH' : 'TEP', o = tlMoi(u, ma, ten, p.nhom, kieu);
   var tenFile = ma + ' - ' + ten.replace(/[\\/:*?"<>|]/g, ' ') + '.' + TL_MIME[mime];
-  o.fileId = tlFolder().createFile(Utilities.newBlob(bytes, mime, tenFile)).getId();
+  try { o.fileId = tlFolder().createFile(Utilities.newBlob(bytes, mime, tenFile)).getId(); }
+  catch (e) { throw loi('TL_KHONG_GHI_DUOC', 'App không ghi được vào thư mục Drive. Hãy chia sẻ thư mục với quyền Người chỉnh sửa · 应用无法写入该文件夹，请给予编辑权限'); }
   o.mime = mime; o.kichThuoc = bytes.length;
   if (kieu === 'ANH' && p.anhNho) { var a = luuAnhDrive(p.anhNho, ma + '_' + o.id + '_nho.jpg'); if (a) o.anhNho = a.id; }
   if (kieu === 'ANH' && p.daiDien) { boDaiDien(ma, o.id); o.daiDien = true; }
@@ -4098,31 +4558,56 @@ function themLienKet(u, p) {
   return { ma: ma, taiLieu: tlCua(ma), moi: sachTL(o) };
 }
 function timTL(id) { return docTaiLieu().filter(function (x) { return x.id === s(id) && !x.xoa; })[0] || null; }
+// Xoá khỏi danh mục. Tệp do app tải lên thì cho vào thùng rác Drive; tài liệu gốc của nhà máy (nguồn DRIVE) không bị xoá.
 function xoaTaiLieu(u, p) {
   var x = timTL(p.id);
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
-  if (!coQuyen(u, 'may') && x.uidTao !== u.id) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
-  x.xoa = true; x.daiDien = false; x.capNhat = thoiGianStr();
+  x.xoa = true; x.daiDien = false; x.hienHanh = false; x.capNhat = thoiGianStr();
   suaDong('TaiLieu', x._r, tlThanhDong(x));
-  if (x.fileId) { try { DriveApp.getFileById(x.fileId).setTrashed(true); } catch (e) { /* tệp đã mất: bỏ qua */ } }
-  ghiNhatKy(u, 'XOA_TAI_LIEU', 'TaiLieu', x.id, { ma: x.ma, ten: x.ten, kieu: x.kieu }, null, '');
-  return { ma: x.ma, taiLieu: tlCua(x.ma) };
+  if (x.fileId && x.nguon !== 'DRIVE') { try { DriveApp.getFileById(x.fileId).setTrashed(true); } catch (e) { /* tệp đã mất: bỏ qua */ } }
+  ghiNhatKy(u, 'XOA_TAI_LIEU', 'TaiLieu', x.id, { ma: x.ma, ten: x.ten, kieu: x.kieu, nguon: x.nguon }, null, '');
+  return { ma: x.ma, taiLieu: tlChoNguoi(u), tlFull: true, tlInfo: tlThongTinNhe() };
 }
 function datDaiDien(u, p) {
   var x = timTL(p.id);
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
   if (x.kieu !== 'ANH') throw loi('KHONG_PHAI_ANH', 'Chỉ đặt ảnh làm ảnh đại diện · 只能设置照片为封面');
+  if (!x.ma) throw loi('CHUA_GAN_MAY', 'Tài liệu chưa gán máy · 资料未关联设备');
+  // Ảnh quét từ Drive chưa có ảnh nhỏ: app gửi kèm ảnh nhỏ đã nén để mọi người xem được ở đầu hồ sơ máy
+  if (!x.anhNho && p.anhNho) { var a = luuAnhDrive(p.anhNho, x.ma + '_' + x.id + '_nho.jpg'); if (a) x.anhNho = a.id; }
   boDaiDien(x.ma, x.id);
-  if (!x.daiDien) { x.daiDien = true; x.capNhat = thoiGianStr(); suaDong('TaiLieu', x._r, tlThanhDong(x)); }
-  return { ma: x.ma, taiLieu: tlCua(x.ma) };
+  x.daiDien = true; x.capNhat = thoiGianStr();
+  suaDong('TaiLieu', x._r, tlThanhDong(x));
+  return { ma: x.ma, taiLieu: tlChoNguoi(u), tlFull: true };
 }
+// Mở tài liệu: tệp xem được và dưới 8 MB thì đưa nội dung về app; tệp lớn hoặc lạ (CAD, nén) thì trả link Drive
 function layTaiLieu(p) {
   var x = timTL(p.id);
   if (!x || x.kieu === 'LINK') throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
   var f;
   try { f = DriveApp.getFileById(x.fileId); } catch (e) { throw loi('KHONG_CO', 'Không tìm thấy tệp · 找不到文件'); }
-  if (!trongThuMuc(f, tlFolder())) throw loi('KHONG_CO', 'Không tìm thấy tệp · 找不到文件');
+  if (!tlTrongCay(f)) throw loi('KHONG_CO', 'Không tìm thấy tệp · 找不到文件');
+  if (!tlMoDuoc(x)) return { id: x.id, ten: x.ten, mime: x.mime, link: f.getUrl() };
   return { id: x.id, ten: x.ten, mime: x.mime, data: 'data:' + x.mime + ';base64,' + Utilities.base64Encode(f.getBlob().getBytes()) };
+}
+// Tệp phải nằm trong thư mục tài liệu hoặc một thư mục con của nó (đi ngược lên cây cha)
+function tlTrongCay(f) {
+  var gocId = tlGocId();
+  if (!gocId) return false;
+  var da = {}, doi = [f], sau = 0;
+  while (doi.length && sau <= TL_SAU_TOI_DA + 2) {
+    var tiep = [];
+    for (var i = 0; i < doi.length; i++) {
+      var it = doi[i].getParents();
+      while (it.hasNext()) {
+        var cha = it.next(), id = cha.getId();
+        if (id === gocId) return true;
+        if (!da[id]) { da[id] = 1; tiep.push(cha); }
+      }
+    }
+    doi = tiep; sau++;
+  }
+  return false;
 }
 
 // ===================== TIỀN ĐIỆN · 电费 =====================
@@ -4259,7 +4744,8 @@ function khoiPhuc(u, p) {
 var LUU_TRU_BANG = {
   LichSu: function (r, c) { return namCua(r[c.Ngay]); },
   CongViec: function (r, c) { var tt = s(r[c.TrangThai]); return tt === 'DONG' || tt === 'HUY' ? namCua(r[c.LucXong] || r[c.LucTao]) : 0; },
-  NhatKy: function (r, c) { return namCua(r[c.ThoiGian]); }
+  NhatKy: function (r, c) { return namCua(r[c.ThoiGian]); },
+  TangCa: function (r, c) { return namCua(r[c.Ngay]); }
 };
 function namCua(v) { var t = v instanceof Date ? tgStr(v) : s(v); return /^\d{4}-/.test(t) ? Number(t.slice(0, 4)) : 0; }
 function cotCua(ten) { var o = {}; BANG[ten].forEach(function (k, i) { o[k] = i; }); return o; }
@@ -4669,14 +5155,14 @@ function mauKiemTra() {
 // ===================== Cài đặt lần đầu =====================
 // Chạy hàm này một lần trong trình soạn Apps Script (nó cũng hỏi cấp quyền).
 function caiDatBanDau() {
-  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'CongViec', 'ViecLap', 'Chuyen'].forEach(trang);
+  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'CongViec', 'ViecLap', 'Chuyen', 'TangCa'].forEach(trang);
   thuocTinh('SALT'); thuocTinh('TOKEN_KEY');
   if (!dsNguoiDung().length) {
     var bay = thoiGianStr();
     themNhieu('NguoiDung', [
-      ['U001', 'Quản trị', 'admin', bamPin('111111'), '', 1, bay, 'NV001', ''],
-      ['U002', 'Quản lý', 'quanly', bamPin('222222'), '', 1, bay, 'NV002', ''],
-      ['U003', 'Kỹ thuật', 'kythuat', bamPin('333333'), '', 1, bay, 'NV003', '']
+      ['U001', 'Quản trị', 'admin', bamPin('111111'), '', 1, bay, 'NV001', '管理员', '', '', '', ''],
+      ['U002', 'Quản lý', 'quanly', bamPin('222222'), '', 1, bay, 'NV002', '主管', '', '', '', ''],
+      ['U003', 'Kỹ thuật', 'kythuat', bamPin('333333'), '', 1, bay, 'NV003', '技术员', '', '', '', '']
     ]);
   }
   if (!dsMay().length) {
@@ -5051,10 +5537,42 @@ function mauNhanVien() {
   if (dsNguoiDung().length > 3) return;
   var bay = thoiGianStr();
   themNhieu('NguoiDung', [
-    ['U004', 'Lê Minh Tiến', 'kythuat', bamPin('444444'), '', 1, bay, 'NV004', '黎明进'],
-    ['U005', 'Nguyễn Tuấn', 'kythuat', bamPin('555555'), '', 1, bay, 'NV005', '阮俊'],
-    ['U006', 'Đỗ Văn Hồng', 'kythuat', bamPin('666666'), '', 1, bay, 'NV006', '杜文红']
+    ['U004', 'Lê Minh Tiến', 'kythuat', bamPin('444444'), '', 1, bay, 'NV004', '黎明进', 'V25071', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ điện'],
+    ['U005', 'Nguyễn Tuấn', 'kythuat', bamPin('555555'), '', 1, bay, 'NV005', '阮俊', 'V25088', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ cơ khí'],
+    ['U006', 'Đỗ Văn Hồng', 'kythuat', bamPin('666666'), '', 1, bay, 'NV006', '杜文红', 'V25092', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ bảo trì']
   ]);
+  // Ba tài khoản cài sẵn chưa có mã số thẻ: điền cho đủ để in đơn tăng ca
+  [['U001', 'V25001', 'Hành chính nhân sự', '行政人事部', 'Quản trị hệ thống'],
+    ['U002', 'V25010', 'Kỹ thuật sản xuất', '生产技术部', 'Trưởng bộ phận'],
+    ['U003', 'V25066', 'Kỹ thuật sản xuất', '生产技术部', 'Kỹ sư']].forEach(function (a) {
+    var x = dsNguoiDung().filter(function (n) { return n.id === a[0]; })[0];
+    if (!x || x.maThe) return;
+    x.maThe = a[1]; x.boPhan = a[2]; x.boPhanZh = a[3]; x.chucVu = a[4];
+    suaDong('NguoiDung', x._r, ndThanhDong(x));
+  });
+}
+// Tăng ca mẫu: vài lần trong tuần này và tuần trước, đủ bốn ca
+function mauTangCa() {
+  if (docTangCa().length) return;
+  capNhatTieuDe('TangCa');
+  var hn = homNayStr(), bay = thoiGianStr(), nvs = dsNguoiDung(), nv = {};
+  nvs.forEach(function (n) { nv[n.maNV] = n; });
+  var w = new Date(hn + 'T00:00:00Z').getUTCDay(), t2 = congNgay(hn, -((w + 6) % 7));   // thứ Hai tuần này
+  var so = 0;
+  function tc(ma, ngay, ca, tu, den, ly, lyZh) {
+    var n = nv[ma]; if (!n) return;
+    so++;
+    themDong('TangCa', ['TCMAU' + (so < 10 ? '0' : '') + so, n.id, ngay, ca, tu, den, gioTC(tu, den),
+      ly, lyZh, n.ten, n.id, bay, 0, bay]);
+  }
+  tc('NV003', congNgay(t2, 0), 'HC', '17:30', '19:30', 'Sửa máy in phun VKY01', '维修喷印机VKY01');
+  tc('NV003', congNgay(t2, 2), 'HC', '17:30', '20:00', 'Thay chổi than motor hút bụi', '更换吸尘器电机碳刷');
+  tc('NV003', congNgay(t2, -1), 'CN', '08:00', '17:00', 'Bảo dưỡng định kỳ chuyền VKY03', '产线VKY03定期保养');
+  tc('NV004', congNgay(t2, 1), 'DEM', '06:00', '08:00', 'Trực sự cố mất điện xưởng 2', '二车间停电值班');
+  tc('NV004', congNgay(t2, -2), 'NGAY', '20:00', '22:00', 'Hỗ trợ chuyển khuôn máy in VKY08', '协助喷印机VKY08换模');
+  tc('NV005', congNgay(t2, 1), 'HC', '17:30', '19:30', 'Kiểm tra tủ điện xưởng 1', '检查一车间电柜');
+  tc('NV005', congNgay(t2, -1), 'CN', '08:00', '12:00', 'Vệ sinh máy nén khí', '清洁空压机');
+  tc('NV006', congNgay(t2, 3), 'HC', '17:30', '21:00', 'Sửa băng tải chuyền VKY02', '维修产线VKY02输送带');
 }
 function mauCongViec() {
   if (docCongViec().length) return;
@@ -5140,6 +5658,53 @@ function mauCongViec() {
   ].map(vlThanhDong));
 }
 
+// Thư mục Drive mẫu của nhà máy: xếp theo loại tài liệu, tên tệp có mã máy. Quét xong là có sẵn danh mục để xem thử.
+function mauTaiLieu() {
+  if (docTaiLieu().length) return;
+  var nvs = dsNguoiDung(), ql = nvs.filter(function (n) { return n.maNV === 'NV002'; })[0] || nvs[0];
+  if (!ql) return;
+  var goc = DriveApp.createFolder('Tài liệu thiết bị nhà máy');
+  var cay = [
+    ['Huong dan su dung', 'HDSD', [
+      ['M001 may in phun VKY01 - huong dan su dung.pdf', 'application/pdf', 1830000],
+      ['喷印机 M005 使用说明书.pdf', 'application/pdf', 2140000],
+      ['M011 may dong bao 01 - manual.pdf', 'application/pdf', 3650000],
+      ['Catalogue may nen khi M038.pdf', 'application/pdf', 11200000]
+    ]],
+    ['Ban ve', 'BANVE', [
+      ['M037 so do dien phong may phat.pdf', 'application/pdf', 940000],
+      ['VKY01 layout chuyen in phun.pdf', 'application/pdf', 1260000],
+      ['M039 tu dien xuong 1.dwg', 'application/acad', 24800000],
+      ['So do khi nen toan nha may.pdf', 'application/pdf', 1480000]
+    ]],
+    ['Quy trinh SOP', 'QUYTRINH', [
+      ['SOP bao duong may in phun M001.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 86000],
+      ['SOP ve sinh may hut bui M018.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 74000],
+      ['SOP van hanh may nen khi.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 69000]
+    ]],
+    ['Kiem dinh', 'KIEMDINH', [
+      ['Giay kiem dinh binh chiu ap luc M038.pdf', 'application/pdf', 520000],
+      ['Kiem dinh thiet bi nang 2026.pdf', 'application/pdf', 610000]
+    ]],
+    ['Anh thiet bi', 'ANH', [
+      ['M033 may bam phe xuong 1.jpg', 'image/jpeg', 420000],
+      ['anh tu dien M040.jpg', 'image/jpeg', 380000]
+    ]]
+  ];
+  var map = {};
+  cay.forEach(function (x) {
+    var tm = goc.createFolder(x[0]);
+    map[tm.getId()] = x[1];
+    x[2].forEach(function (t) { DriveApp.__addFileIn(tm, t[0], t[1], t[2]); });
+  });
+  // Một tệp để ngay thư mục gốc, chưa xếp vào loại nào
+  DriveApp.__addFileIn(goc, 'Hop dong mua may dong bao 2024.pdf', 'application/pdf', 760000);
+  var ps = PropertiesService.getScriptProperties();
+  ps.setProperty('TL_FOLDER_ID', goc.getId());
+  ps.setProperty('TL_FOLDER_MAP', JSON.stringify(map));
+  quetDrive(ql, {});
+}
+
 __tz.off = -new Date().getTimezoneOffset() * 60000;
 caiDatBanDau();
 mauNhanVien();
@@ -5147,6 +5712,8 @@ mauSoDien();
 mauKiemTra();
 mauKho();
 mauCongViec();
+mauTangCa();
+mauTaiLieu();
 return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };
 
 })();
@@ -5453,7 +6020,7 @@ let DEV = store.get('bd_dev', '');
 if (!DEV) { DEV = 'd' + uid(); store.set('bd_dev', DEV); }
 
 function apiUrl() { return (typeof API_URL === 'string' && API_URL) || store.get('bd_api', ''); }
-const ROLE_OK = { confirm: ['admin', 'quanly', 'kythuat'], may: ['admin', 'quanly'], huy: ['admin', 'quanly'], admin: ['admin'], giaoviec: ['admin', 'quanly'], xemhet: ['admin', 'quanly'] };
+const ROLE_OK = { confirm: ['admin', 'quanly', 'kythuat'], may: ['admin', 'quanly'], huy: ['admin', 'quanly'], admin: ['admin'], giaoviec: ['admin', 'quanly'], xemhet: ['admin', 'quanly'], tailieu: ['admin', 'quanly'] };
 const can = (q) => !!(S.me && ROLE_OK[q].indexOf(S.me.vaiTro) >= 0);
 function errMsg(e) {
   const c = (e && e.code) || 'LOI';
@@ -5594,8 +6161,17 @@ function mergeResult(d) {
     const i = L.findIndex((x) => x.id === v.id);
     if (i >= 0) L[i] = v; else L.push(v);
   });
+  if (d.tangCa) {
+    const L = S.base.tangCa = S.base.tangCa || [];
+    const i = L.findIndex((x) => x.id === d.tangCa.id);
+    if (i >= 0) L[i] = d.tangCa; else L.push(d.tangCa);
+  }
+  if (d.xoaTC) S.base.tangCa = (S.base.tangCa || []).filter((x) => x.id !== d.xoaTC);
+  if (d.me) { S.me = Object.assign({}, S.me, d.me); store.set('bd_me', S.me); S.base.me = S.me; }
   if (d.kho) khoApply(d.kho);
-  if (d.taiLieu && d.ma) S.base.taiLieu = (S.base.taiLieu || []).filter((x) => x.ma !== d.ma).concat(d.taiLieu);
+  if (d.tlFull) S.base.taiLieu = d.taiLieu || [];
+  else if (d.taiLieu && d.ma) S.base.taiLieu = (S.base.taiLieu || []).filter((x) => x.ma !== d.ma).concat(d.taiLieu);
+  if (d.tlInfo) S.base.tlInfo = d.tlInfo;
   saveSnap(); rebuild();
 }
 
@@ -5712,13 +6288,14 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 // (kèm hồ sơ máy / chuyền mở từ các mục đó, quét QR, trang cá nhân).
 const xemHet = () => can('xemhet');
 const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
-  'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo']);
+  'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
 const SIDE = [['home', 'home', 'home'], ['cv', 'navCV', 'list'], ['list', 'navMay', 'gear'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'],
-  ['dien', 'navDien', 'bolt'], ['kho', 'segKho', 'box'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
-const SIDE_HC = [['home', 'home', 'home'], ['cv', 'navSC', 'wrench'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'], ['dien', 'navDien', 'bolt'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
+  ['dien', 'navDien', 'bolt'], ['kho', 'segKho', 'box'], ['tc', 'navTC', 'clock'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
+const SIDE_HC = [['home', 'home', 'home'], ['cv', 'navSC', 'wrench'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'], ['dien', 'navDien', 'bolt'],
+  ['tc', 'navTC', 'clock'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
 const sideDS = () => (xemHet() ? SIDE : SIDE_HC);
 const tabGoc = (v) => { const g = TAB_OF[v] || v; return !xemHet() && g === 'list' ? 'cal' : g; };
 function shell() {
@@ -5753,10 +6330,13 @@ function shell() {
 }
 const TITLES = { dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
-  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi', scDS: 't_scDS', saoLuu: 't_saoLuu' };
-const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv'];
+  cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi', scDS: 't_scDS', saoLuu: 't_saoLuu',
+  tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
+  tlCfg: 't_tlCfg', tlGan: 't_tlGan', tlDS: 't_tlDS' };
+const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc'];
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
-  dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me' };
+  dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
+  tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
 function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w.length > 1 ? w[w.length - 1][0] : w[0].slice(0, 2)).toUpperCase(); }
@@ -5969,6 +6549,13 @@ function modTiles() {
     while (v === null && g++ < 3) { v = kyTong('nuoc', k); if (v === null) k = kyTruoc(k); }
     h += tile('mt-cyan', 'drop', 'mNuoc', { d: fmtDM(k) }, v === null ? '—' : `${fmtNum(v)}<small> m³</small>`, '', 'data-act="dienLoai" data-l="nuoc"');
   }
+  {
+    const ym = today.slice(0, 7), uid = (S.me || {}).id;
+    const mine = (S.V.tc || []).filter((x) => x.uid === uid && x.ngay.slice(0, 7) === ym);
+    const g = tcCong(mine);
+    h += tile('mt-purple', 'clock', 'mTangCa', { m: mo }, `${tcSo(g)}<small> ${esc(tv('mTCGio'))}</small>`,
+      mine.length ? t('mTCLan', { n: mine.length }) : t('mTCChua'), 'data-act="tab" data-v="tc"');
+  }
   if (S.kho.ds.length && xemHet()) {
     const vis = S.kho.ds.filter((x) => !x.an && !x.gop), thap = lkThapDS().length;
     h += tile('mt-purple', 'box', 'mLinhKien', null, fmtNum(vis.length, 0), thap ? `<span class="warnx">${t('mDuoiMin', { n: thap })}</span>` : t('mConHang', { n: fmtNum(vis.filter((x) => (tonOf(x) || 0) > 0).length, 0) }), 'data-act="tab" data-v="kho"');
@@ -6021,6 +6608,7 @@ VIEWS.me = {
       <div class="list" style="margin-top:14px">
       <button class="row" data-act="go" data-v="sync"><span class="sync s-${st.k}" style="pointer-events:none"><i></i><span>${esc(tv(SYNC_SHORT[st.k], { n: st.n }))}</span></span><div class="main"><div class="nm">${t('t_sync')}</div><div class="sub">${t('lanCuoi')}: ${esc(lucTxt(S.lastSync))}</div></div>${IC.chev}</button>
       <button class="row" data-act="doRefresh">${IC.refresh}<div class="main"><div class="nm">${t('refresh')}</div></div></button>
+      <button class="row" data-act="tab" data-v="tc">${IC.clock}<div class="main"><div class="nm">${t('t_tc')}</div><div class="sub">${t('tcCuaToi')}</div></div>${IC.chev}</button>
       <button class="row" data-act="pinForm">${IC.key}<div class="main"><div class="nm">${t('changePin')}</div></div></button>
       ${can('huy') ? `<button class="row" data-act="go" data-v="duyet">${IC.bolt}<div class="main"><div class="nm">${t('t_duyet')}</div></div>${choDuyetDS().length ? `<span class="pill p-qua">${choDuyetDS().length}</span>` : ''}${IC.chev}</button>
       <button class="row" data-act="go" data-v="nhatKy">${IC.hist}<div class="main"><div class="nm">${t('nhatKy')}</div></div>${IC.chev}</button>` : ''}
@@ -6289,7 +6877,8 @@ VIEWS.may = {
         <button class="btn g bigbtn" data-act="xn" data-ma="${esc(m.ma)}">${IC.check}<span class="stk">${tv('confirmBD')}<span class="zi">${tz('confirmBD')}</span></span></button></div>`;
     }
     const tabs = [['tt', 'tabTT', ''], ['sc', 'tabSC', scCuaMay(m.ma).length || ''], ['tl', 'tabTL', tlCua(m.ma).length + (m.chuyen ? tlCua(m.chuyen).length : 0) || ''], ['lk', 'tabLK', lkOf(m).length || ''], ['bd', 'tabBD', hmOf(m).length || ''],
-      ['ls', 'tabLS', h.filter((x) => x.trangThai !== 'HUY').length + cvDs.length || '']].filter(([k]) => k !== 'lk' || xemHet());
+      ['ls', 'tabLS', h.filter((x) => x.trangThai !== 'HUY').length + cvDs.length || '']]
+      .filter(([k]) => (k !== 'lk' || xemHet()) && (k !== 'tl' || can('tailieu')));
     o += `<div class="ptabs" role="tablist">${tabs.map(([k, l, n]) => `<button role="tab" aria-selected="${tb === k}" class="${tb === k ? 'on' : ''}" data-act="mayTab" data-t="${k}">${tv(l)}${n !== '' ? ` <span class="n">${n}</span>` : ''}<small>${tz(l)}</small></button>`).join('')}</div>`;
     if (tb === 'tt') {
       o += `<div class="card pad"><dl class="kv kvwide">
@@ -7087,6 +7676,7 @@ VIEWS.admin = {
       <button class="row" data-act="go" data-v="thongSo">${IC.edit}<div class="main"><div class="nm">${t('t_thongSo')}</div><div class="sub">1.8.0 · 1.8.1 · 1.8.2 · 1.8.3 · 2.8.0 …</div></div>${IC.chev}</button>
       <button class="row" data-act="go" data-v="dienCfg">${IC.warn}<div class="main"><div class="nm">${t('dienCfg')}</div><div class="sub">+${esc((b.caiDat || {}).nguongTang || 50)}% / −${esc((b.caiDat || {}).nguongGiam || 50)}%</div></div>${IC.chev}</button>
       <button class="row" data-act="go" data-v="nhatKy">${IC.hist}<div class="main"><div class="nm">${t('nhatKy')}</div></div>${IC.chev}</button>
+      ${srvOld('tldr') ? '' : `<button class="row" data-act="go" data-v="tlCfg">${IC.link}<div class="main"><div class="nm">${t('t_tlCfg')}</div><div class="sub">${t('tlCfgSub')}</div></div>${IC.chev}</button>`}
       ${srvOld('saoluu') ? '' : `<button class="row" data-act="go" data-v="saoLuu">${IC.dl}<div class="main"><div class="nm">${t('t_saoLuu')}</div><div class="sub">${t('slSub')}</div></div>${IC.chev}</button>`}
       </div>${sec('appInfo')}<div class="card pad"><dl class="kv">
       <dt>${t('appVer')}</dt><dd class="mono">${esc(APP_VER)}${IS_DEMO ? ' · demo' : ''}</dd>
@@ -7431,7 +8021,7 @@ async function doPin(el) {
 function logout(expired) {
   closeSheet(); stopScan();
   S.tk = null; S.me = null; S.base = null; S.V = null; S.stack = [];
-  Object.assign(S.f, { dTab: 'ghi', dKy: '', dCT: '', dYear: 0, q: '', histQ: '' });
+  Object.assign(S.f, { dTab: 'ghi', dKy: '', dCT: '', dYear: 0, q: '', histQ: '', tcUid: '', tcTuan: '', tcThang: '' });
   store.del('bd_tk'); store.del('bd_me'); store.del('bd_snap');
   renderLogin(expired ? t('HET_PHIEN') : '');
 }
@@ -7880,7 +8470,7 @@ Object.assign(ACT, {
 });
 // ===================== TÀI LIỆU MÁY · 设备资料 =====================
 // Tệp để riêng tư trên Drive của nhà máy: app lấy qua máy chủ khi mở. Ảnh có thêm ảnh nhỏ (xem nhanh, lưu đệm khi mất mạng).
-const TL_NHOM = ['HDSD', 'BANVE', 'QUYTRINH', 'ANH', 'KHAC'], TL_MAX = 10 * 1024 * 1024;
+const TL_NHOM = ['HDSD', 'BANVE', 'QUYTRINH', 'KIEMDINH', 'ANH', 'KHAC'], TL_MAX = 10 * 1024 * 1024;
 const TL_DUOI = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif', txt: 'text/plain', csv: 'text/csv',
   doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel',
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ppt: 'application/vnd.ms-powerpoint',
@@ -7897,7 +8487,8 @@ function tlLoai(x) {
 }
 function tlHost(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
 function tlSection(ma, chiXem) {
-  const ds = tlCua(ma), them = !chiXem && can('confirm') && !srvOld('saoluu');
+  if (!can('tailieu')) return '';
+  const ds = tlCua(ma), them = !chiXem && can('tailieu') && !srvOld('saoluu');
   const anh = ds.filter((x) => x.kieu === 'ANH'), khac = ds.filter((x) => x.kieu !== 'ANH');
   let o = them ? `<div class="btns tlbtns"><button class="btn sm" data-act="tlChon" data-ma="${esc(ma)}">${IC.plus} ${t('tlTaiTep')}</button>
     <button class="btn ghost sm" data-act="tlChon" data-ma="${esc(ma)}" data-cam="1">${IC.cam} ${t('tlChupAnh')}</button>
@@ -7907,9 +8498,7 @@ function tlSection(ma, chiXem) {
     ${x.daiDien ? `<i class="ddb">${esc(tv('tlDaiDien'))}</i>` : ''}<span class="tlcap">${esc(x.ten)}</span>${chiXem ? '' : `<button type="button" class="tlmenu" data-act="tlMenu" data-id="${esc(x.id)}" aria-label="${esc(tp('tlThaoTac'))}">⋯</button>`}</div>`).join('')}</div>`;
   TL_NHOM.filter((g) => g !== 'ANH' || khac.some((x) => x.nhom === 'ANH')).forEach((g) => {
     const a = khac.filter((x) => x.nhom === g); if (!a.length) return;
-    o += `<div class="tlg">${t('tl_' + g)}</div><div class="list">${a.map((x) => `<div class="row tlrow"><button type="button" class="main tlopen" data-act="tlMo" data-id="${esc(x.id)}">
-      <span class="tlic t-${tlLoai(x).toLowerCase()}">${tlLoai(x)}</span><span class="tlt"><b>${esc(x.ten)}</b><span class="sub">${x.kieu === 'LINK' ? esc(tlHost(x.url)) : tlKB(x.kichThuoc)} · ${esc(x.nguoiTao || '')} · ${esc(fmtD((x.lucTao || '').slice(0, 10)))}</span></span></button>
-      ${chiXem ? '' : `<button type="button" class="lnk tlmenu2" data-act="tlMenu" data-id="${esc(x.id)}" aria-label="${esc(tp('tlThaoTac'))}">⋯</button>`}</div>`).join('')}</div>`;
+    o += `<div class="tlg">${t('tl_' + g)}</div><div class="list">${a.map((x) => tlRow(x, false, chiXem)).join('')}</div>`;
   });
   return o;
 }
@@ -7934,8 +8523,17 @@ function tlNhomChips(sel) {
   return `<div class="chips" id="tlNhom">${TL_NHOM.map((g) => `<button type="button" class="chip${g === sel ? ' on' : ''}" data-act="tlNhomChon" data-g="${g}">${t('tl_' + g)}</button>`).join('')}</div>`;
 }
 function tlApDung(d) {
-  S.base.taiLieu = (S.base.taiLieu || []).filter((x) => x.ma !== d.ma).concat(d.taiLieu || []);
+  if (d.tlFull) S.base.taiLieu = d.taiLieu || [];
+  else if (d.taiLieu) S.base.taiLieu = (S.base.taiLieu || []).filter((x) => x.ma !== d.ma).concat(d.taiLieu || []);
+  if (d.tlInfo !== undefined) S.base.tlInfo = d.tlInfo;
   saveSnap(); rebuild(); render();
+}
+// dataURL → Blob, để nén lại ảnh đã lấy từ máy chủ
+function tlDataBlob(data) {
+  const i = String(data).indexOf(','), mime = String(data).slice(5, i).split(';')[0] || 'image/jpeg';
+  const bin = atob(String(data).slice(i + 1)), u8 = new Uint8Array(bin.length);
+  for (let k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k);
+  return new Blob([u8], { type: mime });
 }
 Object.assign(ACT, {
   tlChon: (el) => {
@@ -8002,8 +8600,18 @@ Object.assign(ACT, {
     let data = TL_FILE[x.id];
     if (!data) {
       toast(t('tlDangMo'));
-      try { data = (await api('docGet', { id: x.id }, { timeout: 120 })).data; TL_FILE[x.id] = data; }
-      catch (e) { toast(e.code === 'MANG' ? t('tlCanMang') : errMsg(e), true); return; }
+      try {
+        const r = await api('docGet', { id: x.id }, { timeout: 120 });
+        if (r.link) {
+          const tt0 = $('.toast'); if (tt0) tt0.remove();
+          openSheet(`<div class="grab"></div><h3>${esc(x.ten)}</h3><div class="who">${esc(tv('tlMoBangDrive'))}</div>
+            <p class="help">${t('tlMoBangDriveHelp')}</p>
+            <div class="btns"><a class="btn" href="${esc(r.link)}" target="_blank" rel="noopener">${IC.link} ${t('tlMoBangDrive')}</a>
+            <button class="btn ghost" data-act="closeSheet">${t('close')}</button></div>`);
+          return;
+        }
+        data = r.data; TL_FILE[x.id] = data;
+      } catch (e) { toast(e.code === 'MANG' ? t('tlCanMang') : errMsg(e), true); return; }
     }
     const tt = $('.toast'); if (tt) tt.remove();
     if (x.kieu === 'ANH') {
@@ -8025,18 +8633,22 @@ Object.assign(ACT, {
   },
   tlMenu: (el) => {
     const x = (S.base.taiLieu || []).find((v) => v.id === el.dataset.id); if (!x) return;
-    const xoa = can('may') || x.uidTao === (S.me || {}).id;
-    openSheet(`<div class="grab"></div><h3>${esc(x.ten)}</h3><div class="who">${t('tl_' + x.nhom)} · ${esc(x.nguoiTao || '')} · ${esc(fmtD((x.lucTao || '').slice(0, 10)))}</div>
-      <div class="list">${x.kieu === 'ANH' && !x.daiDien ? `<button class="row" data-act="tlDDGo" data-id="${esc(x.id)}">${IC.img}<div class="main"><div class="nm">${t('tlLamDaiDien')}</div></div></button>` : ''}
+    const xoa = can('tailieu'), dd = x.kieu === 'ANH' && !x.daiDien && (x.anhNho || x.moDuoc);
+    openSheet(`<div class="grab"></div><h3>${esc(x.ten)}</h3>
+      <div class="who">${t('tl_' + (x.nhom || 'KHAC'))}${x.ma ? ` · <span class="code">${esc(mh(x.ma))}</span>` : ''} · ${esc(fmtD((x.lucTao || '').slice(0, 10)))}</div>
+      ${x.nguon === 'DRIVE' ? `<div class="who">${esc(tv('tlNguonDrive'))}${x.duongDan ? ' · ' + esc(x.duongDan) : ''}</div>` : ''}
+      <div class="list">${dd ? `<button class="row" data-act="tlDDGo" data-id="${esc(x.id)}">${IC.img}<div class="main"><div class="nm">${t('tlLamDaiDien')}</div></div></button>` : ''}
       <button class="row" data-act="tlMo" data-id="${esc(x.id)}">${IC.chev}<div class="main"><div class="nm">${t('tlMo')}</div></div></button>
-      ${xoa ? `<button class="row" data-act="tlXoaHoi" data-id="${esc(x.id)}">${IC.out}<div class="main"><div class="nm red">${t('tlXoa')}</div></div></button>` : ''}</div>
+      ${x.ma && !x.hienHanh ? `<button class="row" data-act="tlHienHanh" data-id="${esc(x.id)}">${IC.check}<div class="main"><div class="nm">${t('tlDatHienHanh')}</div></div></button>` : ''}
+      ${xoa ? `<button class="row" data-act="tlXoaHoi" data-id="${esc(x.id)}">${IC.out}<div class="main"><div class="nm red">${t(x.nguon === 'DRIVE' ? 'tlBoKhoiDS' : 'tlXoa')}</div></div></button>` : ''}</div>
       <div class="err" id="tlErr" hidden></div>`);
   },
   tlXoaHoi: (el) => {
     const x = (S.base.taiLieu || []).find((v) => v.id === el.dataset.id); if (!x) return;
-    openSheet(`<div class="grab"></div><h3>${tv('tlXoa')}<span class="zi">${tz('tlXoa')}</span></h3><div class="who"><b>${esc(x.ten)}</b></div>
-      <p class="help">${t('tlXoaHelp')}</p><div class="err" id="tlErr" hidden></div>
-      <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="tlXoaGo" data-id="${esc(x.id)}">${t('tlXoa')}</button></div>`);
+    const k = x.nguon === 'DRIVE' ? 'tlBoKhoiDS' : 'tlXoa';
+    openSheet(`<div class="grab"></div><h3>${tv(k)}<span class="zi">${tz(k)}</span></h3><div class="who"><b>${esc(x.ten)}</b></div>
+      <p class="help">${t(x.nguon === 'DRIVE' ? 'tlBoKhoiDSHelp' : 'tlXoaHelp')}</p><div class="err" id="tlErr" hidden></div>
+      <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="tlXoaGo" data-id="${esc(x.id)}">${t(k)}</button></div>`);
   },
   tlXoaGo: async (el) => {
     el.disabled = true;
@@ -8044,9 +8656,18 @@ Object.assign(ACT, {
     catch (e) { el.disabled = false; const fe = $('#tlErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
   },
   tlDDGo: async (el) => {
+    const x = (S.base.taiLieu || []).find((v) => v.id === el.dataset.id); if (!x) return;
     el.disabled = true;
-    try { const d = await api('docCover', { id: el.dataset.id }); closeSheet(); toast(t('saved')); tlApDung(d); }
-    catch (e) { el.disabled = false; const fe = $('#tlErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+    try {
+      const pay = { id: x.id };
+      // Ảnh quét từ Drive chưa có ảnh nhỏ: nén ngay trên máy rồi gửi kèm, để ảnh đại diện hiện được với mọi người
+      if (!x.anhNho) {
+        let data = TL_FILE[x.id];
+        if (!data) { const r = await api('docGet', { id: x.id }, { timeout: 120 }); data = r.data || ''; if (data) TL_FILE[x.id] = data; }
+        if (data) pay.anhNho = await imgCompress(tlDataBlob(data), 360, 28);
+      }
+      const d = await api('docCover', pay); closeSheet(); toast(t('saved')); tlApDung(d);
+    } catch (e) { el.disabled = false; const fe = $('#tlErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
   }
 });
 Object.assign(TX, {
@@ -8068,6 +8689,290 @@ Object.assign(ERR, {
   CAN_DONG_Y: ['Đánh dấu ô xác nhận trước khi khôi phục.', '请先勾选确认。'], NAM_SAI: ['Chỉ chuyển được dữ liệu từ 2 năm trước trở về trước.', '只能归档两年前及更早的数据。'],
   GIA_SAI: ['Ngày áp dụng và 3 đơn giá phải hợp lệ.', '生效日期和三个电价必须有效。'], GIA_TRUNG: ['Có hai bảng giá cùng ngày áp dụng ({m}).', '有两个电价生效日期相同（{m}）。']
 });
+// ===================== NỐI DRIVE · SẮP XẾP · TRA CỨU TÀI LIỆU =====================
+// Tài liệu nhà máy đã có sẵn trên Drive: Quản lý dán link thư mục, app quét vào danh mục rồi sắp xếp.
+// Chỉ Quản trị và Quản lý thấy ba màn này (xem HAN_CHE); kỹ thuật không mở được tài liệu.
+const tlInfo = () => (S.base && S.base.tlInfo) || null;
+const tlAll = () => (S.base && S.base.taiLieu ? S.base.taiLieu : []);
+const tlTenMa = (ma) => {
+  if (!ma) return '';
+  const m = S.V && (S.V.byMa[ma] || S.V.chByMa[ma]);
+  return m ? m.ten || ma : ma;
+};
+// Nhãn trạng thái của một tài liệu: mất trên Drive, bản cũ, tài liệu gốc trên Drive
+function tlNhan(x) {
+  let o = '';
+  if (x.nguon === 'DRIVE' && !x.conTrenDrive) o += `<i class="tlbad bad">${esc(tv('tlMat'))}</i>`;
+  else if (x.ma && !x.hienHanh) o += `<i class="tlbad">${esc(tv('tlBanCu'))}</i>`;
+  return o;
+}
+// Dòng phụ: đường dẫn thư mục trên Drive (tài liệu quét) hoặc người tải lên (tệp tải từ app)
+function tlPhu(x) {
+  const a = [];
+  if (x.kieu === 'LINK') a.push(tlHost(x.url));
+  else if (x.kichThuoc) a.push(tlKB(x.kichThuoc));
+  if (x.nguon === 'DRIVE') { if (x.duongDan) a.push(x.duongDan); }
+  else a.push(esc(x.nguoiTao || ''));
+  if (x.lucTao) a.push(esc(fmtD((x.lucTao || '').slice(0, 10))));
+  return a.filter((v) => v).join(' · ');
+}
+function tlRow(x, phuMa, chiXem) {
+  return `<div class="row tlrow"><button type="button" class="main tlopen" data-act="tlMo" data-id="${esc(x.id)}">
+    <span class="tlic t-${tlLoai(x).toLowerCase()}">${tlLoai(x)}</span><span class="tlt"><b>${esc(x.ten)}${tlNhan(x)}</b>
+    <span class="sub">${phuMa && x.ma ? `<span class="code">${esc(mh(x.ma))}</span> · ` : ''}${tlPhu(x)}</span></span></button>
+    ${chiXem ? '' : `<button type="button" class="lnk tlmenu2" data-act="tlMenu" data-id="${esc(x.id)}" aria-label="${esc(tp('tlThaoTac'))}">⋯</button>`}</div>`;
+}
+// ---------- Quản trị → Tài liệu: nối thư mục Drive, gán nhóm cho thư mục, quét ----------
+VIEWS.tlCfg = {
+  html(p) {
+    const x = tlInfo();
+    if (!x) return `<div class="card empty">${t('tlCanQL')}</div>` + srvWarn('tldr');
+    if (x.id && x.nhe && !p.loi) return `<div class="card empty" id="tlLoad">${t('loading')}</div>`;
+    const d = x.dem || {};
+    let o = `<div class="card pad">${sec('tlThuMuc')}
+      ${x.id && x.doc
+    ? `<dl class="kv"><dt>${t('tlTenThuMuc')}</dt><dd><b>${esc(x.ten)}</b></dd>
+        <dt>${t('tlLanQuet')}</dt><dd>${x.lucQuet ? esc(tgDay(x.lucQuet)) : '—'}</dd></dl>
+        ${IS_DEMO || !x.url ? '' : `<div class="btns" style="margin-top:10px"><a class="btn ghost sm" href="${esc(x.url)}" target="_blank" rel="noopener">${IC.link} ${t('tlMoThuMuc')}</a></div>`}`
+    : x.id
+      ? `<div class="note warn">${t('tlKhongDoc', { e: esc(x.taiKhoan || '?') })}</div>`
+      : `<div class="help">${t('tlChuaNoi', { e: esc(x.taiKhoan || '?') })}</div>`}
+      <label class="fld" style="margin-top:12px"><span>${t('tlLinkThuMuc')}</span>
+        <input class="inp mono" id="tlLink" placeholder="https://drive.google.com/drive/folders/…" value=""></label>
+      <div class="help" style="margin-top:6px">${t('tlLinkTM')}</div>
+      <div id="tlCfgErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:12px"><button class="btn pri" id="tlNoiOk">${IC.link} ${t('tlNoiBtn')}</button>
+        ${x.id ? `<button class="btn ghost" id="tlKtra">${t('tlKtraBtn')}</button>` : ''}</div></div>`;
+    if (x.id && x.doc) {
+      o += sec('tlNhomThuMuc') + `<div class="card pad"><div class="help" style="margin-bottom:10px">${t('tlNhomTMHelp')}</div>
+        ${x.con.length
+    ? `<div class="list">${x.con.map((c) => `<div class="row"><div class="main"><div class="nm">${esc(c.ten)}</div></div>
+          <div class="end"><select class="inp" data-tm="${esc(c.id)}">
+          <option value=""${c.nhom ? '' : ' selected'}>${esc(tp('tlTuDoan'))}</option>
+          ${TL_NHOM.map((g) => `<option value="${g}"${c.nhom === g ? ' selected' : ''}>${esc(tp('tl_' + g))}</option>`).join('')}
+          </select></div></div>`).join('')}</div>
+          <div class="btns" style="margin-top:12px"><button class="btn" id="tlMapOk">${IC.check} ${t('save')}</button></div>`
+    : `<div class="card empty">${t('tlKhongThuMucCon')}</div>`}</div>`;
+      o += sec('tlQuet') + `<div class="card pad"><div class="help">${t('tlQuetHelp')}</div>
+        <dl class="kv" style="margin-top:10px"><dt>${t('tlDemTong')}</dt><dd>${fmtNum(d.tong || 0, 0)}</dd>
+        <dt>${t('tlDemDrive')}</dt><dd>${fmtNum(d.drive || 0, 0)}</dd>
+        <dt>${t('tlDemChuaGan')}</dt><dd class="${d.chuaGanMay ? 'bad' : ''}">${fmtNum(d.chuaGanMay || 0, 0)}</dd>
+        <dt>${t('tlDemMat')}</dt><dd class="${d.mat ? 'bad' : ''}">${fmtNum(d.mat || 0, 0)}</dd></dl>
+        <div class="btns" style="margin-top:12px"><button class="btn pri" id="tlQuetOk">${IC.dl} ${t('tlQuetBtn')}</button>
+          <button class="btn ghost" data-act="go" data-v="tlGan">${t('t_tlGan')}</button>
+          <button class="btn ghost" data-act="go" data-v="tlDS">${t('t_tlDS')}</button></div></div>`;
+    }
+    return o + srvWarn('tldr');
+  },
+  async after(p) {
+    const x = tlInfo();
+    // Thông tin thư mục (tên, các thư mục cấp 1) lấy riêng khi mở màn này
+    if (x && x.id && x.nhe && !p.loi) {
+      try { tlApDung(await api('docInfo', {})); }
+      catch (e) { p.loi = e.code === 'MANG' ? t('needNet') : errMsg(e); render(); }
+      return;
+    }
+    const err = (e) => { const el = $('#tlCfgErr'); el.innerHTML = e; el.hidden = false; };
+    if (p.loi) err(p.loi);
+    if (!$('#tlNoiOk')) return;
+    $('#tlNoiOk').addEventListener('click', async (ev) => {
+      const link = ($('#tlLink').value || '').trim();
+      if (!link) { err(t('tlThieuLink')); return; }
+      ev.target.disabled = true;
+      try { const d = await api('docFolder', { link }); tlApDung(d); toast(t('saved')); }
+      catch (e) { ev.target.disabled = false; err(e.code === 'MANG' ? t('needNet') : errMsg(e)); }
+    });
+    const kt = $('#tlKtra');
+    if (kt) kt.addEventListener('click', async (ev) => {
+      ev.target.disabled = true;
+      try { const d = await api('docInfo', {}); tlApDung(d); toast(t('tlKtraXong')); }
+      catch (e) { ev.target.disabled = false; err(e.code === 'MANG' ? t('needNet') : errMsg(e)); }
+    });
+    const mapOk = $('#tlMapOk');
+    if (mapOk) mapOk.addEventListener('click', async (ev) => {
+      const map = $$('[data-tm]').map((el) => ({ id: el.dataset.tm, nhom: el.value })).filter((v) => v.nhom);
+      ev.target.disabled = true;
+      try { const d = await api('docFolderMap', { map }); tlApDung(d); toast(t('saved')); }
+      catch (e) { ev.target.disabled = false; err(e.code === 'MANG' ? t('needNet') : errMsg(e)); }
+    });
+    const q = $('#tlQuetOk');
+    if (q) q.addEventListener('click', async (ev) => {
+      ev.target.disabled = true; ev.target.textContent = tv('tlDangQuet');
+      try {
+        const d = await api('docScan', {}, { timeout: 300 });
+        const r = d.quet || {};
+        tlApDung(d);
+        toast(r.conNua ? t('tlQuetConNua', { n: fmtNum(r.moi || 0, 0) }) : t('tlQuetXong', { n: fmtNum(r.moi || 0, 0), c: fmtNum(r.tep || 0, 0) }));
+      } catch (e) { ev.target.disabled = false; err(e.code === 'MANG' ? t('needNet') : errMsg(e)); }
+    });
+  }
+};
+// ---------- Sắp xếp: gán máy và nhóm cho nhiều tài liệu một lượt ----------
+const TL_LOC = ['chuaMay', 'chuaNhom', 'mat', 'tatCa'];
+function tlLocDS(loc, q) {
+  const k = (q || '').trim().toLowerCase();
+  return tlAll().filter((x) => {
+    if (loc === 'chuaMay' && x.ma) return false;
+    if (loc === 'chuaNhom' && x.nhom && x.nhom !== 'KHAC') return false;
+    if (loc === 'mat' && x.conTrenDrive) return false;
+    if (!k) return true;
+    return [x.ten, x.duongDan, x.ma, mh(x.ma), tlTenMa(x.ma)].some((v) => String(v || '').toLowerCase().includes(k));
+  }).sort((a, b) => (a.duongDan || '').localeCompare(b.duongDan || '') || (a.ten || '').localeCompare(b.ten || ''));
+}
+VIEWS.tlGan = {
+  html(p) {
+    if (!p.init) Object.assign(p, { init: 1, loc: 'chuaMay', q: '', sel: {} });
+    const ds = tlLocDS(p.loc, p.q), nSel = Object.keys(p.sel).filter((k) => p.sel[k]).length;
+    let o = `<div class="chips">${TL_LOC.map((k) => `<button type="button" class="chip${p.loc === k ? ' on' : ''}" data-act="tlLoc" data-k="${k}">${t('tlLoc_' + k)}</button>`).join('')}</div>
+      <label class="fld"><span>${t('search')}</span><input class="inp" id="tlQ" value="${esc(p.q)}" placeholder="${esc(tp('tlTimPH'))}"></label>
+      <div class="help" style="margin:8px 2px">${t('tlGanHelp')}</div>`;
+    if (!ds.length) return o + `<div class="card empty">${t('tlKhongCoDong')}</div>`;
+    o += `<div class="btns" style="margin:0 0 10px"><button class="btn ghost sm" data-act="tlChonHet">${t('tlChonHet')}</button>
+      <button class="btn ghost sm" data-act="tlBoChon">${t('tlBoChon')}</button></div>`;
+    o += `<div class="list">${ds.map((x) => `<label class="row tlpick"><input type="checkbox" data-tlc="${esc(x.id)}"${p.sel[x.id] ? ' checked' : ''}>
+      <div class="main"><div class="nm">${esc(x.ten)}${tlNhan(x)}</div>
+      <div class="sub">${x.duongDan ? esc(x.duongDan) + ' · ' : ''}${esc(tp('tl_' + (x.nhom || 'KHAC')))}${x.ma ? ` · <span class="code">${esc(mh(x.ma))}</span> ${esc(tlTenMa(x.ma))}` : ` · ${esc(tp('tlChuaGan'))}`}</div></div></label>`).join('')}</div>`;
+    o += `<div class="card pad" style="margin-top:12px"><div class="nm">${t('tlDaChon', { n: nSel })}</div>
+      <div class="btns" style="margin-top:10px"><button class="btn pri" data-act="tlGanMay"${nSel ? '' : ' disabled'}>${t('tlGanMayBtn')}</button>
+      <button class="btn" data-act="tlGanNhom"${nSel ? '' : ' disabled'}>${t('tlGanNhomBtn')}</button></div>
+      <div class="err" id="tlGanErr" hidden></div></div>`;
+    return o;
+  },
+  after(p) {
+    const q = $('#tlQ');
+    q.addEventListener('input', () => { p.q = q.value; });
+    q.addEventListener('change', () => render());
+    q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); render(); } });
+    $$('[data-tlc]').forEach((el) => el.addEventListener('change', () => {
+      p.sel[el.dataset.tlc] = el.checked; render();
+    }));
+  }
+};
+// ---------- Tra cứu tài liệu toàn nhà máy ----------
+VIEWS.tlDS = {
+  html(p) {
+    if (!p.init) Object.assign(p, { init: 1, nhom: '', q: '' });
+    const k = (p.q || '').trim().toLowerCase();
+    const ds = tlAll().filter((x) => (!p.nhom || x.nhom === p.nhom)
+      && (!k || [x.ten, x.duongDan, x.ma, mh(x.ma), tlTenMa(x.ma)].some((v) => String(v || '').toLowerCase().includes(k))));
+    let o = `<label class="fld"><span>${t('search')}</span><input class="inp" id="tlDSQ" value="${esc(p.q)}" placeholder="${esc(tp('tlTimPH'))}"></label>
+      <div class="chips" style="margin-top:10px"><button type="button" class="chip${p.nhom ? '' : ' on'}" data-act="tlDSNhom" data-g="">${t('tlLoc_tatCa')}</button>
+      ${TL_NHOM.map((g) => `<button type="button" class="chip${p.nhom === g ? ' on' : ''}" data-act="tlDSNhom" data-g="${g}">${t('tl_' + g)}</button>`).join('')}</div>`;
+    if (!ds.length) return o + `<div class="card empty">${t('tlKhongCoDong')}</div>`;
+    // Gom theo máy / chuyền, nhóm chưa gán máy xuống cuối
+    const theoMa = {};
+    ds.forEach((x) => { (theoMa[x.ma || ''] = theoMa[x.ma || ''] || []).push(x); });
+    const mas = Object.keys(theoMa).sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)));
+    o += sec('tlDSDem', fmtNum(ds.length, 0));
+    mas.forEach((ma) => {
+      o += `<div class="tlg">${ma ? `<span class="code">${esc(mh(ma))}</span> ${esc(tlTenMa(ma))}` : esc(tv('tlChuaGan'))}</div>`;
+      o += `<div class="list">${theoMa[ma].map((x) => tlRow(x, false)).join('')}</div>`;
+    });
+    return o;
+  },
+  after(p) {
+    const q = $('#tlDSQ');
+    q.addEventListener('input', () => { p.q = q.value; });
+    q.addEventListener('change', () => render());
+    q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); render(); } });
+  }
+};
+Object.assign(ACT, {
+  tlLoc: (el) => { topV().p.loc = el.dataset.k; render(); },
+  tlDSNhom: (el) => { topV().p.nhom = el.dataset.g; render(); },
+  tlChonHet: () => { const p = topV().p; tlLocDS(p.loc, p.q).forEach((x) => { p.sel[x.id] = true; }); render(); },
+  tlBoChon: () => { topV().p.sel = {}; render(); },
+  tlGanNhom: () => {
+    openSheet(`<div class="grab"></div><h3>${tv('tlGanNhomBtn')}<span class="zi">${tz('tlGanNhomBtn')}</span></h3>
+      <div class="list" style="margin-top:10px">${TL_NHOM.map((g) => `<button class="row" data-act="tlGanGo" data-g="${g}"><div class="main"><div class="nm">${t('tl_' + g)}</div></div>${IC.chev}</button>`).join('')}</div>
+      <div class="err" id="tlErr" hidden></div>`);
+  },
+  tlGanMay: () => {
+    const ds = (S.V.may || []).filter((m) => m.hoatDong).map((m) => ({ ma: m.ma, ten: m.ten })).concat((S.V.ch || []).map((c) => ({ ma: c.ma, ten: c.ten, ch: 1 })));
+    openSheet(`<div class="grab"></div><h3>${tv('tlGanMayBtn')}<span class="zi">${tz('tlGanMayBtn')}</span></h3>
+      <label class="fld" style="margin-top:8px"><input class="inp" id="tlMayQ" placeholder="${esc(tp('tlTimMayPH'))}"></label>
+      <div class="list" id="tlMayDS" style="margin-top:10px;max-height:46vh;overflow:auto"></div>
+      <div class="btns" style="margin-top:10px"><button class="btn ghost" data-act="tlGanGo" data-ma="">${t('tlBoGanMay')}</button></div>
+      <div class="err" id="tlErr" hidden></div>`, () => {
+      const ve = (k) => {
+        const kk = (k || '').trim().toLowerCase();
+        const a = ds.filter((x) => !kk || [x.ma, mh(x.ma), x.ten].some((v) => String(v || '').toLowerCase().includes(kk))).slice(0, 60);
+        $('#tlMayDS').innerHTML = a.length
+          ? a.map((x) => `<button class="row" data-act="tlGanGo" data-ma="${esc(x.ma)}"><div class="main"><div class="nm">${esc(x.ten)}</div>
+            <div class="sub"><span class="code">${esc(mh(x.ma))}</span>${x.ch ? ` · ${esc(tp('tlLaChuyen'))}` : ''}</div></div>${IC.chev}</button>`).join('')
+          : `<div class="card empty">${t('tlKhongCoDong')}</div>`;
+      };
+      ve('');
+      $('#tlMayQ').addEventListener('input', (e) => ve(e.target.value));
+    });
+  },
+  tlGanGo: async (el) => {
+    const p = topV().p, ids = Object.keys(p.sel).filter((k) => p.sel[k]);
+    if (!ids.length) return;
+    const pay = { ids };
+    if (el.dataset.g !== undefined) pay.nhom = el.dataset.g; else pay.ma = (el.dataset.ma || '').toUpperCase();
+    el.disabled = true;
+    try {
+      const d = await api('docAssign', pay);
+      closeSheet(); toast(t('tlDaGan', { n: fmtNum(d.n || 0, 0) }));
+      p.sel = {}; tlApDung(d);
+    } catch (e) { el.disabled = false; const fe = $('#tlErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  },
+  tlHienHanh: async (el) => {
+    el.disabled = true;
+    try { const d = await api('docCurrent', { id: el.dataset.id }); closeSheet(); toast(t('saved')); tlApDung(d); }
+    catch (e) { el.disabled = false; const fe = $('#tlErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  }
+});
+Object.assign(TX, {
+  t_tlCfg: ['Tài liệu · 资料', 'Tài liệu · 资料'], t_tlGan: ['Sắp xếp tài liệu', '整理资料'], t_tlDS: ['Tra cứu tài liệu', '查找资料'],
+  tlCfgSub: ['Nối thư mục Drive của nhà máy, quét và sắp xếp', '连接工厂云端硬盘文件夹、扫描并整理'],
+  tlCanQL: ['Chỉ Quản lý và Quản trị mở được mục này.', '仅主管和管理员可打开此项。'],
+  tlThuMuc: ['Thư mục Drive', '云端硬盘文件夹'], tlTenThuMuc: ['Thư mục', '文件夹'], tlLanQuet: ['Quét gần nhất', '最近扫描'],
+  tlMoThuMuc: ['Mở thư mục trên Drive', '在云端硬盘中打开'],
+  tlChuaNoi: ['Tài liệu đang để trên Drive thì không cần tải lại. Mở thư mục đó trên Drive → Chia sẻ → thêm địa chỉ <b>{e}</b> (Người xem là đủ để đọc, Người chỉnh sửa nếu muốn tải tệp lên từ app), rồi dán link thư mục vào đây.',
+    '资料已在云端硬盘上则无需重新上传。在云端硬盘打开该文件夹 → 共享 → 添加账号 <b>{e}</b>（只读即可查看，编辑权限才能从应用上传），然后把文件夹链接粘贴到此处。'],
+  tlKhongDoc: ['App chưa đọc được thư mục này. Hãy chia sẻ thư mục cho địa chỉ <b>{e}</b> rồi bấm Kiểm tra lại.', '应用无法访问此文件夹。请把文件夹共享给 <b>{e}</b>，然后点“重新检查”。'],
+  tlLinkThuMuc: ['Link thư mục Drive', '云端硬盘文件夹链接'], tlLinkTM: ['Mở thư mục trên Drive, sao chép link trên thanh địa chỉ (có /folders/…) rồi dán vào đây.', '在云端硬盘打开文件夹，复制地址栏链接（含 /folders/…）粘贴到此处。'],
+  tlNoiBtn: ['Nối thư mục', '连接文件夹'], tlKtraBtn: ['Kiểm tra lại', '重新检查'], tlKtraXong: ['Đã kiểm tra lại', '已重新检查'], tlThieuLink: ['Chưa dán link thư mục.', '未粘贴文件夹链接。'],
+  tlNhomThuMuc: ['Thư mục này là nhóm nào', '文件夹对应的类别'],
+  tlNhomTMHelp: ['Tài liệu xếp theo loại thì gán một lần ở đây: mọi tệp trong thư mục đó tự vào nhóm, kể cả tệp thêm sau này. Để “tự đoán” thì app xem tên tệp.',
+    '资料按类别分文件夹时在此处设置一次：该文件夹内所有文件自动归入该类别，以后新增的也一样。选“自动判断”则按文件名判断。'],
+  tlTuDoan: ['— tự đoán —', '— 自动判断 —'], tlKhongThuMucCon: ['Thư mục này không có thư mục con.', '此文件夹没有子文件夹。'],
+  tlQuet: ['Quét Drive', '扫描云端硬盘'],
+  tlQuetHelp: ['App đi hết thư mục và ghi tệp vào danh mục, không chép và không đổi tệp gốc. Quét lại để nhận tệp mới; tệp đã bị xoá hoặc chuyển đi sẽ được đánh dấu.',
+    '应用遍历文件夹并把文件登记到目录，不复制、不修改原文件。再次扫描可收录新文件；已删除或移走的文件会被标记。'],
+  tlQuetBtn: ['Quét Drive', '扫描云端硬盘'], tlDangQuet: ['Đang quét…', '正在扫描…'],
+  tlQuetXong: ['Xong: thêm {n} tài liệu, đã xem {c} tệp', '完成：新增{n}份资料，共检查{c}个文件'],
+  tlQuetConNua: ['Đã thêm {n} tài liệu. Còn tệp chưa quét, bấm Quét Drive lần nữa.', '已新增{n}份资料。还有未扫描的文件，请再点一次“扫描云端硬盘”。'],
+  tlDemTong: ['Tài liệu trong danh mục', '目录中的资料'], tlDemDrive: ['Trong đó lấy từ Drive', '其中来自云端硬盘'],
+  tlDemChuaGan: ['Chưa gán máy', '未关联设备'], tlDemMat: ['Không còn trên Drive', '云端硬盘上已不存在'],
+  tlLoc_chuaMay: ['Chưa gán máy', '未关联设备'], tlLoc_chuaNhom: ['Chưa gán nhóm', '未分类'], tlLoc_mat: ['Không còn trên Drive', '已不存在'], tlLoc_tatCa: ['Tất cả', '全部'],
+  tlGanHelp: ['Chọn nhiều tài liệu rồi gán một máy hoặc một nhóm cho cả nhóm đã chọn.', '勾选多份资料后，一次性为其指定设备或类别。'],
+  tlChonHet: ['Chọn hết', '全选'], tlBoChon: ['Bỏ chọn', '取消选择'], tlDaChon: ['Đã chọn {n} tài liệu', '已选{n}份资料'],
+  tlGanMayBtn: ['Gán máy / chuyền', '指定设备/产线'], tlGanNhomBtn: ['Gán nhóm', '指定类别'], tlBoGanMay: ['Bỏ gán máy', '取消设备关联'],
+  tlDaGan: ['Đã gán {n} tài liệu', '已设置{n}份资料'], tlChuaGan: ['Chưa gán máy', '未关联设备'], tlLaChuyen: ['Chuyền sản xuất', '产线'],
+  tlTimPH: ['Tên tài liệu, thư mục, mã máy', '资料名称、文件夹、设备编号'], tlTimMayPH: ['Tìm máy hoặc chuyền', '查找设备或产线'],
+  tlKhongCoDong: ['Không có tài liệu nào khớp.', '没有符合的资料。'], tlDSDem: ['Tài liệu', '资料'],
+  tlMat: ['Không còn trên Drive', '已不存在'], tlBanCu: ['Bản cũ', '旧版'], tlBanHienHanh: ['Bản hiện hành', '现行版'],
+  tlDatHienHanh: ['Đặt làm bản hiện hành', '设为现行版'], tlNguonDrive: ['Tài liệu gốc trên Drive của nhà máy', '工厂云端硬盘上的原始文件'],
+  tlBoKhoiDS: ['Bỏ khỏi danh mục', '从目录移除'],
+  tlBoKhoiDSHelp: ['Chỉ bỏ khỏi danh mục của app. Tệp gốc trên Drive của nhà máy không bị xoá, và những lần quét sau cũng không thêm lại tài liệu này.',
+    '仅从应用目录中移除。工厂云端硬盘上的原始文件不会被删除，以后扫描也不会再次收录此资料。'],
+  tlMoBangDrive: ['Mở bằng Google Drive', '用云端硬盘打开'],
+  tlMoBangDriveHelp: ['Tệp lớn hoặc loại tệp app không xem được (bản vẽ CAD, tệp nén). Mở bằng Drive cần tài khoản Google có quyền vào thư mục.',
+    '文件过大或应用无法预览的类型（CAD图纸、压缩包）。用云端硬盘打开需要有该文件夹权限的Google账号。'],
+  srvMissTLDr: ['Nối thư mục Drive và sắp xếp tài liệu', '连接云端硬盘文件夹与整理资料']
+});
+Object.assign(ERR, {
+  TL_LINK_SAI: ['Dán link thư mục Google Drive (link có /folders/…).', '请粘贴Google云端硬盘文件夹链接（含/folders/…）。'],
+  TL_KHONG_DOC_DUOC: ['App không đọc được thư mục này. Hãy chia sẻ thư mục cho tài khoản chạy app.', '应用无法访问此文件夹。请把文件夹共享给运行应用的账号。'],
+  TL_KHONG_GHI_DUOC: ['App không ghi được vào thư mục Drive. Chia sẻ thư mục với quyền Người chỉnh sửa.', '应用无法写入该文件夹。请给予编辑权限。'],
+  TL_CHUA_NOI: ['Chưa nối thư mục Drive.', '未连接云端硬盘文件夹。'],
+  THIEU_CHON: ['Chưa chọn tài liệu nào.', '未选择资料。'], THIEU_GAN: ['Chưa chọn máy hay nhóm.', '未选择设备或类别。'],
+  NHOM_SAI: ['Nhóm tài liệu không hợp lệ.', '资料类别无效。'], CHUA_GAN_MAY: ['Tài liệu chưa gán máy nên chưa đặt làm ảnh đại diện được.', '资料未关联设备，无法设为封面。']
+});
+
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
@@ -8167,14 +9072,14 @@ Object.assign(ERR, {
 });
 
 // Máy chủ cũ hơn bản app cần (ví dụ triển khai chưa lên Phiên bản mới): báo rõ cách sửa
-const SRV_CAN = '2.10.0';
+const SRV_CAN = '2.11.0';
 function verLt(a, b) {
   const x = String(a || '0').split('.').map((n) => +n || 0), y = String(b).split('.').map((n) => +n || 0);
   for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0);
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -11443,6 +12348,21 @@ function rebuildCV() {
       list.forEach((x) => { if (x.loai === 'BD' && x.ma === q.p.ma && cvMo(x)) { x.trangThai = 'DONG'; x.ketQua = tv('cvXacNhanBD') + ' ' + fmtD(q.p.ngay); x.ketQuaDich = tz('cvXacNhanBD') + ' ' + fmtD(q.p.ngay); x.cho = true; } });
     }
   });
+  // Tăng ca: dữ liệu máy chủ + việc đang chờ gửi
+  const tcL = (b.tangCa || []).map((x) => Object.assign({}, x));
+  S.Q.forEach((q) => {
+    if (q.st !== 'cho') return;
+    if (q.action === 'saveOT') {
+      const o = { id: q.p.id || 'tmp-' + q.opId, uid: q.p.uid || q.uid, ngay: q.p.ngay, ca: q.p.ca, tu: q.p.tu, den: q.p.den,
+        soGio: +q.p.soGio || 0, lyDo: q.p.lyDo || '', lyDoDich: '', cho: true };
+      const i = tcL.findIndex((x) => x.id === o.id);
+      if (i >= 0) tcL[i] = Object.assign({}, tcL[i], o); else tcL.push(o);
+    } else if (q.action === 'deleteOT') {
+      const i = tcL.findIndex((x) => x.id === q.p.id);
+      if (i >= 0) tcL.splice(i, 1);
+    }
+  });
+  S.V.tc = tcL;
   // Bản ghi "Ghi sửa chữa" chỉ là lịch sử: không vào danh sách / bảng / thống kê công việc, xem ở Lịch sử sửa chữa
   Object.assign(S.V, { cv: list.filter((x) => !laSC(x)), cvAll: list, cvById: byId, vl: xemHet() ? b.viecLap || [] : [] });
 }
@@ -12208,6 +13128,443 @@ Object.assign(ACT, {
     await saveFile(blob, 'Bao-cao-cong-viec-' + ym + '.xlsx');
   }
 });
+// ===================== Tăng ca =====================
+// Mỗi người đăng ký tăng ca của mình, xem và in đơn của mình. Quản lý, Quản trị xem cả nhà máy.
+// Đơn in theo tuần đúng mẫu giấy "ĐƠN XIN TĂNG CA · 自愿加班申请单", tổng hợp và xuất Excel theo tháng.
+Object.assign(TX, {
+  navTC: ['Tăng ca', '加班'], t_tc: ['Đăng ký tăng ca', '加班登记'], t_tcGhi: ['Ghi tăng ca', '记录加班'],
+  t_tcXem: ['Đơn xin tăng ca', '加班申请单'], t_tcThang: ['Tổng hợp tăng ca', '加班汇总'], t_tcCfg: ['Ca làm việc', '班次设置'],
+  tcNV: ['Thông tin nhân viên', '员工信息'], tcHoTen: ['Họ tên', '姓名'], tcMaThe: ['Mã số thẻ', '工号'],
+  tcBoPhan: ['Bộ phận', '部门'], tcBoPhanZh: ['Bộ phận tiếng Trung', '部门（中文）'], tcChucVu: ['Chức vụ', '职务/职称'],
+  tcSuaHoSo: ['Sửa thông tin in trên đơn', '修改申请单信息'], tcHoSoHelp: ['Thông tin này in lên đơn tăng ca. Điền một lần, lần sau app tự điền.', '此信息将打印在加班申请单上。填写一次，以后自动填充。'],
+  tcChuaHoSo: ['Chưa có mã số thẻ, bộ phận, chức vụ — bấm để điền', '尚未填写工号、部门、职务 — 点击填写'],
+  tcDaLuuHoSo: ['Đã lưu thông tin', '信息已保存'],
+  tcTuanN: ['Tuần {a} – {b}', '{a} – {b} 周'], tcDS: ['Danh sách tăng ca', '加班明细'], tcLanN: ['{n} lần', '{n}次'],
+  tcTrong: ['Tuần này chưa có lần tăng ca nào', '本周暂无加班记录'], tcThem: ['Thêm ngày tăng ca', '添加加班日期'],
+  tcCa: ['Ca làm việc', '班次'], tcNgay: ['Ngày tăng ca', '加班日期'], tcTu: ['Từ giờ', '开始'], tcDen: ['Đến giờ', '结束'],
+  tcSoGio: ['Số tiếng TC', '加班工时'], tcTuTinh: ['tự tính theo giờ, sửa được', '按时间自动计算，可修改'],
+  tcLyDo: ['Lý do tăng ca', '加班原因'], tcLyDoPh: ['Ví dụ: Sửa máy in phun VKY01', '例如：维修喷印机VKY01'],
+  tcLyDoHelp: ['In ở cột Chú thích của đơn, sau tên ca.', '打印在申请单备注栏，位于班次名称之后。'],
+  tcTongTuan: ['Tổng giờ tuần này', '本周合计'], tcTongThang: ['Đã có trong tháng {m}', '{m}月累计'],
+  tcQuaThang: ['Vượt {g} giờ/tháng theo luật lao động — đang là {n} giờ', '超过法定每月{g}小时 — 当前{n}小时'],
+  tcQuaNam: ['Vượt {g} giờ/năm theo luật lao động — đang là {n} giờ', '超过法定每年{g}小时 — 当前{n}小时'],
+  tcXemDon: ['Xem trước & in đơn', '预览并打印申请单'], tcInPdf: ['In / Lưu PDF', '打印 / 保存PDF'],
+  tcInHelp: ['Trên iPhone: bấm nút này, Safari hiện trang in, chọn Chia sẻ → Lưu vào Tệp là ra PDF. Trên máy tính: chọn máy in "Save as PDF".', 'iPhone：点击后Safari显示打印页，选择"共享→存储到文件"即可生成PDF。电脑：打印机选择"Save as PDF"。'],
+  tcXuatTuan: ['Xuất Excel tuần', '导出本周Excel'], tcXuatThang: ['Xuất Excel tổng hợp tháng', '导出月度汇总Excel'],
+  tcMoThang: ['Tổng hợp theo tháng', '月度汇总'], tcNguoiXem: ['Đang xem', '正在查看'], tcCuaToi: ['Tăng ca của tôi', '我的加班'],
+  tcLuu: ['Lưu', '保存'], tcXoa: ['Xoá lần tăng ca này', '删除此条加班'], tcXoaHoi: ['Xoá rồi thì bảng tổng hợp tháng sẽ thiếu phần này.', '删除后月度汇总将不含此条。'],
+  tcDaXoa: ['Đã xoá', '已删除'], tcDaLuu: ['Đã lưu tăng ca', '加班已保存'],
+  tcGioSai: ['Giờ bắt đầu và kết thúc không hợp lệ', '开始或结束时间无效'],
+  tcChuaAi: ['Tháng này chưa có ai đăng ký tăng ca', '本月暂无加班登记'],
+  tcThangN: ['Tháng {m}/{y}', '{y}年{m}月'], tcCongBP: ['Cộng', '合计'], tcThGio: ['Tổng', '合计'],
+  tcChiTiet: ['Chi tiết trong tháng', '本月明细'], tcChiTietN: ['Chi tiết của {t}', '{t} 明细'],
+  tcCamLegend: ['Số màu cam: vượt {g} giờ/tháng theo luật lao động.', '橙色数字：超过法定每月{g}小时。'],
+  tcCaDat: ['Giờ điền sẵn cho từng ca', '各班次默认时间'],
+  tcCaHelp: ['Chọn ca ở màn ghi tăng ca thì app điền sẵn hai ô giờ này. Nhân viên vẫn sửa được từng lần.', '在记录加班时选择班次，系统自动填入以下时间，员工仍可逐次修改。'],
+  tcCaMa: ['Mã', '代码'], tcCaTen: ['Tên ca', '班次名称'], tcCaZh: ['Tiếng Trung', '中文'],
+  tcGioThang: ['Giới hạn giờ/tháng', '每月上限'], tcGioNam: ['Giới hạn giờ/năm', '每年上限'],
+  tcCfgLuu: ['Lưu ca làm việc', '保存班次'], tcCfgOk: ['Đã lưu ca làm việc', '班次已保存'],
+  tcMoCfg: ['Sửa ca làm việc', '修改班次'],
+  mTangCa: ['Tăng ca tháng {m}', '{m}月加班'], mTCGio: ['giờ', '小时'], mTCLan: ['{n} lần đăng ký', '登记{n}次'], mTCChua: ['chưa đăng ký lần nào', '暂无登记'],
+  srvMissTC: ['Bản 2.11: đăng ký tăng ca và in đơn.', '2.11版：加班登记与打印申请单。'],
+  xlTCNgay: ['Ngày tháng · 日期'], xlTCThu: ['Thứ · 星期'], xlTCNV: ['Họ tên · 姓名'], xlTCThe: ['Mã số thẻ · 工号'],
+  xlTCBP: ['Bộ phận · 部门'], xlTCCa: ['Ca làm việc · 班次'], xlTCTG: ['Thời gian tăng ca · 加班时间'],
+  xlTCGio: ['Số tiếng TC · 工时'], xlTCCT: ['Chú thích · 备注'], xlTCTong: ['Tổng · 合计']
+});
+
+const TC_MAC_DINH = [{ k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' },
+  { k: 'NGAY', ten: 'Ca ngày', zh: '日班', tu: '20:00', den: '22:00' },
+  { k: 'DEM', ten: 'Ca đêm', zh: '夜班', tu: '06:00', den: '08:00' },
+  { k: 'CN', ten: 'Chủ nhật', zh: '周日班', tu: '08:00', den: '17:00' }];
+const tcCaDS = () => { const a = (S.base && S.base.caiDat && S.base.caiDat.caTangCa) || []; return a.length ? a : TC_MAC_DINH; };
+const tcCaOf = (k) => tcCaDS().filter((c) => c.k === k)[0] || tcCaDS()[0];
+const tcMaxThang = () => +((S.base && S.base.caiDat && S.base.caiDat.gioTCThang) || 40);
+const tcMaxNam = () => +((S.base && S.base.caiDat && S.base.caiDat.gioTCNam) || 200);
+const tcLaGio = (t) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(t || ''));
+// Số tiếng tăng ca: đến giờ trừ từ giờ, qua 0 giờ vẫn đúng. Không trừ giờ nghỉ.
+function tcGio(tu, den) {
+  if (!tcLaGio(tu) || !tcLaGio(den)) return 0;
+  let p = (+den.slice(0, 2) * 60 + +den.slice(3, 5)) - (+tu.slice(0, 2) * 60 + +tu.slice(3, 5));
+  if (p <= 0) p += 24 * 60;
+  return Math.round(p / 60 * 100) / 100;
+}
+const tcSo = (n) => fmtNum(Math.round((+n || 0) * 100) / 100);
+// Tuần bắt đầu thứ Hai
+function tcThuHai(d) { const w = wday(d); return addD(d, -((w + 6) % 7)); }
+const tcTuanHT = () => S.f.tcTuan || tcThuHai(TODAY());
+const tcThangHT = () => S.f.tcThang || TODAY().slice(0, 7);
+const tcUid = () => S.f.tcUid || (S.me ? S.me.id : '');
+const tcSuaDuoc = (uid) => uid === (S.me ? S.me.id : '') || xemHet();
+function tcNguoi(uid) {
+  const me = S.me || {}, n = (S.V && S.V.nvById && S.V.nvById[uid]) || {};
+  const b = uid === me.id ? Object.assign({}, n, me) : n;
+  return { id: uid, ten: b.ten || '', tenZh: b.tenZh || '', maNV: b.maNV || '', maThe: b.maThe || '',
+    boPhan: b.boPhan || '', boPhanZh: b.boPhanZh || '', chucVu: b.chucVu || '' };
+}
+const tcLoc = (uid, tu, den) => (S.V.tc || []).filter((x) => x.uid === uid && x.ngay >= tu && x.ngay <= den)
+  .sort((a, b) => (a.ngay < b.ngay ? -1 : a.ngay > b.ngay ? 1 : a.tu < b.tu ? -1 : 1));
+const tcCong = (ds) => Math.round(ds.reduce((s, x) => s + (+x.soGio || 0), 0) * 100) / 100;
+const tcThangCua = (uid, ym) => tcCong((S.V.tc || []).filter((x) => x.uid === uid && x.ngay.slice(0, 7) === ym));
+const tcNamCua = (uid, y) => tcCong((S.V.tc || []).filter((x) => x.uid === uid && x.ngay.slice(0, 4) === y));
+function tcCanhBao(uid, ym) {
+  const th = tcThangCua(uid, ym), nam = tcNamCua(uid, ym.slice(0, 4));
+  if (th > tcMaxThang()) return t('tcQuaThang', { g: tcMaxThang(), n: tcSo(th) });
+  if (nam > tcMaxNam()) return t('tcQuaNam', { g: tcMaxNam(), n: tcSo(nam) });
+  return '';
+}
+
+// ---------- Màn đăng ký theo tuần ----------
+VIEWS.tc = {
+  html() {
+    const uid = tcUid(), n = tcNguoi(uid), tu = tcTuanHT(), den = addD(tu, 6), ds = tcLoc(uid, tu, den);
+    const sua = tcSuaDuoc(uid), ym = tu.slice(0, 7), cb = tcCanhBao(uid, ym);
+    let o = srvOld('tc') ? srvWarn('tc') : '';
+    if (xemHet()) {
+      o += `<div class="fld" style="margin-bottom:12px"><span>${t('tcNguoiXem')}</span>
+        <select class="inp" id="tcNguoi">${nvDS().map((v) => `<option value="${esc(v.id)}"${v.id === uid ? ' selected' : ''}>${esc(v.ten)}${v.maNV ? ' · ' + esc(v.maNV) : ''}</option>`).join('')}</select></div>`;
+    }
+    const thieu = !n.maThe || !n.boPhan || !n.chucVu;
+    o += sec('tcNV') + `<div class="card pad">
+      <dl class="kv kvwide"><dt>${t('tcHoTen')}</dt><dd>${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ` <span class="zi">${esc(n.tenZh)}</span>` : ''}</dd>
+        <dt>${t('tcMaThe')}</dt><dd class="mono">${esc(n.maThe || '—')}</dd>
+        <dt>${t('tcBoPhan')}</dt><dd>${esc(n.boPhan || '—')}${n.boPhanZh ? ` <span class="zi">${esc(n.boPhanZh)}</span>` : ''}</dd>
+        <dt>${t('tcChucVu')}</dt><dd>${esc(n.chucVu || '—')}</dd></dl>
+      ${uid === (S.me || {}).id ? `<div class="btns" style="margin-top:12px"><button class="btn ghost sm" data-act="tcHoSo">${IC.edit} ${t('tcSuaHoSo')}</button></div>
+        ${thieu ? `<div class="note" style="margin-top:10px">${t('tcChuaHoSo')}</div>` : ''}` : ''}</div>`;
+
+    o += sec('tcDS', tv('tcLanN', { n: ds.length })) + `<div class="caltools"><div class="stepper">
+      <button data-act="tcTuan" data-d="-1" aria-label="-">${IC.left}</button>
+      <b>${tv('tcTuanN', { a: fmtDM(tu), b: fmtDM(den) })}</b>
+      <button data-act="tcTuan" data-d="1" aria-label="+">${IC.right}</button></div></div>`;
+    o += `<div class="list" style="margin-top:12px">${ds.length ? ds.map((x, i) => tcRowHtml(x, i + 1)).join('')
+      : `<div class="card empty">${t('tcTrong')}</div>`}</div>`;
+    if (sua) o += `<button class="tcadd" data-act="tcThem">+ ${t('tcThem')}</button>`;
+    o += `<div class="card pad" style="margin-top:14px"><div class="tctot" style="margin:0;padding:0;border:0">
+      <span class="k">${t('tcTongTuan')}</span><span class="v">${tcSo(tcCong(ds))}</span>
+      <span class="k" style="margin-left:auto">${tv('tcTongThang', { m: +ym.slice(5, 7) })}</span>
+      <span class="v" style="font-size:18px">${tcSo(tcThangCua(uid, ym))}</span></div>
+      ${cb ? `<div class="note warn" style="margin-top:12px;background:var(--orange-bg);border-color:var(--orange);color:var(--orange)"><b>${esc(cb)}</b></div>` : ''}</div>`;
+    o += `<div class="btns" style="margin-top:14px">
+      <button class="btn" data-act="go" data-v="tcXem">${IC.dl} ${t('tcXemDon')}</button>
+      <button class="btn ghost" data-act="tcXuatTuan">${IC.dl} ${t('tcXuatTuan')}</button>
+      <button class="btn ghost" data-act="go" data-v="tcThang">${IC.cal} ${t('tcMoThang')}</button>
+      ${can('may') ? `<button class="btn ghost" data-act="go" data-v="tcCfg">${IC.gear} ${t('tcMoCfg')}</button>` : ''}</div>`;
+    return o;
+  },
+  after() {
+    const sl = $('#tcNguoi');
+    if (sl) sl.addEventListener('change', () => { S.f.tcUid = sl.value; render(); });
+  }
+};
+function tcRowHtml(x, i) {
+  const c = tcCaOf(x.ca), w = wday(x.ngay);
+  return `<button class="tcrow" data-act="tcSua" data-id="${esc(x.id)}">
+    <div class="h"><span class="no">${i}</span><b>${WD_VI_F[w]}, ${fmtDM(x.ngay)}</b>
+      <span class="mdtag md-KHONG">${esc(c.ten)}<i>${esc(c.zh || '')}</i></span>
+      ${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}
+      <span class="g">${tcSo(x.soGio)}<i>${t('mTCGio')}</i></span></div>
+    <div class="sub"><span class="mono">${esc(x.tu)} – ${esc(x.den)}</span>${x.lyDo ? ' · ' + svH(x.lyDo, x.lyDoDich) : ''}</div></button>`;
+}
+
+// ---------- Ghi / sửa một lần tăng ca ----------
+VIEWS.tcGhi = {
+  html(p) {
+    if (!p.init) {
+      const cu = p.id ? (S.V.tc || []).filter((x) => x.id === p.id)[0] : null;
+      const tu = tcTuanHT(), ht = TODAY();
+      const ngay = cu ? cu.ngay : (ht >= tu && ht <= addD(tu, 6) ? ht : tu);
+      const ca = cu ? cu.ca : (wday(ngay) === 0 ? 'CN' : tcCaDS()[0].k), c = tcCaOf(ca);
+      Object.assign(p, { init: 1, uid: (cu && cu.uid) || tcUid(), ngay, ca,
+        tu: cu ? cu.tu : c.tu, den: cu ? cu.den : c.den, gio: cu ? tcSo(cu.soGio) : tcSo(tcGio(c.tu, c.den)), ly: cu ? cu.lyDo : '' });
+    }
+    const n = tcNguoi(p.uid);
+    return `<form id="tcF" class="card pad" autocomplete="off">
+      <div class="help" style="margin-bottom:12px">${esc(n.ten)}${n.maThe ? ' · ' + esc(n.maThe) : ''}</div>
+      <div class="fld"><span>${t('tcCa')}</span><div class="chips">${tcCaDS().map((c) => `<button type="button" class="chip${c.k === p.ca ? ' on' : ''}" data-act="tcCaChon" data-k="${esc(c.k)}">${esc(c.ten)} <span class="zi">${esc(c.zh || '')}</span></button>`).join('')}</div></div>
+      <div class="row2f" style="margin-top:12px">
+        <label class="fld"><span>${t('tcNgay')}</span><input class="inp" id="tcNgay" type="date" value="${esc(p.ngay)}"></label>
+        <div class="row2f" style="gap:10px">
+          <label class="fld"><span>${t('tcTu')}</span><input class="inp mono" id="tcTu" type="time" value="${esc(p.tu)}"></label>
+          <label class="fld"><span>${t('tcDen')}</span><input class="inp mono" id="tcDen" type="time" value="${esc(p.den)}"></label></div></div>
+      <div class="tcgio"><span>${tv('tcSoGio')} <span class="zi">${tz('tcSoGio')}</span></span><input id="tcGioIn" inputmode="decimal" maxlength="6" value="${esc(p.gio)}"><small class="help">${t('tcTuTinh')}</small></div>
+      <label class="fld"><span>${t('tcLyDo')}</span><textarea class="inp" id="tcLy" rows="2" maxlength="300" placeholder="${esc(tp('tcLyDoPh'))}">${esc(p.ly)}</textarea></label>
+      <div class="help" style="margin-top:6px">${t('tcLyDoHelp')}</div>
+      <div id="tcErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:16px"><button type="button" class="btn pri" id="tcOk">${IC.check} ${t('tcLuu')}</button>
+        ${p.id ? `<button type="button" class="btn ghost" data-act="tcXoa" data-id="${esc(p.id)}">${t('tcXoa')}</button>` : ''}</div>
+    </form>`;
+  },
+  after(p) {
+    const tu = $('#tcTu'), den = $('#tcDen'), g = $('#tcGioIn'), ng = $('#tcNgay'), ly = $('#tcLy');
+    const lai = () => { p.tu = tu.value; p.den = den.value; if (tcLaGio(p.tu) && tcLaGio(p.den)) { p.gio = tcSo(tcGio(p.tu, p.den)); g.value = p.gio; } };
+    tu.addEventListener('change', lai); den.addEventListener('change', lai);
+    g.addEventListener('input', () => { p.gio = g.value; });
+    ng.addEventListener('change', () => { p.ngay = ng.value; });
+    ly.addEventListener('input', () => { p.ly = ly.value; });
+    $('#tcOk').addEventListener('click', tcGui);
+  }
+};
+async function tcGui() {
+  const p = topV().p, e = $('#tcErr');
+  const bao = (m) => { e.hidden = false; e.textContent = m; };
+  if (!tcLaGio(p.tu) || !tcLaGio(p.den) || p.tu === p.den) { bao(t('tcGioSai')); return; }
+  const gio = Number(String(p.gio || '').replace(',', '.'));
+  if (!(gio > 0 && gio <= 24)) { bao(t('tcGioSai')); return; }
+  e.hidden = true;
+  const btn = $('#tcOk'); btn.disabled = true;
+  const r = await send('saveOT', { id: p.id || '', uid: p.uid, ngay: p.ngay, ca: p.ca, tu: p.tu, den: p.den, soGio: gio, lyDo: p.ly || '' });
+  btn.disabled = false;
+  if (r.err) { bao(errMsg(r.err)); return; }
+  toast(r.queued ? t('savedLocal') : t('tcDaLuu'));
+  S.f.tcTuan = tcThuHai(p.ngay); S.f.tcUid = p.uid;
+  back();
+}
+
+// ---------- Tờ đơn ----------
+function tcDonHtml(uid, tu) {
+  const n = tcNguoi(uid), den = addD(tu, 6), ds = tcLoc(uid, tu, den);
+  const so = Math.max(1, Math.ceil(ds.length / 6)), tongAll = tcCong(ds);
+  let o = '';
+  for (let t0 = 0; t0 < so; t0++) {
+    const a = ds.slice(t0 * 6, t0 * 6 + 6);
+    let tr = '';
+    for (let i = 0; i < Math.max(6, a.length); i++) {
+      const x = a[i];
+      if (!x) { tr += `<tr><td>${t0 * 6 + i + 1}</td><td></td><td></td><td></td><td class="ct"></td></tr>`; continue; }
+      const c = tcCaOf(x.ca), ct = x.lyDo ? c.ten + ' — ' + x.lyDo : c.ten;
+      tr += `<tr><td>${t0 * 6 + i + 1}</td><td>${fmtDM(x.ngay)}</td><td>${esc(x.tu)} - ${esc(x.den)}</td><td>${tcSo(x.soGio)}</td><td class="ct">${esc(ct)}</td></tr>`;
+    }
+    o += `<div class="tcsheet">
+      <div class="co">CÔNG TY TNHH CREDIBLE VIỆT NAM<br><span class="zh">可悦（越南）有限公司</span></div>
+      <div class="tt">ĐƠN XIN TĂNG CA<span class="zh">自愿加班申请单</span></div>
+      <div class="bo"><div>Bộ phận: <u>${esc(n.boPhan)}</u></div><div><span class="zh">部门</span>: <u class="zh">${esc(n.boPhanZh || n.boPhan)}</u></div></div>
+      <table class="ai"><tr>
+        <td style="width:42%"><b>Họ tên 姓名:</b><span class="vl">${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ` <span class="zh">${esc(n.tenZh)}</span>` : ''}</span></td>
+        <td style="width:28%"><b>Mã số thẻ 工号:</b><span class="vl">${esc(n.maThe)}</span></td>
+        <td><b>Chức vụ 职务/职称:</b><span class="vl">${esc(n.chucVu)}</span></td></tr></table>
+      <table class="ot">
+        <tr><th style="width:11%">STT</th><th style="width:17%">Ngày tháng<span class="zh">日期</span></th>
+          <th style="width:23%">Thời gian tăng ca<span class="zh">加班时间</span></th>
+          <th style="width:13%">Số tiếng TC<span class="zh">工时</span></th><th>Chú thích<span class="zh">备注</span></th></tr>
+        ${tr}
+        <tr class="tg"><td colspan="3">TỔNG CỘNG</td><td>${tcSo(tcCong(a))}</td><td class="ct">${so > 1 && t0 === so - 1 ? 'Cả ' + so + ' tờ: ' + tcSo(tongAll) + ' giờ' : ''}</td></tr>
+      </table>
+      <div class="gc"><b>Ghi chú / <span class="zh">备注</span>:</b> 1. CNV chú thích đầy đủ ca làm việc (hành chính, ca ngày, ca đêm, chủ nhật). <span class="zh">员工需完整注明工作班次（行政班、日班、夜班、周日班）。</span></div>
+      <div class="ky"><div>Người xin<span>申请人</span></div><div>Người xác nhận<span>审核人</span></div>
+        <div>Quản lý bộ phận<span>部门经理</span></div><div>Hành chính nhân sự<span>行政人事</span></div></div>
+      <div class="tto">Tuần ${fmtDM(tu)} – ${fmtDM(den)} · Tờ ${t0 + 1}/${so}</div></div>`;
+  }
+  return o;
+}
+VIEWS.tcXem = {
+  html() {
+    const uid = tcUid(), tu = tcTuanHT();
+    return `<div class="card" style="padding:10px"><div class="tcwrap">${tcDonHtml(uid, tu)}</div></div>
+      <div class="btns" style="margin-top:13px"><button class="btn pri" data-act="tcIn">${IC.dl} ${t('tcInPdf')}</button>
+        <button class="btn ghost" data-act="tcXuatTuan">${IC.dl} ${t('tcXuatTuan')}</button></div>
+      <p class="help" style="margin-top:12px">${t('tcInHelp')}</p>`;
+  }
+};
+
+// ---------- Tổng hợp tháng ----------
+function tcThangDS(ym) {
+  const by = {};
+  (S.V.tc || []).forEach((x) => { if (x.ngay.slice(0, 7) === ym) (by[x.uid] = by[x.uid] || []).push(x); });
+  return Object.keys(by).map((uid) => {
+    const a = by[uid], theo = {};
+    a.forEach((x) => { theo[x.ca] = Math.round(((theo[x.ca] || 0) + (+x.soGio || 0)) * 100) / 100; });
+    return { uid, n: tcNguoi(uid), theo, tong: tcCong(a), ds: a.sort((p, q) => (p.ngay < q.ngay ? -1 : 1)) };
+  }).sort((p, q) => q.tong - p.tong || (p.n.ten < q.n.ten ? -1 : 1));
+}
+VIEWS.tcThang = {
+  html() {
+    const ym = tcThangHT(), [y, mo] = ym.split('-').map(Number), ds = tcThangDS(ym), ca = tcCaDS();
+    let o = `<div class="caltools"><div class="stepper">
+      <button data-act="tcThangStep" data-d="-1" aria-label="-">${IC.left}</button><b>${tv('tcThangN', { m: mo, y })}</b>
+      <button data-act="tcThangStep" data-d="1" aria-label="+">${IC.right}</button></div>
+      <button class="btn ghost sm" data-act="tcXuatThang">${IC.dl} ${t('tcXuatThang')}</button></div>`;
+    if (!ds.length) return o + `<div class="card empty" style="margin-top:12px">${t('tcChuaAi')}</div>`;
+    const tong = {}; let all = 0;
+    ds.forEach((p) => { ca.forEach((c) => { tong[c.k] = Math.round(((tong[c.k] || 0) + (p.theo[c.k] || 0)) * 100) / 100; }); all += p.tong; });
+    const tr = ds.map((p) => `<tr><td><button class="cellnm" data-act="tcNguoiMo" data-uid="${esc(p.uid)}"><b>${esc(p.n.ten)}</b></button>
+      <br><small class="mono" style="color:var(--ink3)">${esc(p.n.maThe || p.n.maNV || '')}</small></td>
+      ${ca.map((c) => `<td class="num mono">${p.theo[c.k] ? tcSo(p.theo[c.k]) : '—'}</td>`).join('')}
+      <td class="num mono"><b${p.tong > tcMaxThang() ? ' class="warnx"' : ''}>${tcSo(p.tong)}</b></td></tr>`).join('')
+      + `<tr style="background:var(--soft)"><td><b>${t('tcCongBP')}</b></td>${ca.map((c) => `<td class="num mono"><b>${tcSo(tong[c.k] || 0)}</b></td>`).join('')}<td class="num mono"><b>${tcSo(all)}</b></td></tr>`;
+    if (isWide()) {
+      const th = `<th>${esc(tv('tcHoTen'))}<small>${esc(tz('tcHoTen'))}</small></th>`
+        + ca.map((c) => `<th class="num">${esc(c.ten)}<small>${esc(c.zh || '')}</small></th>`).join('')
+        + `<th class="num">${esc(tv('tcThGio'))}<small>${esc(tz('tcThGio'))}</small></th>`;
+      o += `<div class="dtwrap" style="margin-top:12px"><table class="dt"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
+    } else {
+      o += `<div class="list" style="margin-top:12px">${ds.map((x) => `<button class="tcrow" data-act="tcNguoiMo" data-uid="${esc(x.uid)}">
+        <div class="h"><b>${esc(x.n.ten)}</b><span class="mono" style="font-size:12px;color:var(--ink3)">${esc(x.n.maThe || x.n.maNV || '')}</span>
+          <span class="g"${x.tong > tcMaxThang() ? ' style="color:var(--orange)"' : ''}>${tcSo(x.tong)}<i>${t('mTCGio')}</i></span></div>
+        <div class="sub">${ca.filter((c) => x.theo[c.k]).map((c) => esc(c.ten) + ' <b class="mono">' + tcSo(x.theo[c.k]) + '</b>').join(' · ') || '—'}</div></button>`).join('')}
+        <div class="card pad" style="display:flex;align-items:center;gap:10px"><b>${t('tcCongBP')}</b>
+          <span style="margin-left:auto;font:700 20px var(--f-mono);color:var(--brand)">${tcSo(all)}</span><span class="help">${t('mTCGio')}</span></div></div>`;
+    }
+    o += `<p class="help" style="margin-top:10px">${tv('tcCamLegend', { g: tcMaxThang() })} ${tz('tcCamLegend', { g: tcMaxThang() })}</p>`;
+    const mo1 = ds.filter((x) => x.uid === tcUid())[0] || (ds.length === 1 ? ds[0] : null);
+    if (mo1) {
+      o += sec('tcChiTietN', tv('tcLanN', { n: mo1.ds.length }), { t: mo1.n.ten })
+        + `<div class="list">${mo1.ds.map((x, i) => tcRowHtml(x, i + 1)).join('')}</div>`;
+    }
+    return o;
+  }
+};
+
+// ---------- Ca làm việc (Quản lý) ----------
+VIEWS.tcCfg = {
+  html(p) {
+    if (!p.init) Object.assign(p, { init: 1, ca: tcCaDS().map((c) => Object.assign({}, c)), th: tcMaxThang(), nam: tcMaxNam() });
+    return `<div class="card pad"><div class="help" style="margin-bottom:12px">${t('tcCaHelp')}</div>
+      ${sec('tcCaDat')}
+      <div class="list">${p.ca.map((c, i) => `<div class="card pad" style="margin-bottom:10px">
+        <div class="row2f"><label class="fld"><span>${t('tcCaTen')}</span><input class="inp" data-cf="${i}:ten" value="${esc(c.ten)}" maxlength="40"></label>
+          <label class="fld"><span>${t('tcCaZh')}</span><input class="inp" data-cf="${i}:zh" value="${esc(c.zh || '')}" maxlength="40" style="font-family:var(--f-zh)"></label></div>
+        <div class="row2f" style="margin-top:10px"><label class="fld"><span>${t('tcTu')}</span><input class="inp mono" type="time" data-cf="${i}:tu" value="${esc(c.tu)}"></label>
+          <label class="fld"><span>${t('tcDen')}</span><input class="inp mono" type="time" data-cf="${i}:den" value="${esc(c.den)}"></label></div>
+        <div class="help" style="margin-top:8px">${t('tcCaMa')}: <span class="mono">${esc(c.k)}</span></div></div>`).join('')}</div>
+      <div class="row2f" style="margin-top:12px">
+        <label class="fld"><span>${t('tcGioThang')}</span><input class="inp mono" id="tcMaxTh" inputmode="numeric" maxlength="4" value="${esc(p.th)}"></label>
+        <label class="fld"><span>${t('tcGioNam')}</span><input class="inp mono" id="tcMaxNam" inputmode="numeric" maxlength="4" value="${esc(p.nam)}"></label></div>
+      <div id="tcCfgErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:16px"><button class="btn pri" id="tcCfgOk">${IC.check} ${t('tcCfgLuu')}</button></div></div>`;
+  },
+  after(p) {
+    $$('[data-cf]').forEach((el) => el.addEventListener('input', () => {
+      const [i, k] = el.dataset.cf.split(':'); p.ca[+i][k] = el.value;
+    }));
+    $('#tcMaxTh').addEventListener('input', (e) => { p.th = e.target.value; });
+    $('#tcMaxNam').addEventListener('input', (e) => { p.nam = e.target.value; });
+    $('#tcCfgOk').addEventListener('click', async () => {
+      const e = $('#tcCfgErr');
+      if (p.ca.some((c) => !c.ten.trim() || !tcLaGio(c.tu) || !tcLaGio(c.den))) { e.hidden = false; e.textContent = t('tcGioSai'); return; }
+      e.hidden = true;
+      const r = await send('saveOTCfg', { ca: p.ca, gioTCThang: +p.th || 40, gioTCNam: +p.nam || 200 });
+      if (r.err) { e.hidden = false; e.textContent = errMsg(r.err); return; }
+      toast(r.queued ? t('savedLocal') : t('tcCfgOk'));
+      back();
+    });
+  }
+};
+
+// ---------- Excel ----------
+function tcSheet(ds, ten, phu) {
+  const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
+  const rows = [[{ v: 'TĂNG CA · 加班 — ' + ten, s: { b: 1, sz: 14 } }], [{ v: phu, s: { i: 1, color: '#55625F' } }], [],
+    hd(['xlTCNgay', 'xlTCThu', 'xlTCNV', 'xlTCThe', 'xlTCBP', 'xlTCCa', 'xlTCTG', 'xlTCGio', 'xlTCCT'])];
+  let tong = 0;
+  ds.forEach((x) => {
+    const n = tcNguoi(x.uid), ca = tcCaOf(x.ca); tong += +x.soGio || 0;
+    rows.push([c(excelSerial(x.ngay), { fmt: 'dd/mm/yyyy', align: 'center' }), c(WD_VI_F[wday(x.ngay)], { align: 'center' }),
+      c(n.ten + (n.tenZh && n.tenZh !== n.ten ? '\n' + n.tenZh : '')), c(n.maThe || n.maNV, { align: 'center' }),
+      c(n.boPhan + (n.boPhanZh ? '\n' + n.boPhanZh : '')), c(ca.ten + (ca.zh ? ' · ' + ca.zh : '')),
+      c(x.tu + ' - ' + x.den, { align: 'center' }), c(Math.round((+x.soGio || 0) * 100) / 100, { align: 'center', fmt: '0.##' }), c(x.lyDo || '')]);
+  });
+  rows.push([c(''), c(''), c(''), c(''), c(''), c(''), c(tp('xlTCTong'), { b: 1, align: 'right' }),
+    c(Math.round(tong * 100) / 100, { b: 1, align: 'center', fmt: '0.##' }), c('')]);
+  return { name: 'Tang ca', rows, cols: [12, 10, 24, 12, 22, 18, 16, 11, 40], merges: ['A1:I1', 'A2:I2'], heights: { 1: 30, 4: 32 }, freeze: { r: 4, c: 0 }, landscape: true };
+}
+function tcThangWorkbook(ym) {
+  const [y, mo] = ym.split('-').map(Number), ds = tcThangDS(ym), ca = tcCaDS();
+  const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const num = (v) => c(Math.round((+v || 0) * 100) / 100, { align: 'center', fmt: '0.##' });
+  const r1 = [[{ v: 'TỔNG HỢP TĂNG CA · 加班汇总 — tháng ' + mo + '/' + y + ' · ' + y + '年' + mo + '月', s: { b: 1, sz: 14 } }], [],
+    [{ v: tp('xlTCNV'), s: H }, { v: tp('xlTCThe'), s: H }, { v: tp('xlTCBP'), s: H }]
+      .concat(ca.map((x) => ({ v: x.ten + '\n' + (x.zh || ''), s: H }))).concat([{ v: tp('xlTCTong'), s: H }])];
+  const tong = {}; let all = 0;
+  ds.forEach((p) => {
+    ca.forEach((x) => { tong[x.k] = (tong[x.k] || 0) + (p.theo[x.k] || 0); });
+    all += p.tong;
+    r1.push([c(p.n.ten + (p.n.tenZh && p.n.tenZh !== p.n.ten ? '\n' + p.n.tenZh : '')), c(p.n.maThe || p.n.maNV, { align: 'center' }),
+      c(p.n.boPhan || '')].concat(ca.map((x) => num(p.theo[x.k] || 0))).concat([num(p.tong)]));
+  });
+  r1.push([c(tp('tcCongBP'), { b: 1 }), c(''), c('')].concat(ca.map((x) => num(tong[x.k] || 0))).concat([num(all)]));
+  const s1 = { name: 'Tong hop', rows: r1, cols: [26, 13, 24].concat(ca.map(() => 12)).concat([12]), merges: ['A1:' + String.fromCharCode(65 + 3 + ca.length) + '1'], heights: { 1: 30, 3: 34 }, freeze: { r: 3, c: 0 } };
+  const chiTiet = [];
+  ds.forEach((p) => p.ds.forEach((x) => chiTiet.push(x)));
+  chiTiet.sort((a, b) => (a.ngay < b.ngay ? -1 : a.ngay > b.ngay ? 1 : 0));
+  return XW.build([s1, tcSheet(chiTiet, y + '年' + mo + '月', 'tháng ' + mo + '/' + y)]);
+}
+
+Object.assign(ACT, {
+  tcTuan: (el) => { S.f.tcTuan = addD(tcTuanHT(), 7 * +el.dataset.d); render(); window.scrollTo(0, 0); },
+  tcThangStep: (el) => {
+    let [y, m] = tcThangHT().split('-').map(Number);
+    m += +el.dataset.d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
+    S.f.tcThang = y + '-' + String(m).padStart(2, '0'); render();
+  },
+  tcThem: () => go('tcGhi', {}),
+  tcSua: (el) => go('tcGhi', { id: el.dataset.id }),
+  tcNguoiMo: (el) => { S.f.tcUid = el.dataset.uid; tab('tc'); },
+  tcCaChon: (el) => {
+    const p = topV().p, c = tcCaOf(el.dataset.k);
+    p.ca = c.k; p.tu = c.tu; p.den = c.den; p.gio = tcSo(tcGio(c.tu, c.den));
+    render();
+  },
+  tcXoa: (el) => {
+    const id = el.dataset.id;
+    openSheet(`<div class="grab"></div><h3>${tv('tcXoa')}<span class="zi">${tz('tcXoa')}</span></h3>
+      <p class="help">${t('tcXoaHoi')}</p>
+      <div class="btns"><button class="btn r" data-act="tcXoaOk" data-id="${esc(id)}">${t('del')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('cancel')}</button></div>`);
+  },
+  tcXoaOk: async (el) => {
+    closeSheet();
+    const r = await send('deleteOT', { id: el.dataset.id });
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('tcDaXoa'));
+    if (topV().v === 'tcGhi') back(); else render();
+  },
+  tcHoSo: () => {
+    const n = tcNguoi((S.me || {}).id);
+    openSheet(`<div class="grab"></div><h3>${tv('tcSuaHoSo')}<span class="zi">${tz('tcSuaHoSo')}</span></h3>
+      <p class="help">${t('tcHoSoHelp')}</p>
+      <label class="fld"><span>${t('tcMaThe')} <span class="zi">工号</span></span><input class="inp mono" id="hsThe" value="${esc(n.maThe)}" maxlength="30"></label>
+      <label class="fld" style="margin-top:10px"><span>${t('tcBoPhan')}</span><input class="inp" id="hsBP" value="${esc(n.boPhan)}" maxlength="60"></label>
+      <label class="fld" style="margin-top:10px"><span>${t('tcBoPhanZh')} <span class="zi">部门</span></span><input class="inp" id="hsBPZ" value="${esc(n.boPhanZh)}" maxlength="60" style="font-family:var(--f-zh)"></label>
+      <label class="fld" style="margin-top:10px"><span>${t('tcChucVu')} <span class="zi">职务/职称</span></span><input class="inp" id="hsCV" value="${esc(n.chucVu)}" maxlength="60"></label>
+      <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="tcHoSoLuu">${t('tcLuu')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('cancel')}</button></div>`);
+  },
+  tcHoSoLuu: async () => {
+    const p = { maThe: $('#hsThe').value, boPhan: $('#hsBP').value, boPhanZh: $('#hsBPZ').value, chucVu: $('#hsCV').value };
+    closeSheet();
+    const r = await send('saveProfile', p);
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('tcDaLuuHoSo'));
+    render();
+  },
+  tcIn: () => {
+    $('#printArea').innerHTML = tcDonHtml(tcUid(), tcTuanHT());
+    setTimeout(() => window.print(), 300);
+  },
+  tcXuatTuan: async () => {
+    const uid = tcUid(), tu = tcTuanHT(), ds = tcLoc(uid, tu, addD(tu, 6));
+    if (!ds.length) { toast(t('tcTrong'), true); return; }
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try { blob = XW.build([tcSheet(ds, tcNguoi(uid).ten + ' ' + fmtDM(tu) + '-' + fmtDM(addD(tu, 6)), tv('tcTuanN', { a: fmtD(tu), b: fmtD(addD(tu, 6)) }))]); }
+    catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'Tang-ca-' + KHONG_DAU(tcNguoi(uid).ten).replace(/\s+/g, '-') + '_' + tu + '.xlsx');
+  },
+  tcXuatThang: async () => {
+    const ym = tcThangHT();
+    if (!tcThangDS(ym).length) { toast(t('tcChuaAi'), true); return; }
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try { blob = tcThangWorkbook(ym); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'Tong-hop-tang-ca-' + ym + '.xlsx');
+  }
+});
+
 // Link từ tem QR: ...?m=M001
 try {
   const q = new URLSearchParams(location.search), m = q.get('m');

@@ -198,10 +198,42 @@ function mauNhanVien() {
   if (dsNguoiDung().length > 3) return;
   var bay = thoiGianStr();
   themNhieu('NguoiDung', [
-    ['U004', 'Lê Minh Tiến', 'kythuat', bamPin('444444'), '', 1, bay, 'NV004', '黎明进'],
-    ['U005', 'Nguyễn Tuấn', 'kythuat', bamPin('555555'), '', 1, bay, 'NV005', '阮俊'],
-    ['U006', 'Đỗ Văn Hồng', 'kythuat', bamPin('666666'), '', 1, bay, 'NV006', '杜文红']
+    ['U004', 'Lê Minh Tiến', 'kythuat', bamPin('444444'), '', 1, bay, 'NV004', '黎明进', 'V25071', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ điện'],
+    ['U005', 'Nguyễn Tuấn', 'kythuat', bamPin('555555'), '', 1, bay, 'NV005', '阮俊', 'V25088', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ cơ khí'],
+    ['U006', 'Đỗ Văn Hồng', 'kythuat', bamPin('666666'), '', 1, bay, 'NV006', '杜文红', 'V25092', 'Kỹ thuật sản xuất', '生产技术部', 'Thợ bảo trì']
   ]);
+  // Ba tài khoản cài sẵn chưa có mã số thẻ: điền cho đủ để in đơn tăng ca
+  [['U001', 'V25001', 'Hành chính nhân sự', '行政人事部', 'Quản trị hệ thống'],
+    ['U002', 'V25010', 'Kỹ thuật sản xuất', '生产技术部', 'Trưởng bộ phận'],
+    ['U003', 'V25066', 'Kỹ thuật sản xuất', '生产技术部', 'Kỹ sư']].forEach(function (a) {
+    var x = dsNguoiDung().filter(function (n) { return n.id === a[0]; })[0];
+    if (!x || x.maThe) return;
+    x.maThe = a[1]; x.boPhan = a[2]; x.boPhanZh = a[3]; x.chucVu = a[4];
+    suaDong('NguoiDung', x._r, ndThanhDong(x));
+  });
+}
+// Tăng ca mẫu: vài lần trong tuần này và tuần trước, đủ bốn ca
+function mauTangCa() {
+  if (docTangCa().length) return;
+  capNhatTieuDe('TangCa');
+  var hn = homNayStr(), bay = thoiGianStr(), nvs = dsNguoiDung(), nv = {};
+  nvs.forEach(function (n) { nv[n.maNV] = n; });
+  var w = new Date(hn + 'T00:00:00Z').getUTCDay(), t2 = congNgay(hn, -((w + 6) % 7));   // thứ Hai tuần này
+  var so = 0;
+  function tc(ma, ngay, ca, tu, den, ly, lyZh) {
+    var n = nv[ma]; if (!n) return;
+    so++;
+    themDong('TangCa', ['TCMAU' + (so < 10 ? '0' : '') + so, n.id, ngay, ca, tu, den, gioTC(tu, den),
+      ly, lyZh, n.ten, n.id, bay, 0, bay]);
+  }
+  tc('NV003', congNgay(t2, 0), 'HC', '17:30', '19:30', 'Sửa máy in phun VKY01', '维修喷印机VKY01');
+  tc('NV003', congNgay(t2, 2), 'HC', '17:30', '20:00', 'Thay chổi than motor hút bụi', '更换吸尘器电机碳刷');
+  tc('NV003', congNgay(t2, -1), 'CN', '08:00', '17:00', 'Bảo dưỡng định kỳ chuyền VKY03', '产线VKY03定期保养');
+  tc('NV004', congNgay(t2, 1), 'DEM', '06:00', '08:00', 'Trực sự cố mất điện xưởng 2', '二车间停电值班');
+  tc('NV004', congNgay(t2, -2), 'NGAY', '20:00', '22:00', 'Hỗ trợ chuyển khuôn máy in VKY08', '协助喷印机VKY08换模');
+  tc('NV005', congNgay(t2, 1), 'HC', '17:30', '19:30', 'Kiểm tra tủ điện xưởng 1', '检查一车间电柜');
+  tc('NV005', congNgay(t2, -1), 'CN', '08:00', '12:00', 'Vệ sinh máy nén khí', '清洁空压机');
+  tc('NV006', congNgay(t2, 3), 'HC', '17:30', '21:00', 'Sửa băng tải chuyền VKY02', '维修产线VKY02输送带');
 }
 function mauCongViec() {
   if (docCongViec().length) return;
@@ -287,6 +319,53 @@ function mauCongViec() {
   ].map(vlThanhDong));
 }
 
+// Thư mục Drive mẫu của nhà máy: xếp theo loại tài liệu, tên tệp có mã máy. Quét xong là có sẵn danh mục để xem thử.
+function mauTaiLieu() {
+  if (docTaiLieu().length) return;
+  var nvs = dsNguoiDung(), ql = nvs.filter(function (n) { return n.maNV === 'NV002'; })[0] || nvs[0];
+  if (!ql) return;
+  var goc = DriveApp.createFolder('Tài liệu thiết bị nhà máy');
+  var cay = [
+    ['Huong dan su dung', 'HDSD', [
+      ['M001 may in phun VKY01 - huong dan su dung.pdf', 'application/pdf', 1830000],
+      ['喷印机 M005 使用说明书.pdf', 'application/pdf', 2140000],
+      ['M011 may dong bao 01 - manual.pdf', 'application/pdf', 3650000],
+      ['Catalogue may nen khi M038.pdf', 'application/pdf', 11200000]
+    ]],
+    ['Ban ve', 'BANVE', [
+      ['M037 so do dien phong may phat.pdf', 'application/pdf', 940000],
+      ['VKY01 layout chuyen in phun.pdf', 'application/pdf', 1260000],
+      ['M039 tu dien xuong 1.dwg', 'application/acad', 24800000],
+      ['So do khi nen toan nha may.pdf', 'application/pdf', 1480000]
+    ]],
+    ['Quy trinh SOP', 'QUYTRINH', [
+      ['SOP bao duong may in phun M001.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 86000],
+      ['SOP ve sinh may hut bui M018.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 74000],
+      ['SOP van hanh may nen khi.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 69000]
+    ]],
+    ['Kiem dinh', 'KIEMDINH', [
+      ['Giay kiem dinh binh chiu ap luc M038.pdf', 'application/pdf', 520000],
+      ['Kiem dinh thiet bi nang 2026.pdf', 'application/pdf', 610000]
+    ]],
+    ['Anh thiet bi', 'ANH', [
+      ['M033 may bam phe xuong 1.jpg', 'image/jpeg', 420000],
+      ['anh tu dien M040.jpg', 'image/jpeg', 380000]
+    ]]
+  ];
+  var map = {};
+  cay.forEach(function (x) {
+    var tm = goc.createFolder(x[0]);
+    map[tm.getId()] = x[1];
+    x[2].forEach(function (t) { DriveApp.__addFileIn(tm, t[0], t[1], t[2]); });
+  });
+  // Một tệp để ngay thư mục gốc, chưa xếp vào loại nào
+  DriveApp.__addFileIn(goc, 'Hop dong mua may dong bao 2024.pdf', 'application/pdf', 760000);
+  var ps = PropertiesService.getScriptProperties();
+  ps.setProperty('TL_FOLDER_ID', goc.getId());
+  ps.setProperty('TL_FOLDER_MAP', JSON.stringify(map));
+  quetDrive(ql, {});
+}
+
 __tz.off = -new Date().getTimezoneOffset() * 60000;
 caiDatBanDau();
 mauNhanVien();
@@ -294,4 +373,6 @@ mauSoDien();
 mauKiemTra();
 mauKho();
 mauCongViec();
+mauTangCa();
+mauTaiLieu();
 return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };

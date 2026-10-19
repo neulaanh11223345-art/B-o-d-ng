@@ -330,7 +330,7 @@ var DriveApp = (function () {
   File.prototype.getParents = function () { var a = this.parent ? [this.parent] : [], i = 0; return { hasNext: function () { return i < a.length; }, next: function () { return a[i++]; } }; };
   File.prototype.getBlob = function () { return Utilities.newBlob(this.bytes, this.mime, this.nm); };
   File.prototype.getMimeType = function () { return this.mime; };
-  File.prototype.getSize = function () { return (this.bytes || []).length; };
+  File.prototype.getSize = function () { return this.sz === undefined || this.sz === null ? (this.bytes || []).length : this.sz; };
   File.prototype.getDateCreated = function () { return this.created; };
   File.prototype.isTrashed = function () { return this.trashed; };
   File.prototype.setTrashed = function (v) { this.trashed = !!v; return this; };
@@ -339,8 +339,16 @@ var DriveApp = (function () {
   File.prototype.setName = function (n) { this.nm = n; return this; };
   File.prototype.setSharing = function () { this.shared = true; return this; };
   File.prototype.getUrl = function () { return 'https://drive.google.com/file/d/' + this.id + '/view'; };
-  function Folder(id, name) { this.id = id; this.nm = name; }
+  function Folder(id, name, parent) { this.id = id; this.nm = name; this.parent = parent || null; }
   Folder.prototype.getId = function () { return this.id; };
+  Folder.prototype.getParents = function () { var a = this.parent ? [this.parent] : [], i = 0; return { hasNext: function () { return i < a.length; }, next: function () { return a[i++]; } }; };
+  Folder.prototype.createFolder = function (name) {
+    var id = 'FL' + Math.random().toString(36).slice(2, 10), f = new Folder(id, name, this); folders[id] = f; return f;
+  };
+  Folder.prototype.getFolders = function () {
+    var me = this, a = Object.keys(folders).map(function (k) { return folders[k]; }).filter(function (f) { return f.parent === me; }), i = 0;
+    return { hasNext: function () { return i < a.length; }, next: function () { return a[i++]; } };
+  };
   Folder.prototype.getName = function () { return this.nm; };
   Folder.prototype.getUrl = function () { return 'https://drive.google.com/drive/folders/' + this.id; };
   Folder.prototype.createFile = function (blob) {
@@ -359,6 +367,10 @@ var DriveApp = (function () {
     Access: { ANYONE_WITH_LINK: 'ANYONE_WITH_LINK', PRIVATE: 'PRIVATE' },
     Permission: { VIEW: 'VIEW', EDIT: 'EDIT' },
     __addFile: function (id, name, mime) { files[id] = new File(id, name, [], null, mime); return files[id]; },
+    __addFileIn: function (folder, name, mime, size) {
+      var id = 'DF' + Math.random().toString(36).slice(2, 14), f = new File(id, name, [], folder, mime);
+      f.sz = size || 0; files[id] = f; return f;
+    },
     __files: files, __reset: function () { folders = {}; files = {}; }
   };
 })();
