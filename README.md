@@ -123,6 +123,18 @@ Mục **Tăng ca** riêng, ai cũng dùng được. Ở điện thoại vào t�
 - **Thông tin in trên đơn** (mã số thẻ 工号, bộ phận, bộ phận tiếng Trung 部门, chức vụ) lưu trong hồ sơ người dùng. Mỗi người tự điền một lần ở mục Tăng ca, hoặc Quản trị nhập trong **Cá nhân → Quản trị → Người dùng**. App tự dịch tên bộ phận sang tiếng Trung.
 - **Giờ các ca và giới hạn 40 giờ/tháng, 200 giờ/năm:** Quản lý sửa trong **Tăng ca → Sửa ca làm việc**.
 
+### Chọn thiết bị: mọi loại việc đều chọn được chuyền hoặc máy
+
+Trước đây chỉ **Sửa chữa** mới chọn được chuyền sản xuất; các loại việc khác (Vệ sinh, Lắp đặt, Cải tiến, Hỗ trợ sản xuất, Bảo dưỡng, Khác) và **Việc lặp lại** chỉ chọn được máy. Nay **Ghi việc, Ghi sửa chữa và Việc lặp lại dùng chung một danh sách**, ba nhóm theo thứ tự:
+
+1. **Chuyền sản xuất (máy chính)** — VKY01…VKY23;
+2. **Máy ngoài chuyền** — máy nén khí, tủ điện, bơm, điều hoà… gom theo nhóm máy;
+3. **Máy của chuyền …** — máy in phun, máy hút bụi… gom theo từng chuyền.
+
+Chuyền vẫn nằm trên cùng nên thói quen ghi sửa chữa theo chuyền không đổi; khác là từ nay **máy nhánh của chuyền cũng chọn riêng được** khi cần ghi đúng vào một máy (vd thay chổi than motor máy hút bụi VKY03). Mở Ghi sửa chữa từ hồ sơ một máy thuộc chuyền thì app vẫn điền sẵn chuyền như cũ, đổi lại được.
+
+Ghi theo chuyền thì lịch sử sự cố gom về chuyền; ghi theo máy thì gom về đúng máy đó. Trang chuyền vẫn gom cả hai trong **Lịch sử sự cố của chuyền**. Máy chủ không đổi — vốn đã nhận cả mã máy lẫn mã chuyền cho mọi loại việc.
+
 ### Tài liệu nhà máy: nối thư mục Drive có sẵn
 
 Tài liệu đã để trên Google Drive thì **không cần tải lại**. App chỉ ghi mã tệp vào danh mục: Drive giữ tệp, app giữ cách sắp xếp và tra cứu. App **không chép, không sửa và không xoá** tệp gốc.

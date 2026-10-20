@@ -177,9 +177,12 @@ await page.click('.cta2'); await wait();
 assert.match(await text('#barTitle'), /Ghi việc/);
 await page.fill('#cvTD', 'Máy hút bụi VKY03 không chạy');
 await page.check('#cvTuLam'); await wait();
-// Việc sửa chữa chỉ chọn chuyền (máy chính) hoặc máy ngoài chuyền: máy hút bụi VKY03 thuộc chuyền VKY03 nên không có trong danh sách
-assert.equal(await page.locator('#cvMa option[value="M020"]').count(), 0, 'máy thuộc chuyền không chọn riêng khi sửa chữa');
-assert.equal(await page.locator('#cvMa option[value="M038"]').count(), 1, 'máy ngoài chuyền vẫn chọn được');
+// Mọi loại việc chọn được cả chuyền, máy ngoài chuyền và máy thuộc chuyền
+assert.equal(await page.locator('#cvMa option[value="VKY03"]').count(), 1, 'chọn được chuyền sản xuất');
+assert.equal(await page.locator('#cvMa option[value="M038"]').count(), 1, 'chọn được máy ngoài chuyền');
+assert.equal(await page.locator('#cvMa option[value="M020"]').count(), 1, 'chọn được máy thuộc chuyền (máy hút bụi VKY03)');
+assert.equal(await page.locator('#cvMa optgroup[label*="Máy của chuyền VKY03"] option[value="M020"]').count(), 1,
+  'máy thuộc chuyền gom đúng vào nhóm của chuyền đó');
 await page.selectOption('#cvMa', 'VKY03');
 await page.click('#cvOk'); await wait(900);
 assert.match(await text('.schead'), /Đã giao/);
