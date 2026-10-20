@@ -130,6 +130,43 @@ test('tiêu thụ bất thường so với bình quân ngày: bắt xác nhận,
   ok(ghi(b, b.kt, '2026-10-20', 1700));
 });
 
+test('xác nhận tiêu thụ bất thường: chỉ Quản lý, xác nhận cả loạt, bỏ xác nhận được', () => {
+  const b = setup({ heSo: 1 });
+  const ky = ['2026-08-31', '2026-09-10', '2026-09-20', '2026-09-30'];
+  b.setNow('2026-09-30T03:00:00Z');
+  [1000, 1100, 1200, 1300].forEach((v, i) => ok(ghi(b, b.ql, ky[i], v)));
+  b.setNow('2026-10-10T03:00:00Z');
+  const x = ok(ghi(b, b.kt, '2026-10-10', 1500, { xacNhanBatThuong: true, ngoaiLe: { batThuongLyDo: 'Máy dừng kỳ trước' } })).chiSo;
+  assert.ok(x.ngoaiLe.batThuong, 'có cờ bất thường');
+  assert.equal(x.ngoaiLe.batThuong.duyet, undefined, 'chưa ai xác nhận');
+  // Kỹ thuật không xác nhận được
+  err(b.call('confirmAbnormal', { ids: [x.id] }, b.kt), 'KHONG_QUYEN');
+  // Quản lý xác nhận: số liệu giữ nguyên, chỉ thêm dấu đã xác nhận
+  const r = ok(b.call('confirmAbnormal', { ids: [x.id], ghiChu: 'Chuyền VKY10 dừng cả kỳ trước' }, b.ql));
+  assert.equal(r.n, 1);
+  const d = r.dsChiSo[0].ngoaiLe.batThuong.duyet;
+  assert.deepEqual([d.nguoi, d.ghiChu], ['Quản lý', 'Chuyền VKY10 dừng cả kỳ trước']);
+  assert.equal(r.dsChiSo[0].giaTri['1.8.0'], 1500, 'số liệu không đổi');
+  assert.equal(r.dsChiSo[0].ngoaiLe.batThuong.lyDo, 'Máy dừng kỳ trước', 'giữ lý do người ghi nhập');
+  // Xác nhận lại lần nữa thì báo không có gì để xác nhận
+  err(b.call('confirmAbnormal', { ids: [x.id] }, b.ql), 'KHONG_CO');
+  err(b.call('confirmAbnormal', { ids: [] }, b.ql), 'THIEU_CHON');
+  // Bỏ xác nhận: cảnh báo hiện lại
+  const r2 = ok(b.call('confirmAbnormal', { ids: [x.id], bo: true }, b.ql));
+  assert.equal(r2.dsChiSo[0].ngoaiLe.batThuong.duyet, undefined);
+  assert.ok(r2.dsChiSo[0].ngoaiLe.batThuong, 'vẫn là bản ghi bất thường');
+  // Xác nhận cả loạt: mã lạ và bản ghi không bất thường thì bỏ qua, không làm hỏng cả lượt
+  b.setNow('2026-10-20T03:00:00Z');
+  const y = ok(ghi(b, b.kt, '2026-10-20', 1600)).chiSo;
+  assert.ok(!(y.ngoaiLe && y.ngoaiLe.batThuong), 'kỳ này trong ngưỡng, không bất thường');
+  const r3 = ok(b.call('confirmAbnormal', { ids: [x.id, y.id, 'CS_KHONG_CO'] }, b.ql));
+  assert.deepEqual([r3.n, r3.dsChiSo.map((v) => v.id)], [1, [x.id]]);
+  // Nhật ký ghi lại ai xác nhận
+  const nk = ok(b.call('audit', { bang: 'ChiSo' }, b.ql)).ds;
+  assert.ok(nk.some((v) => v.hanhDong === 'XAC_NHAN_BT'), 'có dòng nhật ký xác nhận');
+  assert.ok(nk.some((v) => v.hanhDong === 'BO_XAC_NHAN_BT'), 'có dòng nhật ký bỏ xác nhận');
+});
+
 test('khoá kỳ: kỹ thuật không sửa được; Quản lý sửa phải có lý do; có nhật ký trước/sau', () => {
   const b = setup();
   ok(ghi(b, b.kt, '2026-09-30', 1000));
@@ -369,6 +406,9 @@ test('việc lặp lại: sinh việc đúng ngày, giao sẵn người làm, kh
   d = ok(b.call('data', {}, b.ql));
   const sau = d.congViec.filter((x) => x.tieuDe === 'Vệ sinh nhà ăn' && x.han > '2026-10-12').map((x) => x.han);
   assert.deepEqual(sau, ['2026-10-17']);
+  // Hai việc lặp lại tạo liên tiếp phải khác mã: trùng mã thì việc của mẫu sau không được sinh ra
+  const vls = ok(b.call('data', {}, b.ql)).viecLap;
+  assert.equal(new Set(vls.map((v) => v.id)).size, vls.length, 'mã việc lặp lại không được trùng');
   // Tháng: ngày 31 ở tháng 30 ngày rơi vào ngày cuối tháng
   assert.equal(b.ctx.ngayKhop({ kieu: 'thang', ngay: '31' }, '2026-11-30'), true);
   // Nhắc hằng ngày có mục việc quá hạn

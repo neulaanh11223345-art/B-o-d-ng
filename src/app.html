@@ -2201,7 +2201,7 @@ VIEWS.home = {
 // Danh sách ngoại lệ chờ duyệt (đã tải)
 function choDuyetDS() { return S.V && S.V.cs ? S.V.cs.filter((x) => x.trangThai === 'CHO_DUYET') : []; }
 // Số ghi ở kỳ k có cờ bất thường
-function batThuongKy(k) { return S.V && S.V.cs ? S.V.cs.filter((x) => x.ky === k && x.ngoaiLe && x.ngoaiLe.batThuong && x.trangThai !== 'HUY') : []; }
+function batThuongKy(k) { return S.V && S.V.cs ? S.V.cs.filter((x) => x.ky === k && x.ngoaiLe && x.ngoaiLe.batThuong && !x.ngoaiLe.batThuong.duyet && x.trangThai !== 'HUY') : []; }
 // Linh kiện đang gắn với máy mà tồn ≤ tối thiểu (hoặc hết hàng)
 function lkThapDS() {
   if (!S.V || !S.kho.ds.length) return [];
@@ -4990,7 +4990,9 @@ function ctTT(c, k) {
   if (!x) return { k: 'thieu', pill: `<span class="pill ${k === TODAY() ? 'p-nay' : k < TODAY() ? 'p-qua' : 'p-ok'}">${t('chuaGhi')}</span>` };
   if (x.cho) return { k: 'gui', x, pill: `<span class="pill p-cho">${t('pending')}</span>` };
   if (x.trangThai === 'CHO_DUYET') return { k: 'cho', x, pill: `<span class="pill p-qua">⏳ ${t('locCho')}</span>` };
-  if (x.ngoaiLe && x.ngoaiLe.batThuong) return { k: 'bt', x, pill: `<span class="pill p-nay">⚠ ${t('batThuong')}</span>` };
+  if (x.ngoaiLe && x.ngoaiLe.batThuong) return x.ngoaiLe.batThuong.duyet
+    ? { k: 'ok', x, pill: `<span class="pill p-xong">${IC.check} ${t('btDaXacNhan')}</span>` }
+    : { k: 'bt', x, pill: `<span class="pill p-nay">⚠ ${t('batThuong')}</span>` };
   return { k: 'ok', x, pill: `<span class="pill p-xong">${t('daGhi')}</span>` };
 }
 function locCT(list, k) {
@@ -5015,6 +5017,11 @@ function dienGhi() {
   const dem = { thieu: 0, bt: 0, cho: 0 };
   all.forEach((c) => { const s2 = ctTT(c, k).k; if (dem[s2] !== undefined) dem[s2]++; });
   o += `<div class="hscroll" style="margin-bottom:12px">${LOC_D.map(([v, l]) => `<button class="chip${(f.dLoc || '') === v ? ' on' : ''}" data-act="dLocSet" data-v="${v}">${t(l)}${v && dem[v] ? ` <b class="mono">${dem[v]}</b>` : ''}</button>`).join('')}</div>`;
+  // Mỗi kỳ thường có cả chục công tơ bất thường vì máy dừng kỳ trước rồi chạy lại: Quản lý xác nhận cả loạt
+  if (f.dLoc === 'bt' && dem.bt && can('huy')) {
+    o += `<div class="card pad" style="margin-bottom:12px"><div class="help">${t('btHetHelp')}</div>
+      <div class="btns" style="margin-top:10px"><button class="btn g sm" data-act="btXacNhanHet" data-ky="${k}">${IC.check} ${t('btXacNhanHet', { n: dem.bt })}</button></div></div>`;
+  }
   if (isWide()) {
     const rows = [];
     LOAI.forEach((l) => theoCay(locCT(activeLoai(l), k)).forEach((r) => rows.push(r)));
@@ -5657,6 +5664,17 @@ Object.assign(TX, {
   csTruoc: ['Chỉ số kỳ trước', '上期读数'], csNay: ['Chỉ số hiện tại', '本期读数'], kyTruocCua: ['kỳ {d} · {n}', '{d}期 · {n}'],
   chuaCoMoc: ['Chưa có kỳ trước — lần ghi này là mốc đầu', '无上期读数 — 本次为起点'],
   soBQ: ['{p} so với bình quân/ngày 3 kỳ trước', '较前3期日均{p}'], binhThuong: ['bình thường', '正常'], batThuongL: ['bất thường', '异常'],
+  btDaXacNhan: ['Đã xác nhận', '已确认'], btXacNhanBtn: ['Xác nhận bất thường', '确认异常'], btBoBtn: ['Bỏ xác nhận', '取消确认'],
+  btLechCao: ['Cao hơn bình quân 3 kỳ trước {p}%', '较前3期均值高{p}%'], btLechThap: ['Thấp hơn bình quân 3 kỳ trước {p}%', '较前3期均值低{p}%'],
+  btAiXacNhan: ['{n} đã xác nhận lúc {t}', '{n} 于 {t} 确认'],
+  btChiQL: ['Chỉ Quản lý mới xác nhận được bản ghi bất thường.', '仅主管可确认异常记录。'],
+  btXacNhanHoi: ['Xác nhận là số liệu này đúng, không phải ghi nhầm. Bản ghi sẽ thôi cảnh báo, số liệu giữ nguyên. Bỏ xác nhận lại được.',
+    '确认该数据无误、不是抄错。记录将不再提示异常，数据保持不变。可以取消确认。'],
+  btGhiChu: ['Ghi chú (không bắt buộc)', '备注（可选）'], btGhiChuVd: ['Vd: chuyền VKY10 dừng cả kỳ trước', '如：VKY10产线上期全期停机'],
+  btXacNhanHet: ['Xác nhận hết {n} bản ghi', '确认全部{n}条'],
+  btHetHelp: ['Máy dừng một kỳ rồi kỳ sau chạy lại thì tiêu thụ lệch nhiều là bình thường. Xác nhận rồi thì các bản ghi này thôi cảnh báo.',
+    '设备停机一期、下一期复产时用量波动属正常。确认后这些记录不再提示异常。'],
+  btDaXacNhanN: ['Đã xác nhận {n} bản ghi', '已确认{n}条记录'], btDaBo: ['Đã bỏ xác nhận', '已取消确认'],
   nguongTxt: ['ngưỡng +{a}% / −{b}%', '阈值 +{a}% / −{b}%'], gopKyN: ['gồm {n} kỳ chưa ghi trước đó', '含之前{n}期未抄'],
   nlTieuDe: ['Chỉ số nhỏ hơn kỳ trước', '读数小于上期'], nlHoi: ['Kiểm tra lại số trên công tơ. Nếu số đúng, chọn lý do:', '请核对电表读数。如读数正确，请选择原因：'],
   nlThay: ['Thay công tơ', '更换电表'], nlThayHelp: ['Tiêu thụ = (số cuối công tơ cũ − kỳ trước) + (kỳ này − số đầu công tơ mới)', '用量 =（旧表末读数 − 上期）+（本期 − 新表初读数）'],
@@ -5700,7 +5718,8 @@ VIEWS.dienNhap = {
     if (x && !x.cho) {
       const ctt = ctTT(c, ky);
       o += `<div class="note" style="margin-top:12px">${t('suaBanGhi', { n: x.nguoi, t: (x.lucGhi || x.thoiGian || '').slice(0, 16) })} ${ctt.pill}
-        ${x.ngoaiLe && x.ngoaiLe.giam ? `<div class="help" style="margin-top:4px">${esc(tv(NL_TX[x.ngoaiLe.giam.loai]))}: ${esc(x.ngoaiLe.giam.lyDo || '')}${x.ngoaiLe.duyet ? ' · ' + esc(tv(x.ngoaiLe.duyet.kq === 'DUYET' ? 'daDuyet' : 'tuChoi')) + ' ' + esc(x.ngoaiLe.duyet.nguoi) : ''}</div>` : ''}</div>`;
+        ${x.ngoaiLe && x.ngoaiLe.giam ? `<div class="help" style="margin-top:4px">${esc(tv(NL_TX[x.ngoaiLe.giam.loai]))}: ${esc(x.ngoaiLe.giam.lyDo || '')}${x.ngoaiLe.duyet ? ' · ' + esc(tv(x.ngoaiLe.duyet.kq === 'DUYET' ? 'daDuyet' : 'tuChoi')) + ' ' + esc(x.ngoaiLe.duyet.nguoi) : ''}</div>` : ''}
+        ${btKhoi(x)}</div>`;
     }
     if (khoa) o += `<div class="note ${cam ? 'srvwarn' : ''}" style="margin-top:12px">${IC.lock} ${t(cam ? 'kyKhoaKT' : 'kyKhoaQL')}</div>`;
     o += `<form id="dnForm" class="card pad" style="margin-top:12px" autocomplete="off"><fieldset ${cam ? 'disabled' : ''} style="border:0;margin:0;padding:0;min-width:0">`;
@@ -5971,6 +5990,27 @@ VIEWS.duyet = {
     return o;
   }
 };
+// Khối "tiêu thụ bất thường" trong chi tiết bản ghi: lý do người ghi nhập, ai đã xác nhận, nút cho Quản lý
+function btKhoi(x) {
+  const bt = x && x.ngoaiLe && x.ngoaiLe.batThuong;
+  if (!bt) return '';
+  const d = bt.duyet;
+  let o = `<div class="help" style="margin-top:4px"><b>${esc(tv(bt.huong === 'CAO' ? 'btLechCao' : 'btLechThap', { p: Math.abs(Math.round(bt.pct || 0)) }))}</b>${bt.lyDo ? ': ' + esc(bt.lyDo) : ''}</div>`;
+  if (d) o += `<div class="help" style="margin-top:4px">${IC.check} ${esc(tv('btAiXacNhan', { n: d.nguoi, t: (d.luc || '').slice(0, 16) }))}${d.ghiChu ? ' · ' + esc(d.ghiChu) : ''}</div>`;
+  if (can('huy')) {
+    o += `<div class="btns" style="margin-top:8px">${d
+      ? `<button class="btn ghost sm" data-act="btBoXacNhan" data-id="${esc(x.id)}">${t('btBoBtn')}</button>`
+      : `<button class="btn g sm" data-act="btXacNhan" data-id="${esc(x.id)}">${IC.check} ${t('btXacNhanBtn')}</button>`}</div>`;
+  } else if (!d) o += `<div class="help" style="margin-top:4px">${t('btChiQL')}</div>`;
+  return o;
+}
+async function btGui(ids, bo, ghiChu, el) {
+  if (el) el.disabled = true;
+  try {
+    const d = await api('confirmAbnormal', { ids, bo: !!bo, ghiChu: ghiChu || '' });
+    mergeResult(d); closeSheet(); toast(t(bo ? 'btDaBo' : 'btDaXacNhanN', { n: fmtNum(d.n || 0, 0) })); render();
+  } catch (e) { if (el) el.disabled = false; toast(e.code === 'MANG' ? t('needNet') : errMsg(e), true); }
+}
 async function duyet(id, dongY, lyDo, el) {
   if (el) el.disabled = true;
   try {
@@ -6061,6 +6101,32 @@ VIEWS.dienCfg = {
 };
 Object.assign(ACT, {
   duyetOk: (el) => duyet(el.dataset.id, true, '', el),
+  btXacNhan: (el) => {
+    const x = (S.V.cs || []).find((v) => v.id === el.dataset.id); if (!x) return;
+    const c = S.V.ctByMa[x.ma] || { ten: x.ma };
+    openSheet(`<div class="grab"></div><h3>${tv('btXacNhanBtn')}<span class="zi">${tz('btXacNhanBtn')}</span></h3>
+      <div class="who"><b>${esc(c.ten)}</b> · ${esc(tv('kyN', { d: fmtD(x.ky) }))}</div>
+      <p class="help">${t('btXacNhanHoi')}</p>
+      <label class="fld"><span>${t('btGhiChu')}</span><input class="inp" id="btGC" maxlength="200" placeholder="${esc(tp('btGhiChuVd'))}"></label>
+      <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+      <button class="btn g" data-act="btXacNhanGo" data-id="${esc(x.id)}">${IC.check} ${t('btXacNhanBtn')}</button></div>`);
+  },
+  btXacNhanGo: (el) => btGui([el.dataset.id], false, ($('#btGC') || {}).value, el),
+  btBoXacNhan: (el) => btGui([el.dataset.id], true, '', el),
+  btXacNhanHet: (el) => {
+    const ds = batThuongKy(el.dataset.ky);
+    if (!ds.length) return;
+    openSheet(`<div class="grab"></div><h3>${tv('btXacNhanHet', { n: ds.length })}<span class="zi">${tz('btXacNhanHet', { n: ds.length })}</span></h3>
+      <div class="list" style="margin-top:10px;max-height:40vh;overflow:auto">${ds.map((x) => {
+    const c = S.V.ctByMa[x.ma] || { ten: x.ma };
+    return `<div class="row"><div class="main"><div class="nm">${esc(c.ten)} <span class="code">${esc(x.ma)}</span></div>
+          <div class="sub">${esc(tv((x.ngoaiLe.batThuong.huong === 'CAO' ? 'btLechCao' : 'btLechThap'), { p: Math.abs(Math.round(x.ngoaiLe.batThuong.pct || 0)) }))}${x.ngoaiLe.batThuong.lyDo ? ' · ' + esc(x.ngoaiLe.batThuong.lyDo) : ''}</div></div></div>`;
+  }).join('')}</div>
+      <label class="fld" style="margin-top:10px"><span>${t('btGhiChu')}</span><input class="inp" id="btGC" maxlength="200" placeholder="${esc(tp('btGhiChuVd'))}"></label>
+      <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+      <button class="btn g" data-act="btHetGo" data-ky="${esc(el.dataset.ky)}">${IC.check} ${t('btXacNhanHet', { n: ds.length })}</button></div>`);
+  },
+  btHetGo: (el) => btGui(batThuongKy(el.dataset.ky).map((x) => x.id), false, ($('#btGC') || {}).value, el),
   duyetNo: (el) => openSheet(`<div class="grab"></div><h3>${tv('tuChoiBtn')}<span class="zi">${tz('tuChoiBtn')}</span></h3><div style="height:8px"></div>
     <label class="fld"><span>${t('lyDoTuChoi')}</span><textarea class="inp" id="tcLyDo" rows="2" maxlength="200"></textarea></label><div class="err" id="fErr" hidden></div>
     <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="duyetNo2" data-id="${esc(el.dataset.id)}">${t('tuChoiBtn')}</button></div>`),

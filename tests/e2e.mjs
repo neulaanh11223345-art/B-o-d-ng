@@ -408,6 +408,42 @@ await page.evaluate(() => go('tlCfg')); await wait(500);
 assert.match(await text('#barTitle'), /Chỉ Quản lý/);
 ok('Bản 2.11: nối thư mục Drive, quét và sắp xếp tài liệu, tra cứu toàn nhà máy; kỹ thuật không mở được tài liệu');
 
+// 15. Bản 2.11.2: Quản lý xác nhận tiêu thụ bất thường, cảnh báo thôi hiện; kỹ thuật không xác nhận được
+await logout(); await login('NV002', '222222');
+await moCongTo('E09');
+const p15 = +(await text('.rdbox.prev b')).replace(/\s/g, '');
+await page.fill('#dnForm input[data-code="1.8.0"]', String(Math.round(p15 + 5000000))); await wait();
+assert.ok(await page.isVisible('.btbox'), 'hiện cảnh báo bất thường');
+await page.check('#btOk'); await page.fill('#btLyDo', 'Chuyền dừng cả kỳ trước'); await wait();
+// Kỳ này đã bị khoá ở bước 6: Quản lý sửa được nhưng phải ghi lý do
+if (await page.locator('#dnLyDoSua').count()) await page.fill('#dnLyDoSua', 'Ghi bổ sung số cuối kỳ');
+await page.click('#dnSave'); await wait(1200);
+assert.equal(await page.evaluate(() => { const e = document.querySelector('#dnErr'); return e && !e.hidden ? e.textContent : ''; }), '', 'lưu được số bất thường');
+// Bản ghi lưu rồi, mang dấu bất thường và đang tính vào cảnh báo trang chủ
+let bt15 = await page.evaluate(() => { const x = S.V.csKey['E09|' + S.f.dKy]; return { bt: !!(x && x.ngoaiLe && x.ngoaiLe.batThuong), xn: !!(x && x.ngoaiLe && x.ngoaiLe.batThuong && x.ngoaiLe.batThuong.duyet), dem: batThuongKy(S.f.dKy).length }; });
+assert.deepEqual([bt15.bt, bt15.xn], [true, false], 'đã lưu, chưa ai xác nhận');
+assert.ok(bt15.dem >= 1, 'đang tính vào cảnh báo trang chủ');
+const demTruoc = bt15.dem;
+await shot('22-bat-thuong-chua-xac-nhan');
+// Quản lý xác nhận ngay trong chi tiết bản ghi (lưu xong app quay về màn quét, mở lại sổ công tơ)
+await moCongTo('E09'); await wait(500);
+await page.click('[data-act="btXacNhan"]'); await wait(500);
+await page.fill('#btGC', 'VKY10 dừng cả kỳ trước');
+await page.click('[data-act="btXacNhanGo"]'); await wait(1200);
+bt15 = await page.evaluate(() => { const x = S.V.csKey['E09|' + S.f.dKy]; const d = x.ngoaiLe.batThuong.duyet; return { nguoi: d && d.nguoi, gc: d && d.ghiChu, dem: batThuongKy(S.f.dKy).length,
+    conE09: batThuongKy(S.f.dKy).some((v) => v.ma === 'E09'), nhan: ctTT({ ma: 'E09' }, S.f.dKy).pill.replace(/<[^>]*>/g, '') }; });
+assert.equal(bt15.nguoi, 'Quản lý'); assert.equal(bt15.gc, 'VKY10 dừng cả kỳ trước');
+assert.equal(bt15.dem, demTruoc - 1, 'xác nhận xong thì bản ghi này thôi tính vào cảnh báo');
+assert.equal(bt15.conE09, false, 'E09 không còn trong danh sách bất thường');
+assert.match(bt15.nhan, /Đã xác nhận/);
+await shot('23-bat-thuong-da-xac-nhan');
+// Kỹ thuật không có nút xác nhận
+await logout(); await login('NV003', '333333');
+const ktBt = await page.evaluate(() => btKhoi({ id: 'X', ma: 'E04', ky: '2026-10-10', ngoaiLe: { batThuong: { huong: 'CAO', pct: 120 } } }));
+assert.ok(!/data-act="btXacNhan/.test(ktBt), 'kỹ thuật không có nút xác nhận');
+assert.match(ktBt, /Chỉ Quản lý/);
+ok('Bản 2.11.2: Quản lý xác nhận tiêu thụ bất thường, cảnh báo thôi hiện; kỹ thuật không xác nhận được');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
