@@ -2710,13 +2710,7 @@ function quetDrive(u, p) {
   capNhatTieuDe('TaiLieu');
   var cu = docTaiLieu(), theoFile = {}, daCoId = {}, sua = [];
   cu.forEach(function (x) { if (x.fileId) theoFile[x.fileId] = x; daCoId[x.id] = 1; });
-  var dem = 0;
-  function maTLMoi() {
-    var dau = 'TL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + 'Q';
-    do { dem++; } while (daCoId[dau + dem]);
-    daCoId[dau + dem] = 1;
-    return dau + dem;
-  }
+
   var moi = [], gap = {}, demTep = 0, conNua = false;
   var hangDoi = [{ f: goc, duong: '', sau: 0, nhom: s(map[id]) }];
   while (hangDoi.length && !conNua) {
@@ -2738,7 +2732,7 @@ function quetDrive(u, p) {
       var mime = s(tep.getMimeType()).toLowerCase(), ten = catChu(s(tep.getName()).replace(/\.[^.]+$/, ''), 120) || s(tep.getName()).slice(0, 120);
       if (mime === 'application/vnd.google-apps.shortcut') continue;
       var o = tlMoi(u, '', ten, '', mime.indexOf('image/') === 0 ? 'ANH' : 'TEP');
-      o.id = maTLMoi();
+      o.id = tlIdMoi(daCoId);
       o.ma = tlMaTuTen(tep.getName(), cur.duong, dsMa);
       o.nhom = cur.nhom || tlNhomTuTen(tep.getName(), cur.duong) || (mime.indexOf('image/') === 0 ? 'ANH' : 'KHAC');
       o.fileId = fid; o.mime = mime; o.kichThuoc = Number(tep.getSize()) || 0;
@@ -2802,9 +2796,18 @@ function kiemMaTL(ma) {
   if (!ma || (!timMay(ma) && !dsChuyen().some(function (c) { return c.ma === ma; }))) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy / chuyền · 找不到设备/产线');
 }
 function tlCua(ma) { return docTaiLieu().filter(function (x) { return x.ma === ma && !x.xoa; }).map(sachTL); }
+// Mã tài liệu phải khác mọi mã đã có: trùng mã thì mở ra nhầm tài liệu khác.
+// daCo là bản đồ các mã đang dùng; hàm tự đánh dấu mã vừa cấp để gọi nhiều lần trong một lượt vẫn khác nhau.
+function tlIdMoi(daCo) {
+  var dau = 'TL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss'), i = 1, id;
+  do { id = dau + (i < 1000 ? ('00' + i).slice(-3) : i); i++; } while (daCo[id]);
+  daCo[id] = 1;
+  return id;
+}
+function tlDsId() { var o = {}; docTaiLieu().forEach(function (x) { o[x.id] = 1; }); return o; }
 function tlMoi(u, ma, ten, nhom, kieu) {
   var bay = thoiGianStr();
-  return { id: 'TL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900), ma: ma, ten: ten,
+  return { id: '', ma: ma, ten: ten,
     nhom: TL_NHOM.indexOf(s(nhom)) >= 0 ? s(nhom) : (kieu === 'ANH' ? 'ANH' : 'KHAC'), kieu: kieu, fileId: '', mime: '', kichThuoc: 0, url: '',
     daiDien: false, anhNho: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false, capNhat: bay,
     duongDan: '', nguon: 'APP', conTrenDrive: true, hienHanh: true, lucQuet: '' };
@@ -2828,6 +2831,7 @@ function taiLenTaiLieu(u, p) {
   if (bytes.length > TL_TOI_DA) throw loi('TEP_QUA_LON', 'Tệp lớn hơn 10 MB · 文件超过10MB');
   capNhatTieuDe('TaiLieu');
   var kieu = mime.indexOf('image/') === 0 ? 'ANH' : 'TEP', o = tlMoi(u, ma, ten, p.nhom, kieu);
+  o.id = tlIdMoi(tlDsId());
   var tenFile = ma + ' - ' + ten.replace(/[\\/:*?"<>|]/g, ' ') + '.' + TL_MIME[mime];
   try { o.fileId = tlFolder().createFile(Utilities.newBlob(bytes, mime, tenFile)).getId(); }
   catch (e) { throw loi('TL_KHONG_GHI_DUOC', 'App không ghi được vào thư mục Drive. Hãy chia sẻ thư mục với quyền Người chỉnh sửa · 应用无法写入该文件夹，请给予编辑权限'); }
@@ -2843,7 +2847,7 @@ function themLienKet(u, p) {
   if (!ten) throw loi('THIEU_TEN', 'Chưa nhập tên · 请输入名称');
   if (!/^https?:\/\/[^\s<>"]+$/i.test(url)) throw loi('LINK_SAI', 'Liên kết phải bắt đầu bằng http:// hoặc https:// · 链接需以http(s)://开头');
   capNhatTieuDe('TaiLieu');
-  var o = tlMoi(u, ma, ten, p.nhom, 'LINK'); o.url = url;
+  var o = tlMoi(u, ma, ten, p.nhom, 'LINK'); o.id = tlIdMoi(tlDsId()); o.url = url;
   themDong('TaiLieu', tlThanhDong(o));
   return { ma: ma, taiLieu: tlCua(ma), moi: sachTL(o) };
 }
