@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.11.1';
+var PHIEN_BAN = '2.11.2';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -107,7 +107,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
   'saveOT', 'deleteOT', 'saveProfile', 'saveOTCfg',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
-  'lockPeriod', 'unlockPeriod', 'approveReading', 'saveDienCfg',
+  'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring'];
 
 var CAI_DAT_MAC_DINH = {
@@ -265,6 +265,7 @@ function dieuHuong(a, p, req) {
     case 'saveReading': canQuyen(u, 'xacnhan'); return ghiChiSo(u, p, s(req.opId));
     case 'deleteReading': return xoaChiSo(u, p);
     case 'approveReading': canQuyen(u, 'khoaky'); return duyetChiSo(u, p);
+    case 'confirmAbnormal': canQuyen(u, 'khoaky'); return xacNhanBatThuong(u, p);
     case 'lockPeriod': canQuyen(u, 'khoaky'); return khoaKy(u, p);
     case 'unlockPeriod': canQuyen(u, 'khoaky'); return moKhoaKy(u, p);
     case 'saveDienCfg': canQuyen(u, 'caidat'); return luuCauHinhDien(u, p);
@@ -1295,7 +1296,7 @@ function luuViecLap(u, p) {
   var o = { tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], loai: f.loai, uuTien: f.uuTien, ma: f.ma, kieu: kieu, ngay: ngay, uidLam: f.lam ? f.lam.id : '',
     canKiemTra: f.canKiemTra, hoatDong: p.hoatDong !== false, capNhat: bay };
   if (!x) {
-    x = Object.assign({ id: 'VL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(10 + Math.random() * 90), taoDen: congNgay(homNay, -1), nguoiTao: u.ten }, o);
+    x = Object.assign({ id: idMoi('VL', dsIdCo(ds)), taoDen: congNgay(homNay, -1), nguoiTao: u.ten }, o);
     themDong('ViecLap', vlThanhDong(x));
     x = docViecLap().filter(function (r) { return r.id === x.id; })[0];
   } else {
@@ -2197,6 +2198,32 @@ function duyetChiSo(u, p) {
   ghiNhatKy(u, dongY ? 'DUYET_NGOAI_LE' : 'TU_CHOI_NGOAI_LE', 'ChiSo', x.ma + '|' + x.ky, truoc, sachCS(x), lyDo);
   return { chiSo: sachCS(x), dsChiSo: doi.map(sachCS) };
 }
+// Xác nhận tiêu thụ bất thường: Quản lý xem rồi xác nhận số liệu đúng (vd máy dừng cả kỳ trước, kỳ này chạy lại),
+// bản ghi thôi cảnh báo. Không đổi số liệu, chỉ ghi ai xác nhận và lúc nào. bo = true thì bỏ xác nhận, cảnh báo hiện lại.
+// Nhận một mã hoặc nhiều mã một lượt, vì mỗi kỳ thường có cả chục công tơ cùng bất thường.
+function xacNhanBatThuong(u, p) {
+  var ids = (Array.isArray(p.ids) ? p.ids : [p.id]).map(function (v) { return s(v); }).filter(function (v) { return v; }).slice(0, 200);
+  if (!ids.length) throw loi('THIEU_CHON', 'Chưa chọn bản ghi nào · 未选择记录');
+  var bo = p.bo === true, ghiChu = catChu(p.ghiChu, 200), bay = thoiGianStr();
+  var ds = docChiSo(), theoId = {}, out = [];
+  ds.forEach(function (r) { theoId[r.id] = r; });
+  capNhatTieuDe('ChiSo');
+  ids.forEach(function (id) {
+    var x = theoId[id];
+    if (!x || x.trangThai === 'HUY' || !x.ngoaiLe || !x.ngoaiLe.batThuong) return;
+    if (bo === !!x.ngoaiLe.batThuong.duyet) {
+      if (bo) delete x.ngoaiLe.batThuong.duyet;
+      else x.ngoaiLe.batThuong.duyet = { nguoi: u.ten, uid: u.id, luc: bay, ghiChu: ghiChu };
+      x.suaLuc = bay; x.nguoiSua = u.ten;
+      suaDong('ChiSo', x._r, csThanhDong(x));
+      out.push(sachCS(x));
+    }
+  });
+  if (!out.length) throw loi('KHONG_CO', 'Không có bản ghi nào để xác nhận · 没有可确认的记录');
+  ghiNhatKy(u, bo ? 'BO_XAC_NHAN_BT' : 'XAC_NHAN_BT', 'ChiSo', ids.slice(0, 20).join(','), null, { n: out.length }, ghiChu);
+  return { dsChiSo: out, n: out.length };
+}
+
 // Công tơ chưa có số (hoặc còn chờ duyệt) ở một kỳ
 function tinhTrangKy(ky, cts, ds) {
   var co = {}, cho = [];
