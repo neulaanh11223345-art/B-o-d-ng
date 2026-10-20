@@ -2,6 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadBackend } from './harness.mjs';
+import { readFileSync } from 'node:fs';
+const PHIEN_BAN = JSON.parse(readFileSync(new URL('../src/config.json', import.meta.url), 'utf8')).version;
 
 const ok = (r) => { assert.equal(r.ok, true, JSON.stringify(r)); return r.data; };
 const err = (r, code) => { assert.equal(r.ok, false, 'phải lỗi ' + code); assert.equal(r.code, code, JSON.stringify(r)); return r; };
@@ -225,7 +227,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.11.0');
+  assert.equal(d.phienBan, PHIEN_BAN, 'phiên bản máy chủ khớp src/config.json');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
@@ -688,6 +690,9 @@ test('tài liệu máy: chỉ Quản lý và Quản trị xem được; tải t�
   assert.deepEqual([lk.kieu, lk.ma, lk.url], ['LINK', 'VKY01', 'https://drive.google.com/file/d/abc/view']);
   err(b.call('docLink', { ma: 'VKY01', ten: 'x', url: 'javascript:alert(1)' }, ql), 'LINK_SAI');
   err(b.call('docGet', { id: lk.id }, ql), 'KHONG_CO');
+  // Mã tài liệu phải khác nhau kể cả khi tạo liên tiếp trong cùng một giây (trùng mã thì mở nhầm tài liệu)
+  const ids = b.ctx.docTaiLieu().map((x) => x.id);
+  assert.equal(new Set(ids).size, ids.length, 'mã tài liệu không được trùng');
   // Chặn tệp nguy hiểm, tệp quá lớn, máy không có
   err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:text/html;base64,PGI+eDwvYj4=' }, ql), 'TEP_KHONG_HO_TRO');
   err(b.call('docUpload', { ma: 'M001', ten: 'x', data: 'data:image/svg+xml;base64,PHN2Zy8+' }, ql), 'TEP_KHONG_HO_TRO');
@@ -740,6 +745,7 @@ test('tài liệu trên Drive: nối thư mục của tài khoản khác, quét 
   const byTen = {};
   r.taiLieu.forEach((x) => { byTen[x.ten] = x; });
   assert.equal(Object.keys(byTen).length, 6);
+  assert.equal(new Set(r.taiLieu.map((x) => x.id)).size, 6, 'mỗi tệp quét được một mã riêng');
   // Nhóm theo thư mục đã gán, máy theo mã trong tên tệp
   assert.deepEqual([byTen['M001 may in phun - huong dan'].ma, byTen['M001 may in phun - huong dan'].nhom], ['M001', 'HDSD']);
   assert.deepEqual([byTen['喷印机 M002 使用说明书'].ma, byTen['喷印机 M002 使用说明书'].nhom], ['M002', 'HDSD']);

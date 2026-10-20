@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.11.0';
+var PHIEN_BAN = '2.11.1';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -310,6 +310,16 @@ function dieuHuong(a, p, req) {
 
 // ===================== Tiện ích =====================
 function loi(code, msg) { var e = new Error(msg || code); e.code = code; return e; }
+// Mã bản ghi mới: đánh số tăng dần trong cùng một giây, không bốc số ngẫu nhiên.
+// Hai bản ghi trùng mã sẽ mở nhầm, xoá nhầm, hoặc bị từ chối với lỗi "Trùng mã".
+// daCo: bản đồ các mã đang dùng; hàm tự đánh dấu mã vừa cấp nên gọi nhiều lần trong một lượt vẫn khác nhau.
+function idMoi(tien, daCo) {
+  var dau = tien + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss'), i = 1, id;
+  do { id = dau + (i < 1000 ? ('00' + i).slice(-3) : i); i++; } while (daCo[id]);
+  daCo[id] = 1;
+  return id;
+}
+function dsIdCo(ds) { var o = {}; ds.forEach(function (x) { o[x.id] = 1; }); return o; }
 function s(v) { return v === null || v === undefined ? '' : String(v).trim(); }
 function pad2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
 function hd(v) { return !(v === 0 || v === '0' || v === false || String(v).toUpperCase() === 'FALSE'); }
@@ -620,7 +630,7 @@ function luuTangCa(u, p, opId) {
   var bay = thoiGianStr(), moi = !x;
   capNhatTieuDe('TangCa');
   if (moi) {
-    x = { id: opId ? 'TC' + opId.toUpperCase().slice(-18) : 'TC' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900),
+    x = { id: opId ? 'TC' + opId.toUpperCase().slice(-18) : idMoi('TC', dsIdCo(ds)),
       uid: uid, nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false };
   }
   x.uid = uid; x.ngay = ngay; x.ca = ca; x.tu = tu; x.den = den; x.soGio = gio;
@@ -729,7 +739,7 @@ function xacNhan(u, p, opId) {
   var chiTiet = sachChiTiet(p.chiTiet);
   var gan = ganLKDaDung(m, chiTiet ? chiTiet.lk : [], u, ngay, 'Thêm khi bảo dưỡng · 保养时添加');
   var x = {
-    id: 'LS' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900),
+    id: idMoi('LS', dsIdCo(ls)),
     ma: m.ma, tenMay: m.ten, ngay: ngay, denHan: moiNhat ? m.hanKeTiep : '',
     nguoi: catChu(p.nguoi, 150) || u.ten, ghiChu: catNhieuDong(p.ghiChu, 500), xacNhan: u.ten,
     thoiGian: thoiGianStr(), trangThai: 'OK', opId: opId, uid: u.id, huy: '', chiTiet: chiTiet
@@ -1031,7 +1041,7 @@ function luuCongViec(u, p, opId) {
   if (han && !hopLeNgay(han)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
   capNhatTieuDe('CongViec');
   if (!x) {
-    id = idCV(id, 'CV') || 'CV' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900);
+    id = idCV(id, 'CV') || idMoi('CV', dsIdCo(ds));
     // Bản dịch gửi kèm (vd app điền sẵn khi giao bảo dưỡng máy có tên tiếng Trung) thì dùng luôn, không thì tự dịch
     var so = soLonNhat(ds) + 1, td = dichKhiSua(f.tieuDe, '', '', p.tieuDeDich), mt = dichKhiSua(f.moTa, '', '', p.moTaDich);
     x = { id: id, so: so, tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], ketQuaDich: '', nguyenNhanDich: '',
@@ -1189,7 +1199,7 @@ function luuSuaChua(u, p, opId) {
   var ngay = s(p.ngay) ? ngayStr(p.ngay) : homNayStr();
   if (!hopLeNgay(ngay) || ngay > homNayStr()) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
   var bay = thoiGianStr(), luc = ngay === homNayStr() ? bay : ngay + ' 17:00:00';
-  var id = idCV(p.id, 'CV') || 'CV' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900);
+  var id = idCV(p.id, 'CV') || idMoi('CV', dsIdCo(ds));
   if (ds.some(function (r) { return r.id === id; })) throw loi('TRUNG', 'Trùng mã việc · 工作编号重复');
   capNhatTieuDe('CongViec');
   var td = songNgu(catChu(moTa, 200)), mt = moTa.length > 200 ? songNgu(moTa) : ['', ''], nnD = songNgu(nn), kqD = songNgu(kq);
@@ -2087,7 +2097,7 @@ function ghiChiSo(u, p, opId) {
   var anh = p.anh !== undefined ? sachAnhCS(p.anh, ct.ma + '_' + ky.replace(/-/g, '')) : (cu ? cu.anh || [] : []);
   if (ct.batBuocAnh && !anh.length) throw loi('CAN_ANH', 'Công tơ này bắt buộc chụp ảnh · 此电表必须拍照');
   var truocSua = cu ? JSON.parse(JSON.stringify(sachCS(cu))) : null;
-  var x = cu || { id: 'CS' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900),
+  var x = cu || { id: idMoi('CS', dsIdCo(ds)),
     ky: ky, ma: ct.ma, uid: u.id, thoiGian: bay, suaLuc: '', opId: opId };
   x.giaTri = gt; x.nguoi = catChu(p.nguoi, 150) || u.ten; x.ghiChu = catNhieuDong(p.ghiChu, 300);
   var lg = tgStr(p.lucGhi);
@@ -2710,13 +2720,7 @@ function quetDrive(u, p) {
   capNhatTieuDe('TaiLieu');
   var cu = docTaiLieu(), theoFile = {}, daCoId = {}, sua = [];
   cu.forEach(function (x) { if (x.fileId) theoFile[x.fileId] = x; daCoId[x.id] = 1; });
-  var dem = 0;
-  function maTLMoi() {
-    var dau = 'TL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + 'Q';
-    do { dem++; } while (daCoId[dau + dem]);
-    daCoId[dau + dem] = 1;
-    return dau + dem;
-  }
+
   var moi = [], gap = {}, demTep = 0, conNua = false;
   var hangDoi = [{ f: goc, duong: '', sau: 0, nhom: s(map[id]) }];
   while (hangDoi.length && !conNua) {
@@ -2738,7 +2742,7 @@ function quetDrive(u, p) {
       var mime = s(tep.getMimeType()).toLowerCase(), ten = catChu(s(tep.getName()).replace(/\.[^.]+$/, ''), 120) || s(tep.getName()).slice(0, 120);
       if (mime === 'application/vnd.google-apps.shortcut') continue;
       var o = tlMoi(u, '', ten, '', mime.indexOf('image/') === 0 ? 'ANH' : 'TEP');
-      o.id = maTLMoi();
+      o.id = tlIdMoi(daCoId);
       o.ma = tlMaTuTen(tep.getName(), cur.duong, dsMa);
       o.nhom = cur.nhom || tlNhomTuTen(tep.getName(), cur.duong) || (mime.indexOf('image/') === 0 ? 'ANH' : 'KHAC');
       o.fileId = fid; o.mime = mime; o.kichThuoc = Number(tep.getSize()) || 0;
@@ -2802,9 +2806,13 @@ function kiemMaTL(ma) {
   if (!ma || (!timMay(ma) && !dsChuyen().some(function (c) { return c.ma === ma; }))) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy / chuyền · 找不到设备/产线');
 }
 function tlCua(ma) { return docTaiLieu().filter(function (x) { return x.ma === ma && !x.xoa; }).map(sachTL); }
+// Mã tài liệu phải khác mọi mã đã có: trùng mã thì mở ra nhầm tài liệu khác.
+// daCo là bản đồ các mã đang dùng; hàm tự đánh dấu mã vừa cấp để gọi nhiều lần trong một lượt vẫn khác nhau.
+function tlIdMoi(daCo) { return idMoi('TL', daCo); }
+function tlDsId() { return dsIdCo(docTaiLieu()); }
 function tlMoi(u, ma, ten, nhom, kieu) {
   var bay = thoiGianStr();
-  return { id: 'TL' + Utilities.formatDate(bayGio(), TZ, 'yyMMddHHmmss') + Math.floor(100 + Math.random() * 900), ma: ma, ten: ten,
+  return { id: '', ma: ma, ten: ten,
     nhom: TL_NHOM.indexOf(s(nhom)) >= 0 ? s(nhom) : (kieu === 'ANH' ? 'ANH' : 'KHAC'), kieu: kieu, fileId: '', mime: '', kichThuoc: 0, url: '',
     daiDien: false, anhNho: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false, capNhat: bay,
     duongDan: '', nguon: 'APP', conTrenDrive: true, hienHanh: true, lucQuet: '' };
@@ -2828,6 +2836,7 @@ function taiLenTaiLieu(u, p) {
   if (bytes.length > TL_TOI_DA) throw loi('TEP_QUA_LON', 'Tệp lớn hơn 10 MB · 文件超过10MB');
   capNhatTieuDe('TaiLieu');
   var kieu = mime.indexOf('image/') === 0 ? 'ANH' : 'TEP', o = tlMoi(u, ma, ten, p.nhom, kieu);
+  o.id = tlIdMoi(tlDsId());
   var tenFile = ma + ' - ' + ten.replace(/[\\/:*?"<>|]/g, ' ') + '.' + TL_MIME[mime];
   try { o.fileId = tlFolder().createFile(Utilities.newBlob(bytes, mime, tenFile)).getId(); }
   catch (e) { throw loi('TL_KHONG_GHI_DUOC', 'App không ghi được vào thư mục Drive. Hãy chia sẻ thư mục với quyền Người chỉnh sửa · 应用无法写入该文件夹，请给予编辑权限'); }
@@ -2843,7 +2852,7 @@ function themLienKet(u, p) {
   if (!ten) throw loi('THIEU_TEN', 'Chưa nhập tên · 请输入名称');
   if (!/^https?:\/\/[^\s<>"]+$/i.test(url)) throw loi('LINK_SAI', 'Liên kết phải bắt đầu bằng http:// hoặc https:// · 链接需以http(s)://开头');
   capNhatTieuDe('TaiLieu');
-  var o = tlMoi(u, ma, ten, p.nhom, 'LINK'); o.url = url;
+  var o = tlMoi(u, ma, ten, p.nhom, 'LINK'); o.id = tlIdMoi(tlDsId()); o.url = url;
   themDong('TaiLieu', tlThanhDong(o));
   return { ma: ma, taiLieu: tlCua(ma), moi: sachTL(o) };
 }

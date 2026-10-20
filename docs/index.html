@@ -1329,7 +1329,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.11.0";
+const APP_VER = "2.11.1";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -2443,14 +2443,20 @@ function mayHead(m) {
 const scNgay = (x) => (x.lucXong || x.lucTao || '').slice(0, 10);
 // Thiết bị của việc sửa chữa: chuyền sản xuất (máy chính) hoặc máy không thuộc chuyền nào. Máy thuộc chuyền (máy in phun, máy hút bụi…) quy về chuyền.
 const maSuaChua = (ma) => { const m = ma && S.V.byMa[ma]; return m && m.chuyen && S.V.chByMa[m.chuyen] && !srvOld('scch') ? m.chuyen : (ma || ''); };
-function scThietBiOptions(cur, khongChon) {
+// Danh sách thiết bị dùng chung cho mọi loại việc (Ghi việc, Ghi sửa chữa, Việc lặp lại).
+// Ba nhóm: chuyền sản xuất · máy ngoài chuyền · máy của từng chuyền. Máy chủ nhận cả mã máy lẫn mã chuyền.
+// Chuyền để trên cùng vì việc sửa chữa thường ghi theo chuyền, nhưng máy nhánh vẫn chọn được.
+function tbOptions(cur, khongChon) {
   if (srvOld('scch')) return mayOptions(cur);     // máy chủ cũ chưa nhận mã chuyền: giữ danh sách máy như trước
-  cur = maSuaChua(cur);
-  const chs = (S.V.ch || []).filter((c) => c.hoatDong !== false), ngoai = activeMay().filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
+  cur = cur || '';
+  const chs = (S.V.ch || []).filter((c) => c.hoatDong !== false), may = activeMay();
+  const ngoai = may.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
   const o = (v, txt) => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(txt)}</option>`;
+  const nhom = (nhan, a) => (a.length ? `<optgroup label="${esc(nhan)}">${a.map((m) => o(m.ma, mh(m.ma) + ' · ' + m.ten)).join('')}</optgroup>` : '');
   return o('', tp(khongChon))
     + (chs.length ? `<optgroup label="${esc(tp('scNhomChuyen'))}">${chs.map((c) => o(c.ma, mh(c.ma) + (c.maHT ? ' (' + c.ma + ')' : '') + ' · ' + (c.tenZh || c.ten || ''))).join('')}</optgroup>` : '')
-    + byGroup(ngoai).map(([g, a]) => `<optgroup label="${esc(g || '—')}">${a.map((m) => o(m.ma, mh(m.ma) + ' · ' + m.ten)).join('')}</optgroup>`).join('');
+    + byGroup(ngoai).map(([g, a]) => nhom(g || '—', a)).join('')
+    + chs.map((c) => nhom(tp('tbNhomCh', { c: mh(c.ma) }), may.filter((m) => m.chuyen === c.ma))).join('');
 }
 // Tên ngắn của thiết bị trong việc (máy hoặc chuyền)
 function tbTen(ma) { const m = ma && S.V.byMa[ma]; if (m) return m.ten; const c = ma && S.V.chByMa[ma]; return c ? (c.tenZh || c.ten || '') : ''; }
@@ -7785,7 +7791,8 @@ Object.assign(TX, {
   navSC: ['Sửa chữa', '维修'], t_cvSC: ['Sửa chữa', '维修'], t_khongQuyen: ['Chỉ Quản lý', '仅限主管'],
   khongQuyenXem: ['Tài khoản của bạn chỉ xem được Điện/Nước, Sửa chữa và Bảo dưỡng. Cần xem mục khác thì nhờ Quản lý.', '您的账号只能查看电/水、维修和保养。如需查看其他内容，请联系管理员。'],
   timChungHC: ['Tìm thiết bị, công tơ', '搜索设备、电表'],
-  scTbHelp: ['Chọn chuyền sản xuất, hoặc máy không thuộc chuyền nào. Máy in phun, máy hút bụi… của chuyền thì chọn chuyền đó.', '请选择生产线，或不属于任何产线的设备。产线上的喷印机、吸尘器等请选择该产线。'],
+  scTbHelp: ['Chọn chuyền sản xuất, máy của chuyền, hoặc máy ngoài chuyền. Ghi theo chuyền thì lịch sử gom về chuyền; ghi theo máy thì gom về đúng máy đó.', '可选择生产线、产线上的设备，或不属于任何产线的设备。按产线记录则历史归到产线，按设备记录则归到该设备。'],
+  tbNhomCh: ['Máy của chuyền {c}', '{c} 产线设备'],
   scTheoCh: ['Sửa chữa ghi theo chuyền {c}', '维修按产线{c}记录'], scGhiChBtn: ['Ghi sửa chữa chuyền {c}', '记录产线{c}维修'],
   gyTieuDe: ['Lần sửa tương tự trước đây', '以往类似维修'], gyCungMay: ['Cùng máy', '同一设备'], gyCungLoai: ['Cùng loại máy', '同类设备'],
   gyDung: ['Dùng nguyên nhân và cách xử lý này', '使用此原因和处理方法'], gyDaChep: ['Đã chép vào ô bên dưới. Sửa lại cho đúng lần này.', '已复制到下方，请按本次实际修改。'],
@@ -8151,7 +8158,7 @@ VIEWS.cvNew = {
       <div class="fld"><span>${t('cvLoai')}</span><div class="chips">${Object.keys(CV_LOAI).map((k) => `<button type="button" class="chip${p.loai === k ? ' on' : ''}" data-act="cvLoaiChon" data-v="${k}">${t('lv_' + k)}</button>`).join('')}</div></div>
       <div class="fld"><span>${t('cvUu')}</span><div class="seg uuseg">${CV_UU.map((k) => `<button type="button" class="${p.uu === k ? 'on' : ''} uu-${k}" data-act="cvUuChon" data-v="${k}">${tv('uu_' + k)} ${tz('uu_' + k)}</button>`).join('')}</div></div>
       <div class="fld"><span>${t('cvHan')}</span>${hanChips(p.han)}<input class="inp" type="date" id="cvHanD" style="margin-top:8px" value="${esc(p.han)}"></div>
-      <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="cvMa">${p.loai === 'SUA' ? scThietBiOptions(p.ma, 'cvKhongMay') : mayOptions(p.ma)}</select>${p.loai === 'SUA' && !srvOld('scch') ? `<span class="help">${t('scTbHelp')}</span>` : ''}</label>
+      <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="cvMa">${tbOptions(p.ma, 'cvKhongMay')}</select>${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</label>
       <label class="fld"><span>${t('cvMoTa')}</span><textarea class="inp" id="cvMT" rows="3" maxlength="1000">${esc(p.moTa)}</textarea></label>
       ${p.sua && (p.moTa || p.dMT) ? `<label class="fld dichfld"><span>${t('cvBanDich')}</span><textarea class="inp" id="cvMTd" rows="2" maxlength="2000">${esc(p.dMT)}</textarea></label>` : ''}
       <div class="fld"><span>${t('cvAnh')}</span><div id="scAnh">${scAnhHtml(p.anh, 'scb')}</div></div>
@@ -8330,7 +8337,7 @@ VIEWS.scGhi = {
     const ta = (id, k, rows, ph) => `<label class="fld"><span>${t(k)}</span><textarea class="inp" id="${id}" rows="${rows}" maxlength="1000"${ph ? ` placeholder="${esc(tp(ph))}"` : ''}>${esc(p[id] || '')}</textarea></label>`;
     return `<form id="scF" class="card pad" autocomplete="off">
       <div class="help" style="margin-bottom:10px">${t('scGhiHelp')}</div>
-      <div class="row2f"><label class="fld"><span>${t('thMay')}</span><select class="inp" id="scMa">${scThietBiOptions(p.scMa, 'scKhongMay')}</select>${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</label>
+      <div class="row2f"><label class="fld"><span>${t('thMay')}</span><select class="inp" id="scMa">${tbOptions(p.scMa, 'scKhongMay')}</select>${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</label>
         <label class="fld"><span>${t('scNgay')}</span><input class="inp" id="scNgay" type="date" max="${esc(TODAY())}" value="${esc(p.ngay)}"></label></div>
       ${ta('scMT', 'scMT', 2, '')}
       <div id="scGoiY">${gyHtml(scGoiY(p.scMa, p.scMT), 'sc', p.scMa)}</div>
@@ -8520,7 +8527,7 @@ VIEWS.cvLapEdit = {
       <div class="fld"><span>${t('lapKieu')}</span><div class="seg">${['ngay', 'tuan', 'thang'].map((k) => `<button type="button" class="${p.kieu === k ? 'on' : ''}" data-act="vlSet" data-k="kieu" data-v="${k}">${tv('lap_' + k)} ${tz('lap_' + k)}</button>`).join('')}</div></div>
       ${p.kieu === 'tuan' ? `<div class="fld"><span>${t('lapThu')}</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<button type="button" class="chip${thu.indexOf(String(d)) >= 0 ? ' on' : ''}" data-act="vlThu" data-v="${d}">${WD_VI[d]} ${WD_ZH[d]}</button>`).join('')}</div></div>` : ''}
       ${p.kieu === 'thang' ? `<label class="fld"><span>${t('lapNgayThang')}</span><input class="inp" id="vlNgay" value="${esc(p.ngay)}" placeholder="${esc(tp('lapNgayPh'))}" inputmode="numeric"></label>` : ''}
-      <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="vlMa">${mayOptions(p.ma)}</select></label>
+      <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="vlMa">${tbOptions(p.ma, 'cvKhongMay')}</select></label>
       <label class="fld"><span>${t('lapNguoi')}</span><select class="inp" id="vlLam"><option value="">${esc(tp('lapNguoiTrong'))}</option>${nvDS().map((n) => `<option value="${esc(n.id)}"${p.lam === n.id ? ' selected' : ''}>${esc(n.ten)}</option>`).join('')}</select></label>
       <label class="fld"><span>${t('cvMoTa')}</span><textarea class="inp" id="vlMT" rows="2" maxlength="1000">${esc(p.moTa)}</textarea></label>
       ${p.dGoc && (p.moTa || p.dMT) ? `<label class="fld dichfld"><span>${t('cvBanDich')}</span><textarea class="inp" id="vlMTd" rows="2" maxlength="2000">${esc(p.dMT)}</textarea></label>` : ''}
