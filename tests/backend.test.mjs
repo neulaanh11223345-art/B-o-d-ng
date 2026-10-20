@@ -2,6 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadBackend } from './harness.mjs';
+import { readFileSync } from 'node:fs';
+const PHIEN_BAN = JSON.parse(readFileSync(new URL('../src/config.json', import.meta.url), 'utf8')).version;
 
 const ok = (r) => { assert.equal(r.ok, true, JSON.stringify(r)); return r.data; };
 const err = (r, code) => { assert.equal(r.ok, false, 'phải lỗi ' + code); assert.equal(r.code, code, JSON.stringify(r)); return r; };
@@ -225,7 +227,7 @@ test('dữ liệu mẫu: nâng cấp tính tiêu thụ cho mọi kỳ cũ, tổn
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const tk = b.login('NV002', '222222');
   const d = ok(b.call('data', {}, tk));
-  assert.equal(d.phienBan, '2.11.0');
+  assert.equal(d.phienBan, PHIEN_BAN, 'phiên bản máy chủ khớp src/config.json');
   const ct = d.congTo.find((c) => c.ten.startsWith('Tủ điện tổng số 1'));
   const rows = d.chiSo.filter((x) => x.ma === ct.ma).sort((a, c) => (a.ky > c.ky ? 1 : -1));
   assert.ok(rows.length > 10);
