@@ -325,6 +325,16 @@ await page.selectOption('#scMa', 'M038'); await page.fill('#scMT', 'Máy nén kh
 assert.match(await text('#scGoiY'), /Két làm mát/, 'gợi ý lần sửa tương tự của cùng máy');
 await page.click('#scGoiY [data-act="gyDung"]'); await wait();
 assert.equal(await page.inputValue('#scNN'), 'Két làm mát bám bụi dày');
+// Linh kiện thay: ô chọn có danh sách linh kiện của máy, chọn Khác thì gõ tên và gợi ý từ kho
+assert.equal(await page.locator('#scLK').count(), 0, 'không còn ô chữ tự do');
+await page.click('[data-act="lkAdd"]'); await wait(400);
+assert.ok(await page.locator('.lkin select[data-lf="id"] option').count() > 1, 'có danh sách linh kiện của máy M038');
+await page.selectOption('.lkin select[data-lf="id"]', '__khac'); await wait(400);
+await page.fill('.lkin [data-lf="ten"]', 'vòng bi'); await wait(600);
+assert.ok(await page.locator('.lksug .ksi').count() > 0, 'gõ tên thì gợi ý linh kiện có trong kho');
+await page.click('.lksug .ksi'); await wait(400);
+assert.ok(await page.evaluate(() => !!(S.ctF.lk[0] && S.ctF.lk[0].maKho)), 'chọn gợi ý thì nối được mã kho');
+assert.equal(await page.locator('.lkin .klink').count(), 1, 'hiện mã kho và tồn kho');
 await logout(); await login('NV001', '111111');
 await page.evaluate(() => go('saoLuu')); await wait(1200);
 await page.click('[data-act="slNgay"]'); await wait(1500);

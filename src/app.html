@@ -6773,6 +6773,27 @@ function lkRowsHtml() {
   }).join('');
 }
 function lkPaint() { const b = $('#lkRows'); if (b) b.innerHTML = lkRowsHtml(); }
+// Bắt sự kiện cho các dòng linh kiện. Dùng chung cho màn xác nhận bảo dưỡng, báo xong việc và Ghi sửa chữa.
+function lkBindRows(root) {
+  root.addEventListener('input', (e) => {
+    const el = e.target, f = S.ctF; if (!f) return;
+    const row = el.closest && el.closest('.lkin');
+    if (!row || !el.dataset.lf || el.dataset.lf === 'id') return;
+    const r = f.lk[+row.dataset.i]; if (r) r[el.dataset.lf] = el.value;
+    // Gõ tên linh kiện khác: gợi ý linh kiện có trong kho
+    const sg = $('.lksug', row);
+    if (r && el.dataset.lf === 'ten' && sg && !r.maKho) sg.innerHTML = khoSugHtml(el.value, 'lkSug', row.dataset.i);
+  });
+  root.addEventListener('change', (e) => {
+    const el = e.target, f = S.ctF, row = el.closest && el.closest('.lkin');
+    if (!f || !row || el.dataset.lf !== 'id') return;
+    const r = f.lk[+row.dataset.i]; if (!r || r.id === el.value) return;
+    r.id = el.value;
+    const k = lkOf(S.V.byMa[f.ma]).find((x) => x.id === r.id);
+    if (k) r.loai = loaiMacDinh(k);
+    lkPaint();
+  });
+}
 const loaiMacDinh = (k) => (k && (k.sl === '' || k.sl === undefined || k.sl === null) ? 'BOSUNG' : 'THAY');
 function ktConfirmAfter(bg) {
   bg.addEventListener('input', (e) => {
@@ -6783,23 +6804,8 @@ function ktConfirmAfter(bg) {
       if (w) w.hidden = !(h && v !== null && !isNaN(v) && vuotNguong(v, h));
       return;
     }
-    const row = el.closest('.lkin');
-    if (row && el.dataset.lf && el.dataset.lf !== 'id') {
-      const r = f.lk[+row.dataset.i]; if (r) r[el.dataset.lf] = el.value;
-      // Gõ tên linh kiện khác: gợi ý linh kiện có trong kho
-      const sg = $('.lksug', row);
-      if (r && el.dataset.lf === 'ten' && sg && !r.maKho) sg.innerHTML = khoSugHtml(el.value, 'lkSug', row.dataset.i);
-    }
   });
-  bg.addEventListener('change', (e) => {
-    const el = e.target, f = S.ctF, row = el.closest && el.closest('.lkin');
-    if (!f || !row || el.dataset.lf !== 'id') return;
-    const r = f.lk[+row.dataset.i]; if (!r || r.id === el.value) return;
-    r.id = el.value;
-    const k = lkOf(S.V.byMa[f.ma]).find((x) => x.id === r.id);
-    if (k) r.loai = loaiMacDinh(k);
-    lkPaint();
-  });
+  lkBindRows(bg);
 }
 // Gom dữ liệu để gửi; trả { err } hoặc { v: chiTiet hoặc null }
 function ktCollect(m) {
@@ -7872,6 +7878,8 @@ Object.assign(TX, {
   scGhiHelp: ['Ghi việc sửa chữa đã làm. Lưu xong là việc đã xong, không cần ai xác nhận.', '记录已完成的维修，保存即完成，无需确认。'],
   scMT: ['Mô tả sự cố', '问题描述'], scNN: ['Phân tích nguyên nhân', '分析原因'], scKQ: ['Kết quả xử lý', '处理结果'],
   scNhieuDong: ['Mỗi dòng một ý, app tự đánh số 1, 2, 3', '每行一项，自动编号'], scNgay: ['Ngày sửa', '维修日期'], scNguoi: ['Người xử lý (không bắt buộc)', '维修人（可选）'],
+  scLKHelp: ['Chọn linh kiện của máy, hoặc chọn Khác rồi gõ tên — app gợi ý linh kiện có trong kho và hiện tồn. Thứ kho chưa có thì vẫn ghi được, chỉ không thêm vào danh sách linh kiện của máy.',
+    '可选择该设备的零件，或选"其他"后输入名称 — 应用会提示库存零件并显示库存量。库存没有的也能记录，只是不加入该设备的零件清单。'],
   scChuaChon: ['Không chọn', '不选'], scKhongMay: ['— Không gắn thiết bị —', '— 不关联设备 —'], scLK: ['Linh kiện thay (mỗi dòng một loại)', '更换零件（每行一种）'], scLKPh: ['Vd: Attomat 32A 3P', '如：32A 3P空开'],
   CAN_MO_TA: ['Cần ghi mô tả sự cố.', '请填写问题描述。'],
   MA_HT_TRUNG: ['Mã hiển thị này đã dùng cho {m}.', '该显示编号已被{m}使用。'], MA_HT_SAI: ['Mã hiển thị có ký tự không hợp lệ.', '显示编号含无效字符。'],
@@ -8396,6 +8404,8 @@ function soDong(v) {
 VIEWS.scGhi = {
   html(p) {
     if (!p.init) Object.assign(p, { init: 1, id: 'CV' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase(), ngay: TODAY(), sel: { lam: can('giaoviec') ? '' : (S.me.id || ''), phu: [] }, scMa: maSuaChua(p.scMa) });
+    if (!p.ctF) p.ctF = { ma: p.scMa || '', kt: {}, lk: [], anh: [] };
+    S.ctF = p.ctF;
     nvSelGan(p.sel, { trong: 'scChuaChon' });
     const ta = (id, k, rows, ph) => `<label class="fld"><span>${t(k)}</span><textarea class="inp" id="${id}" rows="${rows}" maxlength="1000"${ph ? ` placeholder="${esc(tp(ph))}"` : ''}>${esc(p[id] || '')}</textarea></label>`;
     return `<form id="scF" class="card pad" autocomplete="off">
@@ -8409,8 +8419,11 @@ VIEWS.scGhi = {
       ${ta('scKQ', 'scKQ', 3, 'scNhieuDong')}
       <div class="help" style="margin:-6px 0 12px">${t('cvTuDich')}</div>
       <div class="fld"><span>${t('scNguoi')}</span><div id="nvBox">${nvChonHtml(p.sel, { trong: 'scChuaChon' })}</div></div>
-      <div class="row2f" style="margin-top:12px"><label class="fld"><span>${t('cvGioDung')}</span><input class="inp" id="scGio" inputmode="decimal" maxlength="6" value="${esc(p.scGio || '')}" placeholder="${esc(tp('cvGioDungPh'))}"></label>
-        ${ta('scLK', 'scLK', 2, 'scLKPh')}</div>
+      <label class="fld" style="margin-top:12px"><span>${t('cvGioDung')}</span><input class="inp" id="scGio" inputmode="decimal" maxlength="6" value="${esc(p.scGio || '')}" placeholder="${esc(tp('cvGioDungPh'))}"></label>
+      <div class="ctsec" id="ctLK" style="margin-top:12px"><div class="cth"><b>${tv('scLK')}<span class="zi">${tz('scLK')}</span></b></div>
+        <div class="help" style="margin-bottom:8px">${t('scLKHelp')}</div>
+        <div id="lkRows">${lkRowsHtml()}</div>
+        <button type="button" class="btn ghost sm" data-act="lkAdd">${IC.plus} ${t('addLK')}</button></div>
       <div class="err" id="scErr" hidden></div>
       <div class="btns" style="margin-top:12px"><button type="button" class="btn ghost" data-act="back">${t('cancel')}</button><button type="submit" class="btn bigbtn" id="scOk">${IC.check} ${t('save')}</button></div></form>`;
   },
@@ -8419,7 +8432,14 @@ VIEWS.scGhi = {
     let gyT = 0;
     const gyVe = () => { const b = $('#scGoiY'); if (b) { b.innerHTML = gyHtml(scGoiY(p.scMa, p.scMT), 'sc', p.scMa); napAnhTrong(b); } };
     f.addEventListener('input', (e) => { const el = e.target; if (el.id === 'scNgay') p.ngay = el.value; else if (el.id) p[el.id] = el.value; if (el.id === 'scMT') { clearTimeout(gyT); gyT = setTimeout(gyVe, 300); } });
-    f.addEventListener('change', (e) => { if (e.target.id === 'scMa') { p.scMa = e.target.value; gyVe(); } });
+    lkBindRows(f);
+    f.addEventListener('change', (e) => {
+      if (e.target.id !== 'scMa') return;
+      p.scMa = e.target.value; p.ctF.ma = p.scMa;
+      // Đổi sang máy khác thì danh sách linh kiện của máy khác đi, bỏ các dòng đã chọn theo máy cũ
+      p.ctF.lk = p.ctF.lk.filter((r) => r.id === '__khac');
+      lkPaint(); gyVe();
+    });
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fe = $('#scErr'), err = (h) => { fe.innerHTML = h; fe.hidden = false; fe.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
@@ -8430,7 +8450,9 @@ VIEWS.scGhi = {
       if (!validD(ngay) || ngay > TODAY()) return err(t('NGAY_SAI'));
       const gio = parseSo(v('scGio'));
       if (gio !== null && (isNaN(gio) || gio < 0)) return err(t('SO_SAI'));
-      const pl = { id: p.id, moTa: v('scMT'), nguyenNhan: v('scNN'), ketQua: v('scKQ'), ma: $('#scMa').value, ngay, uidLam: p.sel.lam, uidPhu: p.sel.phu, gioDung: gio === null ? '' : gio, linhKien: v('scLK') };
+      const lr = lkCollect(S.V.byMa[$('#scMa').value]);
+      if (lr.err) return err(lr.err);
+      const pl = { id: p.id, moTa: v('scMT'), nguyenNhan: v('scNN'), ketQua: v('scKQ'), ma: $('#scMa').value, ngay, uidLam: p.sel.lam, uidPhu: p.sel.phu, gioDung: gio === null ? '' : gio, linhKien: lr.v };
       $('#scOk').disabled = true;
       const r = await send('saveRepair', pl);
       if (r.err) { $('#scOk').disabled = false; return err(cvLoi(r.err)); }
