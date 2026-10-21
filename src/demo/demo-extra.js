@@ -235,6 +235,39 @@ function mauTangCa() {
   tc('NV005', congNgay(t2, -1), 'CN', '08:00', '12:00', 'Vệ sinh máy nén khí', '清洁空压机');
   tc('NV006', congNgay(t2, 3), 'HC', '17:30', '21:00', 'Sửa băng tải chuyền VKY02', '维修产线VKY02输送带');
 }
+// Lịch trực tuần mẫu: tuần này mỗi ngày một người, có nội dung trực riêng; một ngày để trống cho thấy cảnh báo
+function mauLichTruc() {
+  if (docLichTruc().length) return;
+  capNhatTieuDe('LichTruc');
+  var hn = homNayStr(), bay = thoiGianStr(), nv = {};
+  dsNguoiDung().forEach(function (n) { nv[n.maNV] = n; });
+  var w = new Date(hn + 'T00:00:00Z').getUTCDay(), t2 = congNgay(hn, -((w + 6) % 7));
+  function lt(i, ma, nd, ndZh) {
+    var n = nv[ma]; if (!n) return;
+    themDong('LichTruc', [congNgay(t2, i), n.id, n.ten, nd, ndZh, 'Quản lý', bay]);
+  }
+  lt(0, 'NV004', 'Trực điện xưởng 1, theo dõi máy nén khí', '1号车间电工值班，跟踪空压机');
+  lt(1, 'NV003', 'Ghi số điện kỳ 20, trực xưởng 2', '抄录20日电表，2号车间值班');
+  lt(2, 'NV006', 'Hỗ trợ chuyền VKY17 đổi mã, chờ máy in phun chạy xong', '协助VKY17线换款，等喷码机跑完');
+  lt(4, 'NV005', 'Tra dầu máy cắt xưởng 1, kiểm tủ điện chuyền 3', '1号车间裁断机加油，检查3线电箱');
+  lt(5, 'NV004', 'Trực chung cả xưởng, tăng ca chuyền 5 đến 19:30', '全厂值班，5线加班至19:30');
+  lt(6, 'NV003', 'Nghỉ sản xuất, chỉ đi tuần và khóa xưởng', '停产，只巡检并锁厂');
+}
+// Phân công ca trực mẫu: tuần trước đã xếp để bấm luân phiên là tiếp nối được
+function mauPhanCa() {
+  if (docPhanCa().length) return;
+  var hn = homNayStr(), ql = { ten: 'Quản lý' }, bay = thoiGianStr();
+  var w = new Date(hn + 'T00:00:00Z').getUTCDay(), t2 = congNgay(hn, -((w + 6) % 7));
+  var nts = docNguoiTruc(), ds = [];
+  capNhatTieuDe('PhanCa');
+  ['SX', 'KHO'].forEach(function (nhom) {
+    var ng = ntNhom(nts, nhom);
+    if (!ng.length) return;
+    pcDat(ds, congNgay(t2, -7), nhom, 'NGAY', ng[0], ql, bay);
+    pcDat(ds, congNgay(t2, -7), nhom, 'DEM', ng[ng.length > 1 ? 1 : 0], ql, bay);
+  });
+  luanPhienTuan({ ten: 'Quản lý', id: 'U002' }, { tuNgay: t2 });
+}
 function mauCongViec() {
   if (docCongViec().length) return;
   capNhatTieuDe('CongViec'); capNhatTieuDe('ViecLap');
@@ -374,5 +407,7 @@ mauKiemTra();
 mauKho();
 mauCongViec();
 mauTangCa();
+mauLichTruc();
+mauPhanCa();
 mauTaiLieu();
 return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };

@@ -454,6 +454,87 @@ assert.ok(!/data-act="btXacNhan/.test(ktBt), 'kỹ thuật không có nút xác 
 assert.match(ktBt, /Chỉ Quản lý/);
 ok('Bản 2.11.2: Quản lý xác nhận tiêu thụ bất thường, cảnh báo thôi hiện; kỹ thuật không xác nhận được');
 
+// 16. Bản 2.12: lịch trực tuần (nội dung trực của từng người) và phân công ca trực
+await logout(); await login('NV002', '222222');
+await page.evaluate(() => tab('truc')); await wait(600);
+assert.match(await text('#barTitle'), /Lịch trực tuần/);
+assert.match(await text('#main'), /Trực điện xưởng 1/, 'bảng lịch trực hiện nội dung trực của từng người');
+assert.match(await text('#main'), /1号车间电工值班/, 'nội dung trực hiện cả tiếng Trung');
+assert.equal(await page.locator('[data-act="trucXep"]').count(), 7, 'bảy ngày, Quản lý bấm được từng ngày');
+await shot('24-lich-truc-tuan');
+// Ngày chưa xếp: chọn người và nhập nội dung trực
+const trong16 = await page.evaluate(() => {
+  const tu = tcThuHai(TODAY());
+  return trucTuanDS(tu).filter((o) => !trucCoNguoi(o)).map((o) => o.ngay)[0];
+});
+assert.ok(trong16, 'tuần mẫu có một ngày chưa xếp');
+await page.click(`[data-act="trucXep"][data-d="${trong16}"]`); await wait(500);
+assert.match(await text('#barTitle'), /Xếp người trực/);
+const u16 = await page.evaluate(() => S.V.nv.find((n) => n.maNV === 'NV005').id);
+await page.selectOption('#trNg', u16);
+await page.fill('#trND', 'Kiểm tra bơm nước khu xử lý nước thải'); await wait();
+await page.click('#trOk'); await wait(1200);
+const d16 = await page.evaluate((d) => { const x = trucNgay(d); return { uid: x.uid, ten: x.ten, nd: x.noiDung, dich: !!x.noiDungDich }; }, trong16);
+assert.equal(d16.uid, u16);
+assert.equal(d16.nd, 'Kiểm tra bơm nước khu xử lý nước thải');
+assert.equal(d16.dich, true, 'máy chủ tự dịch nội dung trực sang tiếng Trung');
+assert.equal(await page.locator('[data-act="trucXep"] >> text=Chưa xếp').count(), 0, 'tuần đã xếp đủ bảy ngày');
+// Tổng số ca: số ngày trực và số ngày Chủ nhật
+await page.evaluate(() => go('trucTong')); await wait(600);
+assert.match(await text('#barTitle'), /Tổng số ca/);
+const tong16 = await page.evaluate(() => trucTongDS(TODAY().slice(0, 7)));
+assert.ok(tong16.length >= 3, 'bảng tổng liệt kê từng người');
+assert.ok(tong16.reduce((a, x) => a + x.cn, 0) >= 1, 'đếm riêng số ngày Chủ nhật');
+await shot('25-truc-tong-so-ca');
+// Phân công ca trực: bảng giống bảng giấy, bấm luân phiên thì tiếp nối tuần trước
+await page.evaluate(() => { back(); go('phanCa'); }); await wait(700);
+assert.match(await text('#barTitle'), /Phân công ca trực/);
+assert.match(await text('#main'), /KHO NGŨ KIM/);
+assert.match(await text('#main'), /0389978042|0946367665/, 'ô phân ca hiện số điện thoại của người trực');
+await shot('26-phan-cong-ca-truc');
+const pcTruoc = await page.evaluate(() => { const tu = tcThuHai(TODAY()); const x = pcO(tu, 'SX', 'NGAY'); return x ? x.ten : ''; });
+assert.ok(pcTruoc, 'tuần này đã có người trực ca ngày');
+await page.click('[data-act="pcLP"]'); await wait(400);
+await page.click('[data-act="pcLPOk"]'); await wait(1200);
+const pcSau = await page.evaluate(() => {
+  const tu = tcThuHai(TODAY());
+  return { ngay: (pcO(tu, 'SX', 'NGAY') || {}).ten, dem: (pcO(tu, 'SX', 'DEM') || {}).ten,
+    kho: (pcO(tu, 'KHO', 'NGAY') || {}).ten, n: pcDS().filter((x) => x.tuNgay === tu && x.nguoiId).length };
+});
+assert.equal(pcSau.n, 4, 'luân phiên xếp đủ bốn ô');
+assert.notEqual(pcSau.ngay, pcSau.dem, 'ca ngày và ca đêm là hai người khác nhau');
+assert.ok(pcSau.kho, 'kho ngũ kim cũng được xếp');
+// Danh sách người trực: Nguyễn Thị The đã nghỉ nên không có trong danh sách
+const ntDS16 = await page.evaluate(() => S.V.nt.map((x) => x.ten));
+assert.equal(ntDS16.includes('Nguyễn Thị The'), false, 'người đã nghỉ không có trong danh sách sắp lịch');
+assert.equal(ntDS16.length, 9);
+// Sửa danh sách người trực ca: thêm một người và đổi số điện thoại
+await page.click('[data-act="go"][data-v="trucNguoi"]'); await wait(600);
+assert.match(await text('#barTitle'), /Danh sách người trực ca/);
+await page.fill('[data-nf="0:dienThoai"]', '0912345678');
+await page.click('[data-act="ntThem"]'); await wait(400);
+const cuoi16 = await page.evaluate(() => topV().p.ds.length - 1);
+await page.fill(`[data-nf="${cuoi16}:ten"]`, 'Phạm Văn Mới');
+await page.fill(`[data-nf="${cuoi16}:tenZh"]`, '范文新');
+await page.fill(`[data-nf="${cuoi16}:dienThoai"]`, '0977000111');
+await page.selectOption(`[data-nf="${cuoi16}:nhom"]`, 'KHO'); await wait();
+await page.click('#ntOk'); await wait(1200);
+const ntSau = await page.evaluate(() => S.V.nt.map((x) => ({ ten: x.ten, dt: x.dienThoai, nhom: x.nhom })));
+assert.equal(ntSau.length, 10, 'thêm được người mới vào danh sách');
+assert.equal(ntSau[0].dt, '0912345678', 'sửa được số điện thoại');
+const moi16 = ntSau.find((x) => x.ten === 'Phạm Văn Mới');
+assert.equal(moi16.nhom, 'KHO');
+// Kỹ thuật: xem được lịch trực và bảng phân ca, không xếp được
+await logout(); await login('NV003', '333333');
+await page.evaluate(() => tab('truc')); await wait(600);
+assert.match(await text('#main'), /Trực điện xưởng 1/, 'kỹ thuật xem được nội dung trực');
+assert.equal(await page.locator('[data-act="trucXep"]').count(), 0, 'kỹ thuật không bấm xếp lịch được');
+await page.evaluate(() => go('phanCa')); await wait(600);
+assert.equal(await page.locator('[data-act="pcLP"]').count(), 0, 'kỹ thuật không có nút luân phiên');
+await page.evaluate(() => go('trucNguoi')); await wait(500);
+assert.match(await text('#barTitle'), /Chỉ Quản lý/);
+ok('Bản 2.12: lịch trực tuần có nội dung trực song ngữ, tổng số ca, phân công ca trực luân phiên; kỹ thuật chỉ xem');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
