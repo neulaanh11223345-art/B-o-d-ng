@@ -986,3 +986,123 @@ test('tăng ca: mỗi người ghi của mình, Quản lý ghi hộ và xem hế
   // Ca đã bỏ thì không ghi tăng ca theo ca đó nữa
   err(b.call('saveOT', { ngay: '2026-10-16', ca: 'CN', tu: '08:00', den: '17:00' }, kt), 'CA_SAI');
 });
+
+test('lịch trực tuần: Quản lý xếp người và nội dung, tự dịch; sửa tay bản dịch thì không dịch đè; kỹ thuật chỉ xem', () => {
+  const b = setup();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien;
+  const kt3 = nv.find((x) => x.vaiTro === 'kythuat');
+
+  // Chỉ Quản lý, Quản trị mới xếp được
+  err(b.call('dutySet', { ngay: '2026-10-21', uid: kt3.id, noiDung: 'Trực điện xưởng 1' }, b.kt), 'KHONG_QUYEN');
+  const x = ok(b.call('dutySet', { ngay: '2026-10-21', uid: kt3.id, noiDung: 'Trực điện xưởng 1' }, b.ql)).lichTruc;
+  assert.equal(x.uid, kt3.id);
+  assert.equal(x.ten, kt3.ten);
+  assert.equal(x.noiDung, 'Trực điện xưởng 1');
+  assert.ok(x.noiDungDich, 'phải có bản dịch tiếng Trung');
+
+  // Ngày sai, người không có
+  err(b.call('dutySet', { ngay: '2026-13-45', uid: kt3.id }, b.ql), 'NGAY_SAI');
+  err(b.call('dutySet', { ngay: '2026-10-22', uid: 'U999' }, b.ql), 'KHONG_CO_NV');
+
+  // Chỉ gửi nội dung: giữ người đang xếp
+  const y = ok(b.call('dutySet', { ngay: '2026-10-21', noiDung: 'Ghi số điện kỳ 20/10' }, b.ql)).lichTruc;
+  assert.equal(y.uid, kt3.id);
+  assert.equal(y.noiDung, 'Ghi số điện kỳ 20/10');
+
+  // Sửa tay bản dịch tiếng Trung thì giữ nguyên, lần sau không dịch đè
+  const z = ok(b.call('dutySet', { ngay: '2026-10-21', noiDung: 'Ghi số điện kỳ 20/10', noiDungDich: '抄录10月20日电表' }, b.ql)).lichTruc;
+  assert.equal(z.noiDungDich, '抄录10月20日电表');
+  const z2 = ok(b.call('dutySet', { ngay: '2026-10-21', uid: kt3.id }, b.ql)).lichTruc;
+  assert.equal(z2.noiDungDich, '抄录10月20日电表');
+
+  // Mỗi ngày một dòng, không sinh thêm dòng mới
+  assert.equal(b.ctx.docTho('LichTruc').filter((r) => r[0] === '2026-10-21').length, 1);
+
+  // Kỹ thuật xem được lịch (để biết ai trực)
+  const dsKT = ok(b.call('data', {}, b.kt)).lichTruc;
+  assert.equal(dsKT.length, 1);
+  assert.equal(dsKT[0].uid, kt3.id);
+
+  // Bỏ trống ngày
+  const bo = ok(b.call('dutySet', { ngay: '2026-10-21', uid: '', noiDung: '' }, b.ql)).lichTruc;
+  assert.equal(bo.uid, '');
+  assert.equal(bo.noiDung, '');
+});
+
+test('phân công ca trực: danh sách riêng, xếp tay từng ô, luân phiên tiếp nối tuần trước; người nghỉ không được xếp nữa', () => {
+  const b = setup();
+  const nt = ok(b.call('data', {}, b.ql)).nguoiTruc;
+  const sx = nt.filter((x) => x.nhom === 'SX'), kho = nt.filter((x) => x.nhom === 'KHO');
+  assert.equal(sx.length, 7);
+  assert.equal(kho.length, 2);
+  assert.equal(sx[0].ten, 'Nguyễn Hữu Ninh');
+  assert.equal(sx[0].tenZh, '阮友宁');
+  assert.equal(sx[0].dienThoai, '0389978042');   // giữ số 0 đầu
+
+  // Tuần phải là thứ Hai
+  err(b.call('shiftRotate', { tuNgay: '2026-10-21' }, b.ql), 'TUAN_SAI');
+  err(b.call('shiftRotate', { tuNgay: '2026-10-19' }, b.kt), 'KHONG_QUYEN');
+
+  // Tuần đầu: hai người đầu danh sách, ca ngày và ca đêm
+  const t1 = ok(b.call('shiftRotate', { tuNgay: '2026-10-19' }, b.ql)).phanCa;
+  const o = (ds, nhom, ca) => ds.find((x) => x.nhom === nhom && x.ca === ca);
+  assert.equal(t1.length, 4);
+  assert.equal(o(t1, 'SX', 'NGAY').ten, sx[0].ten);
+  assert.equal(o(t1, 'SX', 'DEM').ten, sx[1].ten);
+  assert.equal(o(t1, 'SX', 'NGAY').dienThoai, sx[0].dienThoai);
+  assert.equal(o(t1, 'KHO', 'NGAY').ten, kho[0].ten);
+  assert.equal(o(t1, 'KHO', 'DEM').ten, kho[1].ten);
+
+  // Tuần sau: mỗi ca dịch xuống một người; nhóm 2 người thì đổi chỗ ca ngày ↔ ca đêm
+  const t2 = ok(b.call('shiftRotate', { tuNgay: '2026-10-26' }, b.ql)).phanCa;
+  assert.equal(o(t2, 'SX', 'NGAY').ten, sx[1].ten);
+  assert.equal(o(t2, 'SX', 'DEM').ten, sx[2].ten);
+  assert.equal(o(t2, 'KHO', 'NGAY').ten, kho[1].ten);
+  assert.equal(o(t2, 'KHO', 'DEM').ten, kho[0].ten);
+
+  // Xếp tay một ô, không đụng ô khác
+  const tay = ok(b.call('shiftSet', { tuNgay: '2026-10-26', nhom: 'SX', ca: 'NGAY', id: sx[5].id }, b.ql)).phanCa[0];
+  assert.equal(tay.ten, sx[5].ten);
+  err(b.call('shiftSet', { tuNgay: '2026-10-26', nhom: 'KHO', ca: 'NGAY', id: sx[0].id }, b.ql), 'KHAC_NHOM');
+  err(b.call('shiftSet', { tuNgay: '2026-10-26', nhom: 'SX', ca: 'TRUA', id: sx[0].id }, b.ql), 'CA_SAI');
+  const pc = ok(b.call('data', {}, b.kt)).phanCa;
+  assert.equal(pc.filter((x) => x.tuNgay === '2026-10-26').length, 4);
+  assert.equal(pc.find((x) => x.tuNgay === '2026-10-26' && x.nhom === 'SX' && x.ca === 'DEM').ten, sx[2].ten);
+
+  // Luân phiên tiếp nối ô vừa xếp tay
+  const t3 = ok(b.call('shiftRotate', { tuNgay: '2026-11-02' }, b.ql)).phanCa;
+  assert.equal(o(t3, 'SX', 'NGAY').ten, sx[6].ten);
+  assert.equal(o(t3, 'SX', 'DEM').ten, sx[3].ten);
+
+  // Bỏ trống một ô
+  const trong = ok(b.call('shiftSet', { tuNgay: '2026-11-02', nhom: 'SX', ca: 'NGAY', id: '' }, b.ql)).phanCa[0];
+  assert.equal(trong.ten, '');
+  assert.equal(trong.nguoiId, '');
+});
+
+test('danh sách người trực ca: sửa tên, thêm người, bỏ khỏi danh sách là đánh dấu đã nghỉ và không xếp luân phiên nữa', () => {
+  const b = setup();
+  const nt0 = ok(b.call('data', {}, b.ql)).nguoiTruc;
+  const kho = nt0.filter((x) => x.nhom === 'KHO');
+
+  err(b.call('shiftPeople', { ds: nt0 }, b.kt), 'KHONG_QUYEN');
+  err(b.call('shiftPeople', { ds: [] }, b.ql), 'CAN_NGUOI');
+
+  // Bỏ một người kho khỏi danh sách (đã nghỉ) + thêm người mới + sửa số điện thoại
+  const con = nt0.filter((x) => x.id !== kho[1].id).map((x) => Object.assign({}, x));
+  con.find((x) => x.id === kho[0].id).dienThoai = '0912 345 678';
+  con.push({ ten: 'Trần Thị Mới', tenZh: '陈氏新', dienThoai: '0988777666', nhom: 'KHO' });
+  const sau = ok(b.call('shiftPeople', { ds: con }, b.ql)).nguoiTruc;
+  const nghi = sau.find((x) => x.id === kho[1].id);
+  assert.equal(nghi.hoatDong, false, 'người bị bỏ khỏi danh sách = đã nghỉ, vẫn còn dòng');
+  assert.equal(sau.find((x) => x.id === kho[0].id).dienThoai, '0912 345 678');
+  const moi = sau.find((x) => x.ten === 'Trần Thị Mới');
+  assert.ok(moi && moi.id && moi.hoatDong);
+  assert.equal(moi.tenZh, '陈氏新');
+
+  // Luân phiên chỉ lấy người còn làm
+  const t1 = ok(b.call('shiftRotate', { tuNgay: '2026-10-19' }, b.ql)).phanCa;
+  const tenKho = t1.filter((x) => x.nhom === 'KHO').map((x) => x.ten);
+  assert.ok(!tenKho.includes(kho[1].ten), 'người đã nghỉ không được xếp nữa');
+  assert.deepEqual(tenKho.sort(), [kho[0].ten, 'Trần Thị Mới'].sort());
+});

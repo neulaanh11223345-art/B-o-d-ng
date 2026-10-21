@@ -441,6 +441,7 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .tcrow .no{width:26px;height:26px;flex:none;border-radius:8px;background:var(--brand-bg);color:var(--brand);font:700 12.5px var(--f-mono);display:grid;place-items:center}
 .tcrow .g{margin-left:auto;font:700 17px var(--f-mono);color:var(--green)}
 .tcrow .g i{font-style:normal;font-size:12px;font-weight:500;color:var(--ink3);margin-left:2px}
+.tcrow.on{border-color:var(--brand);background:var(--brand-bg)}
 .tcrow .sub{font-size:13px;color:var(--ink2)}
 .tctot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
 .tctot .k{font-size:13.5px;color:var(--ink2);font-weight:600}
@@ -1329,7 +1330,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.11.3";
+const APP_VER = "2.12.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1727,7 +1728,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.11.3';
+var PHIEN_BAN = '2.12.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1780,10 +1781,20 @@ var BANG = {
   // DuongDan: đường dẫn thư mục trên Drive · Nguon: APP (app tải lên) · DRIVE (tài liệu có sẵn, app không chép và không xoá)
   // ConTrenDrive = 0: lần quét gần nhất không còn thấy tệp · HienHanh = 1: bản đang dùng của máy đó, nhóm đó · LucQuet: lần quét gần nhất
   TaiLieu: ['ID', 'Ma', 'Ten', 'Nhom', 'Kieu', 'FileId', 'Mime', 'KichThuoc', 'Url', 'DaiDien', 'AnhNho', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat',
-    'DuongDan', 'Nguon', 'ConTrenDrive', 'HienHanh', 'LucQuet']
+    'DuongDan', 'Nguon', 'ConTrenDrive', 'HienHanh', 'LucQuet'],
+  // Lịch trực tuần (17:00–19:30): mỗi ngày MỘT dòng. UID = người trong app; để trống là chưa xếp.
+  // NoiDung / NoiDungDich: nội dung trực của riêng người đó ngày đó, Quản lý nhập, tự dịch Việt ↔ Trung (sửa tay được)
+  LichTruc: ['Ngay', 'UID', 'Ten', 'NoiDung', 'NoiDungDich', 'Nguoi', 'CapNhat'],
+  // Người trực ca (bảng phân công ca trực) — danh sách riêng, không phải tài khoản dùng app
+  // Nhom: SX (sản xuất) · KHO (kho ngũ kim) · ThuTu: thứ tự luân phiên · HoatDong = 0: đã nghỉ, không xếp nữa
+  NguoiTruc: ['ID', 'Ten', 'TenZh', 'DienThoai', 'Nhom', 'ThuTu', 'HoatDong', 'CapNhat'],
+  // Bảng phân công ca trực từng tuần: TuNgay = thứ Hai của tuần · Ca: NGAY (7h30–19h30) · DEM (19h30–7h30)
+  // Tên và số điện thoại lưu luôn theo người đã chọn, để bảng tuần cũ không đổi khi danh sách đổi
+  PhanCa: ['TuNgay', 'Nhom', 'Ca', 'NguoiID', 'Ten', 'TenZh', 'DienThoai', 'Nguoi', 'CapNhat']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
-  CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'] };
+  CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
+  NguoiTruc: ['ThuTu', 'HoatDong'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
 
@@ -1818,7 +1829,8 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
-  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring'];
+  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring',
+  'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
@@ -2015,6 +2027,10 @@ function dieuHuong(a, p, req) {
     case 'deleteRepair': canQuyen(u, 'xacnhan'); return xoaSuaChua(u, p);
     case 'assignTasks': canQuyen(u, 'giaoviec'); return giaoNhieuViec(u, p, s(req.opId));
     case 'saveRecurring': canQuyen(u, 'giaoviec'); return luuViecLap(u, p);
+    case 'dutySet': canQuyen(u, 'giaoviec'); return luuLichTruc(u, p);
+    case 'shiftSet': canQuyen(u, 'giaoviec'); return luuPhanCa(u, p);
+    case 'shiftRotate': canQuyen(u, 'giaoviec'); return luanPhienTuan(u, p);
+    case 'shiftPeople': canQuyen(u, 'giaoviec'); return luuNguoiTruc(u, p);
   }
   throw loi('KHONG_HIEU', 'Máy chủ chưa hiểu yêu cầu này: ' + a);
 }
@@ -2416,6 +2432,9 @@ function layDuLieu(u) {
     congViec: docCongViec().filter(function (x) { return (CV_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG' || x.lucTao >= tu) && xemViec(u, x); }).map(sachCV),
     viecLap: coQuyen(u, 'xemhet') ? docViecLap().map(sachCV) : [],
     tangCa: docTangCa().filter(function (x) { return !x.xoa && x.ngay >= tu && (coQuyen(u, 'xemhet') || x.uid === u.id); }).map(sachTC),
+    lichTruc: docLichTruc().filter(function (x) { return x.ngay >= tu; }).map(sachLT),
+    nguoiTruc: docNguoiTruc().map(sachNT),
+    phanCa: docPhanCa().filter(function (x) { return x.tuNgay >= tu; }).map(sachPC),
     nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) {
       var o = { id: x.id, ten: x.ten, tenZh: x.tenZh, vaiTro: x.vaiTro, maNV: x.maNV };
       if (coQuyen(u, 'xemhet')) { o.maThe = x.maThe || ''; o.boPhan = x.boPhan || ''; o.boPhanZh = x.boPhanZh || ''; o.chucVu = x.chucVu || ''; }
@@ -2425,6 +2444,213 @@ function layDuLieu(u) {
     me: congKhai(u),
     phienBan: PHIEN_BAN
   };
+}
+
+// ===================== Lịch trực · 值班表 =====================
+// Hai phần tách riêng nhau:
+//  1. LỊCH TRỰC TUẦN (17:00–19:30): mỗi ngày một người có tài khoản trong app.
+//     Nội dung trực do Quản lý nhập, mỗi người mỗi ngày một nội dung riêng, tự dịch Việt ↔ Trung (sửa tay được).
+//  2. PHÂN CÔNG CA TRỰC (值班排班表): ca ngày / ca đêm × SẢN XUẤT · KHO NGŨ KIM, đúng mẫu bảng giấy của nhà máy.
+//     Người trực ca là danh sách riêng (trang NguoiTruc), KHÔNG phải tài khoản dùng app và không dính tới công việc.
+//     Mỗi tuần xếp tay từng ô, hoặc bấm luân phiên: lấy người kế tiếp trong danh sách, tiếp nối tuần trước.
+// Cả hai phần: ai cũng xem được (để biết ai trực, gọi số nào); chỉ Quản lý, Quản trị (quyền giaoviec) mới xếp.
+var TRUC_TU = '17:00', TRUC_DEN = '19:30';   // giờ trực của lịch trực tuần
+var PC_NHOM = ['SX', 'KHO'];
+var PC_CA = ['NGAY', 'DEM'];
+var NT_TOI_DA = 60;                          // số người tối đa trong danh sách trực ca
+// Danh sách người trực ca nhập lần đầu (theo bảng phân công ca trực của nhà máy, thứ tự luân phiên như bảng giấy).
+// Sau đó sửa trong app (Lịch trực → Phân công ca trực → Sửa danh sách) hoặc ngay trên trang NguoiTruc.
+var MAU_NGUOI_TRUC = [
+  ['SX', 'Nguyễn Hữu Ninh', '阮友宁', '0389978042'],
+  ['SX', 'Vũ Mạnh Công', '武孟公', '0389260986'],
+  ['SX', 'Lê Xuân Đông', '藜春咚', '0934254019'],
+  ['SX', 'Vũ Bá Thịnh', '武伯盛', '0949455568'],
+  ['SX', 'Hoàng Trọng Vinh', '黄仲荣', '0347006286'],
+  ['SX', 'Vũ Văn Hòa', '武文和', '0973011345'],
+  ['SX', 'Đỗ Văn Quân', '杜文君', '0985433018'],
+  ['KHO', 'Trần Thị Mây', '陈氏梅', '0946367665'],
+  ['KHO', 'Đỗ Thị Loan', '杜氏鸾', '0327603216']
+];
+// Thứ Hai của tuần chứa ngày d
+function trucThuHai(d) { return congNgay(d, -((new Date(d + 'T00:00:00Z').getUTCDay() + 6) % 7)); }
+function laThuHai(d) { return hopLeNgay(d) && trucThuHai(d) === d; }
+
+// ----- Lịch trực tuần -----
+function ltTuDong(r, i) {
+  return { ngay: ngayStr(r[0]), uid: s(r[1]), ten: s(r[2]), noiDung: s(r[3]), noiDungDich: s(r[4]),
+    nguoi: s(r[5]), capNhat: tgStr(r[6]), _r: i + 2 };
+}
+function ltThanhDong(x) {
+  return [x.ngay, x.uid, anToan(x.ten), anToan(x.noiDung), anToan(x.noiDungDich), anToan(x.nguoi), x.capNhat];
+}
+function docLichTruc() { return docTho('LichTruc').map(ltTuDong).filter(function (x) { return x.ngay; }); }
+function sachLT(x) {
+  return { ngay: x.ngay, uid: x.uid, ten: x.ten, noiDung: x.noiDung, noiDungDich: x.noiDungDich, nguoi: x.nguoi, capNhat: x.capNhat };
+}
+// Xếp người trực và nội dung trực của một ngày. Gửi uid rỗng = bỏ trống ngày đó.
+// Chỉ gửi noiDung (không gửi uid) = chỉ sửa nội dung, giữ người đang xếp.
+function luuLichTruc(u, p) {
+  var ngay = ngayStr(p.ngay);
+  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  var ds = docLichTruc(), x = ds.filter(function (r) { return r.ngay === ngay; })[0], moi = !x;
+  var cuTen = x ? x.ten : '', cuND = x ? x.noiDung : '';
+  if (moi) x = { ngay: ngay, uid: '', ten: '', noiDung: '', noiDungDich: '' };
+  if (p.uid !== undefined) {
+    var uid = s(p.uid), ten = '';
+    if (uid) {
+      var nv = dsNguoiDung().filter(function (n) { return n.id === uid; })[0];
+      if (!nv) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
+      ten = nv.ten;
+    }
+    x.uid = uid; x.ten = ten;
+  }
+  if (p.noiDung !== undefined) {
+    var nd = catNhieuDong(p.noiDung, 500).trim();
+    var h = moi ? songNgu(nd, p.noiDungDich) : dichKhiSua(nd, x.noiDung, x.noiDungDich, p.noiDungDich);
+    x.noiDung = h[0]; x.noiDungDich = h[1];
+  } else if (p.noiDungDich !== undefined) {
+    x.noiDungDich = catNhieuDong(p.noiDungDich, 500).trim();
+  }
+  x.nguoi = u.ten; x.capNhat = thoiGianStr();
+  capNhatTieuDe('LichTruc');
+  if (moi) themDong('LichTruc', ltThanhDong(x)); else suaDong('LichTruc', x._r, ltThanhDong(x));
+  ghiNhatKy(u, 'XEP_LICH_TRUC', 'LichTruc', ngay, { ten: cuTen, noiDung: cuND }, { ten: x.ten, noiDung: x.noiDung }, '');
+  return { lichTruc: sachLT(x) };
+}
+
+// ----- Người trực ca (danh sách riêng) -----
+function ntTuDong(r, i) {
+  return { id: s(r[0]), ten: s(r[1]), tenZh: s(r[2]), dienThoai: s(r[3]), nhom: s(r[4]),
+    thuTu: Math.round(Number(r[5])) || 0, hoatDong: hd(r[6]), capNhat: tgStr(r[7]), _r: i + 2 };
+}
+function ntThanhDong(x) {
+  return [x.id, anToan(x.ten), anToan(x.tenZh), anToan(x.dienThoai), x.nhom, x.thuTu, x.hoatDong ? 1 : 0, x.capNhat];
+}
+function docNguoiTruc() { return docTho('NguoiTruc').map(ntTuDong).filter(function (x) { return x.id && x.ten; }); }
+function sachNT(x) {
+  return { id: x.id, ten: x.ten, tenZh: x.tenZh, dienThoai: x.dienThoai, nhom: x.nhom, thuTu: x.thuTu, hoatDong: x.hoatDong };
+}
+function pcNhom(v) { v = s(v).toUpperCase(); return PC_NHOM.indexOf(v) >= 0 ? v : 'SX'; }
+function pcCa(v) { v = s(v).toUpperCase(); return PC_CA.indexOf(v) >= 0 ? v : ''; }
+function soDT(v) { return s(v).replace(/[^\d+ .()-]/g, '').slice(0, 20); }
+// Người trực của một nhóm theo thứ tự luân phiên (mặc định chỉ người còn làm)
+function ntNhom(ds, nhom, caHet) {
+  return ds.filter(function (x) { return x.nhom === nhom && (caHet || x.hoatDong); })
+    .sort(function (a, b) { return (a.thuTu - b.thuTu) || (a.ten < b.ten ? -1 : 1); });
+}
+// Lưu cả danh sách. Người không còn trong danh sách gửi lên thì ĐÁNH DẤU NGỪNG (nghỉ việc), không xoá dòng,
+// để bảng phân công các tuần cũ vẫn còn tên.
+function luuNguoiTruc(u, p) {
+  var cu = docNguoiTruc(), theoId = {}, daCo = dsIdCo(cu), bay = thoiGianStr();
+  cu.forEach(function (x) { theoId[x.id] = x; });
+  var gui = (p.ds || []).slice(0, NT_TOI_DA), con = {}, moi = [], sua = [], n = 0;
+  gui.forEach(function (o) {
+    var ten = catChu(o.ten, 60);
+    if (!ten) return;
+    var x = theoId[s(o.id).toUpperCase()];
+    if (!x) x = { id: idMoi('NT', daCo), _moi: true };
+    if (con[x.id]) return;
+    con[x.id] = 1; n++;
+    x.ten = ten; x.tenZh = catChu(o.tenZh, 60); x.dienThoai = soDT(o.dienThoai);
+    x.nhom = pcNhom(o.nhom); x.thuTu = n; x.hoatDong = o.hoatDong !== false; x.capNhat = bay;
+    if (x._moi) moi.push(x); else sua.push(x);
+  });
+  if (!n) throw loi('CAN_NGUOI', 'Cần ít nhất một người trực · 至少需要一名值班人');
+  cu.forEach(function (x) { if (!con[x.id] && x.hoatDong) { x.hoatDong = false; x.capNhat = bay; sua.push(x); } });
+  capNhatTieuDe('NguoiTruc');
+  sua.forEach(function (x) { suaDong('NguoiTruc', x._r, ntThanhDong(x)); });
+  if (moi.length) themNhieu('NguoiTruc', moi.map(ntThanhDong));
+  ghiNhatKy(u, 'SUA_NGUOI_TRUC', 'NguoiTruc', '', cu.length + ' người', n + ' người', '');
+  return { nguoiTruc: docNguoiTruc().map(sachNT), ntFull: true };
+}
+// Nhập danh sách lần đầu (trang còn trống). Chạy khi cài đặt và khi nâng cấp.
+function napNguoiTruc() {
+  if (docNguoiTruc().length) return 0;
+  var bay = thoiGianStr(), n = 0;
+  themNhieu('NguoiTruc', MAU_NGUOI_TRUC.map(function (m) {
+    n++;
+    return ['NT' + (1000 + n), m[1], m[2], m[3], m[0], n, 1, bay];
+  }));
+  return n;
+}
+
+// ----- Phân công ca trực theo tuần -----
+function pcTuDong(r, i) {
+  return { tuNgay: ngayStr(r[0]), nhom: s(r[1]), ca: s(r[2]), nguoiId: s(r[3]), ten: s(r[4]), tenZh: s(r[5]),
+    dienThoai: s(r[6]), nguoi: s(r[7]), capNhat: tgStr(r[8]), _r: i + 2 };
+}
+function pcThanhDong(x) {
+  return [x.tuNgay, x.nhom, x.ca, x.nguoiId, anToan(x.ten), anToan(x.tenZh), anToan(x.dienThoai), anToan(x.nguoi), x.capNhat];
+}
+function docPhanCa() { return docTho('PhanCa').map(pcTuDong).filter(function (x) { return x.tuNgay && x.nhom && x.ca; }); }
+function sachPC(x) {
+  return { tuNgay: x.tuNgay, nhom: x.nhom, ca: x.ca, nguoiId: x.nguoiId, ten: x.ten, tenZh: x.tenZh,
+    dienThoai: x.dienThoai, nguoi: x.nguoi, capNhat: x.capNhat };
+}
+function pcKhoa(x) { return x.tuNgay + '|' + x.nhom + '|' + x.ca; }
+// Ghi một ô của bảng (một tuần, một nhóm, một ca). ng = null là bỏ trống ô đó.
+function pcDat(ds, tuNgay, nhom, ca, ng, u, bay) {
+  var k = tuNgay + '|' + nhom + '|' + ca, x = null;
+  ds.forEach(function (r) { if (pcKhoa(r) === k) x = r; });
+  var moi = !x;
+  if (moi) x = { tuNgay: tuNgay, nhom: nhom, ca: ca };
+  x.nguoiId = ng ? ng.id : '';
+  x.ten = ng ? ng.ten : '';
+  x.tenZh = ng ? ng.tenZh : '';
+  x.dienThoai = ng ? ng.dienThoai : '';
+  x.nguoi = u.ten; x.capNhat = bay;
+  if (moi) { themDong('PhanCa', pcThanhDong(x)); ds.push(x); } else suaDong('PhanCa', x._r, pcThanhDong(x));
+  return x;
+}
+function luuPhanCa(u, p) {
+  var tuNgay = ngayStr(p.tuNgay);
+  if (!laThuHai(tuNgay)) throw loi('TUAN_SAI', 'Tuần không hợp lệ · 周次无效');
+  var nhom = pcNhom(p.nhom), ca = pcCa(p.ca);
+  if (!ca) throw loi('CA_SAI', 'Ca không hợp lệ · 班次无效');
+  var id = s(p.id).toUpperCase(), ng = null;
+  if (id) {
+    ng = docNguoiTruc().filter(function (x) { return x.id === id; })[0];
+    if (!ng) throw loi('KHONG_CO', 'Không tìm thấy người trực · 找不到值班人');
+    if (ng.nhom !== nhom) throw loi('KHAC_NHOM', 'Người này thuộc nhóm khác · 此人属于其他组');
+  }
+  capNhatTieuDe('PhanCa');
+  var x = pcDat(docPhanCa(), tuNgay, nhom, ca, ng, u, thoiGianStr());
+  ghiNhatKy(u, 'XEP_CA_TRUC', 'PhanCa', pcKhoa(x), '', x.ten || '(bỏ trống)', '');
+  return { phanCa: [sachPC(x)] };
+}
+// Tuần gần nhất TRƯỚC tuần này đã xếp nhóm đó: { NGAY: mã người, DEM: mã người }
+function pcTuanTruoc(ds, tuNgay, nhom) {
+  var tuan = '';
+  ds.forEach(function (x) { if (x.nhom === nhom && x.nguoiId && x.tuNgay < tuNgay && x.tuNgay > tuan) tuan = x.tuNgay; });
+  if (!tuan) return null;
+  var o = {};
+  ds.forEach(function (x) { if (x.nhom === nhom && x.tuNgay === tuan) o[x.ca] = x.nguoiId; });
+  return o;
+}
+// Người kế tiếp: mỗi ca dịch xuống một người so với tuần trước (ai trực ca đêm tuần trước thì tuần sau trực ca ngày).
+// Chưa có tuần nào thì lấy hai người đầu danh sách.
+function pcTiepTheo(ng, truoc) {
+  var n = ng.length;
+  var viTri = function (id) { for (var i = 0; i < n; i++) if (ng[i].id === id) return i; return -1; };
+  if (!truoc) return { NGAY: ng[0], DEM: ng[n > 1 ? 1 : 0] };
+  var a = (viTri(truoc.NGAY) + 1) % n, b = (viTri(truoc.DEM) + 1) % n;
+  if (n > 1 && a === b) b = (b + 1) % n;
+  return { NGAY: ng[a], DEM: ng[b] };
+}
+function luanPhienTuan(u, p) {
+  var tuNgay = ngayStr(p.tuNgay);
+  if (!laThuHai(tuNgay)) throw loi('TUAN_SAI', 'Tuần không hợp lệ · 周次无效');
+  var nts = docNguoiTruc(), ds = docPhanCa(), bay = thoiGianStr(), out = [];
+  capNhatTieuDe('PhanCa');
+  PC_NHOM.forEach(function (nhom) {
+    var ng = ntNhom(nts, nhom);
+    if (!ng.length) return;
+    var chon = pcTiepTheo(ng, pcTuanTruoc(ds, tuNgay, nhom));
+    PC_CA.forEach(function (ca) { out.push(sachPC(pcDat(ds, tuNgay, nhom, ca, chon[ca], u, bay))); });
+  });
+  if (!out.length) throw loi('CAN_NGUOI', 'Chưa có người trong danh sách trực ca · 值班人名单为空');
+  ghiNhatKy(u, 'LUAN_PHIEN_CA', 'PhanCa', tuNgay, '', out.map(function (x) { return x.nhom + '/' + x.ca + ': ' + x.ten; }).join(' · '), '');
+  return { phanCa: out };
 }
 
 // ===================== Xác nhận bảo dưỡng =====================
@@ -4093,6 +4319,7 @@ function nangCapLanDau() {
     // Việc ghi từ bản trước chưa có bản dịch: đánh dấu để dịch dần (dichBu, mỗi lần tải dữ liệu vài việc)
     if (!pr.getProperty('DICH_THIEU')) pr.setProperty('DICH_THIEU', '2000-01-01 00:00:00');
     napChuyen();
+    try { napNguoiTruc(); } catch (e) { console.log('napNguoiTruc: ' + (e && e.message || e)); }
     try { datLichSaoLuu(); } catch (e) { console.log('datLichSaoLuu: ' + (e && e.message || e)); }
     pr.setProperty('NANG_CAP', PHIEN_BAN);
     return 'Đã nâng cấp lên ' + PHIEN_BAN + ' · tính lại ' + n + ' kỳ';
@@ -5211,7 +5438,8 @@ function mauKiemTra() {
 // ===================== Cài đặt lần đầu =====================
 // Chạy hàm này một lần trong trình soạn Apps Script (nó cũng hỏi cấp quyền).
 function caiDatBanDau() {
-  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'CongViec', 'ViecLap', 'Chuyen', 'TangCa'].forEach(trang);
+  ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'CongViec', 'ViecLap', 'Chuyen', 'TangCa',
+    'LichTruc', 'NguoiTruc', 'PhanCa'].forEach(trang);
   thuocTinh('SALT'); thuocTinh('TOKEN_KEY');
   if (!dsNguoiDung().length) {
     var bay = thoiGianStr();
@@ -5235,6 +5463,7 @@ function caiDatBanDau() {
     }
   }
   napChuyen();
+  napNguoiTruc();
   var c = docCaiDat();
   ghiCaiDat(c);
   try { datLichNhac(c.gio); } catch (e) { /* chạy lại sau khi cấp quyền */ }
@@ -5630,6 +5859,39 @@ function mauTangCa() {
   tc('NV005', congNgay(t2, -1), 'CN', '08:00', '12:00', 'Vệ sinh máy nén khí', '清洁空压机');
   tc('NV006', congNgay(t2, 3), 'HC', '17:30', '21:00', 'Sửa băng tải chuyền VKY02', '维修产线VKY02输送带');
 }
+// Lịch trực tuần mẫu: tuần này mỗi ngày một người, có nội dung trực riêng; một ngày để trống cho thấy cảnh báo
+function mauLichTruc() {
+  if (docLichTruc().length) return;
+  capNhatTieuDe('LichTruc');
+  var hn = homNayStr(), bay = thoiGianStr(), nv = {};
+  dsNguoiDung().forEach(function (n) { nv[n.maNV] = n; });
+  var w = new Date(hn + 'T00:00:00Z').getUTCDay(), t2 = congNgay(hn, -((w + 6) % 7));
+  function lt(i, ma, nd, ndZh) {
+    var n = nv[ma]; if (!n) return;
+    themDong('LichTruc', [congNgay(t2, i), n.id, n.ten, nd, ndZh, 'Quản lý', bay]);
+  }
+  lt(0, 'NV004', 'Trực điện xưởng 1, theo dõi máy nén khí', '1号车间电工值班，跟踪空压机');
+  lt(1, 'NV003', 'Ghi số điện kỳ 20, trực xưởng 2', '抄录20日电表，2号车间值班');
+  lt(2, 'NV006', 'Hỗ trợ chuyền VKY17 đổi mã, chờ máy in phun chạy xong', '协助VKY17线换款，等喷码机跑完');
+  lt(4, 'NV005', 'Tra dầu máy cắt xưởng 1, kiểm tủ điện chuyền 3', '1号车间裁断机加油，检查3线电箱');
+  lt(5, 'NV004', 'Trực chung cả xưởng, tăng ca chuyền 5 đến 19:30', '全厂值班，5线加班至19:30');
+  lt(6, 'NV003', 'Nghỉ sản xuất, chỉ đi tuần và khóa xưởng', '停产，只巡检并锁厂');
+}
+// Phân công ca trực mẫu: tuần trước đã xếp để bấm luân phiên là tiếp nối được
+function mauPhanCa() {
+  if (docPhanCa().length) return;
+  var hn = homNayStr(), ql = { ten: 'Quản lý' }, bay = thoiGianStr();
+  var w = new Date(hn + 'T00:00:00Z').getUTCDay(), t2 = congNgay(hn, -((w + 6) % 7));
+  var nts = docNguoiTruc(), ds = [];
+  capNhatTieuDe('PhanCa');
+  ['SX', 'KHO'].forEach(function (nhom) {
+    var ng = ntNhom(nts, nhom);
+    if (!ng.length) return;
+    pcDat(ds, congNgay(t2, -7), nhom, 'NGAY', ng[0], ql, bay);
+    pcDat(ds, congNgay(t2, -7), nhom, 'DEM', ng[ng.length > 1 ? 1 : 0], ql, bay);
+  });
+  luanPhienTuan({ ten: 'Quản lý', id: 'U002' }, { tuNgay: t2 });
+}
 function mauCongViec() {
   if (docCongViec().length) return;
   capNhatTieuDe('CongViec'); capNhatTieuDe('ViecLap');
@@ -5769,6 +6031,8 @@ mauKiemTra();
 mauKho();
 mauCongViec();
 mauTangCa();
+mauLichTruc();
+mauPhanCa();
 mauTaiLieu();
 return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };
 
@@ -5883,6 +6147,10 @@ const ERR = {
   KHONG_CO: ['Không tìm thấy.', '找不到。'],
   MAY_NGUNG: ['Máy đã ngừng theo dõi.', '该设备已停用。'],
   NGAY_SAI: ['Ngày không hợp lệ.', '日期无效。'],
+  TUAN_SAI: ['Tuần không hợp lệ.', '周次无效。'],
+  CA_SAI: ['Ca làm việc không hợp lệ.', '班次无效。'],
+  KHAC_NHOM: ['Người này thuộc nhóm khác.', '此人属于其他组。'],
+  CAN_NGUOI: ['Cần ít nhất một người trực.', '至少需要一名值班人。'],
   NGAY_TUONG_LAI: ['Không xác nhận cho ngày sau hôm nay.', '不能确认今天以后的日期。'],
   NGAY_QUA_XA: ['Chỉ xác nhận lùi ngày tối đa 1 năm.', '最多只能补录一年内的日期。'],
   DA_XAC_NHAN: ['Máy này đã được xác nhận ngày đó rồi ({m}).', '该设备这一天已确认过（{m}）。'],
@@ -6223,6 +6491,17 @@ function mergeResult(d) {
     if (i >= 0) L[i] = d.tangCa; else L.push(d.tangCa);
   }
   if (d.xoaTC) S.base.tangCa = (S.base.tangCa || []).filter((x) => x.id !== d.xoaTC);
+  if (d.lichTruc) {
+    const L = S.base.lichTruc = S.base.lichTruc || [];
+    const i = L.findIndex((x) => x.ngay === d.lichTruc.ngay);
+    if (i >= 0) L[i] = d.lichTruc; else L.push(d.lichTruc);
+  }
+  if (d.ntFull) S.base.nguoiTruc = d.nguoiTruc || [];
+  (d.phanCa || []).forEach((c) => {
+    const L = S.base.phanCa = S.base.phanCa || [];
+    const i = L.findIndex((x) => x.tuNgay === c.tuNgay && x.nhom === c.nhom && x.ca === c.ca);
+    if (i >= 0) L[i] = c; else L.push(c);
+  });
   if (d.me) { S.me = Object.assign({}, S.me, d.me); store.set('bd_me', S.me); S.base.me = S.me; }
   if (d.kho) khoApply(d.kho);
   if (d.tlFull) S.base.taiLieu = d.taiLieu || [];
@@ -6263,6 +6542,7 @@ function rebuild() {
   S.V = { may, byMa, ls, lsMa, groups, ch, chByMa, htMa };
   rebuildDien();
   rebuildCV();
+  rebuildTruc();
 }
 const activeMay = () => S.V.may.filter((m) => m.hoatDong);
 const nhacTruoc = () => (S.base && S.base.caiDat && S.base.caiDat.nhacTruoc !== undefined ? S.base.caiDat.nhacTruoc : 3);
@@ -6344,14 +6624,15 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 // (kèm hồ sơ máy / chuyền mở từ các mục đó, quét QR, trang cá nhân).
 const xemHet = () => can('xemhet');
 const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
-  'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS']);
+  'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
+  'trucGhi', 'trucNguoi']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
 const SIDE = [['home', 'home', 'home'], ['cv', 'navCV', 'list'], ['list', 'navMay', 'gear'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'],
-  ['dien', 'navDien', 'bolt'], ['kho', 'segKho', 'box'], ['tc', 'navTC', 'clock'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
+  ['dien', 'navDien', 'bolt'], ['kho', 'segKho', 'box'], ['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
 const SIDE_HC = [['home', 'home', 'home'], ['cv', 'navSC', 'wrench'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'], ['dien', 'navDien', 'bolt'],
-  ['tc', 'navTC', 'clock'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
+  ['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
 const sideDS = () => (xemHet() ? SIDE : SIDE_HC);
 const tabGoc = (v) => { const g = TAB_OF[v] || v; return !xemHet() && g === 'list' ? 'cal' : g; };
 function shell() {
@@ -6388,11 +6669,13 @@ const TITLES = { dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', tho
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
   cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi', scDS: 't_scDS', saoLuu: 't_saoLuu',
   tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
-  tlCfg: 't_tlCfg', tlGan: 't_tlGan', tlDS: 't_tlDS' };
-const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc'];
+  tlCfg: 't_tlCfg', tlGan: 't_tlGan', tlDS: 't_tlDS',
+  truc: 't_truc', trucGhi: 't_trucGhi', trucTong: 't_trucTong', phanCa: 't_phanCa', trucNguoi: 't_trucNguoi' };
+const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc'];
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
-  tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me' };
+  tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me',
+  trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
 function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w.length > 1 ? w[w.length - 1][0] : w[0].slice(0, 2)).toUpperCase(); }
@@ -6611,6 +6894,11 @@ function modTiles() {
     const g = tcCong(mine);
     h += tile('mt-purple', 'clock', 'mTangCa', { m: mo }, `${tcSo(g)}<small> ${esc(tv('mTCGio'))}</small>`,
       mine.length ? t('mTCLan', { n: mine.length }) : t('mTCChua'), 'data-act="tab" data-v="tc"');
+  }
+  {
+    const tu = tcThuHai(today), ds = trucTuanDS(tu), co = ds.filter(trucCoNguoi).length, nay = trucNgay(today);
+    h += tile('mt-teal', 'users', 'mTruc', null, `${co}<small>/7</small>`,
+      nay && nay.uid ? esc(tv('mTrucNay')) + ': ' + esc(nay.ten) : t('mTrucChua'), 'data-act="tab" data-v="truc"');
   }
   if (S.kho.ds.length && xemHet()) {
     const vis = S.kho.ds.filter((x) => !x.an && !x.gop), thap = lkThapDS().length;
@@ -9141,7 +9429,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -13713,6 +14001,419 @@ Object.assign(ACT, {
     try { blob = tcThangWorkbook(ym); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
     const tt = $('.toast'); if (tt) tt.remove();
     await saveFile(blob, 'Tong-hop-tang-ca-' + ym + '.xlsx');
+  }
+});
+
+// ===================== Lịch trực · 值班表 =====================
+// Hai phần tách riêng: LỊCH TRỰC TUẦN (17:00–19:30, người trong app, mỗi người một nội dung trực riêng)
+// và PHÂN CÔNG CA TRỰC (值班排班表 — ca ngày / ca đêm × SẢN XUẤT · KHO NGŨ KIM, danh sách người riêng).
+// Ai cũng xem được; chỉ Quản lý, Quản trị mới xếp lịch, nhập nội dung và sửa danh sách.
+Object.assign(TX, {
+  navTruc: ['Lịch trực', '值班表'], t_truc: ['Lịch trực tuần', '每周值班表'], t_trucGhi: ['Xếp người trực', '安排值班人'],
+  mTruc: ['Lịch trực tuần', '每周值班表'], mTrucNay: ['Hôm nay', '今天'], mTrucChua: ['Hôm nay chưa xếp ai trực', '今天未安排值班'],
+  t_trucTong: ['Tổng số ca', '班次合计'], t_phanCa: ['Phân công ca trực', '值班排班表'], t_trucNguoi: ['Danh sách người trực ca', '值班人名单'],
+  trucGio: ['Giờ trực', '值班时间'], trucTuanN: ['Tuần {a} – {b}', '{a} – {b} 周'], trucBang: ['Bảng lịch trực', '值班表'],
+  trucChuaXep: ['Chưa xếp', '未安排'], trucChuaND: ['Chưa có nội dung trực', '暂无值班内容'],
+  trucHomNay: ['Hôm nay', '今天'], trucBanTruc: ['Bạn trực', '您值班'], trucThieuN: ['{n} ngày chưa xếp', '{n}天未安排'],
+  trucDuNgay: ['Đã xếp đủ tuần', '本周已排满'], trucNguoiTruc: ['Người trực', '值班人'], trucNoiDung: ['Nội dung trực', '值班内容'],
+  trucNDHelp: ['Nội dung do Quản lý nhập, mỗi người mỗi ngày một nội dung riêng. Gõ tiếng Việt, app tự dịch sang tiếng Trung.',
+    '值班内容由主管填写，每人每天各自不同。用越南语填写，应用自动翻译成中文。'],
+  trucNDZ: ['Nội dung tiếng Trung', '值班内容（中文）'],
+  trucNDZHelp: ['Để trống là app tự dịch. Dịch chưa đúng thì sửa ở đây, app sẽ không dịch đè nữa.',
+    '留空则自动翻译。翻译不准时在此修改，应用不再覆盖。'],
+  trucChon: ['Chọn người trực', '选择值班人'], trucBoTrong: ['Bỏ trống ngày này', '清空此日'],
+  trucLuu: ['Lưu', '保存'], trucDaLuu: ['Đã xếp lịch trực', '已安排值班'], trucDaBo: ['Đã bỏ trống ngày này', '已清空此日'],
+  trucMoTong: ['Tổng số ca', '班次合计'], trucMoTongSub: ['Số ngày trực và số ngày Chủ nhật của từng người', '各人值班天数及周日天数'],
+  trucMoPC: ['Phân công ca trực', '值班排班表'], trucMoPCSub: ['Ca ngày / ca đêm · SẢN XUẤT và KHO NGŨ KIM', '白班/夜班 · 生产与五金仓库'],
+  trucThangN: ['Tháng {m}/{y}', '{y}年{m}月'], trucSoNgay: ['Ngày', '天数'], trucCN: ['Chủ nhật', '周日'],
+  trucTongCong: ['Cộng', '合计'], trucChuaAi: ['Tháng này chưa xếp ai trực', '本月尚未安排值班'],
+  trucTongHelp: ['Số Chủ nhật và người trực nhiều hơn hẳn tô cam, để chia lại cho đều.', '周日天数与值班偏多者标橙色，便于平均分配。'],
+  pcSX: ['SẢN XUẤT', '生产'], pcKHO: ['KHO NGŨ KIM', '五金仓库'],
+  pcCaNgay: ['Ca ngày', '白班'], pcCaDem: ['Ca đêm', '夜班'], pcCaLV: ['Ca làm việc', '班次'],
+  pcTieuDe: ['BẢNG PHÂN CÔNG CA TRỰC', '值班排班表'], pcThoiGian: ['Thời gian', '时间'],
+  pcTuDen: ['Từ ngày {a} đến ngày {b}', '{a} 至 {b}'], pcDienThoai: ['Điện thoại', '电话'],
+  pcLuanPhien: ['Xếp luân phiên', '轮班安排'], pcLPHoi: ['Xếp luân phiên cho tuần này?', '为本周轮班安排？'],
+  pcLPHelp: ['App lấy người kế tiếp trong danh sách, tiếp nối tuần trước. Ô nào đã xếp cũng bị xếp lại.',
+    '应用按名单顺序接着上周安排，已排好的格子也会被重排。'],
+  pcLPOk: ['Đã xếp luân phiên', '已完成轮班安排'], pcDaXep: ['Đã xếp', '已安排'],
+  pcThuTu: ['Thứ tự luân phiên', '轮班顺序'], pcTuanNay: ['tuần này', '本周'], pcKeTiep: ['kế tiếp', '下一位'],
+  pcChuaCo: ['Chưa có người trong danh sách trực ca', '值班人名单为空'],
+  pcSuaDS: ['Sửa danh sách người trực', '修改值班人名单'], pcIn: ['In bảng', '打印排班表'],
+  pcDSHelp: ['Danh sách này riêng của phần ca trực, không phải tài khoản dùng app. Bỏ ai khỏi danh sách thì app ghi là đã nghỉ, bảng các tuần cũ vẫn còn tên.',
+    '此名单仅用于值班排班，不是应用账号。移除某人后记为已离职，往周排班表仍保留姓名。'],
+  pcThemNguoi: ['+ Thêm người trực', '+ 添加值班人'], pcHoTen: ['Họ tên', '姓名'], pcTenZh: ['Tên tiếng Trung', '中文姓名'],
+  pcNhom: ['Nhóm', '组别'], pcNghi: ['Đã nghỉ', '已离职'], pcLen: ['Lên', '上移'], pcXuong: ['Xuống', '下移'],
+  pcDSLuu: ['Đã lưu danh sách người trực', '值班人名单已保存'], pcCanTen: ['Cần nhập họ tên', '请填写姓名'],
+  pcOTrong: ['Bỏ trống', '留空'], pcChonNguoi: ['Chọn người trực ca', '选择值班人'],
+  srvMissTruc: ['Lịch trực tuần và phân công ca trực', '每周值班表与值班排班表']
+});
+
+// ---------- Dữ liệu ----------
+const trucTuanHT = () => S.f.trucTuan || tcThuHai(TODAY());
+const trucThangHT = () => S.f.trucThang || TODAY().slice(0, 7);
+const trucSua = () => can('giaoviec');
+const trucDS = () => (S.V && S.V.truc) || [];
+const trucNgay = (d) => trucDS().filter((x) => x.ngay === d)[0] || null;
+const trucTuanDS = (tu) => [0, 1, 2, 3, 4, 5, 6].map((i) => { const d = addD(tu, i); return { ngay: d, x: trucNgay(d) }; });
+const trucCoNguoi = (o) => !!(o.x && o.x.uid);
+const TR_NHOM = [['SX', 'pcSX'], ['KHO', 'pcKHO']];
+const TR_CA = [['NGAY', 'pcCaNgay', '7h30–19h30'], ['DEM', 'pcCaDem', '19h30–7h30']];
+const pcDS = () => (S.V && S.V.pc) || [];
+const pcO = (tu, nhom, ca) => pcDS().filter((x) => x.tuNgay === tu && x.nhom === nhom && x.ca === ca)[0] || null;
+const ntDS = (nhom, caHet) => ((S.V && S.V.nt) || []).filter((x) => x.nhom === nhom && (caHet || x.hoatDong))
+  .sort((a, b) => (a.thuTu - b.thuTu) || a.ten.localeCompare(b.ten));
+const ntGet = (id) => ((S.V && S.V.nt) || []).filter((x) => x.id === id)[0] || null;
+// Tuần gần nhất trước tuần này đã xếp nhóm đó (giống máy chủ, để xem trước "kế tiếp")
+function pcTuanTruoc(tu, nhom) {
+  let tuan = '';
+  pcDS().forEach((x) => { if (x.nhom === nhom && x.nguoiId && x.tuNgay < tu && x.tuNgay > tuan) tuan = x.tuNgay; });
+  if (!tuan) return null;
+  const o = {};
+  pcDS().forEach((x) => { if (x.nhom === nhom && x.tuNgay === tuan) o[x.ca] = x.nguoiId; });
+  return o;
+}
+// Người kế tiếp của từng ca: dịch xuống một người so với tuần trước
+function pcTiepTheo(ng, truoc) {
+  const n = ng.length;
+  if (!n) return {};
+  const vt = (id) => { for (let i = 0; i < n; i++) if (ng[i].id === id) return i; return -1; };
+  if (!truoc) return { NGAY: ng[0], DEM: ng[n > 1 ? 1 : 0] };
+  const a = (vt(truoc.NGAY) + 1) % n;
+  let b = (vt(truoc.DEM) + 1) % n;
+  if (n > 1 && a === b) b = (b + 1) % n;
+  return { NGAY: ng[a], DEM: ng[b] };
+}
+// Tên song ngữ của người trong app
+function trucTen(x) {
+  const n = (S.V && S.V.nvById && S.V.nvById[x.uid]) || {};
+  const zh = n.tenZh && n.tenZh !== (x.ten || n.ten) ? n.tenZh : '';
+  return esc(x.ten || n.ten || '') + (zh ? ` <span class="zi" lang="zh-CN">${esc(zh)}</span>` : '');
+}
+// Tổng số ca trong tháng: mỗi người bao nhiêu ngày, trong đó bao nhiêu Chủ nhật
+function trucTongDS(ym) {
+  const by = {};
+  trucDS().forEach((x) => {
+    if (!x.uid || x.ngay.slice(0, 7) !== ym) return;
+    const o = by[x.uid] = by[x.uid] || { uid: x.uid, ten: x.ten, n: 0, cn: 0 };
+    o.n++; if (wday(x.ngay) === 0) o.cn++;
+  });
+  return Object.values(by).sort((a, b) => b.n - a.n || a.ten.localeCompare(b.ten));
+}
+// Dữ liệu hiển thị = máy chủ + việc đang chờ gửi
+function rebuildTruc() {
+  const b = S.base;
+  const lt = (b.lichTruc || []).map((x) => Object.assign({}, x));
+  const pc = (b.phanCa || []).map((x) => Object.assign({}, x));
+  const nt = (b.nguoiTruc || []).map((x) => Object.assign({}, x));
+  const ntG = (id) => nt.filter((x) => x.id === id)[0] || null;
+  const dat = (tuNgay, nhom, ca, ng) => {
+    const o = { tuNgay, nhom, ca, nguoiId: ng ? ng.id : '', ten: ng ? ng.ten : '', tenZh: ng ? ng.tenZh : '',
+      dienThoai: ng ? ng.dienThoai : '', cho: true };
+    const i = pc.findIndex((x) => x.tuNgay === tuNgay && x.nhom === nhom && x.ca === ca);
+    if (i >= 0) pc[i] = Object.assign({}, pc[i], o); else pc.push(o);
+  };
+  S.Q.forEach((q) => {
+    if (q.st !== 'cho') return;
+    if (q.action === 'dutySet') {
+      const i = lt.findIndex((x) => x.ngay === q.p.ngay);
+      const o = Object.assign({ ngay: q.p.ngay, uid: '', ten: '', noiDung: '', noiDungDich: '' }, i >= 0 ? lt[i] : {}, { cho: true });
+      if (q.p.uid !== undefined) { o.uid = q.p.uid; o.ten = q.p.uid ? nvTen(q.p.uid) : ''; }
+      if (q.p.noiDung !== undefined) { o.noiDung = q.p.noiDung; o.noiDungDich = q.p.noiDungDich || ''; }
+      if (i >= 0) lt[i] = o; else lt.push(o);
+    } else if (q.action === 'shiftSet') {
+      dat(q.p.tuNgay, q.p.nhom, q.p.ca, q.p.id ? ntG(q.p.id) : null);
+    } else if (q.action === 'shiftRotate') {
+      TR_NHOM.forEach(([nhom]) => {
+        const ng = nt.filter((x) => x.nhom === nhom && x.hoatDong).sort((a, b) => (a.thuTu - b.thuTu) || a.ten.localeCompare(b.ten));
+        if (!ng.length) return;
+        let tuan = '';
+        pc.forEach((x) => { if (x.nhom === nhom && x.nguoiId && x.tuNgay < q.p.tuNgay && x.tuNgay > tuan) tuan = x.tuNgay; });
+        let truoc = null;
+        if (tuan) { truoc = {}; pc.forEach((x) => { if (x.nhom === nhom && x.tuNgay === tuan) truoc[x.ca] = x.nguoiId; }); }
+        const chon = pcTiepTheo(ng, truoc);
+        TR_CA.forEach(([ca]) => dat(q.p.tuNgay, nhom, ca, chon[ca]));
+      });
+    }
+  });
+  S.V.truc = lt; S.V.pc = pc; S.V.nt = nt;
+}
+
+// ---------- Lịch trực tuần ----------
+VIEWS.truc = {
+  html() {
+    const tu = trucTuanHT(), den = addD(tu, 6), ds = trucTuanDS(tu), today = TODAY();
+    const thieu = ds.filter((o) => !trucCoNguoi(o)).length, me = (S.me || {}).id;
+    let o = srvOld('truc') ? srvWarn('truc') : '';
+    o += `<div class="caltools"><div class="stepper">
+      <button data-act="trucTuan" data-d="-1" aria-label="-">${IC.left}</button>
+      <b>${tv('trucTuanN', { a: fmtDM(tu), b: fmtDM(den) })}</b>
+      <button data-act="trucTuan" data-d="1" aria-label="+">${IC.right}</button></div>
+      <span class="pill ${thieu ? 'p-qua' : 'p-ok'}">${thieu ? t('trucThieuN', { n: thieu }) : t('trucDuNgay')}</span></div>`;
+    o += `<div class="help" style="margin:10px 0 0">${esc(tv('trucGio'))}: <b class="mono">17:00 – 19:30</b>
+      <span class="zi" lang="zh-CN">${esc(tz('trucGio'))}: 17:00 – 19:30</span></div>`;
+    o += sec('trucBang') + `<div class="list">${ds.map((d) => {
+      const x = d.x || {}, w = wday(d.ngay), nay = d.ngay === today, co = trucCoNguoi(d);
+      const sub = co ? (x.noiDung ? svH(x.noiDung, x.noiDungDich) : `<span style="color:var(--ink3)">${t('trucChuaND')}</span>`) : '';
+      return `<${trucSua() ? 'button' : 'div'} class="tcrow${nay ? ' on' : ''}"${trucSua() ? ` data-act="trucXep" data-d="${esc(d.ngay)}"` : ' style="cursor:default"'}>
+        <div class="h"><b>${WD_VI_F[w]}</b><span class="mono" style="color:var(--ink3)">${fmtDM(d.ngay)}</span>
+          ${nay ? `<span class="pill p-nay">${t('trucHomNay')}</span>` : ''}
+          ${co ? `<span style="margin-left:auto;text-align:right">${trucTen(x)}${x.uid === me ? ` <span class="pill p-ok">${t('trucBanTruc')}</span>` : ''}</span>`
+    : `<span style="margin-left:auto;color:var(--red);font-weight:700">${t('trucChuaXep')}</span>`}
+          ${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}</div>
+        ${sub ? `<div class="sub">${sub}</div>` : ''}</${trucSua() ? 'button' : 'div'}>`;
+    }).join('')}</div>`;
+    if (trucSua()) o += `<div class="help" style="margin-top:8px">${t('trucNDHelp')}</div>`;
+    o += `<button class="cta2 blue" style="margin-top:14px" data-act="go" data-v="trucTong"><span class="ic">${IC.hist}</span>
+      <span>${tv('trucMoTong')}<span class="zi">${tz('trucMoTong')}</span><em style="display:block;font-style:normal;font-size:12px;opacity:.8">${esc(tp('trucMoTongSub'))}</em></span>${IC.chev}</button>`;
+    o += `<button class="cta2" data-act="go" data-v="phanCa"><span class="ic">${IC.users}</span>
+      <span>${tv('trucMoPC')}<span class="zi">${tz('trucMoPC')}</span><em style="display:block;font-style:normal;font-size:12px;opacity:.8">${esc(tp('trucMoPCSub'))}</em></span>${IC.chev}</button>`;
+    return o;
+  }
+};
+
+// ---------- Xếp một ngày ----------
+VIEWS.trucGhi = {
+  html(p) {
+    const x = trucNgay(p.d) || { uid: '', noiDung: '', noiDungDich: '' };
+    if (!p.init) Object.assign(p, { init: 1, uid: x.uid || '', nd: x.noiDung || '', ndz: x.noiDungDich || '', zSua: 0 });
+    const w = wday(p.d);
+    return `<form id="trF" class="card pad" autocomplete="off">
+      <div class="help" style="margin-bottom:12px"><b>${WD_VI_F[w]}, ${fmtD(p.d)}</b> <span class="zi" lang="zh-CN">${WD_ZH_F[w]}</span> · 17:00 – 19:30</div>
+      <div class="fld"><span>${t('trucNguoiTruc')}</span>
+        <select class="inp" id="trNg"><option value=""${!p.uid ? ' selected' : ''}>— ${esc(tp('trucChuaXep'))} —</option>
+          ${nvDS().map((n) => `<option value="${esc(n.id)}"${n.id === p.uid ? ' selected' : ''}>${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ' ' + esc(n.tenZh) : ''}${n.maNV ? ' · ' + esc(n.maNV) : ''}</option>`).join('')}</select></div>
+      <label class="fld" style="margin-top:12px"><span>${t('trucNoiDung')}</span>
+        <textarea class="inp" id="trND" rows="3" maxlength="500">${esc(p.nd)}</textarea></label>
+      <div class="help" style="margin-top:6px">${t('trucNDHelp')}</div>
+      <label class="fld" style="margin-top:12px"><span>${t('trucNDZ')}</span>
+        <textarea class="inp" id="trNDZ" rows="2" maxlength="500" style="font-family:var(--f-zh)">${esc(p.ndz)}</textarea></label>
+      <div class="help" style="margin-top:6px">${t('trucNDZHelp')}</div>
+      <div id="trErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:16px"><button type="button" class="btn pri" id="trOk">${IC.check} ${t('trucLuu')}</button>
+        ${x.uid || p.nd ? `<button type="button" class="btn ghost" data-act="trucBo" data-d="${esc(p.d)}">${t('trucBoTrong')}</button>` : ''}</div>
+    </form>`;
+  },
+  after(p) {
+    $('#trNg').addEventListener('change', (e) => { p.uid = e.target.value; });
+    $('#trND').addEventListener('input', (e) => { p.nd = e.target.value; });
+    $('#trNDZ').addEventListener('input', (e) => { p.ndz = e.target.value; p.zSua = 1; });
+    $('#trOk').addEventListener('click', async () => {
+      const e = $('#trErr'), b = $('#trOk');
+      e.hidden = true; b.disabled = true;
+      const pl = { ngay: p.d, uid: p.uid, noiDung: p.nd };
+      if (p.zSua) pl.noiDungDich = p.ndz;
+      const r = await send('dutySet', pl);
+      b.disabled = false;
+      if (r.err) { e.hidden = false; e.textContent = errMsg(r.err); return; }
+      toast(r.queued ? t('savedLocal') : t('trucDaLuu'));
+      back();
+    });
+  }
+};
+
+// ---------- Tổng số ca ----------
+VIEWS.trucTong = {
+  html() {
+    const ym = trucThangHT(), [y, mo] = ym.split('-').map(Number), ds = trucTongDS(ym);
+    let o = `<div class="caltools"><div class="stepper">
+      <button data-act="trucThang" data-d="-1" aria-label="-">${IC.left}</button><b>${tv('trucThangN', { m: mo, y })}</b>
+      <button data-act="trucThang" data-d="1" aria-label="+">${IC.right}</button></div></div>`;
+    if (!ds.length) return o + `<div class="card empty" style="margin-top:12px">${t('trucChuaAi')}</div>`;
+    const tn = ds.reduce((a, x) => a + x.n, 0), tc = ds.reduce((a, x) => a + x.cn, 0), tb = tn / ds.length;
+    const nhieu = (x) => x.n > tb + 1;
+    const tr = ds.map((x) => `<tr><td>${trucTen(x)}</td>
+      <td class="num mono"><b${nhieu(x) ? ' class="warnx"' : ''}>${x.n}</b></td>
+      <td class="num mono"${x.cn ? ' style="color:var(--orange);font-weight:700"' : ''}>${x.cn || '—'}</td></tr>`).join('')
+      + `<tr style="background:var(--soft)"><td><b>${t('trucTongCong')}</b></td><td class="num mono"><b>${tn}</b></td><td class="num mono"><b>${tc}</b></td></tr>`;
+    o += `<div class="dtwrap" style="margin-top:12px"><table class="dt"><thead><tr>
+      <th>${esc(tv('trucNguoiTruc'))}<small>${esc(tz('trucNguoiTruc'))}</small></th>
+      <th class="num">${esc(tv('trucSoNgay'))}<small>${esc(tz('trucSoNgay'))}</small></th>
+      <th class="num">${esc(tv('trucCN'))}<small>${esc(tz('trucCN'))}</small></th></tr></thead><tbody>${tr}</tbody></table></div>`;
+    o += `<p class="help" style="margin-top:10px">${t('trucTongHelp')}</p>`;
+    return o;
+  }
+};
+
+// ---------- Phân công ca trực ----------
+function pcONoiDung(tu, nhom, ca) {
+  const x = pcO(tu, nhom, ca);
+  if (!x || !x.nguoiId) return `<span style="color:var(--red);font-weight:700">${t('trucChuaXep')}</span>`;
+  return `<b>${esc(x.ten)}</b>${x.tenZh ? ` <span class="zi" lang="zh-CN">${esc(x.tenZh)}</span>` : ''}
+    ${x.dienThoai ? `<div class="sub"><a class="mono" href="tel:${esc(x.dienThoai.replace(/[^\d+]/g, ''))}">${esc(x.dienThoai)}</a></div>` : ''}
+    ${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}`;
+}
+VIEWS.phanCa = {
+  html() {
+    const tu = trucTuanHT(), den = addD(tu, 6), sua = trucSua();
+    const trong = [];
+    TR_NHOM.forEach(([nhom]) => TR_CA.forEach(([ca]) => { const x = pcO(tu, nhom, ca); if (!x || !x.nguoiId) trong.push(1); }));
+    let o = srvOld('truc') ? srvWarn('truc') : '';
+    o += `<div class="caltools"><div class="stepper">
+      <button data-act="trucTuan" data-d="-1" aria-label="-">${IC.left}</button>
+      <b>${tv('trucTuanN', { a: fmtDM(tu), b: fmtDM(den) })}</b>
+      <button data-act="trucTuan" data-d="1" aria-label="+">${IC.right}</button></div>
+      <span class="pill ${trong.length ? 'p-qua' : 'p-ok'}">${trong.length ? t('trucThieuN', { n: trong.length }) : t('pcDaXep')}</span></div>`;
+    // Bảng đúng mẫu giấy: Ca làm việc × SẢN XUẤT · KHO NGŨ KIM
+    o += `<div class="card pad" style="margin-top:12px">
+      <div style="text-align:center"><b style="font-size:16px">${esc(tv('pcTieuDe'))}</b>
+        <div class="zi" lang="zh-CN" style="font-size:14px;font-weight:700">${esc(tz('pcTieuDe'))}</div>
+        <div class="help" style="margin-top:4px">${esc(tp('pcThoiGian'))}: ${esc(tv('pcTuDen', { a: fmtD(tu), b: fmtD(den) }))}</div></div>
+      <div class="dtwrap" style="margin-top:12px"><table class="dt"><thead><tr>
+        <th>${esc(tv('pcCaLV'))}<small>${esc(tz('pcCaLV'))}</small></th>
+        ${TR_NHOM.map(([, k]) => `<th>${esc(tv(k))}<small>${esc(tz(k))}</small></th>`).join('')}</tr></thead><tbody>
+        ${TR_CA.map(([ca, k, gio]) => `<tr><td><b>${esc(tv(k))}</b> <span class="zi" lang="zh-CN">${esc(tz(k))}</span>
+          <div class="help mono">${gio}</div></td>
+          ${TR_NHOM.map(([nhom]) => `<td>${sua ? `<button class="cellnm" data-act="pcChon" data-nhom="${nhom}" data-ca="${ca}" style="text-align:left;width:100%">${pcONoiDung(tu, nhom, ca)}</button>` : pcONoiDung(tu, nhom, ca)}</td>`).join('')}
+        </tr>`).join('')}</tbody></table></div></div>`;
+    if (sua) o += `<div class="btns" style="margin-top:14px">
+      <button class="btn pri" data-act="pcLP">${IC.refresh} ${t('pcLuanPhien')}</button>
+      <button class="btn ghost" data-act="pcIn">${IC.print} ${t('pcIn')}</button>
+      <button class="btn ghost" data-act="go" data-v="trucNguoi">${IC.users} ${t('pcSuaDS')}</button></div>`;
+    else o += `<div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="pcIn">${IC.print} ${t('pcIn')}</button></div>`;
+    // Thứ tự luân phiên: ai đang trực tuần này, ai kế tiếp
+    o += sec('pcThuTu');
+    TR_NHOM.forEach(([nhom, k]) => {
+      const ng = ntDS(nhom);
+      if (!ng.length) { o += `<div class="card empty">${t('pcChuaCo')}</div>`; return; }
+      const nay = {}; TR_CA.forEach(([ca]) => { const x = pcO(tu, nhom, ca); if (x && x.nguoiId) nay[x.nguoiId] = tv(ca === 'NGAY' ? 'pcCaNgay' : 'pcCaDem'); });
+      const tiep = pcTiepTheo(ng, pcTuanTruoc(addD(tu, 7), nhom));
+      const tiepId = {}; TR_CA.forEach(([ca]) => { if (tiep[ca]) tiepId[tiep[ca].id] = 1; });
+      o += `<div class="card pad" style="margin-bottom:10px"><div class="help" style="font-weight:800">${t(k)}</div>
+        <div class="list" style="margin-top:6px">${ng.map((n, i) => `<div class="tcrow" style="cursor:default"><div class="h">
+          <span class="no">${i + 1}</span><b>${esc(n.ten)}</b>${n.tenZh ? ` <span class="zi" lang="zh-CN">${esc(n.tenZh)}</span>` : ''}
+          ${n.dienThoai ? `<span class="mono" style="color:var(--ink3);font-size:12px">${esc(n.dienThoai)}</span>` : ''}
+          ${nay[n.id] ? `<span class="pill p-ok" style="margin-left:auto">${esc(tp('pcTuanNay'))} · ${esc(nay[n.id])}</span>`
+    : tiepId[n.id] ? `<span class="pill p-sap" style="margin-left:auto">${t('pcKeTiep')}</span>` : ''}</div></div>`).join('')}</div></div>`;
+    });
+    return o;
+  }
+};
+// Bảng in: đúng mẫu giấy của nhà máy
+function pcInHtml(tu) {
+  const den = addD(tu, 6);
+  const td = (nhom, ca) => { const x = pcO(tu, nhom, ca); return x && x.nguoiId ? x : null; };
+  const o = (nhom, ca) => { const x = td(nhom, ca); return x ? `${esc(x.ten)}${x.tenZh ? '<br>' + esc(x.tenZh) : ''}` : ''; };
+  const dt = (nhom, ca) => { const x = td(nhom, ca); return x ? esc(x.dienThoai) : ''; };
+  const B = 'border:1px solid #000;padding:6px 8px;font-size:12pt';
+  const hd = 'border:1px solid #000;padding:6px 8px;font-size:11pt;font-weight:700;text-align:center;background:#EEE';
+  return `<div class="tcsheet" style="font-family:Arial,sans-serif;color:#000">
+    <div style="text-align:center">
+      <div style="font-size:16pt;font-weight:700">BẢNG PHÂN CÔNG CA TRỰC</div>
+      <div style="font-size:14pt;font-weight:700">值班排班表</div>
+      <div style="margin-top:8px;font-size:12pt">Thời gian 时间: Từ ngày ${fmtD(tu)} đến ngày ${fmtD(den)}</div></div>
+    <table style="border-collapse:collapse;width:100%;margin-top:14px">
+      <tr><td rowspan="2" style="${hd}">Ca làm việc<br>班次</td>
+        <td colspan="2" style="${hd}">SẢN XUẤT 生产</td><td colspan="2" style="${hd}">KHO NGŨ KIM 五金仓库</td></tr>
+      <tr><td style="${hd}">Người trực 值班人</td><td style="${hd}">Điện thoại 电话</td>
+        <td style="${hd}">Người trực 值班人</td><td style="${hd}">Điện thoại 电话</td></tr>
+      ${TR_CA.map(([ca, k, gio]) => `<tr>
+        <td style="${B}"><b>${esc(tv(k))}</b> ${esc(tz(k))}<br><span style="font-size:10pt">(${gio})</span></td>
+        <td style="${B}">${o('SX', ca)}</td><td style="${B}">${dt('SX', ca)}</td>
+        <td style="${B}">${o('KHO', ca)}</td><td style="${B}">${dt('KHO', ca)}</td></tr>`).join('')}
+    </table>
+    <div style="margin-top:28px;display:flex;justify-content:space-around;text-align:center;font-size:11pt">
+      <div>Người lập<br><span>制表人</span></div><div>Quản lý bộ phận<br><span>部门经理</span></div></div></div>`;
+}
+
+// ---------- Danh sách người trực ca ----------
+VIEWS.trucNguoi = {
+  html(p) {
+    // Theo đúng thứ tự luân phiên, để nút Lên / Xuống đổi chỗ đúng như bảng
+    if (!p.init) Object.assign(p, { init: 1, ds: ((S.V && S.V.nt) || []).slice()
+      .sort((a, b) => (a.thuTu - b.thuTu) || a.ten.localeCompare(b.ten)).map((x) => Object.assign({}, x)) });
+    const row = (x, i) => `<div class="card pad" style="margin-bottom:10px">
+      <div class="row2f"><label class="fld"><span>${t('pcHoTen')}</span><input class="inp" data-nf="${i}:ten" value="${esc(x.ten)}" maxlength="60"></label>
+        <label class="fld"><span>${t('pcTenZh')}</span><input class="inp" data-nf="${i}:tenZh" value="${esc(x.tenZh || '')}" maxlength="60" style="font-family:var(--f-zh)"></label></div>
+      <div class="row2f" style="margin-top:10px"><label class="fld"><span>${t('pcDienThoai')}</span><input class="inp mono" data-nf="${i}:dienThoai" value="${esc(x.dienThoai || '')}" maxlength="20" inputmode="tel"></label>
+        <div class="fld"><span>${t('pcNhom')}</span><select class="inp" data-nf="${i}:nhom">${TR_NHOM.map(([k, lb]) => `<option value="${k}"${x.nhom === k ? ' selected' : ''}>${esc(tp(lb))}</option>`).join('')}</select></div></div>
+      <label class="switch" style="margin-top:6px"><span class="t">${t('pcNghi')}</span><input type="checkbox" data-nf="${i}:nghi"${x.hoatDong === false ? ' checked' : ''}></label>
+      <div class="btns" style="margin-top:8px">
+        <button class="btn ghost sm" data-act="ntDoi" data-i="${i}" data-d="-1"${i === 0 ? ' disabled' : ''}>${t('pcLen')}</button>
+        <button class="btn ghost sm" data-act="ntDoi" data-i="${i}" data-d="1"${i === p.ds.length - 1 ? ' disabled' : ''}>${t('pcXuong')}</button></div></div>`;
+    return `<div class="help" style="margin-bottom:12px">${t('pcDSHelp')}</div>
+      <div class="list">${p.ds.map(row).join('')}</div>
+      <button class="tcadd" data-act="ntThem">${t('pcThemNguoi')}</button>
+      <div id="ntErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn pri" id="ntOk">${IC.check} ${t('trucLuu')}</button></div>`;
+  },
+  after(p) {
+    $$('[data-nf]').forEach((el) => el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
+      const [i, k] = el.dataset.nf.split(':');
+      if (k === 'nghi') p.ds[+i].hoatDong = !el.checked; else p.ds[+i][k] = el.value;
+    }));
+    $('#ntOk').addEventListener('click', async () => {
+      const e = $('#ntErr'), b = $('#ntOk');
+      const ds = p.ds.filter((x) => String(x.ten || '').trim());
+      if (!ds.length) { e.hidden = false; e.textContent = tp('pcCanTen'); return; }
+      e.hidden = true; b.disabled = true;
+      const r = await send('shiftPeople', { ds });
+      b.disabled = false;
+      if (r.err) { e.hidden = false; e.textContent = errMsg(r.err); return; }
+      toast(r.queued ? t('savedLocal') : t('pcDSLuu'));
+      back();
+    });
+  }
+};
+
+Object.assign(ACT, {
+  trucTuan: (el) => { S.f.trucTuan = addD(trucTuanHT(), 7 * +el.dataset.d); render(); window.scrollTo(0, 0); },
+  trucThang: (el) => {
+    let [y, m] = trucThangHT().split('-').map(Number);
+    m += +el.dataset.d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
+    S.f.trucThang = y + '-' + String(m).padStart(2, '0'); render();
+  },
+  trucXep: (el) => go('trucGhi', { d: el.dataset.d }),
+  trucBo: async (el) => {
+    const r = await send('dutySet', { ngay: el.dataset.d, uid: '', noiDung: '' });
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('trucDaBo'));
+    if (topV().v === 'trucGhi') back(); else render();
+  },
+  pcChon: (el) => {
+    const { nhom, ca } = el.dataset, tu = trucTuanHT(), cur = pcO(tu, nhom, ca);
+    const ng = ntDS(nhom);
+    openSheet(`<div class="grab"></div><h3>${tv('pcChonNguoi')}<span class="zi">${tz('pcChonNguoi')}</span></h3>
+      <p class="help">${esc(tp(nhom === 'SX' ? 'pcSX' : 'pcKHO'))} · ${esc(tp(ca === 'NGAY' ? 'pcCaNgay' : 'pcCaDem'))}</p>
+      <div class="nvlist">
+        ${ng.map((n) => `<button type="button" class="nvc${cur && cur.nguoiId === n.id ? ' on' : ''}" data-act="pcChonOk" data-nhom="${nhom}" data-ca="${ca}" data-id="${esc(n.id)}">
+          <span class="av sm">${esc(initials(n.ten))}</span><span class="nvt"><b>${esc(n.ten)}</b>${n.tenZh ? ` <span class="zi" lang="zh-CN">${esc(n.tenZh)}</span>` : ''}<small class="mono">${esc(n.dienThoai || '')}</small></span></button>`).join('')}
+        <button type="button" class="nvc" data-act="pcChonOk" data-nhom="${nhom}" data-ca="${ca}" data-id=""><span class="av sm">—</span><span class="nvt"><b>${esc(tv('pcOTrong'))}</b><small>${esc(tz('pcOTrong'))}</small></span></button></div>`);
+  },
+  pcChonOk: async (el) => {
+    const { nhom, ca, id } = el.dataset;
+    closeSheet();
+    const r = await send('shiftSet', { tuNgay: trucTuanHT(), nhom, ca, id });
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('saved'));
+    render();
+  },
+  pcLP: () => {
+    openSheet(`<div class="grab"></div><h3>${tv('pcLuanPhien')}<span class="zi">${tz('pcLuanPhien')}</span></h3>
+      <p class="help">${t('pcLPHoi')}</p><p class="help">${t('pcLPHelp')}</p>
+      <div class="btns"><button class="btn pri" data-act="pcLPOk">${t('pcLuanPhien')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('cancel')}</button></div>`);
+  },
+  pcLPOk: async () => {
+    closeSheet();
+    const r = await send('shiftRotate', { tuNgay: trucTuanHT() });
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('pcLPOk'));
+    render();
+  },
+  pcIn: () => {
+    $('#printArea').innerHTML = pcInHtml(trucTuanHT());
+    setTimeout(() => window.print(), 300);
+  },
+  ntThem: () => {
+    const p = topV().p;
+    p.ds.push({ id: '', ten: '', tenZh: '', dienThoai: '', nhom: 'SX', thuTu: p.ds.length + 1, hoatDong: true });
+    render();
+  },
+  ntDoi: (el) => {
+    const p = topV().p, i = +el.dataset.i, j = i + +el.dataset.d;
+    if (j < 0 || j >= p.ds.length) return;
+    const a = p.ds[i]; p.ds[i] = p.ds[j]; p.ds[j] = a;
+    render();
   }
 });
 
