@@ -587,6 +587,35 @@ test('ghi sửa chữa: lưu luôn thành việc đã xong, 3 mục nhiều dòn
   err(b.call('saveRepair', { moTa: 'x', ketQua: 'y', ngay: '2026-12-01' }, b.kt), 'NGAY_SAI');
 });
 
+test('ghi sửa chữa: linh kiện thay có mã kho và số lượng; kho đã có thì thêm vào danh sách của máy, gõ tay thì không', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222');
+  const d0 = ok(b.call('data', {}, ql));
+  const kho = ok(b.call('catalog', {}, ql));
+  const coSan = (kho.kho && kho.kho.ds ? kho.kho.ds : kho.ds || []).filter((x) => x.ten && !x.an)[0];
+  assert.ok(coSan, 'kho mẫu có linh kiện');
+  const truoc = d0.may.find((m) => m.ma === 'M038').linhKien.length;
+  const r = ok(b.call('saveRepair', {
+    moTa: 'Máy nén khí rò dầu', ketQua: 'Thay gioăng', ma: 'M038', ngay: '2026-10-14',
+    linhKien: [
+      { id: 'LKNEW1', ten: coSan.ten, quyCach: coSan.qc || '', dv: coSan.dv || '', sl: 2, loai: 'THAY', maKho: coSan.ma },
+      { id: 'LKNEW2', ten: 'Gioăng chế bằng tay ngoài kho', quyCach: '', dv: 'cái', sl: 1, loai: 'THAY' }
+    ]
+  }, ql)).congViec;
+  // Bản ghi giữ đủ cả hai, có số lượng
+  assert.deepEqual(r.linhKien.map((k) => k.sl), [2, 1]);
+  assert.equal(r.linhKien[0].maKho, coSan.ma, 'linh kiện chọn từ kho giữ mã kho');
+  // Danh sách linh kiện của máy: chỉ nhận thứ kho đã có
+  const may = ok(b.call('data', {}, ql)).may.find((m) => m.ma === 'M038');
+  const ten = may.linhKien.map((k) => k.ten);
+  assert.equal(may.linhKien.length, truoc + 1, 'chỉ thêm một linh kiện vào danh sách của máy');
+  assert.ok(ten.includes(coSan.ten), 'linh kiện có sẵn trong kho được thêm vào máy');
+  assert.ok(!ten.includes('Gioăng chế bằng tay ngoài kho'), 'linh kiện gõ tay kho chưa có thì không thêm vào máy');
+  // Dạng chữ nhiều dòng của bản cũ vẫn nhận được (bản ghi ngoại tuyến từ app cũ)
+  const cu = ok(b.call('saveRepair', { moTa: 'x', ketQua: 'y', ma: 'M038', linhKien: 'Lọc mực\nGioăng' }, ql)).congViec;
+  assert.deepEqual(cu.linhKien.map((k) => k.ten), ['Lọc mực', 'Gioăng']);
+});
+
 test('mã hiển thị: tự đặt cho chuyền và máy, không trùng, đổi lại hoặc xoá được; mã hệ thống giữ nguyên', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222');

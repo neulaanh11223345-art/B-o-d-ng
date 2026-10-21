@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.11.2';
+var PHIEN_BAN = '2.11.3';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -776,7 +776,8 @@ function dongViecBaoDuong(m, ls, u) {
 // - mã kho lấy theo linh kiện của máy (linh kiện cũ chưa gắn thì gắn luôn); linh kiện chưa có trong kho thì tự thêm vào kho
 // - linh kiện mới thì thêm vào bảng linh kiện của máy
 // Trả { kho: kho đã nạp (null nếu không dùng), doiMay: true nếu phải ghi lại dòng máy }
-function ganLKDaDung(m, lk, u, ngay, nguon) {
+// chiKhoCoSan = true: linh kiện gõ tay mà kho chưa có thì chỉ ghi trong bản ghi, không thêm vào danh sách của máy
+function ganLKDaDung(m, lk, u, ngay, nguon, chiKhoCoSan) {
   var r = { kho: null, doiMay: false };
   if (!lk || !lk.length) return r;
   var lkMay = {}, theoTen = {};
@@ -789,10 +790,12 @@ function ganLKDaDung(m, lk, u, ngay, nguon) {
   lk.forEach(function (k) { var c = lkMay[k.id]; if (c) k.maKho = c.maKho; });
   ganKho(lk.filter(function (k) { return !lkMay[k.id]; }), ghiChuThem(m.ma, u), r.kho);
   m.linhKien = m.linhKien || [];
-  var co = {};
+  var co = {}, khoMoi = {};
   m.linhKien.forEach(function (k) { co[k.id] = 1; });
+  if (chiKhoCoSan && r.kho && r.kho.moi) r.kho.moi.forEach(function (it) { khoMoi[it.ma] = 1; });
   lk.forEach(function (k) {
     if (co[k.id] || m.linhKien.length >= TOI_DA_DS) return;
+    if (chiKhoCoSan && k.maKho && khoMoi[k.maKho]) return;
     co[k.id] = 1; r.doiMay = true;
     var o = { id: k.id, ten: k.ten, quyCach: k.quyCach, dv: k.dv, sl: '', ghiChu: nguon + ' ' + ngayVN(ngay) + ' · ' + u.ten };
     if (k.maKho) o.maKho = k.maKho;
@@ -1205,8 +1208,22 @@ function luuSuaChua(u, p, opId) {
   capNhatTieuDe('CongViec');
   var td = songNgu(catChu(moTa, 200)), mt = moTa.length > 200 ? songNgu(moTa) : ['', ''], nnD = songNgu(nn), kqD = songNgu(kq);
   var gio = soHoacRong(p.gioDung);
-  var lk = String(p.linhKien || '').split('\n').map(function (t) { return catChu(t, 120); }).filter(Boolean).slice(0, 30)
-    .map(function (t, i) { return { id: 'LKSC' + (i + 1), ten: t, quyCach: '', dv: '', sl: '', loai: 'THAY' }; });
+  // Linh kiện thay: app từ v2.11.3 gửi danh sách có mã kho và số lượng; bản ghi cũ đang chờ gửi vẫn là chữ nhiều dòng
+  var lk, gan = { kho: null, doiMay: false }, may = null;
+  if (Array.isArray(p.linhKien)) {
+    var ctLK = sachChiTiet({ lk: p.linhKien });
+    lk = ctLK ? ctLK.lk : [];
+    may = f.ma ? timMay(f.ma) : null;
+    if (lk.length) {
+      // Thiết bị là máy: linh kiện kho đã có thì thêm vào danh sách của máy; gõ tay kho chưa có thì chỉ nằm trong bản ghi.
+      // Thiết bị là chuyền (hoặc không gắn): chỉ ghi vào kho, không có danh sách linh kiện để thêm.
+      if (may) gan = ganLKDaDung(may, lk, u, ngay, 'Thêm khi sửa chữa · 维修时添加', true);
+      else { gan.kho = khoNap(); ganKho(lk, 'Dùng khi sửa chữa · ' + u.ten, gan.kho); }
+    }
+  } else {
+    lk = String(p.linhKien || '').split('\n').map(function (t) { return catChu(t, 120); }).filter(Boolean).slice(0, 30)
+      .map(function (t, i) { return { id: 'LKSC' + (i + 1), ten: t, quyCach: '', dv: '', sl: '', loai: 'THAY' }; });
+  }
   var x = { id: id, so: soLonNhat(ds) + 1, tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], loai: 'SUA', uuTien: 'TB', ma: f.ma, han: ngay,
     trangThai: 'DONG', uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay,
     lucBatDau: luc, lucXong: luc, ketQua: kqD[0], ketQuaDich: kqD[1], nguyenNhan: nnD[0], nguyenNhanDich: nnD[1], linhKien: lk, anhTao: [], anhXong: anhSC(p.anh, 'sc', 'SAU'),
@@ -1216,7 +1233,10 @@ function luuSuaChua(u, p, opId) {
   if (f.lam) { x.uidLam = f.lam.id; x.nguoiLam = f.lam.ten; x.uidPhu = f.phu.map(function (n) { return n.id; }); x.nguoiGiao = u.ten; x.uidGiao = u.id; x.lucGiao = bay; }
   x.nhatKy.push({ b: 'xong', luc: luc, uid: u.id, nguoi: u.ten, gc: '', op: '' });
   themDong('CongViec', cvThanhDong(x));
-  return { congViec: sachCV(x) };
+  var tra = { congViec: sachCV(x) };
+  if (gan.doiMay && may) { may.capNhat = bay; suaDong('May', may._r, mayThanhDong(may)); tra.may = sachMay(may); }
+  if (gan.kho) tra.kho = khoLuuMoi(gan.kho);
+  return tra;
 }
 
 // Xoá bản ghi sửa chữa: Quản lý xoá được mọi bản ghi, người khác chỉ xoá bản mình ghi. Đánh dấu HUY, giữ dòng trên sheet để tra lại.
