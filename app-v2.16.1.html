@@ -1333,7 +1333,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.16.0";
+const APP_VER = "2.16.1";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -9428,22 +9428,49 @@ function khoMauTonMinBlob() {
   return XW.build([{ name: 'Ton kho an toan', rows, cols: [14, 34, 22, 9, 16, 12, 12, 11, 11, 26],
     merges: ['A1:J1', 'A2:J2'], heights: { 1: 26, 2: 30, 4: 34 }, freeze: { r: 4, c: 0 } }]);
 }
+// Mã gõ thiếu / thừa số: độ dài khác hẳn mọi mã đang có trong kho (vd 60803009 trong khi mã kho đều 9 số).
+// Chỉ xét khi kho đã đủ lớn để biết mã dài bao nhiêu; những mã này KHÔNG tự thêm vào kho.
+// Chỉ đếm mã ERP dạng số: mã APP-xxxx do app tự tạo dài ngắn khác, tính vào thì hỏng phép so
+function khoDoDai() {
+  const d = {};
+  S.kho.ds.forEach((x) => {
+    const m = String(x.ma);
+    if (x.ng === 'ERP' && /^\d+$/.test(m)) d[m.length] = (d[m.length] || 0) + 1;
+  });
+  return d;
+}
+// Mã kho gần giống nhất, để gợi ý sửa
+function khoGoiYMa(ma, lim) {
+  const m = String(ma), dau = m.slice(0, Math.max(4, m.length - 2));
+  return S.kho.ds.filter((x) => String(x.ma).indexOf(dau) === 0).map((x) => x.ma).sort().slice(0, lim || 6);
+}
+function khoMinXet(r) {
+  khoIx();
+  const d = { doi: [], giu: 0, thieu: [], nham: [], bo: [], dungLai: [], moTa: [] };
+  const dd = khoDoDai();
+  const du = Object.keys(dd).reduce((a, k) => a + dd[k], 0) >= 50;
+  r.ds.forEach((o) => {
+    const x = KHO_BY[o.ma];
+    if (!x) {
+      const m = String(o.ma);
+      if (du && /^\d+$/.test(m) && !dd[m.length]) d.nham.push({ o, goiY: khoGoiYMa(o.ma) });
+      else d.thieu.push(o);
+      return;
+    }
+    if (r.coBo && !!x.an !== o.bo) (o.bo ? d.bo : d.dungLai).push({ o, x });
+    if (!x.qc && o.qc && o.qc !== o.ma) d.moTa.push({ o, x });
+    const cu = x.tonMin === undefined || x.tonMin === '' ? '' : String(x.tonMin);
+    const moi = r.coBo && o.bo ? '' : String(o.tonMin);
+    if (cu === moi) d.giu++; else d.doi.push({ o, x, cu, moi });
+  });
+  return d;
+}
 VIEWS.khoMin = {
   html(p) {
     const r = p.r;
     if (!r) return `<div class="card empty">${t('notFound')}</div>`;
     if (p.themMoi === undefined) p.themMoi = true;
-    khoIx();
-    const d = { doi: [], giu: 0, thieu: [], bo: [], dungLai: [], moTa: [] };
-    r.ds.forEach((o) => {
-      const x = KHO_BY[o.ma];
-      if (!x) { d.thieu.push(o); return; }
-      if (r.coBo && !!x.an !== o.bo) (o.bo ? d.bo : d.dungLai).push({ o, x });
-      if (!x.qc && o.qc && o.qc !== o.ma) d.moTa.push({ o, x });
-      const cu = x.tonMin === undefined || x.tonMin === '' ? '' : String(x.tonMin);
-      const moi = r.coBo && o.bo ? '' : String(o.tonMin);
-      if (cu === moi) d.giu++; else d.doi.push({ o, x, cu, moi });
-    });
+    const d = khoMinXet(r);
     let o = `<div class="card pad"><dl class="kv">
       <dt>${t('khoFile')}</dt><dd class="mono" style="font-size:13px">${esc(r.file)}</dd>
       <dt>${t('khoSheet')}</dt><dd>${esc(r.sheet)}</dd>
@@ -9451,10 +9478,11 @@ VIEWS.khoMin = {
       <dt>${t('khoCotDoc')}</dt><dd style="font-weight:500">${esc(r.cot.join(' · '))}</dd></dl></div>`;
     const tile = (k, n, cls) => `<div class="tile ktile ${cls}${n ? '' : ' zero'}"><b>${fmtNum(n, 0)}</b><span>${t(k)}</span></div>`;
     const themDS = d.thieu.filter((v) => v.tonMin !== '');
-    o += `<div class="tiles ktiles" style="margin-top:14px">${tile('khoMinDoi', d.doi.length, 't-nay')}${tile('kGiu', d.giu, '')}${tile('khoMinThem', themDS.length, 't-sap')}${tile('khoMinThieu', d.thieu.length - themDS.length, 't-qua')}${d.bo.length ? tile('khoMinBo', d.bo.length, 't-qua') : ''}${d.dungLai.length ? tile('khoMinDungLai', d.dungLai.length, 't-xong') : ''}${d.moTa.length ? tile('khoMinQC', d.moTa.length, '') : ''}</div>`;
+    o += `<div class="tiles ktiles" style="margin-top:14px">${tile('khoMinDoi', d.doi.length, 't-nay')}${tile('kGiu', d.giu, '')}${tile('khoMinThem', themDS.length, 't-sap')}${tile('khoMinThieu', d.thieu.length - themDS.length, 't-qua')}${d.bo.length ? tile('khoMinBo', d.bo.length, 't-qua') : ''}${d.dungLai.length ? tile('khoMinDungLai', d.dungLai.length, 't-xong') : ''}${d.moTa.length ? tile('khoMinQC', d.moTa.length, '') : ''}${d.nham.length ? tile('khoMinNham', d.nham.length, 't-qua') : ''}</div>`;
     if (themDS.length) o += `<div class="card pad" style="margin-top:12px">
       <label class="switch" style="padding:0"><span class="t">${t('khoMinThemHoi', { n: themDS.length })}<div class="help">${t('khoMinThemHelp')}</div></span>
         <input type="checkbox" id="kmThem"${p.themMoi ? ' checked' : ''}></label></div>`;
+    if (d.nham.length) o += `<div class="note" style="margin-top:12px">${t('khoMinNhamNote', { n: d.nham.length })}</div>`;
     if (!d.doi.length && !d.bo.length && !d.dungLai.length && !d.moTa.length && !(themDS.length && p.themMoi)) o += `<div class="note" style="margin-top:12px">${t('khoMinKhongDoi')}</div>`;
     const row = (x, end) => `<div class="row"><div class="main"><div class="nm">${lkTenH(x.ten)}</div><div class="sub"><span class="code">${esc(x.ma)}</span>${x.qc ? ` <span class="qc">${esc(x.qc)}</span>` : ''}</div></div><div class="end kchg">${end}</div></div>`;
     const grp = (k, arr, body, help) => (arr.length ? `<details class="kdet"${arr === d.doi ? ' open' : ''}><summary>${t(k)} <span class="cnt mono">${fmtNum(arr.length, 0)}</span></summary>
@@ -9465,6 +9493,10 @@ VIEWS.khoMin = {
     o += grp('khoMinBo', d.bo, ({ x }) => row(x, `<span class="pill p-qua">${t('khoMinBoTag')}</span>`), 'khoMinBoHelp');
     o += grp('khoMinDungLai', d.dungLai, ({ x }) => row(x, `<span class="pill p-xong">${t('khoMinDungLaiTag')}</span>`));
     o += grp('khoMinQC', d.moTa, ({ o: v, x }) => row(x, `<b class="mono">${esc(v.qc)}</b>`), 'khoMinQCHelp');
+    o += grp('khoMinNham', d.nham, ({ o: v, goiY }) => `<div class="row"><div class="main"><div class="nm">${esc(v.ten || v.ma)}</div>
+      <div class="sub"><span class="code bad">${esc(v.ma)}</span> <span class="muted">${esc(tv('khoMinNhamSo', { n: String(v.ma).length }))}</span></div>
+      ${goiY.length ? `<div class="sub">${esc(tv('khoMinYNghia'))}: ${goiY.map((g) => `<span class="code">${esc(g)}</span>`).join(' ')}</div>` : ''}</div>
+      <div class="end kchg"><span class="mono">${esc(v.tonMin === '' ? '—' : soG(v.tonMin))}</span></div></div>`, 'khoMinNhamHelp');
     o += grp('khoMinThieu', d.thieu, (v) => `<div class="row"><div class="main"><div class="nm">${esc(v.ten || v.ma)}</div><div class="sub"><span class="code">${esc(v.ma)}</span></div></div><div class="end kchg"><span class="mono">${esc(v.tonMin === '' ? '—' : soG(v.tonMin))}</span></div></div>`, 'khoMinThieuHelp');
     o += '</div>';
     o += `<div class="err" id="kmErr" hidden></div><div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="back">${t('cancel')}</button>
@@ -9481,8 +9513,10 @@ async function khoMinLuu(el) {
   el.disabled = true; fe.hidden = true;
   const lbl = el.innerHTML; el.innerHTML = t('khoDangLuu');
   try {
+    const bo = {};
+    khoMinXet(r).nham.forEach((v) => { bo[v.o.ma] = 1; });
     const d = await api('importMin', { file: r.file, themMoi: p.themMoi !== false, coBo: r.coBo === true,
-      ds: r.ds.map((x) => ({ ma: x.ma, tonMin: x.tonMin, ten: x.ten || '', qc: x.qc || '', dv: x.dv || '', bo: !!x.bo })) }, { timeout: 240 });
+      ds: r.ds.filter((x) => !bo[x.ma]).map((x) => ({ ma: x.ma, tonMin: x.tonMin, ten: x.ten || '', qc: x.qc || '', dv: x.dv || '', bo: !!x.bo })) }, { timeout: 240 });
     khoSet({ ver: d.ver, ds: d.ds, nhap: S.kho.nhap, moc: S.kho.moc, nhatKy: S.kho.nhatKy });
     if (S.base) S.base.kho = Object.assign({}, S.base.kho || {}, { ver: d.ver });
     back();
@@ -9593,6 +9627,10 @@ Object.assign(TX, {
   xlMinAT: ['Tồn an toàn', '安全库存'], xlMinThem: ['Cần thêm', '需补'], xlMinMay: ['Máy đang dùng', '使用设备'],
   xlMinBo: ['Bỏ theo dõi (x)', '停用(x)'],
   khoMinBo: ['Bỏ theo dõi', '停用'], khoMinDungLai: ['Dùng lại', '恢复'], khoMinQC: ['Thêm quy cách', '补充规格'],
+  khoMinNham: ['Mã nghi gõ nhầm', '疑似编码错误'], khoMinNhamSo: ['{n} số', '{n}位'], khoMinYNghia: ['Có phải là', '是否为'],
+  khoMinNhamHelp: ['Những mã này dài ngắn khác hẳn mọi mã đang có trong kho, nhiều khả năng gõ thiếu hoặc thừa số. App KHÔNG thêm vào kho. Sửa lại mã trong file rồi nhập lại.',
+    '这些编码的位数与仓库中所有编码都不同，很可能多打或漏打数字。应用不会将其加入仓库。请在文件中更正后重新导入。'],
+  khoMinNhamNote: ['{n} mã nghi gõ nhầm đã được bỏ qua, không thêm vào kho.', '已跳过{n}个疑似错误编码，未加入仓库。'],
   khoMinBoTag: ['Bỏ', '停用'], khoMinDungLaiTag: ['Dùng lại', '恢复'],
   khoMinBoHelp: ['Đánh dấu x ở cột "Bỏ theo dõi": app bỏ tồn an toàn và ẩn mã đó khỏi kho, thôi nhắc mua. Xoá dấu x rồi nhập lại là dùng lại được.',
     '在"停用"列标记 x：应用会清除安全库存并从仓库隐藏该编码，不再提醒采购。清除标记后重新导入即可恢复。'],

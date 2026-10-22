@@ -581,11 +581,14 @@ assert.ok(await page.evaluate(() => khoMauTonMinBlob().size > 2000), 'dựng đ�
 const qcCu18 = await page.evaluate(() => khoGet('605010344').qc);
 await page.setInputFiles('#khoMinFile', { name: 'ton-an-toan.csv', mimeType: 'text/csv',
   buffer: Buffer.from('Mã sản phẩm,Tên linh kiện,Mã linh kiện,Số lượng dự phòng,Bỏ theo dõi\n'
-    + '605010344,Vòng bi,QC-SAI,20,\n609030115,Bộ lọc súng keo,LOC-φ8,3,\n605010014,Vòng bi lớn,,,x\n', 'utf8') });
+    + '605010344,Vòng bi,QC-SAI,20,\n609030115,Bộ lọc súng keo,LOC-φ8,3,\n605010014,Vòng bi lớn,,,x\n'
+    + '60501034,Vòng bi gõ thiếu số,,5,\n', 'utf8') });
 await wait(1200);
 assert.match(await text('#barTitle'), /Nhập tồn kho an toàn/);
 assert.match(await text('#main'), /Thêm mới, coi như hết hàng/, 'mã chưa có trong kho được hỏi thêm mới');
 assert.match(await text('#main'), /Bỏ theo dõi/, 'mã đánh dấu x hiện trong nhóm bỏ theo dõi');
+assert.match(await text('#main'), /Mã nghi gõ nhầm/, 'mã thiếu số bị chặn lại');
+assert.match(await text('#main'), /60501034/);
 await shot('29-nhap-ton-an-toan');
 await page.click('#kmSave'); await wait(1500);
 // Lưu xong mở luôn màn Nhắc hàng
@@ -611,6 +614,7 @@ assert.equal(qc18.moi, 'LOC-φ8', 'mã mới lấy quy cách từ cột Mã linh
 assert.equal(qc18.cu, qcCu18, 'không ghi đè quy cách đã có');
 assert.equal(qc18.bo, true, 'mã đánh dấu x đã bị bỏ theo dõi');
 assert.equal(qc18.nhac, false, 'mã đã bỏ theo dõi thì không nhắc mua nữa');
+assert.equal(await page.evaluate(() => !!khoGet('60501034')), false, 'mã nghi gõ nhầm không được thêm vào kho');
 assert.match(await text('#main'), /Thiếu hàng/);
 assert.match(await text('#main'), /cần thêm 18/);
 // Trên mốc báo thì thôi kêu; đổi mức báo thiếu lên 100% là lại vào danh sách
