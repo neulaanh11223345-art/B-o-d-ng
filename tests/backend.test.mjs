@@ -1166,3 +1166,47 @@ test('lưu ca làm việc không xoá mất các cài đặt khác (giá điện
   assert.equal(cd.khoGanHet, 2, 'ngưỡng kho còn nguyên');
   assert.equal(cd.caTangCa.length, 1, 'ca làm việc đã lưu');
 });
+
+test('tồn kho an toàn: nhập hàng loạt từ file, mã chưa có thì thêm vào kho coi như hết hàng', () => {
+  const b = setup();
+  ok(b.call('importKho', { file: 'erp.xlsx', soDong: 3, ds: [
+    { ma: 'A1', ten: 'Vòng bi 6009', ton: 8 }, { ma: 'A2', ten: 'Dây curoa', ton: 4 }, { ma: 'A3', ten: 'Chốt', ton: 50 }] }, b.ql));
+
+  err(b.call('importMin', { ds: [{ ma: 'A1', tonMin: 5 }] }, b.kt), 'KHONG_QUYEN');
+  err(b.call('importMin', { ds: [] }, b.ql), 'KHO_TRONG');
+
+  // Mã B9 không có trong file ERP (ERP chỉ xuất dòng còn tồn) → thêm vào kho với tồn 0
+  const r = ok(b.call('importMin', { file: 'duphong.xlsm', ds: [
+    { ma: 'A1', tonMin: 10 }, { ma: 'A2', tonMin: '' }, { ma: 'A3', tonMin: 20 },
+    { ma: 'B9', tonMin: 3, ten: 'Súng bắn keo' }, { ma: 'B8', tonMin: '', ten: 'Không đặt, không thêm' }] }, b.ql));
+  assert.equal(r.tk.dat, 2, 'A1 và A3 đã có trong kho');
+  assert.equal(r.tk.them, 1, 'chỉ thêm mã có đặt tồn an toàn');
+  assert.equal(r.tk.khongThay, 2);
+  assert.deepEqual(r.thieu.sort(), ['B8', 'B9']);
+
+  const by = {};
+  r.ds.forEach((x) => { by[x.ma] = x; });
+  assert.equal(by.A1.tonMin, 10);
+  assert.equal(by.A1.ton, 8, 'không đụng tới tồn thật');
+  assert.equal(by.A2.tonMin, undefined, 'để trống là chưa đặt tồn an toàn');
+  assert.equal(by.B9.ton, 0, 'mã mới coi như hết hàng');
+  assert.equal(by.B9.tonMin, 3);
+  assert.equal(by.B9.ten, 'Súng bắn keo');
+  assert.equal(by.B9.cf, undefined, 'đánh dấu ngoài file ERP');
+  assert.equal(by.B8, undefined, 'mã không đặt tồn an toàn thì không thêm');
+
+  // Không tự thêm khi app gửi themMoi = false
+  const r2 = ok(b.call('importMin', { file: 'x.xlsx', themMoi: false, ds: [{ ma: 'C1', tonMin: 4, ten: 'Mã lạ' }] }, b.ql));
+  assert.equal(r2.tk.them, 0);
+  assert.equal(r2.ds.some((x) => x.ma === 'C1'), false);
+
+  // Lần nhập ERP sau có hàng thì tồn tự cập nhật, tồn an toàn giữ nguyên
+  const r3 = ok(b.call('importKho', { file: 'erp2.xlsx', soDong: 2, ds: [
+    { ma: 'A1', ten: 'Vòng bi 6009', ton: 12 }, { ma: 'B9', ten: 'Súng bắn keo', ton: 5 }] }, b.ql));
+  const sau = {};
+  r3.ds.forEach((x) => { sau[x.ma] = x; });
+  assert.equal(sau.B9.ton, 5);
+  assert.equal(sau.B9.tonMin, 3, 'tồn an toàn không bị file ERP ghi đè');
+  assert.equal(sau.A3.ton, 0, 'mã biến mất khỏi file ERP thì về 0');
+  assert.equal(sau.A3.tonMin, 20);
+});

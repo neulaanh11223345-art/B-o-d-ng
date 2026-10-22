@@ -569,6 +569,42 @@ assert.ok(sau17.gan.includes('605010344'), 'tồn 2 nay là gần hết');
 await page.fill('#khoNg', '1'); await page.click('[data-act="khoNgLuu"]'); await wait(1000);
 ok('Bản 2.13: kho nhớ tồn qua từng lần nhập, nhắc vừa hết / đang hết / gần hết, ngưỡng gần hết sửa được');
 
+// 18. Bản 2.14: tồn kho an toàn — tải file mẫu, nhập từ file, liệt kê hàng thiếu
+await logout(); await login('NV002', '222222');
+await page.evaluate(() => tab('kho')); await wait(900);
+await page.waitForFunction(() => S.kho.ds.length > 0, null, { timeout: 20000 });
+assert.ok(await page.locator('[data-act="khoMauTon"]').count(), 'có nút tải file mẫu tồn an toàn');
+assert.ok(await page.evaluate(() => khoMauTonMinBlob().size > 2000), 'dựng được file mẫu Excel');
+// Nhập tồn an toàn từ file: một mã đã có, một mã chưa có trong kho
+await page.setInputFiles('#khoMinFile', { name: 'ton-an-toan.csv', mimeType: 'text/csv',
+  buffer: Buffer.from('Mã sản phẩm,Tên linh kiện,Số lượng dự phòng\n605010344,Vòng bi,10\n609030115,Bộ lọc súng keo,3\n605010014,Vòng bi lớn,\n', 'utf8') });
+await wait(1200);
+assert.match(await text('#barTitle'), /Nhập tồn kho an toàn/);
+assert.match(await text('#main'), /Thêm mới, coi như hết hàng/, 'mã chưa có trong kho được hỏi thêm mới');
+await shot('29-nhap-ton-an-toan');
+await page.click('#kmSave'); await wait(1500);
+// Lưu xong mở luôn màn Nhắc hàng
+assert.match(await text('#barTitle'), /Nhắc hàng/);
+const at18 = await page.evaluate(() => {
+  const a = khoGet('605010344'), b = khoGet('609030115');
+  const d = khoNhacDS();
+  return { at: a.tonMin, ton: a.ton, moiTon: b ? b.ton : null, moiAt: b ? b.tonMin : null,
+    thieu: d.thieu.map((o) => o.x.ma), can: (d.thieu.find((o) => o.x.ma === '605010344') || {}).can,
+    hetCo: d.vuaHet.concat(d.dangHet).some((o) => o.x.ma === '609030115') };
+});
+assert.equal(at18.at, 10, 'đã đặt tồn an toàn cho mã có sẵn');
+assert.equal(at18.ton, 2, 'không đụng tới tồn thật');
+assert.equal(at18.moiTon, 0, 'mã chưa có được thêm vào kho, coi như hết hàng');
+assert.equal(at18.moiAt, 3);
+assert.ok(at18.thieu.includes('605010344'), 'tồn 2 dưới tồn an toàn 10 thì vào nhóm thiếu');
+assert.equal(at18.can, 8, 'tính đúng số cần mua thêm');
+assert.ok(at18.hetCo, 'mã mới thêm nằm trong nhóm hết hàng');
+assert.match(await text('#main'), /Dưới tồn an toàn/);
+assert.match(await text('#main'), /cần thêm 8/);
+await shot('30-nhac-hang-thieu');
+assert.ok(await page.evaluate(() => khoThieuBlob(khoNhacDS()).size > 2000), 'xuất được danh sách cần mua');
+ok('Bản 2.14: tồn kho an toàn nhập từ file, mã chưa có thành hết hàng, liệt kê đúng hàng thiếu và số cần mua');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
