@@ -1787,11 +1787,11 @@ function mergeResult(d) {
     if (i >= 0) L[i] = d.tangCa; else L.push(d.tangCa);
   }
   if (d.xoaTC) S.base.tangCa = (S.base.tangCa || []).filter((x) => x.id !== d.xoaTC);
-  if (d.lichTruc) {
+  (d.lichTruc ? [d.lichTruc] : []).concat(d.dsLichTruc || []).forEach((lt) => {
     const L = S.base.lichTruc = S.base.lichTruc || [];
-    const i = L.findIndex((x) => x.ngay === d.lichTruc.ngay);
-    if (i >= 0) L[i] = d.lichTruc; else L.push(d.lichTruc);
-  }
+    const i = L.findIndex((x) => x.ngay === lt.ngay);
+    if (i >= 0) L[i] = lt; else L.push(lt);
+  });
   if (d.ntFull) S.base.nguoiTruc = d.nguoiTruc || [];
   (d.phanCa || []).forEach((c) => {
     const L = S.base.phanCa = S.base.phanCa || [];
@@ -4720,7 +4720,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -9425,22 +9425,49 @@ function khoMauTonMinBlob() {
   return XW.build([{ name: 'Ton kho an toan', rows, cols: [14, 34, 22, 9, 16, 12, 12, 11, 11, 26],
     merges: ['A1:J1', 'A2:J2'], heights: { 1: 26, 2: 30, 4: 34 }, freeze: { r: 4, c: 0 } }]);
 }
+// Mã gõ thiếu / thừa số: độ dài khác hẳn mọi mã đang có trong kho (vd 60803009 trong khi mã kho đều 9 số).
+// Chỉ xét khi kho đã đủ lớn để biết mã dài bao nhiêu; những mã này KHÔNG tự thêm vào kho.
+// Chỉ đếm mã ERP dạng số: mã APP-xxxx do app tự tạo dài ngắn khác, tính vào thì hỏng phép so
+function khoDoDai() {
+  const d = {};
+  S.kho.ds.forEach((x) => {
+    const m = String(x.ma);
+    if (x.ng === 'ERP' && /^\d+$/.test(m)) d[m.length] = (d[m.length] || 0) + 1;
+  });
+  return d;
+}
+// Mã kho gần giống nhất, để gợi ý sửa
+function khoGoiYMa(ma, lim) {
+  const m = String(ma), dau = m.slice(0, Math.max(4, m.length - 2));
+  return S.kho.ds.filter((x) => String(x.ma).indexOf(dau) === 0).map((x) => x.ma).sort().slice(0, lim || 6);
+}
+function khoMinXet(r) {
+  khoIx();
+  const d = { doi: [], giu: 0, thieu: [], nham: [], bo: [], dungLai: [], moTa: [] };
+  const dd = khoDoDai();
+  const du = Object.keys(dd).reduce((a, k) => a + dd[k], 0) >= 50;
+  r.ds.forEach((o) => {
+    const x = KHO_BY[o.ma];
+    if (!x) {
+      const m = String(o.ma);
+      if (du && /^\d+$/.test(m) && !dd[m.length]) d.nham.push({ o, goiY: khoGoiYMa(o.ma) });
+      else d.thieu.push(o);
+      return;
+    }
+    if (r.coBo && !!x.an !== o.bo) (o.bo ? d.bo : d.dungLai).push({ o, x });
+    if (!x.qc && o.qc && o.qc !== o.ma) d.moTa.push({ o, x });
+    const cu = x.tonMin === undefined || x.tonMin === '' ? '' : String(x.tonMin);
+    const moi = r.coBo && o.bo ? '' : String(o.tonMin);
+    if (cu === moi) d.giu++; else d.doi.push({ o, x, cu, moi });
+  });
+  return d;
+}
 VIEWS.khoMin = {
   html(p) {
     const r = p.r;
     if (!r) return `<div class="card empty">${t('notFound')}</div>`;
     if (p.themMoi === undefined) p.themMoi = true;
-    khoIx();
-    const d = { doi: [], giu: 0, thieu: [], bo: [], dungLai: [], moTa: [] };
-    r.ds.forEach((o) => {
-      const x = KHO_BY[o.ma];
-      if (!x) { d.thieu.push(o); return; }
-      if (r.coBo && !!x.an !== o.bo) (o.bo ? d.bo : d.dungLai).push({ o, x });
-      if (!x.qc && o.qc && o.qc !== o.ma) d.moTa.push({ o, x });
-      const cu = x.tonMin === undefined || x.tonMin === '' ? '' : String(x.tonMin);
-      const moi = r.coBo && o.bo ? '' : String(o.tonMin);
-      if (cu === moi) d.giu++; else d.doi.push({ o, x, cu, moi });
-    });
+    const d = khoMinXet(r);
     let o = `<div class="card pad"><dl class="kv">
       <dt>${t('khoFile')}</dt><dd class="mono" style="font-size:13px">${esc(r.file)}</dd>
       <dt>${t('khoSheet')}</dt><dd>${esc(r.sheet)}</dd>
@@ -9448,10 +9475,11 @@ VIEWS.khoMin = {
       <dt>${t('khoCotDoc')}</dt><dd style="font-weight:500">${esc(r.cot.join(' · '))}</dd></dl></div>`;
     const tile = (k, n, cls) => `<div class="tile ktile ${cls}${n ? '' : ' zero'}"><b>${fmtNum(n, 0)}</b><span>${t(k)}</span></div>`;
     const themDS = d.thieu.filter((v) => v.tonMin !== '');
-    o += `<div class="tiles ktiles" style="margin-top:14px">${tile('khoMinDoi', d.doi.length, 't-nay')}${tile('kGiu', d.giu, '')}${tile('khoMinThem', themDS.length, 't-sap')}${tile('khoMinThieu', d.thieu.length - themDS.length, 't-qua')}${d.bo.length ? tile('khoMinBo', d.bo.length, 't-qua') : ''}${d.dungLai.length ? tile('khoMinDungLai', d.dungLai.length, 't-xong') : ''}${d.moTa.length ? tile('khoMinQC', d.moTa.length, '') : ''}</div>`;
+    o += `<div class="tiles ktiles" style="margin-top:14px">${tile('khoMinDoi', d.doi.length, 't-nay')}${tile('kGiu', d.giu, '')}${tile('khoMinThem', themDS.length, 't-sap')}${tile('khoMinThieu', d.thieu.length - themDS.length, 't-qua')}${d.bo.length ? tile('khoMinBo', d.bo.length, 't-qua') : ''}${d.dungLai.length ? tile('khoMinDungLai', d.dungLai.length, 't-xong') : ''}${d.moTa.length ? tile('khoMinQC', d.moTa.length, '') : ''}${d.nham.length ? tile('khoMinNham', d.nham.length, 't-qua') : ''}</div>`;
     if (themDS.length) o += `<div class="card pad" style="margin-top:12px">
       <label class="switch" style="padding:0"><span class="t">${t('khoMinThemHoi', { n: themDS.length })}<div class="help">${t('khoMinThemHelp')}</div></span>
         <input type="checkbox" id="kmThem"${p.themMoi ? ' checked' : ''}></label></div>`;
+    if (d.nham.length) o += `<div class="note" style="margin-top:12px">${t('khoMinNhamNote', { n: d.nham.length })}</div>`;
     if (!d.doi.length && !d.bo.length && !d.dungLai.length && !d.moTa.length && !(themDS.length && p.themMoi)) o += `<div class="note" style="margin-top:12px">${t('khoMinKhongDoi')}</div>`;
     const row = (x, end) => `<div class="row"><div class="main"><div class="nm">${lkTenH(x.ten)}</div><div class="sub"><span class="code">${esc(x.ma)}</span>${x.qc ? ` <span class="qc">${esc(x.qc)}</span>` : ''}</div></div><div class="end kchg">${end}</div></div>`;
     const grp = (k, arr, body, help) => (arr.length ? `<details class="kdet"${arr === d.doi ? ' open' : ''}><summary>${t(k)} <span class="cnt mono">${fmtNum(arr.length, 0)}</span></summary>
@@ -9462,6 +9490,10 @@ VIEWS.khoMin = {
     o += grp('khoMinBo', d.bo, ({ x }) => row(x, `<span class="pill p-qua">${t('khoMinBoTag')}</span>`), 'khoMinBoHelp');
     o += grp('khoMinDungLai', d.dungLai, ({ x }) => row(x, `<span class="pill p-xong">${t('khoMinDungLaiTag')}</span>`));
     o += grp('khoMinQC', d.moTa, ({ o: v, x }) => row(x, `<b class="mono">${esc(v.qc)}</b>`), 'khoMinQCHelp');
+    o += grp('khoMinNham', d.nham, ({ o: v, goiY }) => `<div class="row"><div class="main"><div class="nm">${esc(v.ten || v.ma)}</div>
+      <div class="sub"><span class="code bad">${esc(v.ma)}</span> <span class="muted">${esc(tv('khoMinNhamSo', { n: String(v.ma).length }))}</span></div>
+      ${goiY.length ? `<div class="sub">${esc(tv('khoMinYNghia'))}: ${goiY.map((g) => `<span class="code">${esc(g)}</span>`).join(' ')}</div>` : ''}</div>
+      <div class="end kchg"><span class="mono">${esc(v.tonMin === '' ? '—' : soG(v.tonMin))}</span></div></div>`, 'khoMinNhamHelp');
     o += grp('khoMinThieu', d.thieu, (v) => `<div class="row"><div class="main"><div class="nm">${esc(v.ten || v.ma)}</div><div class="sub"><span class="code">${esc(v.ma)}</span></div></div><div class="end kchg"><span class="mono">${esc(v.tonMin === '' ? '—' : soG(v.tonMin))}</span></div></div>`, 'khoMinThieuHelp');
     o += '</div>';
     o += `<div class="err" id="kmErr" hidden></div><div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="back">${t('cancel')}</button>
@@ -9478,8 +9510,10 @@ async function khoMinLuu(el) {
   el.disabled = true; fe.hidden = true;
   const lbl = el.innerHTML; el.innerHTML = t('khoDangLuu');
   try {
+    const bo = {};
+    khoMinXet(r).nham.forEach((v) => { bo[v.o.ma] = 1; });
     const d = await api('importMin', { file: r.file, themMoi: p.themMoi !== false, coBo: r.coBo === true,
-      ds: r.ds.map((x) => ({ ma: x.ma, tonMin: x.tonMin, ten: x.ten || '', qc: x.qc || '', dv: x.dv || '', bo: !!x.bo })) }, { timeout: 240 });
+      ds: r.ds.filter((x) => !bo[x.ma]).map((x) => ({ ma: x.ma, tonMin: x.tonMin, ten: x.ten || '', qc: x.qc || '', dv: x.dv || '', bo: !!x.bo })) }, { timeout: 240 });
     khoSet({ ver: d.ver, ds: d.ds, nhap: S.kho.nhap, moc: S.kho.moc, nhatKy: S.kho.nhatKy });
     if (S.base) S.base.kho = Object.assign({}, S.base.kho || {}, { ver: d.ver });
     back();
@@ -9590,6 +9624,10 @@ Object.assign(TX, {
   xlMinAT: ['Tồn an toàn', '安全库存'], xlMinThem: ['Cần thêm', '需补'], xlMinMay: ['Máy đang dùng', '使用设备'],
   xlMinBo: ['Bỏ theo dõi (x)', '停用(x)'],
   khoMinBo: ['Bỏ theo dõi', '停用'], khoMinDungLai: ['Dùng lại', '恢复'], khoMinQC: ['Thêm quy cách', '补充规格'],
+  khoMinNham: ['Mã nghi gõ nhầm', '疑似编码错误'], khoMinNhamSo: ['{n} số', '{n}位'], khoMinYNghia: ['Có phải là', '是否为'],
+  khoMinNhamHelp: ['Những mã này dài ngắn khác hẳn mọi mã đang có trong kho, nhiều khả năng gõ thiếu hoặc thừa số. App KHÔNG thêm vào kho. Sửa lại mã trong file rồi nhập lại.',
+    '这些编码的位数与仓库中所有编码都不同，很可能多打或漏打数字。应用不会将其加入仓库。请在文件中更正后重新导入。'],
+  khoMinNhamNote: ['{n} mã nghi gõ nhầm đã được bỏ qua, không thêm vào kho.', '已跳过{n}个疑似错误编码，未加入仓库。'],
   khoMinBoTag: ['Bỏ', '停用'], khoMinDungLaiTag: ['Dùng lại', '恢复'],
   khoMinBoHelp: ['Đánh dấu x ở cột "Bỏ theo dõi": app bỏ tồn an toàn và ẩn mã đó khỏi kho, thôi nhắc mua. Xoá dấu x rồi nhập lại là dùng lại được.',
     '在"停用"列标记 x：应用会清除安全库存并从仓库隐藏该编码，不再提醒采购。清除标记后重新导入即可恢复。'],
@@ -9796,13 +9834,24 @@ Object.assign(TX, {
   pcThuTu: ['Thứ tự luân phiên', '轮班顺序'], pcTuanNay: ['tuần này', '本周'], pcKeTiep: ['kế tiếp', '下一位'],
   pcChuaCo: ['Chưa có người trong danh sách trực ca', '值班人名单为空'],
   pcSuaDS: ['Sửa danh sách người trực', '修改值班人名单'], pcIn: ['In bảng', '打印排班表'],
+  pcCap: ['Cặp trực', '值班搭档'], pcCapN: ['Cặp {n}', '第{n}组'], pcChuaCap: ['Chưa ghép cặp', '未配对'],
+  pcCapHelp: ['Hai người cùng một cặp trực chung hai tuần: tuần đầu một người ca ngày một người ca đêm, tuần sau đổi lại. Hết hai tuần mới sang cặp sau. Người chưa ghép cặp thì không xếp tự động, Quản lý chọn tay.',
+    '同一组的两人连值两周：首周一人白班一人夜班，次周对调。两周结束才轮到下一组。未配对的人不参与自动排班，由主管手动选择。'],
+  pcCapLe: ['Cặp {n} chưa đủ hai người nên chưa dùng để xếp tự động.', '第{n}组不足两人，暂不参与自动排班。'],
+  trucChep: ['Chép lịch sang tuần sau', '复制到后面几周'],
+  trucChepHoi: ['Chép cả người trực và nội dung trực của tuần {a} – {b} sang mấy tuần kế tiếp.', '将{a}–{b}周的值班人与值班内容复制到后面几周。'],
+  trucChepTuan: ['{n} tuần', '{n}周'],
+  trucChepGiu: ['Ngày nào tuần này để trống thì tuần sau cũng để trống.', '本周留空的日期，后面几周也留空。'],
+  trucChepGiuBtn: ['Giữ ngày đã xếp', '保留已排日期'], trucChepDeBtn: ['Ghi đè tất cả', '全部覆盖'],
+  trucChepOk: ['Đã chép sang {n} ngày', '已复制{n}天'],
   pcDSHelp: ['Danh sách này riêng của phần ca trực, không phải tài khoản dùng app. Bỏ ai khỏi danh sách thì app ghi là đã nghỉ, bảng các tuần cũ vẫn còn tên.',
     '此名单仅用于值班排班，不是应用账号。移除某人后记为已离职，往周排班表仍保留姓名。'],
   pcThemNguoi: ['+ Thêm người trực', '+ 添加值班人'], pcHoTen: ['Họ tên', '姓名'], pcTenZh: ['Tên tiếng Trung', '中文姓名'],
   pcNhom: ['Nhóm', '组别'], pcNghi: ['Đã nghỉ', '已离职'], pcLen: ['Lên', '上移'], pcXuong: ['Xuống', '下移'],
   pcDSLuu: ['Đã lưu danh sách người trực', '值班人名单已保存'], pcCanTen: ['Cần nhập họ tên', '请填写姓名'],
   pcOTrong: ['Bỏ trống', '留空'], pcChonNguoi: ['Chọn người trực ca', '选择值班人'],
-  srvMissTruc: ['Lịch trực tuần và phân công ca trực', '每周值班表与值班排班表']
+  srvMissTruc: ['Lịch trực tuần và phân công ca trực', '每周值班表与值班排班表'],
+  srvMissCap: ['Ghép cặp trực ca và chép lịch trực sang tuần sau', '值班搭档与复制值班表']
 });
 
 // ---------- Dữ liệu ----------
@@ -9825,9 +9874,31 @@ function pcTuanTruoc(tu, nhom) {
   let tuan = '';
   pcDS().forEach((x) => { if (x.nhom === nhom && x.nguoiId && x.tuNgay < tu && x.tuNgay > tuan) tuan = x.tuNgay; });
   if (!tuan) return null;
-  const o = {};
+  const o = { tuan };
   pcDS().forEach((x) => { if (x.nhom === nhom && x.tuNgay === tuan) o[x.ca] = x.nguoiId; });
   return o;
+}
+// Cặp trực: hai người cùng số cặp. Người chưa ghép cặp không được xếp tự động.
+function pcCapDS(ng) {
+  const theo = {}, thuTu = [];
+  ng.forEach((x) => { if (!x.cap) return; if (!theo[x.cap]) { theo[x.cap] = []; thuTu.push(x.cap); } theo[x.cap].push(x); });
+  return thuTu.filter((c) => theo[c].length === 2).map((c) => theo[c]);
+}
+// Mỗi cặp trực hai tuần liền, tuần sau đổi ca cho nhau, hết hai tuần mới sang cặp sau
+function pcTiepTheoCap(caps, truoc1, truoc2) {
+  const trong = (cap, o) => !!o && cap.some((x) => x.id === o.NGAY || x.id === o.DEM);
+  const viTri = (o) => { for (let i = 0; i < caps.length; i++) if (trong(caps[i], o)) return i; return -1; };
+  const i = viTri(truoc1);
+  if (i < 0) return { NGAY: caps[0][0], DEM: caps[0][1] };
+  const cap = caps[i];
+  if (viTri(truoc2) === i) { const sau = caps[(i + 1) % caps.length]; return { NGAY: sau[0], DEM: sau[1] }; }
+  return truoc1.NGAY === cap[0].id ? { NGAY: cap[1], DEM: cap[0] } : { NGAY: cap[0], DEM: cap[1] };
+}
+// Ai trực tuần kế tiếp nếu bấm luân phiên
+function pcKeTiep(ng, tu, nhom) {
+  const truoc1 = pcTuanTruoc(addD(tu, 7), nhom), caps = pcCapDS(ng);
+  if (!caps.length) return pcTiepTheo(ng, truoc1);
+  return pcTiepTheoCap(caps, truoc1, truoc1 ? pcTuanTruoc(truoc1.tuan, nhom) : null);
 }
 // Người kế tiếp của từng ca: dịch xuống một người so với tuần trước
 function pcTiepTheo(ng, truoc) {
@@ -9877,6 +9948,21 @@ function rebuildTruc() {
       if (q.p.uid !== undefined) { o.uid = q.p.uid; o.ten = q.p.uid ? nvTen(q.p.uid) : ''; }
       if (q.p.noiDung !== undefined) { o.noiDung = q.p.noiDung; o.noiDungDich = q.p.noiDungDich || ''; }
       if (i >= 0) lt[i] = o; else lt.push(o);
+    } else if (q.action === 'dutyCopy') {
+      const tu = q.p.tuNgay, so = +q.p.soTuan || 1, de = q.p.ghiDe !== false;
+      const nguon = [];
+      for (let i = 0; i < 7; i++) {
+        const x = lt.filter((v) => v.ngay === addD(tu, i))[0];
+        if (x && (x.uid || x.noiDung)) nguon.push({ i, x });
+      }
+      for (let w = 1; w <= so; w++) {
+        nguon.forEach(({ i, x }) => {
+          const ngay = addD(tu, 7 * w + i), j = lt.findIndex((v) => v.ngay === ngay);
+          if (j >= 0 && !de && (lt[j].uid || lt[j].noiDung)) return;
+          const o = { ngay, uid: x.uid, ten: x.ten, noiDung: x.noiDung, noiDungDich: x.noiDungDich, cho: true };
+          if (j >= 0) lt[j] = o; else lt.push(o);
+        });
+      }
     } else if (q.action === 'shiftSet') {
       dat(q.p.tuNgay, q.p.nhom, q.p.ca, q.p.id ? ntG(q.p.id) : null);
     } else if (q.action === 'shiftRotate') {
@@ -9919,7 +10005,8 @@ VIEWS.truc = {
           ${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}</div>
         ${sub ? `<div class="sub">${sub}</div>` : ''}</${trucSua() ? 'button' : 'div'}>`;
     }).join('')}</div>`;
-    if (trucSua()) o += `<div class="help" style="margin-top:8px">${t('trucNDHelp')}</div>`;
+    if (trucSua()) o += `<div class="help" style="margin-top:8px">${t('trucNDHelp')}</div>
+      ${srvOld('cap') ? '' : `<div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="trucChep">${IC.share} ${t('trucChep')}</button></div>`}`;
     o += `<button class="cta2 blue" style="margin-top:14px" data-act="go" data-v="trucTong"><span class="ic">${IC.hist}</span>
       <span>${tv('trucMoTong')}<span class="zi">${tz('trucMoTong')}</span><em style="display:block;font-style:normal;font-size:12px;opacity:.8">${esc(tp('trucMoTongSub'))}</em></span>${IC.chev}</button>`;
     o += `<button class="cta2" data-act="go" data-v="phanCa"><span class="ic">${IC.users}</span>
@@ -10033,14 +10120,27 @@ VIEWS.phanCa = {
       const ng = ntDS(nhom);
       if (!ng.length) { o += `<div class="card empty">${t('pcChuaCo')}</div>`; return; }
       const nay = {}; TR_CA.forEach(([ca]) => { const x = pcO(tu, nhom, ca); if (x && x.nguoiId) nay[x.nguoiId] = tv(ca === 'NGAY' ? 'pcCaNgay' : 'pcCaDem'); });
-      const tiep = pcTiepTheo(ng, pcTuanTruoc(addD(tu, 7), nhom));
+      const tiep = pcKeTiep(ng, tu, nhom);
       const tiepId = {}; TR_CA.forEach(([ca]) => { if (tiep[ca]) tiepId[tiep[ca].id] = 1; });
-      o += `<div class="card pad" style="margin-bottom:10px"><div class="help" style="font-weight:800">${t(k)}</div>
-        <div class="list" style="margin-top:6px">${ng.map((n, i) => `<div class="tcrow" style="cursor:default"><div class="h">
-          <span class="no">${i + 1}</span><b>${esc(n.ten)}</b>${n.tenZh ? ` <span class="zi" lang="zh-CN">${esc(n.tenZh)}</span>` : ''}
-          ${n.dienThoai ? `<span class="mono" style="color:var(--ink3);font-size:12px">${esc(n.dienThoai)}</span>` : ''}
-          ${nay[n.id] ? `<span class="pill p-ok" style="margin-left:auto">${esc(tp('pcTuanNay'))} · ${esc(nay[n.id])}</span>`
-    : tiepId[n.id] ? `<span class="pill p-sap" style="margin-left:auto">${t('pcKeTiep')}</span>` : ''}</div></div>`).join('')}</div></div>`;
+      const caps = pcCapDS(ng), leId = {};
+      caps.forEach((c) => c.forEach((x) => { leId[x.id] = 1; }));
+      const le = ng.filter((x) => !leId[x.id]);
+      const nhan = (n) => (nay[n.id] ? `<span class="pill p-ok" style="margin-left:auto">${esc(tp('pcTuanNay'))} · ${esc(nay[n.id])}</span>`
+        : tiepId[n.id] ? `<span class="pill p-sap" style="margin-left:auto">${t('pcKeTiep')}</span>` : '');
+      const dong = (n, so) => `<div class="tcrow" style="cursor:default"><div class="h">
+        <span class="no">${so}</span><b>${esc(n.ten)}</b>${n.tenZh ? ` <span class="zi" lang="zh-CN">${esc(n.tenZh)}</span>` : ''}
+        ${n.dienThoai ? `<span class="mono" style="color:var(--ink3);font-size:12px">${esc(n.dienThoai)}</span>` : ''}${nhan(n)}</div></div>`;
+      o += `<div class="card pad" style="margin-bottom:10px"><div class="help" style="font-weight:800">${t(k)}</div>`;
+      if (caps.length) {
+        o += caps.map((c, i) => `<div style="margin-top:8px"><div class="help" style="margin:0 0 4px">${t('pcCapN', { n: i + 1 })}</div>
+          <div class="list">${c.map((n, j) => dong(n, j + 1)).join('')}</div></div>`).join('');
+        if (le.length) o += `<div style="margin-top:10px"><div class="help" style="margin:0 0 4px;color:var(--orange)">${t('pcChuaCap')}</div>
+          <div class="list">${le.map((n) => dong(n, '—')).join('')}</div></div>`;
+        o += `<div class="help" style="margin-top:8px">${t('pcCapHelp')}</div>`;
+      } else {
+        o += `<div class="list" style="margin-top:6px">${ng.map((n, i) => dong(n, i + 1)).join('')}</div>`;
+      }
+      o += '</div>';
     });
     return o;
   }
@@ -10083,11 +10183,19 @@ VIEWS.trucNguoi = {
         <label class="fld"><span>${t('pcTenZh')}</span><input class="inp" data-nf="${i}:tenZh" value="${esc(x.tenZh || '')}" maxlength="60" style="font-family:var(--f-zh)"></label></div>
       <div class="row2f" style="margin-top:10px"><label class="fld"><span>${t('pcDienThoai')}</span><input class="inp mono" data-nf="${i}:dienThoai" value="${esc(x.dienThoai || '')}" maxlength="20" inputmode="tel"></label>
         <div class="fld"><span>${t('pcNhom')}</span><select class="inp" data-nf="${i}:nhom">${TR_NHOM.map(([k, lb]) => `<option value="${k}"${x.nhom === k ? ' selected' : ''}>${esc(tp(lb))}</option>`).join('')}</select></div></div>
+      <div class="fld" style="margin-top:10px"><span>${t('pcCap')}</span>
+        <select class="inp" data-nf="${i}:cap"><option value="0"${!x.cap ? ' selected' : ''}>— ${esc(tp('pcChuaCap'))} —</option>
+          ${[1, 2, 3, 4, 5, 6, 7, 8].map((c) => `<option value="${c}"${+x.cap === c ? ' selected' : ''}>${esc(tv('pcCapN', { n: c }))}</option>`).join('')}</select></div>
       <label class="switch" style="margin-top:6px"><span class="t">${t('pcNghi')}</span><input type="checkbox" data-nf="${i}:nghi"${x.hoatDong === false ? ' checked' : ''}></label>
       <div class="btns" style="margin-top:8px">
         <button class="btn ghost sm" data-act="ntDoi" data-i="${i}" data-d="-1"${i === 0 ? ' disabled' : ''}>${t('pcLen')}</button>
         <button class="btn ghost sm" data-act="ntDoi" data-i="${i}" data-d="1"${i === p.ds.length - 1 ? ' disabled' : ''}>${t('pcXuong')}</button></div></div>`;
+    const dem = {};
+    p.ds.forEach((x) => { if (x.cap && x.hoatDong !== false) dem[x.nhom + '|' + x.cap] = (dem[x.nhom + '|' + x.cap] || 0) + 1; });
+    const le = Object.keys(dem).filter((k) => dem[k] !== 2).map((k) => k.split('|')[1]);
     return `<div class="help" style="margin-bottom:12px">${t('pcDSHelp')}</div>
+      <div class="help" style="margin-bottom:12px">${t('pcCapHelp')}</div>
+      ${le.length ? `<div class="note" style="margin-bottom:12px">${t('pcCapLe', { n: le.join(', ') })}</div>` : ''}
       <div class="list">${p.ds.map(row).join('')}</div>
       <button class="tcadd" data-act="ntThem">${t('pcThemNguoi')}</button>
       <div id="ntErr" class="err" hidden></div>
@@ -10096,7 +10204,9 @@ VIEWS.trucNguoi = {
   after(p) {
     $$('[data-nf]').forEach((el) => el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
       const [i, k] = el.dataset.nf.split(':');
-      if (k === 'nghi') p.ds[+i].hoatDong = !el.checked; else p.ds[+i][k] = el.value;
+      if (k === 'nghi') p.ds[+i].hoatDong = !el.checked;
+      else if (k === 'cap') { p.ds[+i].cap = +el.value || 0; render(); }
+      else p.ds[+i][k] = el.value;
     }));
     $('#ntOk').addEventListener('click', async () => {
       const e = $('#ntErr'), b = $('#ntOk');
@@ -10120,6 +10230,25 @@ Object.assign(ACT, {
     S.f.trucThang = y + '-' + String(m).padStart(2, '0'); render();
   },
   trucXep: (el) => go('trucGhi', { d: el.dataset.d }),
+  trucChep: () => {
+    const tu = trucTuanHT();
+    openSheet(`<div class="grab"></div><h3>${tv('trucChep')}<span class="zi">${tz('trucChep')}</span></h3>
+      <p class="help">${t('trucChepHoi', { a: fmtDM(tu), b: fmtDM(addD(tu, 6)) })}</p>
+      <div class="chips" style="margin:10px 0">${[1, 2, 4, 8].map((n) => `<button class="chip${n === (S.f.trucChepN || 1) ? ' on' : ''}" data-act="trucChepN" data-n="${n}">${esc(tv('trucChepTuan', { n }))}</button>`).join('')}</div>
+      <p class="help">${t('trucChepGiu')}</p>
+      <div class="btns"><button class="btn pri" data-act="trucChepOk" data-de="0">${t('trucChepGiuBtn')}</button>
+        <button class="btn" data-act="trucChepOk" data-de="1">${t('trucChepDeBtn')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('cancel')}</button></div>`);
+  },
+  trucChepN: (el) => { S.f.trucChepN = +el.dataset.n; ACT.trucChep(); },
+  trucChepOk: async (el) => {
+    const de = el.dataset.de === '1', n = S.f.trucChepN || 1;
+    closeSheet();
+    const r = await send('dutyCopy', { tuNgay: trucTuanHT(), soTuan: n, ghiDe: de });
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('trucChepOk', { n: (r.data && r.data.n) || 0 }));
+    render();
+  },
   trucBo: async (el) => {
     const r = await send('dutySet', { ngay: el.dataset.d, uid: '', noiDung: '' });
     if (r.err) { toast(errMsg(r.err), true); return; }

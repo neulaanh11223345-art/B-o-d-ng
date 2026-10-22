@@ -1043,7 +1043,12 @@ test('phân công ca trực: danh sách riêng, xếp tay từng ô, luân phiê
   err(b.call('shiftRotate', { tuNgay: '2026-10-21' }, b.ql), 'TUAN_SAI');
   err(b.call('shiftRotate', { tuNgay: '2026-10-19' }, b.kt), 'KHONG_QUYEN');
 
-  // Tuần đầu: hai người đầu danh sách, ca ngày và ca đêm
+  // Sản xuất xếp theo CẶP (hai người cùng số cặp), kho ngũ kim hai người thì luân phiên nhau
+  assert.deepEqual(sx.slice(0, 6).map((x) => x.cap), [1, 1, 2, 2, 3, 3]);
+  assert.equal(sx[6].cap, 0, 'người lẻ chưa ghép cặp');
+  assert.equal(kho[0].cap, 0);
+
+  // Tuần đầu: cặp 1, người thứ nhất ca ngày
   const t1 = ok(b.call('shiftRotate', { tuNgay: '2026-10-19' }, b.ql)).phanCa;
   const o = (ds, nhom, ca) => ds.find((x) => x.nhom === nhom && x.ca === ca);
   assert.equal(t1.length, 4);
@@ -1053,26 +1058,36 @@ test('phân công ca trực: danh sách riêng, xếp tay từng ô, luân phiê
   assert.equal(o(t1, 'KHO', 'NGAY').ten, kho[0].ten);
   assert.equal(o(t1, 'KHO', 'DEM').ten, kho[1].ten);
 
-  // Tuần sau: mỗi ca dịch xuống một người; nhóm 2 người thì đổi chỗ ca ngày ↔ ca đêm
+  // Tuần thứ hai: vẫn cặp đó, đổi ca cho nhau. Kho hai người cũng đổi chỗ
   const t2 = ok(b.call('shiftRotate', { tuNgay: '2026-10-26' }, b.ql)).phanCa;
   assert.equal(o(t2, 'SX', 'NGAY').ten, sx[1].ten);
-  assert.equal(o(t2, 'SX', 'DEM').ten, sx[2].ten);
+  assert.equal(o(t2, 'SX', 'DEM').ten, sx[0].ten);
   assert.equal(o(t2, 'KHO', 'NGAY').ten, kho[1].ten);
   assert.equal(o(t2, 'KHO', 'DEM').ten, kho[0].ten);
 
+  // Tuần thứ ba: hết hai tuần nên sang cặp sau
+  const t3 = ok(b.call('shiftRotate', { tuNgay: '2026-11-02' }, b.ql)).phanCa;
+  assert.equal(o(t3, 'SX', 'NGAY').ten, sx[2].ten);
+  assert.equal(o(t3, 'SX', 'DEM').ten, sx[3].ten);
+  // Tuần thứ tư: cặp đó đổi ca
+  const t4 = ok(b.call('shiftRotate', { tuNgay: '2026-11-09' }, b.ql)).phanCa;
+  assert.equal(o(t4, 'SX', 'NGAY').ten, sx[3].ten);
+  assert.equal(o(t4, 'SX', 'DEM').ten, sx[2].ten);
+  // Hết ba cặp thì quay vòng về cặp đầu
+  ok(b.call('shiftRotate', { tuNgay: '2026-11-16' }, b.ql));
+  ok(b.call('shiftRotate', { tuNgay: '2026-11-23' }, b.ql));
+  const t7 = ok(b.call('shiftRotate', { tuNgay: '2026-11-30' }, b.ql)).phanCa;
+  assert.equal(o(t7, 'SX', 'NGAY').ten, sx[0].ten);
+  assert.equal(o(t7, 'SX', 'DEM').ten, sx[1].ten);
+
   // Xếp tay một ô, không đụng ô khác
-  const tay = ok(b.call('shiftSet', { tuNgay: '2026-10-26', nhom: 'SX', ca: 'NGAY', id: sx[5].id }, b.ql)).phanCa[0];
-  assert.equal(tay.ten, sx[5].ten);
+  const tay = ok(b.call('shiftSet', { tuNgay: '2026-10-26', nhom: 'SX', ca: 'NGAY', id: sx[6].id }, b.ql)).phanCa[0];
+  assert.equal(tay.ten, sx[6].ten);
   err(b.call('shiftSet', { tuNgay: '2026-10-26', nhom: 'KHO', ca: 'NGAY', id: sx[0].id }, b.ql), 'KHAC_NHOM');
   err(b.call('shiftSet', { tuNgay: '2026-10-26', nhom: 'SX', ca: 'TRUA', id: sx[0].id }, b.ql), 'CA_SAI');
   const pc = ok(b.call('data', {}, b.kt)).phanCa;
   assert.equal(pc.filter((x) => x.tuNgay === '2026-10-26').length, 4);
-  assert.equal(pc.find((x) => x.tuNgay === '2026-10-26' && x.nhom === 'SX' && x.ca === 'DEM').ten, sx[2].ten);
-
-  // Luân phiên tiếp nối ô vừa xếp tay
-  const t3 = ok(b.call('shiftRotate', { tuNgay: '2026-11-02' }, b.ql)).phanCa;
-  assert.equal(o(t3, 'SX', 'NGAY').ten, sx[6].ten);
-  assert.equal(o(t3, 'SX', 'DEM').ten, sx[3].ten);
+  assert.equal(pc.find((x) => x.tuNgay === '2026-10-26' && x.nhom === 'SX' && x.ca === 'DEM').ten, sx[0].ten);
 
   // Bỏ trống một ô
   const trong = ok(b.call('shiftSet', { tuNgay: '2026-11-02', nhom: 'SX', ca: 'NGAY', id: '' }, b.ql)).phanCa[0];
@@ -1277,4 +1292,70 @@ test('tồn kho an toàn: lấy quy cách, đơn vị từ file khi kho còn tr�
   assert.equal(ok(b.call('saveKho', { ma: 'A1', an: false }, b.ql)).kho.ds[0].an, undefined);
   // Nhưng vẫn không cho sửa tên / quy cách của linh kiện ERP trong app
   err(b.call('saveKho', { ma: 'A1', ten: 'Đổi tên' }, b.ql), 'KHO_ERP');
+});
+
+test('ghép cặp trực ca: sửa cặp trong app, người lẻ không xếp tự động; chép lịch trực sang tuần sau', () => {
+  const b = setup();
+  const nt = ok(b.call('data', {}, b.ql)).nguoiTruc;
+  const sx = nt.filter((x) => x.nhom === 'SX');
+
+  // Ghép người lẻ (Vũ Mạnh Công) vào cặp 4 cùng một người mới
+  const ds = nt.map((x) => Object.assign({}, x));
+  ds.find((x) => x.id === sx[6].id).cap = 4;
+  ds.push({ ten: 'Trần Văn Mới', tenZh: '陈文新', dienThoai: '0900000001', nhom: 'SX', cap: 4 });
+  const sau = ok(b.call('shiftPeople', { ds }, b.ql)).nguoiTruc;
+  assert.equal(sau.find((x) => x.id === sx[6].id).cap, 4);
+  assert.equal(sau.find((x) => x.ten === 'Trần Văn Mới').cap, 4);
+
+  // Bốn cặp: xếp hết ba cặp đầu (mỗi cặp 2 tuần) thì tới cặp 4
+  const o = (ds2, ca) => ds2.find((x) => x.nhom === 'SX' && x.ca === ca);
+  // Ba cặp đầu, mỗi cặp hai tuần = sáu tuần
+  ['2026-10-19', '2026-10-26', '2026-11-02', '2026-11-09', '2026-11-16', '2026-11-23'].forEach((t) => ok(b.call('shiftRotate', { tuNgay: t }, b.ql)));
+  const t7 = ok(b.call('shiftRotate', { tuNgay: '2026-11-30' }, b.ql)).phanCa;
+  assert.equal(o(t7, 'NGAY').ten, sx[6].ten, 'tuần thứ bảy mới tới cặp 4');
+  assert.equal(o(t7, 'DEM').ten, 'Trần Văn Mới');
+
+  // Số cặp sai thì coi như chưa ghép
+  const ds2 = sau.map((x) => Object.assign({}, x));
+  ds2.find((x) => x.id === sx[6].id).cap = 999;
+  assert.equal(ok(b.call('shiftPeople', { ds: ds2 }, b.ql)).nguoiTruc.find((x) => x.id === sx[6].id).cap, 0);
+});
+
+test('chép lịch trực tuần sang các tuần sau, giữ hoặc ghi đè ngày đã xếp', () => {
+  const b = setup();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien;
+  const a = nv.find((x) => x.vaiTro === 'kythuat'), c = nv.find((x) => x.vaiTro === 'admin');
+  ok(b.call('dutySet', { ngay: '2026-10-19', uid: a.id, noiDung: 'Trực điện xưởng 1' }, b.ql));
+  ok(b.call('dutySet', { ngay: '2026-10-21', uid: c.id, noiDung: 'Ghi số điện' }, b.ql));
+
+  err(b.call('dutyCopy', { tuNgay: '2026-10-20', soTuan: 1 }, b.ql), 'TUAN_SAI');
+  err(b.call('dutyCopy', { tuNgay: '2026-10-19', soTuan: 20 }, b.ql), 'SO_SAI');
+  err(b.call('dutyCopy', { tuNgay: '2026-10-19', soTuan: 1 }, b.kt), 'KHONG_QUYEN');
+  err(b.call('dutyCopy', { tuNgay: '2026-09-28', soTuan: 1 }, b.ql), 'TUAN_TRONG');
+
+  // Chép sang hai tuần sau: chỉ chép ngày có xếp
+  const r = ok(b.call('dutyCopy', { tuNgay: '2026-10-19', soTuan: 2 }, b.ql));
+  assert.equal(r.n, 4, 'hai ngày × hai tuần');
+  const by = {};
+  ok(b.call('data', {}, b.ql)).lichTruc.forEach((x) => { by[x.ngay] = x; });
+  assert.equal(by['2026-10-26'].uid, a.id);
+  assert.equal(by['2026-10-26'].noiDung, 'Trực điện xưởng 1');
+  assert.ok(by['2026-10-26'].noiDungDich, 'bản dịch chép theo luôn');
+  assert.equal(by['2026-10-28'].uid, c.id);
+  assert.equal(by['2026-11-02'].uid, a.id);
+  assert.equal(by['2026-10-27'], undefined, 'ngày nguồn để trống thì không chép');
+
+  // Giữ ngày đã xếp
+  ok(b.call('dutySet', { ngay: '2026-11-09', uid: c.id, noiDung: 'Đã xếp riêng' }, b.ql));
+  ok(b.call('dutyCopy', { tuNgay: '2026-10-19', soTuan: 3, ghiDe: false }, b.ql));
+  const by2 = {};
+  ok(b.call('data', {}, b.ql)).lichTruc.forEach((x) => { by2[x.ngay] = x; });
+  assert.equal(by2['2026-11-09'].noiDung, 'Đã xếp riêng', 'không ghi đè khi ghiDe = false');
+
+  // Ghi đè
+  ok(b.call('dutyCopy', { tuNgay: '2026-10-19', soTuan: 3, ghiDe: true }, b.ql));
+  const by3 = {};
+  ok(b.call('data', {}, b.ql)).lichTruc.forEach((x) => { by3[x.ngay] = x; });
+  assert.equal(by3['2026-11-09'].noiDung, 'Trực điện xưởng 1');
+  assert.equal(by3['2026-11-09'].uid, a.id);
 });

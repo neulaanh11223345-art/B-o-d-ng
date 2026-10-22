@@ -524,6 +524,30 @@ assert.equal(ntSau.length, 10, 'thêm được người mới vào danh sách');
 assert.equal(ntSau[0].dt, '0912345678', 'sửa được số điện thoại');
 const moi16 = ntSau.find((x) => x.ten === 'Phạm Văn Mới');
 assert.equal(moi16.nhom, 'KHO');
+// Chép cả tuần sang hai tuần sau
+await page.evaluate(() => { back(); tab('truc'); }); await wait(700);
+const tuan16 = await page.evaluate(() => tcThuHai(TODAY()));
+await page.click('[data-act="trucChep"]'); await wait(400);
+await page.click('[data-act="trucChepN"][data-n="2"]'); await wait(400);
+await page.click('[data-act="trucChepOk"][data-de="1"]'); await wait(1500);
+const chep16 = await page.evaluate((tu) => {
+  const g = (d) => { const x = trucNgay(d); return x ? { uid: x.uid, nd: x.noiDung } : null; };
+  return { goc: g(tu), t1: g(addD(tu, 7)), t2: g(addD(tu, 14)), t3: g(addD(tu, 21)) };
+}, tuan16);
+assert.ok(chep16.goc && chep16.goc.uid, 'tuần nguồn có người trực');
+assert.deepEqual(chep16.t1, chep16.goc, 'chép sang tuần sau');
+assert.deepEqual(chep16.t2, chep16.goc, 'chép sang tuần thứ hai');
+assert.equal(chep16.t3, null, 'không chép quá số tuần đã chọn');
+// Cặp trực: sản xuất xếp theo cặp, hiện trong thứ tự luân phiên
+await page.evaluate(() => go('phanCa')); await wait(700);
+assert.match(await text('#main'), /Cặp 1/, 'panel thứ tự luân phiên hiện theo cặp');
+const cap16 = await page.evaluate(() => {
+  const ng = ntDS('SX'), caps = pcCapDS(ng);
+  return { soCap: caps.length, le: ng.length - caps.length * 2, ten: caps.map((c) => c.map((x) => x.ten)) };
+});
+assert.equal(cap16.soCap, 3, 'ba cặp sản xuất');
+assert.equal(cap16.le, 1, 'một người chưa ghép cặp');
+assert.deepEqual(cap16.ten[0], ['Nguyễn Hữu Ninh', 'Đỗ Văn Quân']);
 // Kỹ thuật: xem được lịch trực và bảng phân ca, không xếp được
 await logout(); await login('NV003', '333333');
 await page.evaluate(() => tab('truc')); await wait(600);
@@ -533,7 +557,7 @@ await page.evaluate(() => go('phanCa')); await wait(600);
 assert.equal(await page.locator('[data-act="pcLP"]').count(), 0, 'kỹ thuật không có nút luân phiên');
 await page.evaluate(() => go('trucNguoi')); await wait(500);
 assert.match(await text('#barTitle'), /Chỉ Quản lý/);
-ok('Bản 2.12: lịch trực tuần có nội dung trực song ngữ, tổng số ca, phân công ca trực luân phiên; kỹ thuật chỉ xem');
+ok('Bản 2.17: lịch trực song ngữ, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
 
 // 17. Bản 2.13: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng và gần hết hàng
 await logout(); await login('NV002', '222222');
@@ -581,11 +605,14 @@ assert.ok(await page.evaluate(() => khoMauTonMinBlob().size > 2000), 'dựng đ�
 const qcCu18 = await page.evaluate(() => khoGet('605010344').qc);
 await page.setInputFiles('#khoMinFile', { name: 'ton-an-toan.csv', mimeType: 'text/csv',
   buffer: Buffer.from('Mã sản phẩm,Tên linh kiện,Mã linh kiện,Số lượng dự phòng,Bỏ theo dõi\n'
-    + '605010344,Vòng bi,QC-SAI,20,\n609030115,Bộ lọc súng keo,LOC-φ8,3,\n605010014,Vòng bi lớn,,,x\n', 'utf8') });
+    + '605010344,Vòng bi,QC-SAI,20,\n609030115,Bộ lọc súng keo,LOC-φ8,3,\n605010014,Vòng bi lớn,,,x\n'
+    + '60501034,Vòng bi gõ thiếu số,,5,\n', 'utf8') });
 await wait(1200);
 assert.match(await text('#barTitle'), /Nhập tồn kho an toàn/);
 assert.match(await text('#main'), /Thêm mới, coi như hết hàng/, 'mã chưa có trong kho được hỏi thêm mới');
 assert.match(await text('#main'), /Bỏ theo dõi/, 'mã đánh dấu x hiện trong nhóm bỏ theo dõi');
+assert.match(await text('#main'), /Mã nghi gõ nhầm/, 'mã thiếu số bị chặn lại');
+assert.match(await text('#main'), /60501034/);
 await shot('29-nhap-ton-an-toan');
 await page.click('#kmSave'); await wait(1500);
 // Lưu xong mở luôn màn Nhắc hàng
@@ -611,6 +638,7 @@ assert.equal(qc18.moi, 'LOC-φ8', 'mã mới lấy quy cách từ cột Mã linh
 assert.equal(qc18.cu, qcCu18, 'không ghi đè quy cách đã có');
 assert.equal(qc18.bo, true, 'mã đánh dấu x đã bị bỏ theo dõi');
 assert.equal(qc18.nhac, false, 'mã đã bỏ theo dõi thì không nhắc mua nữa');
+assert.equal(await page.evaluate(() => !!khoGet('60501034')), false, 'mã nghi gõ nhầm không được thêm vào kho');
 assert.match(await text('#main'), /Thiếu hàng/);
 assert.match(await text('#main'), /cần thêm 18/);
 // Trên mốc báo thì thôi kêu; đổi mức báo thiếu lên 100% là lại vào danh sách

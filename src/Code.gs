@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.16.0';
+var PHIEN_BAN = '2.17.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -80,14 +80,15 @@ var BANG = {
   LichTruc: ['Ngay', 'UID', 'Ten', 'NoiDung', 'NoiDungDich', 'Nguoi', 'CapNhat'],
   // Người trực ca (bảng phân công ca trực) — danh sách riêng, không phải tài khoản dùng app
   // Nhom: SX (sản xuất) · KHO (kho ngũ kim) · ThuTu: thứ tự luân phiên · HoatDong = 0: đã nghỉ, không xếp nữa
-  NguoiTruc: ['ID', 'Ten', 'TenZh', 'DienThoai', 'Nhom', 'ThuTu', 'HoatDong', 'CapNhat'],
+  // Cap: số hiệu cặp trực (hai người cùng số là một cặp, trực chung 2 tuần rồi đổi ca cho nhau); 0 = chưa ghép cặp
+  NguoiTruc: ['ID', 'Ten', 'TenZh', 'DienThoai', 'Nhom', 'ThuTu', 'HoatDong', 'CapNhat', 'Cap'],
   // Bảng phân công ca trực từng tuần: TuNgay = thứ Hai của tuần · Ca: NGAY (7h30–19h30) · DEM (19h30–7h30)
   // Tên và số điện thoại lưu luôn theo người đã chọn, để bảng tuần cũ không đổi khi danh sách đổi
   PhanCa: ['TuNgay', 'Nhom', 'Ca', 'NguoiID', 'Ten', 'TenZh', 'DienThoai', 'Nguoi', 'CapNhat']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
-  NguoiTruc: ['ThuTu', 'HoatDong'],
+  NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'],
   NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
@@ -124,7 +125,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg', 'importMin',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring',
-  'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople'];
+  'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
@@ -329,6 +330,7 @@ function dieuHuong(a, p, req) {
     case 'shiftSet': canQuyen(u, 'giaoviec'); return luuPhanCa(u, p);
     case 'shiftRotate': canQuyen(u, 'giaoviec'); return luanPhienTuan(u, p);
     case 'shiftPeople': canQuyen(u, 'giaoviec'); return luuNguoiTruc(u, p);
+    case 'dutyCopy': canQuyen(u, 'giaoviec'); return chepLichTruc(u, p);
   }
   throw loi('KHONG_HIEU', 'Máy chủ chưa hiểu yêu cầu này: ' + a);
 }
@@ -759,16 +761,17 @@ var PC_CA = ['NGAY', 'DEM'];
 var NT_TOI_DA = 60;                          // số người tối đa trong danh sách trực ca
 // Danh sách người trực ca nhập lần đầu (theo bảng phân công ca trực của nhà máy, thứ tự luân phiên như bảng giấy).
 // Sau đó sửa trong app (Lịch trực → Phân công ca trực → Sửa danh sách) hoặc ngay trên trang NguoiTruc.
+// [nhóm, tên, tên tiếng Trung, điện thoại, số cặp] — cặp theo bảng phân ca cũ của nhà máy, 0 = chưa ghép
 var MAU_NGUOI_TRUC = [
-  ['SX', 'Nguyễn Hữu Ninh', '阮友宁', '0389978042'],
-  ['SX', 'Vũ Mạnh Công', '武孟公', '0389260986'],
-  ['SX', 'Lê Xuân Đông', '藜春咚', '0934254019'],
-  ['SX', 'Vũ Bá Thịnh', '武伯盛', '0949455568'],
-  ['SX', 'Hoàng Trọng Vinh', '黄仲荣', '0347006286'],
-  ['SX', 'Vũ Văn Hòa', '武文和', '0973011345'],
-  ['SX', 'Đỗ Văn Quân', '杜文君', '0985433018'],
-  ['KHO', 'Trần Thị Mây', '陈氏梅', '0946367665'],
-  ['KHO', 'Đỗ Thị Loan', '杜氏鸾', '0327603216']
+  ['SX', 'Nguyễn Hữu Ninh', '阮友宁', '0389978042', 1],
+  ['SX', 'Đỗ Văn Quân', '杜文君', '0985433018', 1],
+  ['SX', 'Lê Xuân Đông', '藜春咚', '0934254019', 2],
+  ['SX', 'Vũ Bá Thịnh', '武伯盛', '0949455568', 2],
+  ['SX', 'Hoàng Trọng Vinh', '黄仲荣', '0347006286', 3],
+  ['SX', 'Vũ Văn Hòa', '武文和', '0973011345', 3],
+  ['SX', 'Vũ Mạnh Công', '武孟公', '0389260986', 0],
+  ['KHO', 'Trần Thị Mây', '陈氏梅', '0946367665', 0],
+  ['KHO', 'Đỗ Thị Loan', '杜氏鸾', '0327603216', 0]
 ];
 // Thứ Hai của tuần chứa ngày d
 function trucThuHai(d) { return congNgay(d, -((new Date(d + 'T00:00:00Z').getUTCDay() + 6) % 7)); }
@@ -817,17 +820,53 @@ function luuLichTruc(u, p) {
   return { lichTruc: sachLT(x) };
 }
 
+// Chép cả tuần lịch trực (người trực + nội dung trực) sang mấy tuần kế tiếp.
+// ghiDe = false: chỉ điền vào ngày chưa xếp ai, không đụng ngày đã có người.
+function chepLichTruc(u, p) {
+  var tu = ngayStr(p.tuNgay);
+  if (!laThuHai(tu)) throw loi('TUAN_SAI', 'Tuần không hợp lệ · 周次无效');
+  var soTuan = Math.round(Number(p.soTuan)) || 1;
+  if (!(soTuan >= 1 && soTuan <= 12)) throw loi('SO_SAI', 'Chép được tối đa 12 tuần · 最多复制12周');
+  var ghiDe = p.ghiDe !== false, ds = docLichTruc(), theoNgay = {};
+  ds.forEach(function (x) { theoNgay[x.ngay] = x; });
+  var nguon = [];
+  for (var i = 0; i < 7; i++) {
+    var x = theoNgay[congNgay(tu, i)];
+    if (x && (x.uid || x.noiDung)) nguon.push({ i: i, uid: x.uid, ten: x.ten, noiDung: x.noiDung, noiDungDich: x.noiDungDich });
+  }
+  if (!nguon.length) throw loi('TUAN_TRONG', 'Tuần này chưa xếp ai · 本周尚未安排');
+  capNhatTieuDe('LichTruc');
+  var bay = thoiGianStr(), moi = [], out = [], n = 0;
+  for (var w = 1; w <= soTuan; w++) {
+    var dau = congNgay(tu, 7 * w);
+    nguon.forEach(function (o) {
+      var ngay = congNgay(dau, o.i), cu = theoNgay[ngay];
+      if (cu && !ghiDe && (cu.uid || cu.noiDung)) return;
+      var x = cu || { ngay: ngay };
+      x.uid = o.uid; x.ten = o.ten; x.noiDung = o.noiDung; x.noiDungDich = o.noiDungDich;
+      x.nguoi = u.ten; x.capNhat = bay;
+      if (cu) suaDong('LichTruc', x._r, ltThanhDong(x)); else { moi.push(ltThanhDong(x)); theoNgay[ngay] = x; }
+      out.push(sachLT(x)); n++;
+    });
+  }
+  if (moi.length) themNhieu('LichTruc', moi);
+  if (!n) throw loi('KHONG_CO', 'Các tuần đó đã xếp đủ rồi · 这些周已排满');
+  ghiNhatKy(u, 'CHEP_LICH_TRUC', 'LichTruc', tu, '', soTuan + ' tuần · ' + n + ' ngày', '');
+  return { dsLichTruc: out, n: n };
+}
+
 // ----- Người trực ca (danh sách riêng) -----
 function ntTuDong(r, i) {
   return { id: s(r[0]), ten: s(r[1]), tenZh: s(r[2]), dienThoai: s(r[3]), nhom: s(r[4]),
-    thuTu: Math.round(Number(r[5])) || 0, hoatDong: hd(r[6]), capNhat: tgStr(r[7]), _r: i + 2 };
+    thuTu: Math.round(Number(r[5])) || 0, hoatDong: hd(r[6]), capNhat: tgStr(r[7]),
+    cap: Math.round(Number(r[8])) || 0, _r: i + 2 };
 }
 function ntThanhDong(x) {
-  return [x.id, anToan(x.ten), anToan(x.tenZh), anToan(x.dienThoai), x.nhom, x.thuTu, x.hoatDong ? 1 : 0, x.capNhat];
+  return [x.id, anToan(x.ten), anToan(x.tenZh), anToan(x.dienThoai), x.nhom, x.thuTu, x.hoatDong ? 1 : 0, x.capNhat, x.cap || 0];
 }
 function docNguoiTruc() { return docTho('NguoiTruc').map(ntTuDong).filter(function (x) { return x.id && x.ten; }); }
 function sachNT(x) {
-  return { id: x.id, ten: x.ten, tenZh: x.tenZh, dienThoai: x.dienThoai, nhom: x.nhom, thuTu: x.thuTu, hoatDong: x.hoatDong };
+  return { id: x.id, ten: x.ten, tenZh: x.tenZh, dienThoai: x.dienThoai, nhom: x.nhom, thuTu: x.thuTu, hoatDong: x.hoatDong, cap: x.cap || 0 };
 }
 function pcNhom(v) { v = s(v).toUpperCase(); return PC_NHOM.indexOf(v) >= 0 ? v : 'SX'; }
 function pcCa(v) { v = s(v).toUpperCase(); return PC_CA.indexOf(v) >= 0 ? v : ''; }
@@ -852,6 +891,8 @@ function luuNguoiTruc(u, p) {
     con[x.id] = 1; n++;
     x.ten = ten; x.tenZh = catChu(o.tenZh, 60); x.dienThoai = soDT(o.dienThoai);
     x.nhom = pcNhom(o.nhom); x.thuTu = n; x.hoatDong = o.hoatDong !== false; x.capNhat = bay;
+    var cp = Math.round(Number(o.cap)) || 0;
+    x.cap = cp > 0 && cp <= 99 ? cp : 0;
     if (x._moi) moi.push(x); else sua.push(x);
   });
   if (!n) throw loi('CAN_NGUOI', 'Cần ít nhất một người trực · 至少需要一名值班人');
@@ -868,7 +909,7 @@ function napNguoiTruc() {
   var bay = thoiGianStr(), n = 0;
   themNhieu('NguoiTruc', MAU_NGUOI_TRUC.map(function (m) {
     n++;
-    return ['NT' + (1000 + n), m[1], m[2], m[3], m[0], n, 1, bay];
+    return ['NT' + (1000 + n), m[1], m[2], m[3], m[0], n, 1, bay, m[4] || 0];
   }));
   return n;
 }
@@ -922,9 +963,40 @@ function pcTuanTruoc(ds, tuNgay, nhom) {
   var tuan = '';
   ds.forEach(function (x) { if (x.nhom === nhom && x.nguoiId && x.tuNgay < tuNgay && x.tuNgay > tuan) tuan = x.tuNgay; });
   if (!tuan) return null;
-  var o = {};
+  var o = { tuan: tuan };
   ds.forEach(function (x) { if (x.nhom === nhom && x.tuNgay === tuan) o[x.ca] = x.nguoiId; });
   return o;
+}
+// Danh sách CẶP trực của một nhóm: hai người cùng số cặp là một cặp, xếp theo thứ tự luân phiên.
+// Người chưa ghép cặp (cap = 0) hoặc cặp lẻ người thì không xếp tự động, Quản lý chọn tay.
+function pcCapDS(ng) {
+  var theo = {}, thuTu = [];
+  ng.forEach(function (x) {
+    if (!x.cap) return;
+    if (!theo[x.cap]) { theo[x.cap] = []; thuTu.push(x.cap); }
+    theo[x.cap].push(x);
+  });
+  var ds = [];
+  thuTu.forEach(function (c) { if (theo[c].length === 2) ds.push(theo[c]); });
+  return ds;
+}
+// Cặp trực hai tuần liền: tuần đầu người thứ nhất ca ngày, tuần sau đổi ca cho nhau, hết hai tuần mới sang cặp sau.
+// truoc1 = tuần gần nhất đã xếp, truoc2 = tuần trước nữa (để biết cặp đó đã trực mấy tuần).
+function pcTiepTheoCap(caps, truoc1, truoc2) {
+  var trong = function (cap, o) {
+    if (!o) return false;
+    return cap.some(function (x) { return x.id === o.NGAY || x.id === o.DEM; });
+  };
+  var viTri = function (o) { for (var i = 0; i < caps.length; i++) if (trong(caps[i], o)) return i; return -1; };
+  var i = viTri(truoc1);
+  if (i < 0) return { NGAY: caps[0][0], DEM: caps[0][1] };          // chưa xếp bao giờ: cặp đầu, hướng 1
+  var cap = caps[i];
+  if (viTri(truoc2) === i) {                                        // cặp này đã trực hai tuần → sang cặp sau
+    var sau = caps[(i + 1) % caps.length];
+    return { NGAY: sau[0], DEM: sau[1] };
+  }
+  // mới trực một tuần → vẫn cặp này, đổi ca cho nhau
+  return truoc1.NGAY === cap[0].id ? { NGAY: cap[1], DEM: cap[0] } : { NGAY: cap[0], DEM: cap[1] };
 }
 // Người kế tiếp: mỗi ca dịch xuống một người so với tuần trước (ai trực ca đêm tuần trước thì tuần sau trực ca ngày).
 // Chưa có tuần nào thì lấy hai người đầu danh sách.
@@ -944,7 +1016,10 @@ function luanPhienTuan(u, p) {
   PC_NHOM.forEach(function (nhom) {
     var ng = ntNhom(nts, nhom);
     if (!ng.length) return;
-    var chon = pcTiepTheo(ng, pcTuanTruoc(ds, tuNgay, nhom));
+    var truoc1 = pcTuanTruoc(ds, tuNgay, nhom), caps = pcCapDS(ng);
+    var chon = caps.length
+      ? pcTiepTheoCap(caps, truoc1, truoc1 ? pcTuanTruoc(ds, truoc1.tuan, nhom) : null)
+      : pcTiepTheo(ng, truoc1);
     PC_CA.forEach(function (ca) { out.push(sachPC(pcDat(ds, tuNgay, nhom, ca, chon[ca], u, bay))); });
   });
   if (!out.length) throw loi('CAN_NGUOI', 'Chưa có người trong danh sách trực ca · 值班人名单为空');
