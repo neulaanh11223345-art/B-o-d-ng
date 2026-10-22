@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.13.0';
+var PHIEN_BAN = '2.15.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -121,7 +121,7 @@ var QUYEN = {
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
   'saveOT', 'deleteOT', 'saveProfile', 'saveOTCfg',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
-  'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg',
+  'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg', 'importMin',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople'];
@@ -137,7 +137,8 @@ var CAI_DAT_MAC_DINH = {
   sanLuong: {},                      // { 'yyyy-mm': số sản phẩm của tháng } để tính điện trên 1.000 sản phẩm
   dvSanLuong: 'sản phẩm',
   nguongTang: 50, nguongGiam: 50,    // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
-  khoGanHet: 1,                      // tồn còn bao nhiêu thì coi là GẦN HẾT (linh kiện có tồn tối thiểu riêng thì theo số riêng)
+  khoGanHet: 1,                      // tồn còn bao nhiêu thì coi là GẦN HẾT (linh kiện chưa đặt tồn kho an toàn)
+  khoPhanTram: 15,                   // linh kiện có tồn kho an toàn: báo THIẾU khi tồn tụt xuống dưới bao nhiêu % mức an toàn
   // Ca làm việc ghi trên đơn tăng ca (mẫu giấy 自愿加班申请单). Giờ chỉ là gợi ý điền sẵn, Quản lý sửa trong app.
   caTangCa: [
     { k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' },
@@ -313,6 +314,7 @@ function dieuHuong(a, p, req) {
     case 'importKho': canQuyen(u, 'may'); return nhapKho(u, p);
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
     case 'saveKhoCfg': canQuyen(u, 'may'); return luuKhoCfg(u, p);
+    case 'importMin': canQuyen(u, 'may'); return nhapTonMin(u, p);
     case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
     case 'saveOT': return luuTangCa(u, p, s(req.opId));
@@ -720,9 +722,9 @@ function layDuLieu(u) {
     chiSo: docChiSo().filter(function (x) { return x.ky >= tu && x.trangThai !== 'HUY'; }).map(sachCS),
     caiDat: coQuyen(u, 'may')
       ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet }
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram }
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet },
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram },
     taiLieu: tlChoNguoi(u),
     tlInfo: coQuyen(u, 'tailieu') ? tlThongTinNhe() : null,
     khoaKy: docKhoaKy(),
@@ -2004,15 +2006,74 @@ function nhapKho(u, p) {
     tk.soMa, tk.moi, tk.doiTon, tk.het, tk.veLai, tk.gop, meta.ver]);
   return { ver: meta.ver, nhap: meta.nhap, moc: meta.moc, tk: tk, ds: c.all.map(sachKho), dsMay: dsMayDoi };
 }
+// Nhập TỒN KHO AN TOÀN hàng loạt từ file (file mẫu của app, hoặc bảng dự phòng của nhà máy).
+// Chỉ đặt lại cột TonMin, không đụng tới tồn thật — tồn thật chỉ đến từ file ERP.
+// tonMin rỗng hoặc <= 0 nghĩa là CHƯA ĐẶT: xoá số cũ đi, khi đó linh kiện theo ngưỡng chung.
+function nhapTonMin(u, p) {
+  var vao = Array.isArray(p.ds) ? p.ds : [];
+  if (!vao.length) throw loi('KHO_TRONG', 'File không có dòng nào · 文件中没有数据');
+  if (vao.length > KHO_TOI_DA) throw loi('KHO_NHIEU', 'File quá nhiều dòng · 行数太多 (> ' + KHO_TOI_DA + ')');
+  var muon = {}, tenFile = {}, thu = 0;
+  vao.forEach(function (o) {
+    var ma = maKhoHopLe(catChu(o && o.ma, 40).replace(/\s/g, ''));
+    if (!ma || muon[ma] !== undefined) return;
+    var mn = soHoacRong(o.tonMin);
+    muon[ma] = mn === '' || !(mn > 0) ? '' : Math.round(mn * 1000) / 1000;
+    tenFile[ma] = catChu(o.ten, 160);
+    thu++;
+  });
+  if (!thu) throw loi('KHO_TRONG', 'File không có mã linh kiện nào · 文件中没有零件编码');
+  capNhatTieuDe('KhoLK');
+  var all = docKho(), tk = { soMa: thu, dat: 0, xoa: 0, giu: 0, them: 0, khongThay: 0 }, thay = {}, luc = thoiGianStr();
+  all.forEach(function (x) {
+    if (muon[x.ma] === undefined) return;
+    thay[x.ma] = 1;
+    var moi = muon[x.ma];
+    if (String(x.tonMin) === String(moi)) { tk.giu++; return; }
+    if (moi === '') tk.xoa++; else tk.dat++;
+    x.tonMin = moi; x.cn = luc;
+  });
+  // Mã chưa có trong kho: file ERP chỉ xuất dòng CÒN TỒN, nên thứ đã hết sạch thường không có trong đó.
+  // Thêm vào kho với tồn 0 (ConFile = 0: ngoài file ERP) để còn nhắc mua; lần nhập ERP sau có hàng thì tự cập nhật.
+  var thieu = [], themMoi = p.themMoi !== false;
+  Object.keys(muon).forEach(function (ma) {
+    if (thay[ma]) return;
+    thieu.push(ma);
+    if (!themMoi || muon[ma] === '') return;
+    all.push({ ma: ma, ten: tenFile[ma] || ma, qc: '', dv: '', nh: '', ton: 0, vt: [], ng: 'ERP', cf: 0, cn: luc,
+      gc: 'Thêm từ file tồn an toàn · 从安全库存文件添加', gop: '', an: 0, tonMin: muon[ma], tonCu: [] });
+    tk.them++;
+  });
+  tk.khongThay = thieu.length;
+  if (tk.dat || tk.xoa || tk.them) {
+    var sh = trang('KhoLK'), rows = all.map(khoThanhDong), dd = dinhDang('KhoLK');
+    if (rows.length + 1 > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), rows.length + 1 - sh.getMaxRows() + 200);
+    if (rows.length) sh.getRange(2, 1, rows.length, BANG.KhoLK.length).setNumberFormats(rows.map(function () { return dd; })).setValues(rows);
+    var meta = docKhoMeta();
+    meta.ver = verMoi(); meta.n = all.filter(khoHien).length;
+    ghiKhoMeta(meta);
+  }
+  ghiNhatKy(u, 'NHAP_TON_AN_TOAN', 'KhoLK', '', catChu(p.file, 120),
+    tk.dat + ' đặt · ' + tk.xoa + ' xoá · ' + tk.them + ' thêm mới · ' + tk.khongThay + ' không có trong kho', '');
+  return { ver: docKhoMeta().ver, tk: tk, thieu: thieu.slice(0, 300), ds: all.map(sachKho) };
+}
 // Ngưỡng chung "gần hết hàng" (mặc định 1): dùng cho linh kiện chưa đặt tồn tối thiểu riêng
 function luuKhoCfg(u, p) {
-  var n = soHoacRong(p.ganHet);
-  if (n === '' || !(n >= 0 && n <= 1000)) throw loi('SO_SAI', 'Ngưỡng gần hết phải từ 0 đến 1000 · 临界库存须在0–1000之间');
-  var c = docCaiDat(), truoc = c.khoGanHet;
-  c.khoGanHet = n;
+  var c = docCaiDat(), truoc = { khoGanHet: c.khoGanHet, khoPhanTram: c.khoPhanTram }, doi = false;
+  if (p.ganHet !== undefined) {
+    var n = soHoacRong(p.ganHet);
+    if (n === '' || !(n >= 0 && n <= 1000)) throw loi('SO_SAI', 'Ngưỡng gần hết phải từ 0 đến 1000 · 临界库存须在0–1000之间');
+    c.khoGanHet = n; doi = true;
+  }
+  if (p.phanTram !== undefined) {
+    var pt = soHoacRong(p.phanTram);
+    if (pt === '' || !(pt >= 1 && pt <= 100)) throw loi('SO_SAI', 'Phần trăm phải từ 1 đến 100 · 百分比须在1–100之间');
+    c.khoPhanTram = Math.round(pt * 10) / 10; doi = true;
+  }
+  if (!doi) throw loi('SO_SAI', 'Không có gì để lưu · 没有要保存的内容');
   ghiCaiDat(c);
-  ghiNhatKy(u, 'SUA_NGUONG_KHO', 'CaiDat', 'khoGanHet', truoc, n, '');
-  return { caiDat: { khoGanHet: n } };
+  ghiNhatKy(u, 'SUA_NGUONG_KHO', 'CaiDat', 'kho', truoc, { khoGanHet: c.khoGanHet, khoPhanTram: c.khoPhanTram }, '');
+  return { caiDat: { khoGanHet: c.khoGanHet, khoPhanTram: c.khoPhanTram } };
 }
 // Sửa / ẩn linh kiện thêm trong app (linh kiện từ ERP thì sửa trong ERP rồi nhập lại file)
 function luuKho(u, p) {

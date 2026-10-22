@@ -1330,7 +1330,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.13.0";
+const APP_VER = "2.15.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1728,7 +1728,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.13.0';
+var PHIEN_BAN = '2.15.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1832,7 +1832,7 @@ var QUYEN = {
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
   'saveOT', 'deleteOT', 'saveProfile', 'saveOTCfg',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
-  'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg',
+  'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg', 'importMin',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople'];
@@ -1848,7 +1848,8 @@ var CAI_DAT_MAC_DINH = {
   sanLuong: {},                      // { 'yyyy-mm': số sản phẩm của tháng } để tính điện trên 1.000 sản phẩm
   dvSanLuong: 'sản phẩm',
   nguongTang: 50, nguongGiam: 50,    // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
-  khoGanHet: 1,                      // tồn còn bao nhiêu thì coi là GẦN HẾT (linh kiện có tồn tối thiểu riêng thì theo số riêng)
+  khoGanHet: 1,                      // tồn còn bao nhiêu thì coi là GẦN HẾT (linh kiện chưa đặt tồn kho an toàn)
+  khoPhanTram: 15,                   // linh kiện có tồn kho an toàn: báo THIẾU khi tồn tụt xuống dưới bao nhiêu % mức an toàn
   // Ca làm việc ghi trên đơn tăng ca (mẫu giấy 自愿加班申请单). Giờ chỉ là gợi ý điền sẵn, Quản lý sửa trong app.
   caTangCa: [
     { k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' },
@@ -2024,6 +2025,7 @@ function dieuHuong(a, p, req) {
     case 'importKho': canQuyen(u, 'may'); return nhapKho(u, p);
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
     case 'saveKhoCfg': canQuyen(u, 'may'); return luuKhoCfg(u, p);
+    case 'importMin': canQuyen(u, 'may'); return nhapTonMin(u, p);
     case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
     case 'saveOT': return luuTangCa(u, p, s(req.opId));
@@ -2431,9 +2433,9 @@ function layDuLieu(u) {
     chiSo: docChiSo().filter(function (x) { return x.ky >= tu && x.trangThai !== 'HUY'; }).map(sachCS),
     caiDat: coQuyen(u, 'may')
       ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet }
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram }
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet },
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram },
     taiLieu: tlChoNguoi(u),
     tlInfo: coQuyen(u, 'tailieu') ? tlThongTinNhe() : null,
     khoaKy: docKhoaKy(),
@@ -3715,15 +3717,74 @@ function nhapKho(u, p) {
     tk.soMa, tk.moi, tk.doiTon, tk.het, tk.veLai, tk.gop, meta.ver]);
   return { ver: meta.ver, nhap: meta.nhap, moc: meta.moc, tk: tk, ds: c.all.map(sachKho), dsMay: dsMayDoi };
 }
+// Nhập TỒN KHO AN TOÀN hàng loạt từ file (file mẫu của app, hoặc bảng dự phòng của nhà máy).
+// Chỉ đặt lại cột TonMin, không đụng tới tồn thật — tồn thật chỉ đến từ file ERP.
+// tonMin rỗng hoặc <= 0 nghĩa là CHƯA ĐẶT: xoá số cũ đi, khi đó linh kiện theo ngưỡng chung.
+function nhapTonMin(u, p) {
+  var vao = Array.isArray(p.ds) ? p.ds : [];
+  if (!vao.length) throw loi('KHO_TRONG', 'File không có dòng nào · 文件中没有数据');
+  if (vao.length > KHO_TOI_DA) throw loi('KHO_NHIEU', 'File quá nhiều dòng · 行数太多 (> ' + KHO_TOI_DA + ')');
+  var muon = {}, tenFile = {}, thu = 0;
+  vao.forEach(function (o) {
+    var ma = maKhoHopLe(catChu(o && o.ma, 40).replace(/\s/g, ''));
+    if (!ma || muon[ma] !== undefined) return;
+    var mn = soHoacRong(o.tonMin);
+    muon[ma] = mn === '' || !(mn > 0) ? '' : Math.round(mn * 1000) / 1000;
+    tenFile[ma] = catChu(o.ten, 160);
+    thu++;
+  });
+  if (!thu) throw loi('KHO_TRONG', 'File không có mã linh kiện nào · 文件中没有零件编码');
+  capNhatTieuDe('KhoLK');
+  var all = docKho(), tk = { soMa: thu, dat: 0, xoa: 0, giu: 0, them: 0, khongThay: 0 }, thay = {}, luc = thoiGianStr();
+  all.forEach(function (x) {
+    if (muon[x.ma] === undefined) return;
+    thay[x.ma] = 1;
+    var moi = muon[x.ma];
+    if (String(x.tonMin) === String(moi)) { tk.giu++; return; }
+    if (moi === '') tk.xoa++; else tk.dat++;
+    x.tonMin = moi; x.cn = luc;
+  });
+  // Mã chưa có trong kho: file ERP chỉ xuất dòng CÒN TỒN, nên thứ đã hết sạch thường không có trong đó.
+  // Thêm vào kho với tồn 0 (ConFile = 0: ngoài file ERP) để còn nhắc mua; lần nhập ERP sau có hàng thì tự cập nhật.
+  var thieu = [], themMoi = p.themMoi !== false;
+  Object.keys(muon).forEach(function (ma) {
+    if (thay[ma]) return;
+    thieu.push(ma);
+    if (!themMoi || muon[ma] === '') return;
+    all.push({ ma: ma, ten: tenFile[ma] || ma, qc: '', dv: '', nh: '', ton: 0, vt: [], ng: 'ERP', cf: 0, cn: luc,
+      gc: 'Thêm từ file tồn an toàn · 从安全库存文件添加', gop: '', an: 0, tonMin: muon[ma], tonCu: [] });
+    tk.them++;
+  });
+  tk.khongThay = thieu.length;
+  if (tk.dat || tk.xoa || tk.them) {
+    var sh = trang('KhoLK'), rows = all.map(khoThanhDong), dd = dinhDang('KhoLK');
+    if (rows.length + 1 > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), rows.length + 1 - sh.getMaxRows() + 200);
+    if (rows.length) sh.getRange(2, 1, rows.length, BANG.KhoLK.length).setNumberFormats(rows.map(function () { return dd; })).setValues(rows);
+    var meta = docKhoMeta();
+    meta.ver = verMoi(); meta.n = all.filter(khoHien).length;
+    ghiKhoMeta(meta);
+  }
+  ghiNhatKy(u, 'NHAP_TON_AN_TOAN', 'KhoLK', '', catChu(p.file, 120),
+    tk.dat + ' đặt · ' + tk.xoa + ' xoá · ' + tk.them + ' thêm mới · ' + tk.khongThay + ' không có trong kho', '');
+  return { ver: docKhoMeta().ver, tk: tk, thieu: thieu.slice(0, 300), ds: all.map(sachKho) };
+}
 // Ngưỡng chung "gần hết hàng" (mặc định 1): dùng cho linh kiện chưa đặt tồn tối thiểu riêng
 function luuKhoCfg(u, p) {
-  var n = soHoacRong(p.ganHet);
-  if (n === '' || !(n >= 0 && n <= 1000)) throw loi('SO_SAI', 'Ngưỡng gần hết phải từ 0 đến 1000 · 临界库存须在0–1000之间');
-  var c = docCaiDat(), truoc = c.khoGanHet;
-  c.khoGanHet = n;
+  var c = docCaiDat(), truoc = { khoGanHet: c.khoGanHet, khoPhanTram: c.khoPhanTram }, doi = false;
+  if (p.ganHet !== undefined) {
+    var n = soHoacRong(p.ganHet);
+    if (n === '' || !(n >= 0 && n <= 1000)) throw loi('SO_SAI', 'Ngưỡng gần hết phải từ 0 đến 1000 · 临界库存须在0–1000之间');
+    c.khoGanHet = n; doi = true;
+  }
+  if (p.phanTram !== undefined) {
+    var pt = soHoacRong(p.phanTram);
+    if (pt === '' || !(pt >= 1 && pt <= 100)) throw loi('SO_SAI', 'Phần trăm phải từ 1 đến 100 · 百分比须在1–100之间');
+    c.khoPhanTram = Math.round(pt * 10) / 10; doi = true;
+  }
+  if (!doi) throw loi('SO_SAI', 'Không có gì để lưu · 没有要保存的内容');
   ghiCaiDat(c);
-  ghiNhatKy(u, 'SUA_NGUONG_KHO', 'CaiDat', 'khoGanHet', truoc, n, '');
-  return { caiDat: { khoGanHet: n } };
+  ghiNhatKy(u, 'SUA_NGUONG_KHO', 'CaiDat', 'kho', truoc, { khoGanHet: c.khoGanHet, khoPhanTram: c.khoPhanTram }, '');
+  return { caiDat: { khoGanHet: c.khoGanHet, khoPhanTram: c.khoPhanTram } };
 }
 // Sửa / ẩn linh kiện thêm trong app (linh kiện từ ERP thì sửa trong ERP rồi nhập lại file)
 function luuKho(u, p) {
@@ -6228,6 +6289,7 @@ const ERR = {
   MAY_NGUNG: ['Máy đã ngừng theo dõi.', '该设备已停用。'],
   NGAY_SAI: ['Ngày không hợp lệ.', '日期无效。'],
   TUAN_SAI: ['Tuần không hợp lệ.', '周次无效。'],
+  KHONG_COT_MIN: ['File phải có cột mã sản phẩm và cột tồn an toàn (hoặc số lượng dự phòng).', '文件须包含品号列与安全库存（备用数量）列。'],
   CA_SAI: ['Ca làm việc không hợp lệ.', '班次无效。'],
   KHAC_NHOM: ['Người này thuộc nhóm khác.', '此人属于其他组。'],
   CAN_NGUOI: ['Cần ít nhất một người trực.', '至少需要一名值班人。'],
@@ -6703,7 +6765,7 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 // Quản lý, Quản trị: xem hết. Tài khoản khác (kỹ thuật): chỉ Điện/Nước, Sửa chữa, Bảo dưỡng
 // (kèm hồ sơ máy / chuyền mở từ các mục đó, quét QR, trang cá nhân).
 const xemHet = () => can('xemhet');
-const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'khoNhac', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
+const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
   'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
   'trucGhi', 'trucNguoi']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
@@ -6745,7 +6807,7 @@ function shell() {
     S.gqT = setTimeout(() => { if (topV() && topV().v === 'timKiem') { topV().p.q = q; const b = $('#tkBody'); if (b) b.innerHTML = timKiemBody(q); } else if (q.trim()) go('timKiem', { q }); }, 220);
   });
 }
-const TITLES = { khoNhac: 't_khoNhac', dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
+const TITLES = { khoNhac: 't_khoNhac', khoMin: 't_khoMin', dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
   cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi', scDS: 't_scDS', saoLuu: 't_saoLuu',
   tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
@@ -6755,7 +6817,7 @@ const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
   tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me',
-  trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc', khoNhac: 'list' };
+  trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc', khoNhac: 'list', khoMin: 'list' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
 function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w.length > 1 ? w[w.length - 1][0] : w[0].slice(0, 2)).toUpperCase(); }
@@ -6919,7 +6981,6 @@ function homeAlerts(g) {
       if (kt > kh && dt.ky !== today) add(2, 'lock', 'aKhoa', { d: fmtDM(kt) }, 1, 'data-act="tab" data-v="dien"', ' ');
     }
   }
-  if (xemHet()) add(1, 'box', 'aLK', null, lkThapDS().length, 'data-act="khoLoc" data-v="thap"');
   if (st.k !== 'loi') add(1, 'cloud', 'aCho', null, st.cho, 'data-act="go" data-v="sync"');
   add(2, 'cal', 'aSap', { n: nhacTruoc() }, g.sap.length, 'data-act="listSt" data-st="sap"');
   if (can('may') && S.base && S.base.kho && !srvOld('kho')) {
@@ -6981,8 +7042,9 @@ function modTiles() {
       nay && nay.uid ? esc(tv('mTrucNay')) + ': ' + esc(nay.ten) : t('mTrucChua'), 'data-act="tab" data-v="truc"');
   }
   if (S.kho.ds.length && xemHet()) {
-    const vis = S.kho.ds.filter((x) => !x.an && !x.gop), thap = lkThapDS().length;
-    h += tile('mt-purple', 'box', 'mLinhKien', null, fmtNum(vis.length, 0), thap ? `<span class="warnx">${t('mDuoiMin', { n: thap })}</span>` : t('mConHang', { n: fmtNum(vis.filter((x) => (tonOf(x) || 0) > 0).length, 0) }), 'data-act="tab" data-v="kho"');
+    // Thiếu hàng chỉ xem trong mục Kho ngũ kim, không báo ra trang chủ
+    const vis = S.kho.ds.filter((x) => !x.an && !x.gop);
+    h += tile('mt-purple', 'box', 'mLinhKien', null, fmtNum(vis.length, 0), t('mConHang', { n: fmtNum(vis.filter((x) => (tonOf(x) || 0) > 0).length, 0) }), 'data-act="tab" data-v="kho"');
   }
   return h;
 }
@@ -7016,10 +7078,6 @@ function choDuyetDS() { return S.V && S.V.cs ? S.V.cs.filter((x) => x.trangThai 
 // Số ghi ở kỳ k có cờ bất thường
 function batThuongKy(k) { return S.V && S.V.cs ? S.V.cs.filter((x) => x.ky === k && x.ngoaiLe && x.ngoaiLe.batThuong && !x.ngoaiLe.batThuong.duyet && x.trangThai !== 'HUY') : []; }
 // Linh kiện đang gắn với máy mà tồn ≤ tối thiểu (hoặc hết hàng)
-function lkThapDS() {
-  if (!S.V || !S.kho.ds.length) return [];
-  return Object.keys(khoDaDungMap()).map((ma) => khoGet(ma)).filter((x) => x && khoThap(x));
-}
 
 
 // ---------- Cá nhân ----------
@@ -9508,7 +9566,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -12253,7 +12311,7 @@ function tonHtml(x) {
   const n = tonOf(x);
   if (n === null) return `<span class="pill p-ok">${t('khoApp')}</span>`;
   if (n <= 0) return `<span class="pill p-qua">${t('hetHang')}</span>`;
-  return `<span class="pill ${khoMuc(x) === 'thap' ? 'p-sap' : 'p-xong'}"><b class="mono">${esc(soG(n))}</b>${x.dv ? `<span class="zi">${esc(dvTxt(x.dv))}</span>` : ''}</span>`;
+  return `<span class="pill ${khoMuc(x) ? 'p-sap' : 'p-xong'}"><b class="mono">${esc(soG(n))}</b>${x.dv ? `<span class="zi">${esc(dvTxt(x.dv))}</span>` : ''}</span>`;
 }
 // Một dòng chữ: "Tồn kho 4 cái 个 · AB21, AC21" / "Hết hàng"
 function tonLine(x) {
@@ -12299,6 +12357,16 @@ VIEWS.kho = {
     if (can('may')) o += `<div style="margin-top:12px">${khoNhapBtn()}</div>${inf ? '' : `<div class="help">${t('khoNhapHelp')}</div>`}`;
     const nhac = k.ds.length ? khoNhacDS() : { n: 0 };
     if (nhac.n) o += `<button class="btn r wide" style="margin-top:10px" data-act="khoNhac">${IC.warn} ${t('khoNhacN', { n: nhac.n })}</button>`;
+    if (can('may') && !srvOld('tonat')) o += `<div class="btns" style="margin-top:10px">
+      <button class="btn ghost" data-act="khoMauTon">${IC.dl} ${t('khoMauTonBtn')}</button>
+      <label class="btn ghost filebtn">${IC.dl} ${t('khoNapTonBtn')}<input type="file" id="khoMinFile" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label></div>
+      <div class="help" style="margin-top:6px">${t('khoMauHelp')}</div>`;
+    if (can('may') && !srvOld('khopct')) o += `<div class="inrow" style="margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="help" style="margin:0">${t('khoPtDat')}</span>
+      <input class="inp mono" id="khoPt" inputmode="decimal" maxlength="5" value="${esc(soG(khoPhanTramN()))}" style="max-width:80px;min-height:38px;padding:6px 10px">
+      <span class="help" style="margin:0">%</span>
+      <button class="btn ghost sm" data-act="khoPtLuu">${t('save')}</button></div>
+      <div class="help" style="margin-top:6px">${t('khoPtHelp', { p: soG(khoPhanTramN()) })}</div>`;
     if (can('may') && !srvOld('khonhac')) o += `<div class="inrow" style="margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
       <span class="help" style="margin:0">${t('khoNguongDat')}</span>
       <input class="inp mono" id="khoNg" inputmode="decimal" maxlength="6" value="${esc(soG(khoGanHetN()))}" style="max-width:90px;min-height:38px;padding:6px 10px">
@@ -12321,6 +12389,8 @@ VIEWS.kho = {
     if (q) q.addEventListener('input', (e) => { S.f.khoQ = e.target.value; S.f.khoLim = 60; const b = $('#khoBody'); if (b) b.innerHTML = khoBody(); });
     const fi = $('#khoFile');
     if (fi) fi.addEventListener('change', khoChonFile);
+    const fm = $('#khoMinFile');
+    if (fm) fm.addEventListener('change', khoChonFileMin);
   }
 };
 function khoBody() {
@@ -14100,6 +14170,195 @@ Object.assign(ACT, {
   }
 });
 
+// ---------- Tồn kho an toàn: sửa trong app, hoặc tải file mẫu về sửa rồi tải lên ----------
+// Nhận cả file mẫu của app lẫn bảng dự phòng của nhà máy (cột "Mã sản phẩm" + "Số lượng dự phòng").
+// Mã sản phẩm phải là mã ERP (trùng mã trong kho); mã linh kiện của nhà cung cấp không khớp được.
+const MIN_COT = {
+  ma: ['品号', 'masanpham', 'masp', 'maerp', 'makho', 'ma', 'mahang', 'mavattu', 'code', 'itemcode', 'itemno', 'partno', 'malinhkien', 'malk'],
+  min: ['安全库存', '安全存量', '备品数量', 'tonantoan', 'tonkhoantoan', 'soluongduphong', 'luongduphong', 'duphong', 'tkat',
+    'tontoithieu', 'tonmin', 'safetystock', 'minstock', 'min'],
+  ten: ['品名', 'tenlinhkien', 'ten', 'tenhang', 'tenvattu', 'name', 'itemname']
+};
+const MIN_COT_N = {}; Object.keys(MIN_COT).forEach((k) => { MIN_COT_N[k] = MIN_COT[k].map(hNorm); });
+function timCotMin(rows) {
+  for (let r = 0; r < Math.min(rows.length, 20); r++) {
+    const h = (rows[r] || []).map((v) => hNorm(v)), cot = {};
+    Object.keys(MIN_COT_N).forEach((k) => {
+      for (const a of MIN_COT_N[k]) { const i = h.indexOf(a); if (i >= 0 && !Object.values(cot).includes(i)) { cot[k] = i; break; } }
+    });
+    if (cot.ma !== undefined && cot.min !== undefined) return { r, cot, ten: (rows[r] || []).map((v) => String(v === undefined ? '' : v).trim()) };
+  }
+  return null;
+}
+async function docFileMin(file) {
+  const nm = String(file.name || '');
+  if (/\.xls$/i.test(nm)) throw { code: 'FILE_XLS' };
+  let sheets;
+  if (/\.csv$|\.txt$/i.test(nm) || /csv|text\/plain/.test(file.type || '')) sheets = await readCsv(file);
+  else {
+    const buf = await file.arrayBuffer();
+    try { sheets = await readXlsx(buf); } catch (e) { if (e && e.code) throw e; throw { code: 'FILE_SAI' }; }
+  }
+  for (const sh of sheets) {
+    const rows = await sh.rows(), h = timCotMin(rows);
+    if (!h) continue;
+    const c = h.cot, by = {}, ds = [];
+    let soDong = 0, boQua = 0;
+    for (let i = h.r + 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      if (!row.some((v) => String(v === undefined ? '' : v).trim() !== '')) continue;
+      const ma = clTxt(row[c.ma], 40).replace(/\s/g, '');
+      if (!ma || /[\s"'<>]/.test(ma)) { boQua++; continue; }
+      soDong++;
+      const raw = String(row[c.min] === undefined || row[c.min] === null ? '' : row[c.min]).trim();
+      const mn = raw === '' ? '' : soTxt(row[c.min]);
+      if (by[ma] !== undefined) continue;
+      by[ma] = 1;
+      ds.push({ ma, tonMin: mn === '' || !(mn > 0) ? '' : rnd3(mn), ten: c.ten !== undefined ? clTxt(row[c.ten], 160) : '' });
+    }
+    if (!ds.length) continue;
+    const cot = Object.keys(c).map((k) => h.ten[c[k]]).filter(Boolean);
+    return { file: nm, sheet: sh.name, cot, ds, soDong, boQua };
+  }
+  throw { code: 'KHONG_COT_MIN' };
+}
+// Xếp để dễ sửa: đã đặt tồn an toàn trước, rồi linh kiện đã dùng, rồi phần còn lại
+function khoMauDS() {
+  const dung = khoDaDungMap();
+  const hang = (x) => (x.tonMin !== undefined && x.tonMin !== '' ? 0 : dung[x.ma] ? 1 : 2);
+  return S.kho.ds.filter((x) => !x.an && !x.gop)
+    .slice().sort((a, b) => hang(a) - hang(b) || String(a.ten || '').localeCompare(String(b.ten || '')));
+}
+function khoMauTonMinBlob() {
+  const ds = khoMauDS(), dung = khoDaDungMap();
+  const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const num = (v) => c(v === '' || v === undefined || v === null ? '' : +v, { align: 'center', fmt: '0.###' });
+  const rows = [
+    [{ v: 'TỒN KHO AN TOÀN · 安全库存 — ' + tp('appName'), s: { b: 1, sz: 14 } }],
+    [{ v: tp('khoMauHuongDan'), s: { i: 1, color: '#55625F', wrap: 1 } }],
+    [],
+    ['xlMinMa', 'xlMinTen', 'xlMinQC', 'xlMinDv', 'xlMinViTri', 'xlMinTon', 'xlMinAT', 'xlMinThem', 'xlMinMay']
+      .map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }))
+  ];
+  ds.forEach((x) => {
+    const n = tonOf(x), at = x.tonMin === undefined || x.tonMin === '' ? '' : +x.tonMin;
+    const them = at === '' || n === null ? '' : Math.max(0, at - n);
+    rows.push([c(x.ma, { align: 'center' }), c(x.ten || ''), c(x.qc || ''), c(dvTxt(x.dv || ''), { align: 'center' }),
+      c(khoBinTxt(x, true).join(' · ')), num(n === null ? '' : n), num(at), num(them),
+      c((dung[x.ma] || []).map((o) => o.m.ten).slice(0, 4).join('\n'))]);
+  });
+  return XW.build([{ name: 'Ton kho an toan', rows, cols: [14, 34, 22, 9, 16, 12, 12, 11, 26],
+    merges: ['A1:I1', 'A2:I2'], heights: { 1: 26, 2: 30, 4: 34 }, freeze: { r: 4, c: 0 } }]);
+}
+VIEWS.khoMin = {
+  html(p) {
+    const r = p.r;
+    if (!r) return `<div class="card empty">${t('notFound')}</div>`;
+    if (p.themMoi === undefined) p.themMoi = true;
+    khoIx();
+    const d = { doi: [], giu: 0, thieu: [] };
+    r.ds.forEach((o) => {
+      const x = KHO_BY[o.ma];
+      if (!x) { d.thieu.push(o); return; }
+      const cu = x.tonMin === undefined || x.tonMin === '' ? '' : String(x.tonMin);
+      if (cu === String(o.tonMin)) d.giu++; else d.doi.push({ o, x, cu });
+    });
+    let o = `<div class="card pad"><dl class="kv">
+      <dt>${t('khoFile')}</dt><dd class="mono" style="font-size:13px">${esc(r.file)}</dd>
+      <dt>${t('khoSheet')}</dt><dd>${esc(r.sheet)}</dd>
+      <dt>${t('khoKQ')}</dt><dd>${t('khoMinDong', { n: fmtNum(r.soDong, 0), m: fmtNum(r.ds.length, 0) })}</dd>
+      <dt>${t('khoCotDoc')}</dt><dd style="font-weight:500">${esc(r.cot.join(' · '))}</dd></dl></div>`;
+    const tile = (k, n, cls) => `<div class="tile ktile ${cls}${n ? '' : ' zero'}"><b>${fmtNum(n, 0)}</b><span>${t(k)}</span></div>`;
+    const themDS = d.thieu.filter((v) => v.tonMin !== '');
+    o += `<div class="tiles ktiles" style="margin-top:14px">${tile('khoMinDoi', d.doi.length, 't-nay')}${tile('kGiu', d.giu, '')}${tile('khoMinThem', themDS.length, 't-sap')}${tile('khoMinThieu', d.thieu.length - themDS.length, 't-qua')}</div>`;
+    if (themDS.length) o += `<div class="card pad" style="margin-top:12px">
+      <label class="switch" style="padding:0"><span class="t">${t('khoMinThemHoi', { n: themDS.length })}<div class="help">${t('khoMinThemHelp')}</div></span>
+        <input type="checkbox" id="kmThem"${p.themMoi ? ' checked' : ''}></label></div>`;
+    if (!d.doi.length && !(themDS.length && p.themMoi)) o += `<div class="note" style="margin-top:12px">${t('khoMinKhongDoi')}</div>`;
+    const row = (x, end) => `<div class="row"><div class="main"><div class="nm">${lkTenH(x.ten)}</div><div class="sub"><span class="code">${esc(x.ma)}</span>${x.qc ? ` <span class="qc">${esc(x.qc)}</span>` : ''}</div></div><div class="end kchg">${end}</div></div>`;
+    const grp = (k, arr, body, help) => (arr.length ? `<details class="kdet"${arr === d.doi ? ' open' : ''}><summary>${t(k)} <span class="cnt mono">${fmtNum(arr.length, 0)}</span></summary>
+      ${help ? `<div class="help" style="margin:0 0 8px">${t(help)}</div>` : ''}<div class="list">${arr.slice(0, 200).map(body).join('')}</div>
+      ${arr.length > 200 ? `<div class="help">${t('khoChiHien', { n: 200 })}</div>` : ''}</details>` : '');
+    o += '<div style="margin-top:14px">';
+    o += grp('khoMinDoi', d.doi, ({ o: v, x, cu }) => row(x, `<span class="mono muted">${esc(cu === '' ? '—' : soG(cu))}</span> → <b class="mono">${esc(v.tonMin === '' ? '—' : soG(v.tonMin))}</b>`));
+    o += grp('khoMinThieu', d.thieu, (v) => `<div class="row"><div class="main"><div class="nm">${esc(v.ten || v.ma)}</div><div class="sub"><span class="code">${esc(v.ma)}</span></div></div><div class="end kchg"><span class="mono">${esc(v.tonMin === '' ? '—' : soG(v.tonMin))}</span></div></div>`, 'khoMinThieuHelp');
+    o += '</div>';
+    o += `<div class="err" id="kmErr" hidden></div><div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="back">${t('cancel')}</button>
+      <button class="btn g" id="kmSave" data-act="khoMinLuu"${d.doi.length || (themDS.length && p.themMoi) ? '' : ' disabled'}>${IC.check} ${t('khoMinLuu')}</button></div>`;
+    return o;
+  },
+  after(p) {
+    const c = $('#kmThem');
+    if (c) c.addEventListener('change', () => { p.themMoi = c.checked; render(); });
+  }
+};
+async function khoMinLuu(el) {
+  const p = topV().p, r = p.r, fe = $('#kmErr');
+  el.disabled = true; fe.hidden = true;
+  const lbl = el.innerHTML; el.innerHTML = t('khoDangLuu');
+  try {
+    const d = await api('importMin', { file: r.file, themMoi: p.themMoi !== false,
+      ds: r.ds.map((x) => ({ ma: x.ma, tonMin: x.tonMin, ten: x.ten || '' })) }, { timeout: 240 });
+    khoSet({ ver: d.ver, ds: d.ds, nhap: S.kho.nhap, moc: S.kho.moc, nhatKy: S.kho.nhatKy });
+    if (S.base) S.base.kho = Object.assign({}, S.base.kho || {}, { ver: d.ver });
+    back();
+    toast(t('khoMinDaLuu', { n: fmtNum(d.tk.dat + d.tk.them, 0), m: fmtNum(d.tk.khongThay - d.tk.them, 0) }));
+    go('khoNhac', { tuNhap: 1 });
+  } catch (e) {
+    el.disabled = false; el.innerHTML = lbl;
+    fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false;
+  }
+}
+async function khoChonFileMin(e) {
+  const f = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  toast(t('khoDoc'));
+  try {
+    const r = await docFileMin(f);
+    go('khoMin', { r });
+    const tt = $('.toast'); if (tt) tt.remove();
+  } catch (x) { toast(errMsg(x), true); }
+}
+Object.assign(ACT, {
+  khoMinLuu: (el) => khoMinLuu(el),
+  khoMauTon: async () => {
+    if (!S.kho.ds.length) { toast(t('khoTrong'), true); return; }
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try { blob = khoMauTonMinBlob(); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'Ton-kho-an-toan_' + TODAY() + '.xlsx');
+  },
+  khoXuatThieu: async () => {
+    const d = khoNhacDS();
+    if (!d.n) { toast(t('khoNhacKhong'), true); return; }
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try { blob = khoThieuBlob(d); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'Linh-kien-can-mua_' + TODAY() + '.xlsx');
+  }
+});
+// Danh sách cần mua, xuất Excel để gửi bộ phận mua hàng
+function khoThieuBlob(d) {
+  const B = { border: true }, H = { b: 1, fill: '#8A3B06', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#B9741A' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const num = (v) => c(v === '' || v === undefined || v === null ? '' : +v, { align: 'center', fmt: '0.###' });
+  const rows = [[{ v: 'LINH KIỆN CẦN MUA · 需采购零件 — ' + fmtD(TODAY()), s: { b: 1, sz: 14 } }], [],
+    ['xlMinNhom', 'xlMinMa', 'xlMinTen', 'xlMinQC', 'xlMinDv', 'xlMinTon', 'xlMinAT', 'xlMinThem', 'xlMinViTri', 'xlMinMay']
+      .map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }))];
+  const them = (nhom, arr) => arr.forEach((o) => {
+    const x = o.x, n = tonOf(x), at = x.tonMin === undefined || x.tonMin === '' ? '' : +x.tonMin;
+    rows.push([c(tp(nhom), { align: 'center' }), c(x.ma, { align: 'center' }), c(x.ten || ''), c(x.qc || ''),
+      c(dvTxt(x.dv || ''), { align: 'center' }), num(n === null ? '' : n), num(at), num(o.can || ''),
+      c(khoBinTxt(x, true).join(' · ')), c((o.dung || []).map((v) => v.m.ten).slice(0, 4).join('\n'))]);
+  });
+  them('khoVuaHet', d.vuaHet); them('khoDangHet', d.dangHet); them('khoThieu', d.thieu); them('khoGanHetDS', d.ganHet);
+  return XW.build([{ name: 'Can mua', rows, cols: [16, 14, 34, 22, 9, 10, 11, 11, 16, 26],
+    merges: ['A1:J1'], heights: { 1: 26, 3: 34 }, freeze: { r: 3, c: 0 } }]);
+}
+
 // ===================== Nhắc hàng kho ngũ kim · 五金仓库缺货提醒 =====================
 // Mỗi lần nhập file kho, máy chủ ghi nhớ tồn của từng mã (12 lần gần nhất). Nhờ đó app so được
 // tồn lần này với lần trước và biết mã nào đã hết liền mấy lần nhập, chứ không chỉ "lần này bằng 0".
@@ -14117,7 +14376,38 @@ Object.assign(TX, {
   khoLichSuTon: ['Tồn qua các lần nhập', '历次导入库存'], khoNhatKy: ['Lịch sử nhập file kho', '仓库文件导入记录'],
   khoMaN: ['{n} mã', '{n}个编码'], khoSauNhap: ['Đã nhập xong file kho. Dưới đây là những linh kiện cần mua.', '仓库文件导入完成。以下零件需采购。'],
   khoXemKho: ['Mở kho ngũ kim', '打开五金仓库'],
-  srvMissKhoNhac: ['Nhắc thiếu hàng, gần hết hàng theo từng lần nhập kho', '按每次导入提醒缺货与库存临界']
+  srvMissKhoNhac: ['Nhắc thiếu hàng, gần hết hàng theo từng lần nhập kho', '按每次导入提醒缺货与库存临界'],
+  srvMissTonAT: ['Nhập tồn kho an toàn từ file', '从文件导入安全库存'],
+  t_khoMin: ['Nhập tồn kho an toàn', '导入安全库存'],
+  khoThieu: ['Thiếu hàng', '缺料'],
+  khoThieuHelp: ['Tồn đã tụt xuống dưới {p}% tồn kho an toàn — cần nhập thêm cho đủ mức an toàn.', '库存已低于安全库存的{p}%，需补至安全水位。'],
+  khoPtDat: ['Báo thiếu khi tồn dưới', '低于以下比例时报缺料'],
+  khoPtHelp: ['Chỉ áp dụng cho linh kiện đã đặt tồn kho an toàn: tồn tụt xuống dưới {p}% mức an toàn thì mới báo thiếu. Số cần mua vẫn tính cho đủ 100% mức an toàn.',
+    '仅适用于已设安全库存的零件：库存低于安全库存的{p}%才报缺料。采购量仍按补足100%计算。'],
+  khoPtLuuOk: ['Đã lưu mức báo thiếu', '报缺比例已保存'],
+  khoATn: ['an toàn {n} · báo khi dưới {m}', '安全{n} · 低于{m}报警'],
+  srvMissKhoPct: ['Chỉnh phần trăm báo thiếu hàng', '设置报缺料百分比'],
+  khoCanThemN: ['cần thêm {n} {d}', '需补{n}{d}'],
+  khoMauTonBtn: ['Tải file mẫu tồn an toàn', '下载安全库存模板'], khoNapTonBtn: ['Nhập tồn an toàn từ file', '从文件导入安全库存'],
+  khoMauHelp: ['Tải file mẫu về, sửa cột Tồn an toàn rồi tải lại lên. Nhận cả bảng số lượng dự phòng của nhà máy (cột Mã sản phẩm + Số lượng dự phòng).',
+    '下载模板，修改"安全库存"列后再上传。也可直接导入工厂的备用数量表（品号 + 备用数量两列）。'],
+  khoMauHuongDan: ['Chỉ sửa cột "Tồn an toàn" rồi tải file này lại vào app. Không đổi cột "Mã sản phẩm". Để trống là chưa đặt tồn an toàn.',
+    '仅修改"安全库存"列后将本文件重新导入应用。请勿改动"品号"列。留空表示未设安全库存。'],
+  khoMinDong: ['{n} dòng · {m} mã', '{n}行 · {m}个编码'],
+  khoMinDoi: ['Đổi tồn an toàn', '安全库存变更'], khoMinThieu: ['Bỏ qua', '已跳过'], khoMinThem: ['Thêm mới, coi như hết hàng', '新增（按缺货）'],
+  khoMinThemHoi: ['Thêm {n} mã chưa có vào kho, coi như hết hàng', '将{n}个新编码加入仓库并按缺货处理'],
+  khoMinThemHelp: ['File ERP chỉ xuất những mã CÒN TỒN, nên thứ đã hết sạch thường không có trong đó. Thêm vào để app còn nhắc mua; lần nhập ERP sau có hàng thì tự cập nhật tồn.',
+    'ERP文件只导出有库存的编码，已用完的通常不在其中。加入后应用才能提醒采购；下次导入ERP有货时会自动更新库存。'],
+  khoMinThieuHelp: ['Những mã này không có trong danh mục kho của app nên bỏ qua. Mã phải là mã sản phẩm (mã ERP), không phải mã của nhà cung cấp.',
+    '这些编码不在应用的仓库目录中，已跳过。编码须为品号（ERP编码），而非供应商编码。'],
+  khoMinKhongDoi: ['File này không làm đổi tồn an toàn nào.', '此文件未改变任何安全库存。'],
+  khoMinLuu: ['Lưu tồn an toàn', '保存安全库存'],
+  khoMinDaLuu: ['Đã đặt tồn an toàn cho {n} mã · {m} mã không có trong kho', '已为{n}个编码设置安全库存 · {m}个不在仓库中'],
+  khoXuatThieu: ['Xuất danh sách cần mua', '导出采购清单'],
+  xlMinMa: ['Mã sản phẩm', '品号'], xlMinTen: ['Tên linh kiện', '品名'], xlMinQC: ['Quy cách', '规格'],
+  xlMinDv: ['ĐVT', '单位'], xlMinViTri: ['Vị trí', '库位'], xlMinTon: ['Tồn hiện tại', '现有库存'],
+  xlMinAT: ['Tồn an toàn', '安全库存'], xlMinThem: ['Cần thêm', '需补'], xlMinMay: ['Máy đang dùng', '使用设备'],
+  xlMinNhom: ['Tình trạng', '状态'],
 });
 
 // Ngưỡng "gần hết": linh kiện có tồn tối thiểu riêng thì theo số riêng, không thì theo cài đặt chung (mặc định 1)
@@ -14126,14 +14416,32 @@ const khoGanHetN = () => {
   return v === undefined || v === '' || !(+v >= 0) ? 1 : +v;
 };
 const khoNguongOf = (x) => (x.tonMin === undefined || x.tonMin === '' ? khoGanHetN() : +x.tonMin);
-// '' = đủ hàng · 'het' = hết · 'thap' = gần hết
+// Linh kiện có tồn kho an toàn: chỉ báo thiếu khi tồn tụt xuống dưới bao nhiêu phần trăm mức an toàn
+const khoPhanTramN = () => {
+  const v = S.base && S.base.caiDat ? S.base.caiDat.khoPhanTram : undefined;
+  return v === undefined || v === '' || !(+v > 0) ? 15 : +v;
+};
+// Mốc báo thiếu của một linh kiện đã đặt tồn an toàn
+const khoMocBao = (x) => Math.round(+x.tonMin * khoPhanTramN()) / 100;
+// '' = đủ hàng · 'het' = hết sạch · 'thieu' = tụt dưới mức báo thiếu · 'thap' = gần hết (chưa đặt tồn an toàn)
+// Đã đặt tồn kho an toàn thì chỉ báo khi tồn tụt xuống dưới PHẦN TRĂM mức an toàn (mặc định 15%),
+// còn trên mức đó thì coi như vẫn dùng được, không kêu.
+// Chưa đặt tồn an toàn thì gần hết khi tồn ≤ ngưỡng chung (mặc định 1).
 function khoMuc(x) {
   const n = tonOf(x);
   if (n === null) return '';
   if (n <= 0) return 'het';
-  return n <= khoNguongOf(x) ? 'thap' : '';
+  const mn = x.tonMin;
+  if (mn === undefined || mn === '') return n <= khoGanHetN() ? 'thap' : '';
+  return n < khoMocBao(x) ? 'thieu' : '';
 }
 function khoThap(x) { return !!khoMuc(x); }
+// Còn thiếu bao nhiêu nữa mới đủ tồn an toàn
+function khoCanThem(x) {
+  const mn = x.tonMin;
+  if (mn === undefined || mn === '') return 0;
+  return Math.max(0, Math.round((+mn - (tonOf(x) || 0)) * 1000) / 1000);
+}
 // Số lần nhập liên tiếp gần nhất mà tồn bằng 0
 function khoLanHet(h) { let n = 0; for (let i = h.length - 1; i >= 0 && h[i] <= 0; i--) n++; return n; }
 // Linh kiện ĐÃ DÙNG: gắn vào máy, hoặc từng thay trong lịch sử bảo dưỡng / sửa chữa / công việc
@@ -14155,23 +14463,29 @@ function khoDaDungMap() {
 }
 // Danh sách nhắc hàng, chia ba nhóm
 function khoNhacDS() {
-  const dung = khoDaDungMap(), out = { vuaHet: [], dangHet: [], ganHet: [], n: 0 };
-  Object.keys(dung).forEach((ma) => {
+  const dung = khoDaDungMap(), out = { vuaHet: [], dangHet: [], thieu: [], ganHet: [], n: 0 };
+  const xet = {};
+  Object.keys(dung).forEach((ma) => { xet[ma] = dung[ma]; });
+  // Linh kiện đã đặt tồn kho an toàn cũng theo dõi, dù chưa gắn vào máy nào
+  S.kho.ds.forEach((x) => { if (!x.an && !x.gop && x.tonMin !== undefined && x.tonMin !== '' && !xet[x.ma]) xet[x.ma] = []; });
+  Object.keys(xet).forEach((ma) => {
     const x = khoGet(ma);
     if (!x) return;
     const muc = khoMuc(x);
     if (!muc) return;
     const h = x.tonCu || [], truoc = h.length > 1 ? h[h.length - 2] : null;
-    const o = { x, dung: dung[ma], truoc, lanHet: khoLanHet(h) };
-    if (muc === 'thap') out.ganHet.push(o);
+    const o = { x, dung: xet[ma] || [], truoc, lanHet: khoLanHet(h), can: khoCanThem(x) };
+    if (muc === 'thieu') out.thieu.push(o);
+    else if (muc === 'thap') out.ganHet.push(o);
     else if (truoc !== null && truoc > 0) out.vuaHet.push(o);
     else out.dangHet.push(o);
   });
   const sx = (a, b) => String(a.x.ten || '').localeCompare(String(b.x.ten || ''));
-  out.vuaHet.sort(sx);
-  out.dangHet.sort((a, b) => b.lanHet - a.lanHet || sx(a, b));
+  out.vuaHet.sort((a, b) => b.can - a.can || sx(a, b));
+  out.dangHet.sort((a, b) => b.lanHet - a.lanHet || b.can - a.can || sx(a, b));
+  out.thieu.sort((a, b) => b.can - a.can || sx(a, b));
   out.ganHet.sort((a, b) => (tonOf(a.x) || 0) - (tonOf(b.x) || 0) || sx(a, b));
-  out.n = out.vuaHet.length + out.dangHet.length + out.ganHet.length;
+  out.n = out.vuaHet.length + out.dangHet.length + out.thieu.length + out.ganHet.length;
   return out;
 }
 // Tồn của mã này qua các lần nhập file gần đây (mốc thời gian lấy chung ở S.kho.moc)
@@ -14190,6 +14504,8 @@ function khoNhacRow(o) {
   const x = o.x, n = tonOf(x), bins = khoBinTxt(x, false);
   const meta = [];
   if (o.truoc !== null) meta.push(`<span class="mono">${esc(soG(o.truoc))} → ${esc(soG(n))}</span>`);
+  if (x.tonMin !== undefined && x.tonMin !== '') meta.push(`<span class="muted">${esc(tv('khoATn', { n: soG(x.tonMin), m: soG(khoMocBao(x)) }))}</span>`);
+  if (o.can > 0) meta.push(`<span class="warnx">${esc(tv('khoCanThemN', { n: soG(o.can), d: dvTxt(x.dv || '') }))}</span>`);
   if (o.lanHet > 1) meta.push(`<span class="warnx">${esc(tv('khoHetNLan', { n: o.lanHet }))}</span>`);
   meta.push(o.dung.length ? `<span class="kmay">⚙ ${o.dung.length}</span>` : `<span class="muted">${esc(tv('khoTungThay'))}</span>`);
   if (bins.length) meta.push(`<span class="kbin">${IC.pin}${esc(bins.slice(0, 3).join(' · '))}</span>`);
@@ -14211,22 +14527,35 @@ VIEWS.khoNhac = {
       <div class="tiles ktiles" style="margin-top:12px">
         <div class="tile ktile t-qua${d.vuaHet.length ? '' : ' zero'}"><b>${d.vuaHet.length}</b><span>${t('khoVuaHet')}</span></div>
         <div class="tile ktile t-nay${d.dangHet.length ? '' : ' zero'}"><b>${d.dangHet.length}</b><span>${t('khoDangHet')}</span></div>
-        <div class="tile ktile t-sap${d.ganHet.length ? '' : ' zero'}"><b>${d.ganHet.length}</b><span>${t('khoGanHetDS')}</span></div>
+        <div class="tile ktile t-sap${d.thieu.length ? '' : ' zero'}"><b>${d.thieu.length}</b><span>${t('khoThieu')}</span></div>
+        <div class="tile ktile${d.ganHet.length ? '' : ' zero'}"><b>${d.ganHet.length}</b><span>${t('khoGanHetDS')}</span></div>
       </div>
       <div class="help" style="margin-top:10px">${t('khoNguongDat')} <b class="mono">${esc(soG(khoGanHetN()))}</b></div></div>`;
-    const nhom = (k, arr, help) => (arr.length ? sec(k, arr.length) + `<div class="help" style="margin:-4px 0 8px">${t(help)}</div>
+    const nhom = (k, arr, help) => (arr.length ? sec(k, arr.length) + `<div class="help" style="margin:-4px 0 8px">${t(help, { p: soG(khoPhanTramN()) })}</div>
       <div class="list">${arr.slice(0, 200).map(khoNhacRow).join('')}</div>
       ${arr.length > 200 ? `<div class="help" style="margin-top:8px">${t('khoChiHien', { n: 200 })}</div>` : ''}` : '');
     o += nhom('khoVuaHet', d.vuaHet, 'khoVuaHetHelp');
     o += nhom('khoDangHet', d.dangHet, 'khoDangHetHelp');
+    o += nhom('khoThieu', d.thieu, 'khoThieuHelp');
     o += nhom('khoGanHetDS', d.ganHet, 'khoGanHetHelp');
     if (!d.n) o += `<div class="card empty" style="margin-top:14px">${t('khoNhacKhong')}</div>`;
-    o += `<div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="tab" data-v="kho">${IC.box} ${t('khoXemKho')}</button></div>`;
+    o += `<div class="btns" style="margin-top:16px">
+      ${d.n ? `<button class="btn pri" data-act="khoXuatThieu">${IC.dl} ${t('khoXuatThieu')}</button>` : ''}
+      <button class="btn ghost" data-act="tab" data-v="kho">${IC.box} ${t('khoXemKho')}</button></div>`;
     return o;
   }
 };
 Object.assign(ACT, {
   khoNhac: () => go('khoNhac', {}),
+  khoPtLuu: async (el) => {
+    const v = ($('#khoPt') || {}).value;
+    el.disabled = true;
+    const r = await send('saveKhoCfg', { phanTram: String(v || '').replace(',', '.') });
+    el.disabled = false;
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('khoPtLuuOk'));
+    render();
+  },
   khoNgLuu: async (el) => {
     const v = ($('#khoNg') || {}).value;
     el.disabled = true;
