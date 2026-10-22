@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.12.0
+# Credible Việt Nam CMMS · 设备管理 — v2.13.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.12.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.13.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.12.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.12.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.13.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.13.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.12.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.13.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò | Xem được |
 |---|---|---|---|
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.12.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.13.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.12.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.13.0.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -97,6 +97,40 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
+## Điểm mới của v2.13.0: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng
+
+Trước đây mỗi lần nhập file ERP là **ghi đè** số tồn, không giữ lại gì. App chỉ biết "lần này mã nào bằng 0", nên chỉ cảnh báo được **hết hàng**, mà cũng chỉ với linh kiện đã gắn vào máy.
+
+Nay mỗi lần nhập file, máy chủ **ghi nhớ tồn của từng mã** (12 lần nhập gần nhất, cột `TonCu` trong trang `KhoLK`) và ghi một dòng vào trang **`NhapKho`** — nhật ký nhập file giữ lại hết. Nhờ đó app biết tồn lần này so với lần trước, và mã nào đã hết liền mấy lần nhập mà vẫn chưa về hàng.
+
+### Nhắc hàng ngay sau khi nhập file
+
+Nhập file xong, app mở luôn màn **Nhắc hàng**, chia ba nhóm:
+
+| Nhóm | Nghĩa |
+|---|---|
+| **Vừa hết hàng** | Lần nhập trước vẫn còn, lần này đã hết |
+| **Đang hết hàng** | Hết từ những lần nhập trước, vẫn chưa về hàng — ghi rõ *hết mấy lần nhập liền* |
+| **Gần hết hàng** | Tồn còn ít hơn hoặc bằng ngưỡng gần hết |
+
+Mỗi dòng ghi **tồn lần trước → tồn nay**, số máy đang dùng linh kiện đó, và ô để trong kho.
+
+### Chỉ nhắc linh kiện đã dùng
+
+File ERP có hàng nghìn mã, phần lớn không liên quan tới thiết bị. App chỉ nhắc linh kiện **đang gắn vào máy** hoặc **đã từng thay** trong sửa chữa, bảo dưỡng, công việc — đúng những thứ nhà máy thực sự dùng.
+
+### Ngưỡng "gần hết hàng" mặc định là 1
+
+Tồn còn **1** là gần hết (ô tồn chuyển màu cam ở mọi danh sách, kể cả lúc chọn linh kiện khi ghi sửa chữa). Quản lý đổi ngưỡng chung ngay trong mục Kho ngũ kim; linh kiện nào có **tồn tối thiểu riêng** thì vẫn theo số riêng của nó.
+
+Phiếu chi tiết mỗi linh kiện có thêm mục **Tồn qua các lần nhập**, xem được hàng này tiêu hao nhanh hay chậm.
+
+### Sửa lỗi: lưu ca làm việc làm mất cài đặt khác
+
+Màn **Ca làm việc** (phần Tăng ca) khi lưu đang ghi đè cả khối cài đặt, làm mất **giá điện**, **sản lượng tháng**, ngưỡng cảnh báo điện và cả **token Telegram** đã nhập — những thứ đó âm thầm quay về mặc định. Nay sửa thành đọc rồi sửa, chỉ thay phần ca làm việc.
+
+Dán `Code.gs-v2.13.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Trang `NhapKho` và cột `TonCu` tự thêm, dữ liệu cũ giữ nguyên. Lịch sử tồn bắt đầu tính từ lần nhập file đầu tiên sau khi nâng cấp.
+
 ## Điểm mới của v2.12.0: lịch trực tuần và phân công ca trực
 
 Thêm mục **Lịch trực** (thanh bên và ô ở Tổng quan). Trong đó có hai phần tách riêng nhau, vì là hai việc khác nhau:
@@ -123,7 +157,7 @@ Dựng đúng bảng giấy của nhà máy: **ca ngày (7h30–19h30)** và **c
 
 **Phân quyền:** ai cũng **xem** được cả hai bảng (để biết ai trực, gọi số nào); chỉ **Quản lý, Quản trị** xếp lịch, nhập nội dung trực và sửa danh sách người trực ca.
 
-**Ba trang mới tự tạo khi nâng cấp:** `LichTruc` (mỗi ngày một dòng), `NguoiTruc` (danh sách người trực ca), `PhanCa` (bảng phân công từng tuần). Dán `Code.gs-v2.12.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới; dữ liệu cũ giữ nguyên.
+**Ba trang mới tự tạo khi nâng cấp:** `LichTruc` (mỗi ngày một dòng), `NguoiTruc` (danh sách người trực ca), `PhanCa` (bảng phân công từng tuần). Dán `Code.gs-v2.13.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới; dữ liệu cũ giữ nguyên.
 
 ## Điểm mới của v2.11.3: Ghi sửa chữa chọn linh kiện từ kho
 
@@ -145,7 +179,7 @@ Máy chủ vẫn nhận dạng chữ nhiều dòng của bản cũ, nên bản g
 
 ## Điểm mới của v2.11.2: xác nhận tiêu thụ bất thường, mã việc lặp lại không trùng
 
-Bản sửa lỗi, không thêm bảng dữ liệu nào. Dán `Code.gs-v2.12.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới là xong, dữ liệu cũ giữ nguyên.
+Bản sửa lỗi, không thêm bảng dữ liệu nào. Dán `Code.gs-v2.13.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới là xong, dữ liệu cũ giữ nguyên.
 
 ### Xác nhận tiêu thụ bất thường (chỉ Quản lý)
 
@@ -175,7 +209,7 @@ Nay mã **đánh số tăng dần** trong cùng một giây (`CV26102012340001`,
 
 ## Điểm mới của v2.11.1: chọn thiết bị cho mọi loại việc, mã bản ghi không trùng
 
-Bản này đã nằm trong v2.11.2 ở trên — dán `Code.gs-v2.12.0.txt` là có cả hai.
+Bản này đã nằm trong v2.11.2 ở trên — dán `Code.gs-v2.13.0.txt` là có cả hai.
 
 ### Mọi loại việc đều chọn được chuyền sản xuất hoặc máy của chuyền
 
@@ -236,7 +270,7 @@ Tài liệu đã để trên Google Drive thì **không cần tải lại**. App
 - **Bỏ khỏi danh mục:** tài liệu quét từ Drive chỉ bị gỡ khỏi danh mục của app, tệp gốc trên Drive không bị xoá và những lần quét sau cũng không thêm lại. Muốn nhận lại thì xoá dấu ở cột `Xoa` của dòng đó trên trang `TaiLieu`. Tệp do app tải lên thì vẫn vào thùng rác Drive như trước.
 - Trang `TaiLieu` có thêm 5 cột: `DuongDan` (đường dẫn thư mục trên Drive), `Nguon` (`APP` tải từ app · `DRIVE` tài liệu có sẵn), `ConTrenDrive`, `HienHanh`, `LucQuet`.
 
-- Nâng cấp: dán `Code.gs-v2.12.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
+- Nâng cấp: dán `Code.gs-v2.13.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
 
 ## Điểm mới của v2.10.0: phân quyền xem theo vai trò
 
@@ -579,6 +613,6 @@ Tài liệu đã để trên Google Drive thì **không cần tải lại**. App
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 39 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
-node tests/e2e.mjs                      # 16 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
+node --test tests/backend.test.mjs      # 42 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node tests/e2e.mjs                      # 17 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```

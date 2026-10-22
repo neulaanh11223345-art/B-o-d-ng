@@ -1106,3 +1106,63 @@ test('danh sách người trực ca: sửa tên, thêm người, bỏ khỏi dan
   assert.ok(!tenKho.includes(kho[1].ten), 'người đã nghỉ không được xếp nữa');
   assert.deepEqual(tenKho.sort(), [kho[0].ten, 'Trần Thị Mới'].sort());
 });
+
+test('kho: mỗi lần nhập file đều ghi nhớ tồn của từng mã, có mốc thời gian và nhật ký nhập', () => {
+  const b = setup();
+  const nhap = (ds, file) => ok(b.call('importKho', { file, soDong: ds.length, ds }, b.ql));
+
+  b.setNow('2026-09-05T09:00:00Z');
+  nhap([{ ma: 'A1', ten: 'Vòng bi 6009', ton: 8 }, { ma: 'A2', ten: 'Dây curoa', ton: 4 }, { ma: 'A3', ten: 'Chốt', ton: 50 }], 'erp0905.xlsx');
+  b.setNow('2026-09-15T09:00:00Z');
+  nhap([{ ma: 'A1', ten: 'Vòng bi 6009', ton: 3 }, { ma: 'A2', ten: 'Dây curoa', ton: 1 }, { ma: 'A3', ten: 'Chốt', ton: 50 }], 'erp0915.xlsx');
+  b.setNow('2026-09-26T09:00:00Z');
+  const r = nhap([{ ma: 'A1', ten: 'Vòng bi 6009', ton: 0 }, { ma: 'A3', ten: 'Chốt', ton: 50 }], 'erp0926.xlsx');
+
+  const by = {};
+  r.ds.forEach((x) => { by[x.ma] = x; });
+  assert.deepEqual(by.A1.tonCu, [8, 3, 0], 'nhớ tồn qua từng lần nhập');
+  assert.deepEqual(by.A2.tonCu, [4, 1, 0], 'mã biến mất khỏi file được ghi là tồn 0');
+  assert.deepEqual(by.A3.tonCu, [50, 50, 50]);
+
+  // Mốc thời gian của ba lần nhập, khớp thứ tự với dãy tồn
+  const k = ok(b.call('catalog', {}, b.ql));
+  assert.equal(k.moc.length, 3);
+  assert.deepEqual(k.moc.map((m) => m.luc.slice(0, 10)), ['2026-09-05', '2026-09-15', '2026-09-26']);
+  assert.equal(k.moc[2].file, 'erp0926.xlsx');
+
+  // Nhật ký nhập file: mỗi lần một dòng, mới nhất lên đầu
+  assert.equal(k.nhatKy.length, 3);
+  assert.equal(k.nhatKy[0].file, 'erp0926.xlsx');
+  assert.equal(k.nhatKy[0].nguoi, 'Quản lý');
+  assert.equal(k.nhatKy[0].soMa, 2);
+  assert.equal(k.nhatKy[2].file, 'erp0905.xlsx');
+  assert.equal(b.ctx.docTho('NhapKho').filter((x) => x[0]).length, 3);
+});
+
+test('kho: ngưỡng gần hết hàng mặc định là 1, Quản lý sửa được, kỹ thuật thì không', () => {
+  const b = setup();
+  assert.equal(ok(b.call('data', {}, b.ql)).caiDat.khoGanHet, 1, 'mặc định 1');
+  assert.equal(ok(b.call('data', {}, b.kt)).caiDat.khoGanHet, 1, 'kỹ thuật cũng nhận ngưỡng để tự tính');
+
+  err(b.call('saveKhoCfg', { ganHet: 2 }, b.kt), 'KHONG_QUYEN');
+  err(b.call('saveKhoCfg', { ganHet: -1 }, b.ql), 'SO_SAI');
+  err(b.call('saveKhoCfg', { ganHet: '' }, b.ql), 'SO_SAI');
+  assert.equal(ok(b.call('saveKhoCfg', { ganHet: 3 }, b.ql)).caiDat.khoGanHet, 3);
+  assert.equal(ok(b.call('data', {}, b.ql)).caiDat.khoGanHet, 3);
+});
+
+test('lưu ca làm việc không xoá mất các cài đặt khác (giá điện, sản lượng, ngưỡng kho)', () => {
+  const b = setup();
+  ok(b.call('saveGiaDien', { giaDien: [{ tu: '2026-01-01', bt: 2000, cd: 3500, td: 1200 }], vatDien: 10 }, b.ql));
+  ok(b.call('saveSanLuong', { thang: '2026-09', sl: 123456 }, b.ql));
+  ok(b.call('saveKhoCfg', { ganHet: 2 }, b.ql));
+
+  ok(b.call('saveOTCfg', { ca: [{ k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' }], gioTCThang: 40, gioTCNam: 200 }, b.ql));
+
+  const cd = ok(b.call('data', {}, b.ql)).caiDat;
+  assert.equal(cd.giaDien[0].bt, 2000, 'giá điện còn nguyên');
+  assert.equal(cd.vatDien, 10);
+  assert.equal(cd.sanLuong['2026-09'], 123456, 'sản lượng còn nguyên');
+  assert.equal(cd.khoGanHet, 2, 'ngưỡng kho còn nguyên');
+  assert.equal(cd.caTangCa.length, 1, 'ca làm việc đã lưu');
+});
