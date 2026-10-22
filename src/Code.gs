@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.14.0';
+var PHIEN_BAN = '2.15.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -137,7 +137,8 @@ var CAI_DAT_MAC_DINH = {
   sanLuong: {},                      // { 'yyyy-mm': số sản phẩm của tháng } để tính điện trên 1.000 sản phẩm
   dvSanLuong: 'sản phẩm',
   nguongTang: 50, nguongGiam: 50,    // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
-  khoGanHet: 1,                      // tồn còn bao nhiêu thì coi là GẦN HẾT (linh kiện có tồn tối thiểu riêng thì theo số riêng)
+  khoGanHet: 1,                      // tồn còn bao nhiêu thì coi là GẦN HẾT (linh kiện chưa đặt tồn kho an toàn)
+  khoPhanTram: 15,                   // linh kiện có tồn kho an toàn: báo THIẾU khi tồn tụt xuống dưới bao nhiêu % mức an toàn
   // Ca làm việc ghi trên đơn tăng ca (mẫu giấy 自愿加班申请单). Giờ chỉ là gợi ý điền sẵn, Quản lý sửa trong app.
   caTangCa: [
     { k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' },
@@ -721,9 +722,9 @@ function layDuLieu(u) {
     chiSo: docChiSo().filter(function (x) { return x.ky >= tu && x.trangThai !== 'HUY'; }).map(sachCS),
     caiDat: coQuyen(u, 'may')
       ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet }
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram }
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet },
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram },
     taiLieu: tlChoNguoi(u),
     tlInfo: coQuyen(u, 'tailieu') ? tlThongTinNhe() : null,
     khoaKy: docKhoaKy(),
@@ -2058,13 +2059,21 @@ function nhapTonMin(u, p) {
 }
 // Ngưỡng chung "gần hết hàng" (mặc định 1): dùng cho linh kiện chưa đặt tồn tối thiểu riêng
 function luuKhoCfg(u, p) {
-  var n = soHoacRong(p.ganHet);
-  if (n === '' || !(n >= 0 && n <= 1000)) throw loi('SO_SAI', 'Ngưỡng gần hết phải từ 0 đến 1000 · 临界库存须在0–1000之间');
-  var c = docCaiDat(), truoc = c.khoGanHet;
-  c.khoGanHet = n;
+  var c = docCaiDat(), truoc = { khoGanHet: c.khoGanHet, khoPhanTram: c.khoPhanTram }, doi = false;
+  if (p.ganHet !== undefined) {
+    var n = soHoacRong(p.ganHet);
+    if (n === '' || !(n >= 0 && n <= 1000)) throw loi('SO_SAI', 'Ngưỡng gần hết phải từ 0 đến 1000 · 临界库存须在0–1000之间');
+    c.khoGanHet = n; doi = true;
+  }
+  if (p.phanTram !== undefined) {
+    var pt = soHoacRong(p.phanTram);
+    if (pt === '' || !(pt >= 1 && pt <= 100)) throw loi('SO_SAI', 'Phần trăm phải từ 1 đến 100 · 百分比须在1–100之间');
+    c.khoPhanTram = Math.round(pt * 10) / 10; doi = true;
+  }
+  if (!doi) throw loi('SO_SAI', 'Không có gì để lưu · 没有要保存的内容');
   ghiCaiDat(c);
-  ghiNhatKy(u, 'SUA_NGUONG_KHO', 'CaiDat', 'khoGanHet', truoc, n, '');
-  return { caiDat: { khoGanHet: n } };
+  ghiNhatKy(u, 'SUA_NGUONG_KHO', 'CaiDat', 'kho', truoc, { khoGanHet: c.khoGanHet, khoPhanTram: c.khoPhanTram }, '');
+  return { caiDat: { khoGanHet: c.khoGanHet, khoPhanTram: c.khoPhanTram } };
 }
 // Sửa / ẩn linh kiện thêm trong app (linh kiện từ ERP thì sửa trong ERP rồi nhập lại file)
 function luuKho(u, p) {

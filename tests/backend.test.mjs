@@ -1210,3 +1210,22 @@ test('tồn kho an toàn: nhập hàng loạt từ file, mã chưa có thì thê
   assert.equal(sau.A3.ton, 0, 'mã biến mất khỏi file ERP thì về 0');
   assert.equal(sau.A3.tonMin, 20);
 });
+
+test('mức báo thiếu theo phần trăm tồn kho an toàn: mặc định 15%, Quản lý sửa được', () => {
+  const b = setup();
+  const cd = ok(b.call('data', {}, b.ql)).caiDat;
+  assert.equal(cd.khoPhanTram, 15, 'mặc định báo khi tồn dưới 15% mức an toàn');
+  assert.equal(ok(b.call('data', {}, b.kt)).caiDat.khoPhanTram, 15, 'kỹ thuật cũng nhận ngưỡng để tô màu ô tồn');
+
+  err(b.call('saveKhoCfg', { phanTram: 20 }, b.kt), 'KHONG_QUYEN');
+  err(b.call('saveKhoCfg', { phanTram: 0 }, b.ql), 'SO_SAI');
+  err(b.call('saveKhoCfg', { phanTram: 101 }, b.ql), 'SO_SAI');
+  err(b.call('saveKhoCfg', {}, b.ql), 'SO_SAI');
+
+  assert.equal(ok(b.call('saveKhoCfg', { phanTram: 30 }, b.ql)).caiDat.khoPhanTram, 30);
+  // Sửa riêng từng ngưỡng, không xoá ngưỡng kia
+  assert.equal(ok(b.call('saveKhoCfg', { ganHet: 2 }, b.ql)).caiDat.khoPhanTram, 30);
+  const sau = ok(b.call('data', {}, b.ql)).caiDat;
+  assert.equal(sau.khoGanHet, 2);
+  assert.equal(sau.khoPhanTram, 30);
+});

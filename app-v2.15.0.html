@@ -1330,7 +1330,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.14.0";
+const APP_VER = "2.15.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -2135,7 +2135,6 @@ function homeAlerts(g) {
       if (kt > kh && dt.ky !== today) add(2, 'lock', 'aKhoa', { d: fmtDM(kt) }, 1, 'data-act="tab" data-v="dien"', ' ');
     }
   }
-  if (xemHet()) add(1, 'box', 'aLK', null, lkThapDS().length, 'data-act="khoLoc" data-v="thap"');
   if (st.k !== 'loi') add(1, 'cloud', 'aCho', null, st.cho, 'data-act="go" data-v="sync"');
   add(2, 'cal', 'aSap', { n: nhacTruoc() }, g.sap.length, 'data-act="listSt" data-st="sap"');
   if (can('may') && S.base && S.base.kho && !srvOld('kho')) {
@@ -2197,8 +2196,9 @@ function modTiles() {
       nay && nay.uid ? esc(tv('mTrucNay')) + ': ' + esc(nay.ten) : t('mTrucChua'), 'data-act="tab" data-v="truc"');
   }
   if (S.kho.ds.length && xemHet()) {
-    const vis = S.kho.ds.filter((x) => !x.an && !x.gop), thap = lkThapDS().length;
-    h += tile('mt-purple', 'box', 'mLinhKien', null, fmtNum(vis.length, 0), thap ? `<span class="warnx">${t('mDuoiMin', { n: thap })}</span>` : t('mConHang', { n: fmtNum(vis.filter((x) => (tonOf(x) || 0) > 0).length, 0) }), 'data-act="tab" data-v="kho"');
+    // Thiếu hàng chỉ xem trong mục Kho ngũ kim, không báo ra trang chủ
+    const vis = S.kho.ds.filter((x) => !x.an && !x.gop);
+    h += tile('mt-purple', 'box', 'mLinhKien', null, fmtNum(vis.length, 0), t('mConHang', { n: fmtNum(vis.filter((x) => (tonOf(x) || 0) > 0).length, 0) }), 'data-act="tab" data-v="kho"');
   }
   return h;
 }
@@ -2232,10 +2232,6 @@ function choDuyetDS() { return S.V && S.V.cs ? S.V.cs.filter((x) => x.trangThai 
 // Số ghi ở kỳ k có cờ bất thường
 function batThuongKy(k) { return S.V && S.V.cs ? S.V.cs.filter((x) => x.ky === k && x.ngoaiLe && x.ngoaiLe.batThuong && !x.ngoaiLe.batThuong.duyet && x.trangThai !== 'HUY') : []; }
 // Linh kiện đang gắn với máy mà tồn ≤ tối thiểu (hoặc hết hàng)
-function lkThapDS() {
-  if (!S.V || !S.kho.ds.length) return [];
-  return Object.keys(khoDaDungMap()).map((ma) => khoGet(ma)).filter((x) => x && khoThap(x));
-}
 
 
 // ---------- Cá nhân ----------
@@ -4724,7 +4720,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -7519,6 +7515,12 @@ VIEWS.kho = {
       <button class="btn ghost" data-act="khoMauTon">${IC.dl} ${t('khoMauTonBtn')}</button>
       <label class="btn ghost filebtn">${IC.dl} ${t('khoNapTonBtn')}<input type="file" id="khoMinFile" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label></div>
       <div class="help" style="margin-top:6px">${t('khoMauHelp')}</div>`;
+    if (can('may') && !srvOld('khopct')) o += `<div class="inrow" style="margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="help" style="margin:0">${t('khoPtDat')}</span>
+      <input class="inp mono" id="khoPt" inputmode="decimal" maxlength="5" value="${esc(soG(khoPhanTramN()))}" style="max-width:80px;min-height:38px;padding:6px 10px">
+      <span class="help" style="margin:0">%</span>
+      <button class="btn ghost sm" data-act="khoPtLuu">${t('save')}</button></div>
+      <div class="help" style="margin-top:6px">${t('khoPtHelp', { p: soG(khoPhanTramN()) })}</div>`;
     if (can('may') && !srvOld('khonhac')) o += `<div class="inrow" style="margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
       <span class="help" style="margin:0">${t('khoNguongDat')}</span>
       <input class="inp mono" id="khoNg" inputmode="decimal" maxlength="6" value="${esc(soG(khoGanHetN()))}" style="max-width:90px;min-height:38px;padding:6px 10px">
@@ -9531,8 +9533,14 @@ Object.assign(TX, {
   srvMissKhoNhac: ['Nhắc thiếu hàng, gần hết hàng theo từng lần nhập kho', '按每次导入提醒缺货与库存临界'],
   srvMissTonAT: ['Nhập tồn kho an toàn từ file', '从文件导入安全库存'],
   t_khoMin: ['Nhập tồn kho an toàn', '导入安全库存'],
-  khoThieu: ['Dưới tồn an toàn', '低于安全库存'],
-  khoThieuHelp: ['Tồn hiện có ít hơn tồn kho an toàn đã đặt — cần nhập thêm cho đủ.', '现有库存低于已设的安全库存，需补货。'],
+  khoThieu: ['Thiếu hàng', '缺料'],
+  khoThieuHelp: ['Tồn đã tụt xuống dưới {p}% tồn kho an toàn — cần nhập thêm cho đủ mức an toàn.', '库存已低于安全库存的{p}%，需补至安全水位。'],
+  khoPtDat: ['Báo thiếu khi tồn dưới', '低于以下比例时报缺料'],
+  khoPtHelp: ['Chỉ áp dụng cho linh kiện đã đặt tồn kho an toàn: tồn tụt xuống dưới {p}% mức an toàn thì mới báo thiếu. Số cần mua vẫn tính cho đủ 100% mức an toàn.',
+    '仅适用于已设安全库存的零件：库存低于安全库存的{p}%才报缺料。采购量仍按补足100%计算。'],
+  khoPtLuuOk: ['Đã lưu mức báo thiếu', '报缺比例已保存'],
+  khoATn: ['an toàn {n} · báo khi dưới {m}', '安全{n} · 低于{m}报警'],
+  srvMissKhoPct: ['Chỉnh phần trăm báo thiếu hàng', '设置报缺料百分比'],
   khoCanThemN: ['cần thêm {n} {d}', '需补{n}{d}'],
   khoMauTonBtn: ['Tải file mẫu tồn an toàn', '下载安全库存模板'], khoNapTonBtn: ['Nhập tồn an toàn từ file', '从文件导入安全库存'],
   khoMauHelp: ['Tải file mẫu về, sửa cột Tồn an toàn rồi tải lại lên. Nhận cả bảng số lượng dự phòng của nhà máy (cột Mã sản phẩm + Số lượng dự phòng).',
@@ -9562,16 +9570,24 @@ const khoGanHetN = () => {
   return v === undefined || v === '' || !(+v >= 0) ? 1 : +v;
 };
 const khoNguongOf = (x) => (x.tonMin === undefined || x.tonMin === '' ? khoGanHetN() : +x.tonMin);
-// '' = đủ hàng · 'het' = hết sạch · 'thieu' = dưới tồn kho an toàn · 'thap' = gần hết (chưa đặt tồn an toàn)
-// Đã đặt tồn an toàn thì thiếu khi tồn < tồn an toàn; đủ mức an toàn là không kêu.
-// Chưa đặt thì gần hết khi tồn ≤ ngưỡng chung (mặc định 1).
+// Linh kiện có tồn kho an toàn: chỉ báo thiếu khi tồn tụt xuống dưới bao nhiêu phần trăm mức an toàn
+const khoPhanTramN = () => {
+  const v = S.base && S.base.caiDat ? S.base.caiDat.khoPhanTram : undefined;
+  return v === undefined || v === '' || !(+v > 0) ? 15 : +v;
+};
+// Mốc báo thiếu của một linh kiện đã đặt tồn an toàn
+const khoMocBao = (x) => Math.round(+x.tonMin * khoPhanTramN()) / 100;
+// '' = đủ hàng · 'het' = hết sạch · 'thieu' = tụt dưới mức báo thiếu · 'thap' = gần hết (chưa đặt tồn an toàn)
+// Đã đặt tồn kho an toàn thì chỉ báo khi tồn tụt xuống dưới PHẦN TRĂM mức an toàn (mặc định 15%),
+// còn trên mức đó thì coi như vẫn dùng được, không kêu.
+// Chưa đặt tồn an toàn thì gần hết khi tồn ≤ ngưỡng chung (mặc định 1).
 function khoMuc(x) {
   const n = tonOf(x);
   if (n === null) return '';
   if (n <= 0) return 'het';
   const mn = x.tonMin;
   if (mn === undefined || mn === '') return n <= khoGanHetN() ? 'thap' : '';
-  return n < +mn ? 'thieu' : '';
+  return n < khoMocBao(x) ? 'thieu' : '';
 }
 function khoThap(x) { return !!khoMuc(x); }
 // Còn thiếu bao nhiêu nữa mới đủ tồn an toàn
@@ -9642,6 +9658,7 @@ function khoNhacRow(o) {
   const x = o.x, n = tonOf(x), bins = khoBinTxt(x, false);
   const meta = [];
   if (o.truoc !== null) meta.push(`<span class="mono">${esc(soG(o.truoc))} → ${esc(soG(n))}</span>`);
+  if (x.tonMin !== undefined && x.tonMin !== '') meta.push(`<span class="muted">${esc(tv('khoATn', { n: soG(x.tonMin), m: soG(khoMocBao(x)) }))}</span>`);
   if (o.can > 0) meta.push(`<span class="warnx">${esc(tv('khoCanThemN', { n: soG(o.can), d: dvTxt(x.dv || '') }))}</span>`);
   if (o.lanHet > 1) meta.push(`<span class="warnx">${esc(tv('khoHetNLan', { n: o.lanHet }))}</span>`);
   meta.push(o.dung.length ? `<span class="kmay">⚙ ${o.dung.length}</span>` : `<span class="muted">${esc(tv('khoTungThay'))}</span>`);
@@ -9668,7 +9685,7 @@ VIEWS.khoNhac = {
         <div class="tile ktile${d.ganHet.length ? '' : ' zero'}"><b>${d.ganHet.length}</b><span>${t('khoGanHetDS')}</span></div>
       </div>
       <div class="help" style="margin-top:10px">${t('khoNguongDat')} <b class="mono">${esc(soG(khoGanHetN()))}</b></div></div>`;
-    const nhom = (k, arr, help) => (arr.length ? sec(k, arr.length) + `<div class="help" style="margin:-4px 0 8px">${t(help)}</div>
+    const nhom = (k, arr, help) => (arr.length ? sec(k, arr.length) + `<div class="help" style="margin:-4px 0 8px">${t(help, { p: soG(khoPhanTramN()) })}</div>
       <div class="list">${arr.slice(0, 200).map(khoNhacRow).join('')}</div>
       ${arr.length > 200 ? `<div class="help" style="margin-top:8px">${t('khoChiHien', { n: 200 })}</div>` : ''}` : '');
     o += nhom('khoVuaHet', d.vuaHet, 'khoVuaHetHelp');
@@ -9684,6 +9701,15 @@ VIEWS.khoNhac = {
 };
 Object.assign(ACT, {
   khoNhac: () => go('khoNhac', {}),
+  khoPtLuu: async (el) => {
+    const v = ($('#khoPt') || {}).value;
+    el.disabled = true;
+    const r = await send('saveKhoCfg', { phanTram: String(v || '').replace(',', '.') });
+    el.disabled = false;
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('khoPtLuuOk'));
+    render();
+  },
   khoNgLuu: async (el) => {
     const v = ($('#khoNg') || {}).value;
     el.disabled = true;

@@ -577,7 +577,7 @@ assert.ok(await page.locator('[data-act="khoMauTon"]').count(), 'có nút tải 
 assert.ok(await page.evaluate(() => khoMauTonMinBlob().size > 2000), 'dựng được file mẫu Excel');
 // Nhập tồn an toàn từ file: một mã đã có, một mã chưa có trong kho
 await page.setInputFiles('#khoMinFile', { name: 'ton-an-toan.csv', mimeType: 'text/csv',
-  buffer: Buffer.from('Mã sản phẩm,Tên linh kiện,Số lượng dự phòng\n605010344,Vòng bi,10\n609030115,Bộ lọc súng keo,3\n605010014,Vòng bi lớn,\n', 'utf8') });
+  buffer: Buffer.from('Mã sản phẩm,Tên linh kiện,Số lượng dự phòng\n605010344,Vòng bi,20\n609030115,Bộ lọc súng keo,3\n605010014,Vòng bi lớn,\n', 'utf8') });
 await wait(1200);
 assert.match(await text('#barTitle'), /Nhập tồn kho an toàn/);
 assert.match(await text('#main'), /Thêm mới, coi như hết hàng/, 'mã chưa có trong kho được hỏi thêm mới');
@@ -592,18 +592,35 @@ const at18 = await page.evaluate(() => {
     thieu: d.thieu.map((o) => o.x.ma), can: (d.thieu.find((o) => o.x.ma === '605010344') || {}).can,
     hetCo: d.vuaHet.concat(d.dangHet).some((o) => o.x.ma === '609030115') };
 });
-assert.equal(at18.at, 10, 'đã đặt tồn an toàn cho mã có sẵn');
+assert.equal(at18.at, 20, 'đã đặt tồn an toàn cho mã có sẵn');
 assert.equal(at18.ton, 2, 'không đụng tới tồn thật');
 assert.equal(at18.moiTon, 0, 'mã chưa có được thêm vào kho, coi như hết hàng');
 assert.equal(at18.moiAt, 3);
-assert.ok(at18.thieu.includes('605010344'), 'tồn 2 dưới tồn an toàn 10 thì vào nhóm thiếu');
-assert.equal(at18.can, 8, 'tính đúng số cần mua thêm');
+assert.ok(at18.thieu.includes('605010344'), 'tồn 2 dưới mốc báo (15% của 20 = 3) thì vào nhóm thiếu');
+assert.equal(at18.can, 18, 'số cần mua tính cho đủ 100% mức an toàn');
 assert.ok(at18.hetCo, 'mã mới thêm nằm trong nhóm hết hàng');
-assert.match(await text('#main'), /Dưới tồn an toàn/);
-assert.match(await text('#main'), /cần thêm 8/);
+assert.match(await text('#main'), /Thiếu hàng/);
+assert.match(await text('#main'), /cần thêm 18/);
+// Trên mốc báo thì thôi kêu; đổi mức báo thiếu lên 100% là lại vào danh sách
+const pt18 = await page.evaluate(() => {
+  const x = khoGet('605010344');
+  return { pct: khoPhanTramN(), moc: khoMocBao(x), muc: khoMuc(x) };
+});
+assert.equal(pt18.pct, 15, 'mặc định báo khi tồn dưới 15% mức an toàn');
+assert.equal(pt18.moc, 3);
+await page.evaluate(() => { back(); tab('kho'); }); await wait(700);
+await page.fill('#khoPt', '5'); await page.click('[data-act="khoPtLuu"]'); await wait(1200);
+const pt18b = await page.evaluate(() => ({ pct: khoPhanTramN(), muc: khoMuc(khoGet('605010344')), n: khoNhacDS().thieu.length }));
+assert.equal(pt18b.pct, 5, 'đổi được mức báo thiếu');
+assert.equal(pt18b.muc, '', 'tồn 2 trên mốc 5% của 20 = 1 thì thôi báo thiếu');
+await page.fill('#khoPt', '15'); await page.click('[data-act="khoPtLuu"]'); await wait(1000);
+// Trang chủ không còn báo linh kiện thiếu
+await page.evaluate(() => tab('home')); await wait(800);
+assert.equal(await page.locator('[data-act="khoLoc"][data-v="thap"]').count(), 0, 'trang chủ không còn ô cảnh báo linh kiện');
+assert.equal(/dưới tối thiểu/i.test(await text('#main')), false, 'ô Linh kiện ở Tổng quan không báo thiếu nữa');
 await shot('30-nhac-hang-thieu');
 assert.ok(await page.evaluate(() => khoThieuBlob(khoNhacDS()).size > 2000), 'xuất được danh sách cần mua');
-ok('Bản 2.14: tồn kho an toàn nhập từ file, mã chưa có thành hết hàng, liệt kê đúng hàng thiếu và số cần mua');
+ok('Bản 2.15: tồn kho an toàn nhập từ file, báo thiếu theo phần trăm mức an toàn, không báo ra trang chủ');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
