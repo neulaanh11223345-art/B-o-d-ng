@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.15.1';
+var PHIEN_BAN = '2.16.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -2013,25 +2013,34 @@ function nhapTonMin(u, p) {
   var vao = Array.isArray(p.ds) ? p.ds : [];
   if (!vao.length) throw loi('KHO_TRONG', 'File không có dòng nào · 文件中没有数据');
   if (vao.length > KHO_TOI_DA) throw loi('KHO_NHIEU', 'File quá nhiều dòng · 行数太多 (> ' + KHO_TOI_DA + ')');
-  var muon = {}, tenFile = {}, thu = 0;
+  var muon = {}, moTa = {}, thu = 0;
   vao.forEach(function (o) {
     var ma = maKhoHopLe(catChu(o && o.ma, 40).replace(/\s/g, ''));
     if (!ma || muon[ma] !== undefined) return;
     var mn = soHoacRong(o.tonMin);
     muon[ma] = mn === '' || !(mn > 0) ? '' : Math.round(mn * 1000) / 1000;
-    tenFile[ma] = catChu(o.ten, 160);
+    moTa[ma] = { ten: catChu(o.ten, 160), qc: catChu(o.qc, 200), dv: catChu(o.dv, 12), bo: o.bo === true };
     thu++;
   });
   if (!thu) throw loi('KHO_TRONG', 'File không có mã linh kiện nào · 文件中没有零件编码');
   capNhatTieuDe('KhoLK');
-  var all = docKho(), tk = { soMa: thu, dat: 0, xoa: 0, giu: 0, them: 0, khongThay: 0 }, thay = {}, luc = thoiGianStr();
+  var all = docKho(), tk = { soMa: thu, dat: 0, xoa: 0, giu: 0, them: 0, moTa: 0, bo: 0, dungLai: 0, khongThay: 0 }, thay = {}, luc = thoiGianStr();
+  // coBo = file có cột "Bỏ theo dõi": khi đó cột đó là trạng thái, ô trống nghĩa là dùng lại
+  var coBo = p.coBo === true;
   all.forEach(function (x) {
     if (muon[x.ma] === undefined) return;
     thay[x.ma] = 1;
-    var moi = muon[x.ma];
-    if (String(x.tonMin) === String(moi)) { tk.giu++; return; }
-    if (moi === '') tk.xoa++; else tk.dat++;
-    x.tonMin = moi; x.cn = luc;
+    var m = moTa[x.ma], doi = false;
+    // Quy cách / đơn vị: chỉ điền khi kho đang để trống, không ghi đè số liệu từ ERP
+    if (!x.qc && m.qc && m.qc !== x.ma) { x.qc = m.qc; doi = true; tk.moTa++; }
+    if (!x.dv && m.dv) { x.dv = m.dv; doi = true; }
+    if (coBo && !!x.an !== m.bo) { x.an = m.bo ? 1 : 0; doi = true; if (m.bo) tk.bo++; else tk.dungLai++; }
+    var moi = m.bo && coBo ? '' : muon[x.ma];
+    if (String(x.tonMin) !== String(moi)) {
+      if (moi === '') tk.xoa++; else tk.dat++;
+      x.tonMin = moi; doi = true;
+    } else if (!doi) { tk.giu++; return; }
+    x.cn = luc;
   });
   // Mã chưa có trong kho: file ERP chỉ xuất dòng CÒN TỒN, nên thứ đã hết sạch thường không có trong đó.
   // Thêm vào kho với tồn 0 (ConFile = 0: ngoài file ERP) để còn nhắc mua; lần nhập ERP sau có hàng thì tự cập nhật.
@@ -2039,13 +2048,14 @@ function nhapTonMin(u, p) {
   Object.keys(muon).forEach(function (ma) {
     if (thay[ma]) return;
     thieu.push(ma);
-    if (!themMoi || muon[ma] === '') return;
-    all.push({ ma: ma, ten: tenFile[ma] || ma, qc: '', dv: '', nh: '', ton: 0, vt: [], ng: 'ERP', cf: 0, cn: luc,
+    var m = moTa[ma];
+    if (!themMoi || muon[ma] === '' || (coBo && m.bo)) return;
+    all.push({ ma: ma, ten: m.ten || ma, qc: m.qc && m.qc !== ma ? m.qc : '', dv: m.dv, nh: '', ton: 0, vt: [], ng: 'ERP', cf: 0, cn: luc,
       gc: 'Thêm từ file tồn an toàn · 从安全库存文件添加', gop: '', an: 0, tonMin: muon[ma], tonCu: [] });
     tk.them++;
   });
   tk.khongThay = thieu.length;
-  if (tk.dat || tk.xoa || tk.them) {
+  if (tk.dat || tk.xoa || tk.them || tk.moTa || tk.bo || tk.dungLai) {
     var sh = trang('KhoLK'), rows = all.map(khoThanhDong), dd = dinhDang('KhoLK');
     if (rows.length + 1 > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), rows.length + 1 - sh.getMaxRows() + 200);
     if (rows.length) sh.getRange(2, 1, rows.length, BANG.KhoLK.length).setNumberFormats(rows.map(function () { return dd; })).setValues(rows);
@@ -2054,7 +2064,8 @@ function nhapTonMin(u, p) {
     ghiKhoMeta(meta);
   }
   ghiNhatKy(u, 'NHAP_TON_AN_TOAN', 'KhoLK', '', catChu(p.file, 120),
-    tk.dat + ' đặt · ' + tk.xoa + ' xoá · ' + tk.them + ' thêm mới · ' + tk.khongThay + ' không có trong kho', '');
+    tk.dat + ' đặt · ' + tk.xoa + ' xoá · ' + tk.them + ' thêm mới · ' + tk.bo + ' bỏ theo dõi · ' + tk.moTa + ' thêm quy cách · '
+    + tk.khongThay + ' không có trong kho', '');
   return { ver: docKhoMeta().ver, tk: tk, thieu: thieu.slice(0, 300), ds: all.map(sachKho) };
 }
 // Ngưỡng chung "gần hết hàng" (mặc định 1): dùng cho linh kiện chưa đặt tồn tối thiểu riêng
@@ -2079,9 +2090,9 @@ function luuKhoCfg(u, p) {
 function luuKho(u, p) {
   var ma = s(p.ma), x = docKho().filter(function (r) { return r.ma === ma; })[0];
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
-  // Tồn tối thiểu đặt được cho mọi linh kiện; tên / quy cách / đơn vị của linh kiện ERP thì sửa trong ERP
-  var chiMin = p.tonMin !== undefined && p.ten === undefined && p.qc === undefined && p.dv === undefined && p.an === undefined;
-  if (x.ng !== 'APP' && !chiMin) throw loi('KHO_ERP', 'Linh kiện từ file ERP · ERP零件');
+  // Tồn tối thiểu và bỏ theo dõi đặt được cho mọi linh kiện; tên / quy cách / đơn vị của linh kiện ERP thì sửa trong ERP
+  var chiMinAn = p.ten === undefined && p.qc === undefined && p.dv === undefined;
+  if (x.ng !== 'APP' && !chiMinAn) throw loi('KHO_ERP', 'Linh kiện từ file ERP · ERP零件');
   capNhatTieuDe('KhoLK');
   if (p.tonMin !== undefined) {
     var mn = soHoacRong(p.tonMin);
@@ -2092,7 +2103,10 @@ function luuKho(u, p) {
   if (p.ten !== undefined) { var ten = catChu(p.ten, 160); if (!ten) throw loi('THIEU_TEN', 'Chưa nhập tên · 请输入名称'); x.ten = ten; }
   if (p.qc !== undefined) x.qc = catChu(p.qc, 200);
   if (p.dv !== undefined) x.dv = catChu(p.dv, 12);
-  if (p.an !== undefined) x.an = p.an ? 1 : 0;
+  if (p.an !== undefined && !!x.an !== !!p.an) {
+    x.an = p.an ? 1 : 0;
+    ghiNhatKy(u, p.an ? 'BO_THEO_DOI_LK' : 'DUNG_LAI_LK', 'KhoLK', x.ma, '', x.ten, catChu(p.lyDo, 200));
+  }
   x.cn = thoiGianStr();
   suaDong('KhoLK', x._r, khoThanhDong(x));
   var meta = docKhoMeta(), truoc = meta.ver || '';

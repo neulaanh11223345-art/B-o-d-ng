@@ -1229,3 +1229,52 @@ test('mức báo thiếu theo phần trăm tồn kho an toàn: mặc định 15%
   assert.equal(sau.khoGanHet, 2);
   assert.equal(sau.khoPhanTram, 30);
 });
+
+test('tồn kho an toàn: lấy quy cách, đơn vị từ file khi kho còn trống; bỏ theo dõi mã không dùng nữa', () => {
+  const b = setup();
+  ok(b.call('importKho', { file: 'erp.xlsx', soDong: 2, ds: [
+    { ma: 'A1', ten: 'Ống khí', qc: 'φ12', dv: 'm', ton: 9 },
+    { ma: 'A2', ten: 'Hộp ổ cắm', qc: '', dv: '', ton: 4 }] }, b.ql));
+
+  // Quy cách của A1 đã có trong ERP thì giữ nguyên; A2 trống thì lấy từ file
+  const r = ok(b.call('importMin', { file: 'dp.xlsm', ds: [
+    { ma: 'A1', tonMin: 20, qc: 'φ20 (sai)', dv: 'cái' },
+    { ma: 'A2', tonMin: 5, qc: 'HOC001', dv: 'Cái' },
+    { ma: 'B1', tonMin: 3, ten: 'Đầu bơm hơi', qc: 'φ8', dv: 'Cái' }] }, b.ql));
+  const by = {};
+  r.ds.forEach((x) => { by[x.ma] = x; });
+  assert.equal(by.A1.qc, 'φ12', 'không ghi đè quy cách đã có từ ERP');
+  assert.equal(by.A1.dv, 'm');
+  assert.equal(by.A2.qc, 'HOC001', 'kho trống quy cách thì lấy theo file');
+  assert.equal(by.A2.dv, 'Cái');
+  assert.equal(by.B1.qc, 'φ8', 'mã mới thêm cũng có quy cách và đơn vị');
+  assert.equal(by.B1.dv, 'Cái');
+  assert.equal(r.tk.moTa, 1);
+
+  // Bỏ theo dõi: ẩn khỏi kho và bỏ luôn tồn an toàn
+  const r2 = ok(b.call('importMin', { file: 'dp2.xlsm', coBo: true, ds: [
+    { ma: 'A1', tonMin: 20, bo: false }, { ma: 'A2', tonMin: 5, bo: true }] }, b.ql));
+  const by2 = {};
+  r2.ds.forEach((x) => { by2[x.ma] = x; });
+  assert.equal(r2.tk.bo, 1);
+  assert.equal(by2.A2.an, 1, 'đã ẩn khỏi danh sách kho');
+  assert.equal(by2.A2.tonMin, undefined, 'bỏ luôn tồn an toàn');
+  assert.equal(by2.A1.an, undefined, 'mã không đánh dấu thì giữ nguyên');
+
+  // Dùng lại: bỏ dấu x trong file rồi nhập lại
+  const r3 = ok(b.call('importMin', { file: 'dp3.xlsm', coBo: true, ds: [{ ma: 'A2', tonMin: 5, bo: false }] }, b.ql));
+  assert.equal(r3.tk.dungLai, 1);
+  assert.equal(r3.ds.find((x) => x.ma === 'A2').an, undefined);
+
+  // File không có cột "Bỏ theo dõi" thì không đụng tới trạng thái ẩn
+  ok(b.call('saveKho', { ma: 'A2', an: true }, b.ql));
+  const r4 = ok(b.call('importMin', { file: 'dp4.xlsm', ds: [{ ma: 'A2', tonMin: 7 }] }, b.ql));
+  assert.equal(r4.ds.find((x) => x.ma === 'A2').an, 1, 'không có cột bỏ thì giữ nguyên trạng thái');
+
+  // Bỏ theo dõi ngay trong app, kể cả linh kiện từ file ERP
+  const r5 = ok(b.call('saveKho', { ma: 'A1', an: true }, b.ql));
+  assert.equal(r5.kho.ds[0].an, 1);
+  assert.equal(ok(b.call('saveKho', { ma: 'A1', an: false }, b.ql)).kho.ds[0].an, undefined);
+  // Nhưng vẫn không cho sửa tên / quy cách của linh kiện ERP trong app
+  err(b.call('saveKho', { ma: 'A1', ten: 'Đổi tên' }, b.ql), 'KHO_ERP');
+});
