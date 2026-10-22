@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.12.0';
+var PHIEN_BAN = '2.13.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -48,7 +48,11 @@ var BANG = {
   // NgoaiLe (JSON): {loai: GIAM_THAY_CT | GIAM_QUAY_VONG | GIAM_KHAC | CAO | THAP, lyDo, pct, csCuCuoi, csMoiDau, duyet}
   ChiSo: ['ID', 'Ky', 'MaCT', 'GiaTri', 'NguoiGhi', 'ThoiGian', 'GhiChu', 'UID', 'TrangThai', 'OpId', 'SuaLuc',
     'KyTruoc', 'CSTruoc', 'TieuThuKy', 'TieuThu', 'LucGhi', 'Anh', 'NgoaiLe', 'NguoiSua', 'Nguon'],
-  KhoLK: ['Ma', 'Ten', 'QuyCach', 'Dv', 'Nhom', 'Ton', 'ViTri', 'Nguon', 'ConFile', 'CapNhat', 'GhiChu', 'GopVao', 'An', 'TonMin'],
+  // TonCu: tồn của chính mã này qua 12 lần nhập file gần nhất, cũ → mới, cách nhau dấu phẩy (lần cuối = tồn hiện tại).
+  // Mốc thời gian của các lần nhập lưu chung ở KHO_META.moc, nên mỗi dòng chỉ giữ dãy số cho nhẹ.
+  KhoLK: ['Ma', 'Ten', 'QuyCach', 'Dv', 'Nhom', 'Ton', 'ViTri', 'Nguon', 'ConFile', 'CapNhat', 'GhiChu', 'GopVao', 'An', 'TonMin', 'TonCu'],
+  // Nhật ký nhập file kho: mỗi lần nhập một dòng, giữ lại hết để đối chiếu về sau
+  NhapKho: ['ID', 'Luc', 'Nguoi', 'File', 'SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop', 'Ver'],
   // Nhật ký sửa đổi (audit): giá trị trước / sau, người sửa, thời gian, lý do
   NhatKy: ['ID', 'ThoiGian', 'UID', 'Nguoi', 'HanhDong', 'Bang', 'Khoa', 'Truoc', 'Sau', 'LyDo'],
   // Công việc giao cho nhân viên (chỉ người có tài khoản trong app). ID do máy tạo việc sinh ra (ghi được khi chưa có mạng).
@@ -83,7 +87,8 @@ var BANG = {
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
-  NguoiTruc: ['ThuTu', 'HoatDong'] };
+  NguoiTruc: ['ThuTu', 'HoatDong'],
+  NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
 
@@ -116,7 +121,7 @@ var QUYEN = {
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
   'saveOT', 'deleteOT', 'saveProfile', 'saveOTCfg',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
-  'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
+  'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople'];
@@ -132,6 +137,7 @@ var CAI_DAT_MAC_DINH = {
   sanLuong: {},                      // { 'yyyy-mm': số sản phẩm của tháng } để tính điện trên 1.000 sản phẩm
   dvSanLuong: 'sản phẩm',
   nguongTang: 50, nguongGiam: 50,    // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
+  khoGanHet: 1,                      // tồn còn bao nhiêu thì coi là GẦN HẾT (linh kiện có tồn tối thiểu riêng thì theo số riêng)
   // Ca làm việc ghi trên đơn tăng ca (mẫu giấy 自愿加班申请单). Giờ chỉ là gợi ý điền sẵn, Quản lý sửa trong app.
   caTangCa: [
     { k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' },
@@ -306,6 +312,7 @@ function dieuHuong(a, p, req) {
     case 'catalog': canQuyen(u, 'xemhet'); return layKho();
     case 'importKho': canQuyen(u, 'may'); return nhapKho(u, p);
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
+    case 'saveKhoCfg': canQuyen(u, 'may'); return luuKhoCfg(u, p);
     case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
     case 'saveOT': return luuTangCa(u, p, s(req.opId));
@@ -678,7 +685,8 @@ function luuCaTangCa(u, p) {
   });
   if (!ds.length) throw loi('CAN_CA', 'Cần ít nhất một ca làm việc · 至少需要一个班次');
   var th = Math.round(Number(p.gioTCThang)), nam = Math.round(Number(p.gioTCNam));
-  var cd = { caTangCa: ds };
+  var cd = docCaiDat();          // đọc rồi sửa, không ghi đè cả khối cài đặt
+  cd.caTangCa = ds;
   if (th > 0 && th <= 400) cd.gioTCThang = th;
   if (nam > 0 && nam <= 2000) cd.gioTCNam = nam;
   ghiCaiDat(cd);
@@ -712,9 +720,9 @@ function layDuLieu(u) {
     chiSo: docChiSo().filter(function (x) { return x.ky >= tu && x.trangThai !== 'HUY'; }).map(sachCS),
     caiDat: coQuyen(u, 'may')
       ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam }
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet }
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam },
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet },
     taiLieu: tlChoNguoi(u),
     tlInfo: coQuyen(u, 'tailieu') ? tlThongTinNhe() : null,
     khoaKy: docKhoaKy(),
@@ -1793,6 +1801,7 @@ function maMoi(ds) {
 // Linh kiện của máy và linh kiện đã thay trong LichSu.ChiTiet gắn với kho qua trường maKho.
 var KHO_META = 'KHO_META';
 var KHO_TOI_DA = 20000;
+var KHO_MOC_TOI_DA = 12;     // nhớ tồn của 12 lần nhập file gần nhất cho mỗi mã
 function maKhoHopLe(v) { v = s(v); return v && v.length <= 40 && !/[\s"'<>]/.test(v) ? v : ''; }
 function boDau(v) {
   var t = s(v).toLowerCase();
@@ -1805,13 +1814,17 @@ function khoTuDong(r, i) {
   return {
     ma: s(r[0]), ten: s(r[1]), qc: s(r[2]), dv: s(r[3]), nh: s(r[4]), ton: ton === '' ? '' : (Number(ton) || 0),
     vt: docJson(r[6], []), ng: s(r[7]) === 'APP' ? 'APP' : 'ERP', cf: s(r[8]) === '1' ? 1 : 0, cn: tgStr(r[9]),
-    gc: s(r[10]), gop: s(r[11]), an: s(r[12]) === '1' ? 1 : 0, tonMin: soHoacRong(r[13]), _r: i + 2
+    gc: s(r[10]), gop: s(r[11]), an: s(r[12]) === '1' ? 1 : 0, tonMin: soHoacRong(r[13]), tonCu: khoDayTon(r[14]), _r: i + 2
   };
 }
 function khoThanhDong(x) {
   return [anToan(x.ma), anToan(x.ten), anToan(x.qc), anToan(x.dv), anToan(x.nh), x.ton === '' ? '' : String(x.ton),
     x.vt && x.vt.length ? JSON.stringify(x.vt) : '', x.ng, x.cf ? '1' : '0', x.cn, anToan(x.gc), x.gop || '', x.an ? '1' : '',
-    x.tonMin === '' || x.tonMin === undefined ? '' : String(x.tonMin)];
+    x.tonMin === '' || x.tonMin === undefined ? '' : String(x.tonMin), (x.tonCu || []).join(',')];
+}
+// "5,4,0,3" → [5, 4, 0, 3]; bỏ ô trống và số hỏng
+function khoDayTon(v) {
+  return s(v).split(',').map(function (t) { return Number(t); }).filter(function (n) { return isFinite(n); }).slice(-KHO_MOC_TOI_DA);
 }
 // Gửi về máy: bỏ trường trống cho gọn
 function sachKho(x) {
@@ -1827,6 +1840,7 @@ function sachKho(x) {
   if (x.gop) o.gop = x.gop;
   if (x.an) o.an = 1;
   if (x.tonMin !== '' && x.tonMin !== undefined) o.tonMin = x.tonMin;
+  if (x.tonCu && x.tonCu.length) o.tonCu = x.tonCu;
   return o;
 }
 function docKho() { return docTho('KhoLK').map(khoTuDong).filter(function (x) { return x.ma; }); }
@@ -1840,8 +1854,14 @@ function verMoi() { return Utilities.formatDate(bayGio(), TZ, 'yyyyMMddHHmmss') 
 function khoHien(x) { return !x.an && !x.gop; }
 function layKho() {
   var m = docKhoMeta();
-  return { ver: m.ver || '', nhap: m.nhap || null, ds: docKho().map(sachKho) };
+  return { ver: m.ver || '', nhap: m.nhap || null, moc: m.moc || [], nhatKy: docNhapKho().slice(-24).reverse(), ds: docKho().map(sachKho) };
 }
+// Nhật ký nhập file kho
+function nkTuDong(r) {
+  return { id: s(r[0]), luc: tgStr(r[1]), nguoi: s(r[2]), file: s(r[3]), soDong: Number(r[4]) || 0, soMa: Number(r[5]) || 0,
+    moi: Number(r[6]) || 0, doiTon: Number(r[7]) || 0, het: Number(r[8]) || 0, veLai: Number(r[9]) || 0, gop: Number(r[10]) || 0, ver: s(r[11]) };
+}
+function docNhapKho() { return docTho('NhapKho').map(nkTuDong).filter(function (x) { return x.id; }); }
 function ghiChuThem(ma, u) { return 'Thêm từ máy · 从设备添加 ' + ma + ' · ' + u.ten + ' · ' + ngayVN(homNayStr()); }
 
 // Nạp kho một lần cho mỗi yêu cầu: tra theo mã và theo tên + quy cách
@@ -1958,6 +1978,12 @@ function nhapKho(u, p) {
     if (doi) { m.capNhat = luc; suaDong('May', m._r, mayThanhDong(m)); dsMayDoi.push(sachMay(m)); }
   });
   tk.themApp = c.moi.length;
+  // Ghi nhớ tồn của lần nhập này cho từng mã (12 lần gần nhất) để lần sau còn nhắc thiếu hàng, gần hết hàng.
+  // Mã không có trong file lần này coi như tồn 0. Linh kiện gõ tay trong app không theo file nên không ghi.
+  c.all.forEach(function (x) {
+    if (x.ng !== 'ERP') return;
+    x.tonCu = (x.tonCu || []).concat([x.ton === '' ? 0 : x.ton]).slice(-KHO_MOC_TOI_DA);
+  });
   // Ghi lại cả trang một lần (nhanh hơn ghi từng dòng)
   var sh = trang('KhoLK'), rows = c.all.map(khoThanhDong), cot = BANG.KhoLK.length;
   var cu = Math.max(soCu, sh.getLastRow() - 1);
@@ -1969,8 +1995,24 @@ function nhapKho(u, p) {
   meta.ver = verMoi(); meta.n = c.all.filter(khoHien).length;
   meta.nhap = { luc: luc, file: catChu(p.file, 120), nguoi: u.ten, soDong: Math.round(Number(p.soDong)) || 0,
     soMa: tk.soMa, moi: tk.moi, doiTon: tk.doiTon, het: tk.het, veLai: tk.veLai, gop: tk.gop };
+  // Mốc của 12 lần nhập gần nhất, khớp thứ tự với dãy TonCu của từng mã
+  meta.moc = (Array.isArray(meta.moc) ? meta.moc : []).concat([{ luc: luc, file: catChu(p.file, 60) }]).slice(-KHO_MOC_TOI_DA);
   ghiKhoMeta(meta);
-  return { ver: meta.ver, nhap: meta.nhap, tk: tk, ds: c.all.map(sachKho), dsMay: dsMayDoi };
+  // Nhật ký: mỗi lần nhập một dòng, giữ lại hết
+  capNhatTieuDe('NhapKho');
+  themDong('NhapKho', [idMoi('NK', dsIdCo(docNhapKho())), luc, anToan(u.ten), anToan(meta.nhap.file), meta.nhap.soDong,
+    tk.soMa, tk.moi, tk.doiTon, tk.het, tk.veLai, tk.gop, meta.ver]);
+  return { ver: meta.ver, nhap: meta.nhap, moc: meta.moc, tk: tk, ds: c.all.map(sachKho), dsMay: dsMayDoi };
+}
+// Ngưỡng chung "gần hết hàng" (mặc định 1): dùng cho linh kiện chưa đặt tồn tối thiểu riêng
+function luuKhoCfg(u, p) {
+  var n = soHoacRong(p.ganHet);
+  if (n === '' || !(n >= 0 && n <= 1000)) throw loi('SO_SAI', 'Ngưỡng gần hết phải từ 0 đến 1000 · 临界库存须在0–1000之间');
+  var c = docCaiDat(), truoc = c.khoGanHet;
+  c.khoGanHet = n;
+  ghiCaiDat(c);
+  ghiNhatKy(u, 'SUA_NGUONG_KHO', 'CaiDat', 'khoGanHet', truoc, n, '');
+  return { caiDat: { khoGanHet: n } };
 }
 // Sửa / ẩn linh kiện thêm trong app (linh kiện từ ERP thì sửa trong ERP rồi nhập lại file)
 function luuKho(u, p) {
@@ -3728,7 +3770,7 @@ function mauKiemTra() {
 // Chạy hàm này một lần trong trình soạn Apps Script (nó cũng hỏi cấp quyền).
 function caiDatBanDau() {
   ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'CongViec', 'ViecLap', 'Chuyen', 'TangCa',
-    'LichTruc', 'NguoiTruc', 'PhanCa'].forEach(trang);
+    'LichTruc', 'NguoiTruc', 'PhanCa', 'NhapKho'].forEach(trang);
   thuocTinh('SALT'); thuocTinh('TOKEN_KEY');
   if (!dsNguoiDung().length) {
     var bay = thoiGianStr();

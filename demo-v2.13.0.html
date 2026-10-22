@@ -1330,7 +1330,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.12.0";
+const APP_VER = "2.13.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1728,7 +1728,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.12.0';
+var PHIEN_BAN = '2.13.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1759,7 +1759,11 @@ var BANG = {
   // NgoaiLe (JSON): {loai: GIAM_THAY_CT | GIAM_QUAY_VONG | GIAM_KHAC | CAO | THAP, lyDo, pct, csCuCuoi, csMoiDau, duyet}
   ChiSo: ['ID', 'Ky', 'MaCT', 'GiaTri', 'NguoiGhi', 'ThoiGian', 'GhiChu', 'UID', 'TrangThai', 'OpId', 'SuaLuc',
     'KyTruoc', 'CSTruoc', 'TieuThuKy', 'TieuThu', 'LucGhi', 'Anh', 'NgoaiLe', 'NguoiSua', 'Nguon'],
-  KhoLK: ['Ma', 'Ten', 'QuyCach', 'Dv', 'Nhom', 'Ton', 'ViTri', 'Nguon', 'ConFile', 'CapNhat', 'GhiChu', 'GopVao', 'An', 'TonMin'],
+  // TonCu: tồn của chính mã này qua 12 lần nhập file gần nhất, cũ → mới, cách nhau dấu phẩy (lần cuối = tồn hiện tại).
+  // Mốc thời gian của các lần nhập lưu chung ở KHO_META.moc, nên mỗi dòng chỉ giữ dãy số cho nhẹ.
+  KhoLK: ['Ma', 'Ten', 'QuyCach', 'Dv', 'Nhom', 'Ton', 'ViTri', 'Nguon', 'ConFile', 'CapNhat', 'GhiChu', 'GopVao', 'An', 'TonMin', 'TonCu'],
+  // Nhật ký nhập file kho: mỗi lần nhập một dòng, giữ lại hết để đối chiếu về sau
+  NhapKho: ['ID', 'Luc', 'Nguoi', 'File', 'SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop', 'Ver'],
   // Nhật ký sửa đổi (audit): giá trị trước / sau, người sửa, thời gian, lý do
   NhatKy: ['ID', 'ThoiGian', 'UID', 'Nguoi', 'HanhDong', 'Bang', 'Khoa', 'Truoc', 'Sau', 'LyDo'],
   // Công việc giao cho nhân viên (chỉ người có tài khoản trong app). ID do máy tạo việc sinh ra (ghi được khi chưa có mạng).
@@ -1794,7 +1798,8 @@ var BANG = {
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
-  NguoiTruc: ['ThuTu', 'HoatDong'] };
+  NguoiTruc: ['ThuTu', 'HoatDong'],
+  NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
 
@@ -1827,7 +1832,7 @@ var QUYEN = {
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
   'saveOT', 'deleteOT', 'saveProfile', 'saveOTCfg',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
-  'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho',
+  'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople'];
@@ -1843,6 +1848,7 @@ var CAI_DAT_MAC_DINH = {
   sanLuong: {},                      // { 'yyyy-mm': số sản phẩm của tháng } để tính điện trên 1.000 sản phẩm
   dvSanLuong: 'sản phẩm',
   nguongTang: 50, nguongGiam: 50,    // % lệch bình quân ngày so với 3 kỳ trước → cảnh báo bất thường
+  khoGanHet: 1,                      // tồn còn bao nhiêu thì coi là GẦN HẾT (linh kiện có tồn tối thiểu riêng thì theo số riêng)
   // Ca làm việc ghi trên đơn tăng ca (mẫu giấy 自愿加班申请单). Giờ chỉ là gợi ý điền sẵn, Quản lý sửa trong app.
   caTangCa: [
     { k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' },
@@ -2017,6 +2023,7 @@ function dieuHuong(a, p, req) {
     case 'catalog': canQuyen(u, 'xemhet'); return layKho();
     case 'importKho': canQuyen(u, 'may'); return nhapKho(u, p);
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
+    case 'saveKhoCfg': canQuyen(u, 'may'); return luuKhoCfg(u, p);
     case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
     case 'saveOT': return luuTangCa(u, p, s(req.opId));
@@ -2389,7 +2396,8 @@ function luuCaTangCa(u, p) {
   });
   if (!ds.length) throw loi('CAN_CA', 'Cần ít nhất một ca làm việc · 至少需要一个班次');
   var th = Math.round(Number(p.gioTCThang)), nam = Math.round(Number(p.gioTCNam));
-  var cd = { caTangCa: ds };
+  var cd = docCaiDat();          // đọc rồi sửa, không ghi đè cả khối cài đặt
+  cd.caTangCa = ds;
   if (th > 0 && th <= 400) cd.gioTCThang = th;
   if (nam > 0 && nam <= 2000) cd.gioTCNam = nam;
   ghiCaiDat(cd);
@@ -2423,9 +2431,9 @@ function layDuLieu(u) {
     chiSo: docChiSo().filter(function (x) { return x.ky >= tu && x.trangThai !== 'HUY'; }).map(sachCS),
     caiDat: coQuyen(u, 'may')
       ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam }
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet }
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam },
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet },
     taiLieu: tlChoNguoi(u),
     tlInfo: coQuyen(u, 'tailieu') ? tlThongTinNhe() : null,
     khoaKy: docKhoaKy(),
@@ -3504,6 +3512,7 @@ function maMoi(ds) {
 // Linh kiện của máy và linh kiện đã thay trong LichSu.ChiTiet gắn với kho qua trường maKho.
 var KHO_META = 'KHO_META';
 var KHO_TOI_DA = 20000;
+var KHO_MOC_TOI_DA = 12;     // nhớ tồn của 12 lần nhập file gần nhất cho mỗi mã
 function maKhoHopLe(v) { v = s(v); return v && v.length <= 40 && !/[\s"'<>]/.test(v) ? v : ''; }
 function boDau(v) {
   var t = s(v).toLowerCase();
@@ -3516,13 +3525,17 @@ function khoTuDong(r, i) {
   return {
     ma: s(r[0]), ten: s(r[1]), qc: s(r[2]), dv: s(r[3]), nh: s(r[4]), ton: ton === '' ? '' : (Number(ton) || 0),
     vt: docJson(r[6], []), ng: s(r[7]) === 'APP' ? 'APP' : 'ERP', cf: s(r[8]) === '1' ? 1 : 0, cn: tgStr(r[9]),
-    gc: s(r[10]), gop: s(r[11]), an: s(r[12]) === '1' ? 1 : 0, tonMin: soHoacRong(r[13]), _r: i + 2
+    gc: s(r[10]), gop: s(r[11]), an: s(r[12]) === '1' ? 1 : 0, tonMin: soHoacRong(r[13]), tonCu: khoDayTon(r[14]), _r: i + 2
   };
 }
 function khoThanhDong(x) {
   return [anToan(x.ma), anToan(x.ten), anToan(x.qc), anToan(x.dv), anToan(x.nh), x.ton === '' ? '' : String(x.ton),
     x.vt && x.vt.length ? JSON.stringify(x.vt) : '', x.ng, x.cf ? '1' : '0', x.cn, anToan(x.gc), x.gop || '', x.an ? '1' : '',
-    x.tonMin === '' || x.tonMin === undefined ? '' : String(x.tonMin)];
+    x.tonMin === '' || x.tonMin === undefined ? '' : String(x.tonMin), (x.tonCu || []).join(',')];
+}
+// "5,4,0,3" → [5, 4, 0, 3]; bỏ ô trống và số hỏng
+function khoDayTon(v) {
+  return s(v).split(',').map(function (t) { return Number(t); }).filter(function (n) { return isFinite(n); }).slice(-KHO_MOC_TOI_DA);
 }
 // Gửi về máy: bỏ trường trống cho gọn
 function sachKho(x) {
@@ -3538,6 +3551,7 @@ function sachKho(x) {
   if (x.gop) o.gop = x.gop;
   if (x.an) o.an = 1;
   if (x.tonMin !== '' && x.tonMin !== undefined) o.tonMin = x.tonMin;
+  if (x.tonCu && x.tonCu.length) o.tonCu = x.tonCu;
   return o;
 }
 function docKho() { return docTho('KhoLK').map(khoTuDong).filter(function (x) { return x.ma; }); }
@@ -3551,8 +3565,14 @@ function verMoi() { return Utilities.formatDate(bayGio(), TZ, 'yyyyMMddHHmmss') 
 function khoHien(x) { return !x.an && !x.gop; }
 function layKho() {
   var m = docKhoMeta();
-  return { ver: m.ver || '', nhap: m.nhap || null, ds: docKho().map(sachKho) };
+  return { ver: m.ver || '', nhap: m.nhap || null, moc: m.moc || [], nhatKy: docNhapKho().slice(-24).reverse(), ds: docKho().map(sachKho) };
 }
+// Nhật ký nhập file kho
+function nkTuDong(r) {
+  return { id: s(r[0]), luc: tgStr(r[1]), nguoi: s(r[2]), file: s(r[3]), soDong: Number(r[4]) || 0, soMa: Number(r[5]) || 0,
+    moi: Number(r[6]) || 0, doiTon: Number(r[7]) || 0, het: Number(r[8]) || 0, veLai: Number(r[9]) || 0, gop: Number(r[10]) || 0, ver: s(r[11]) };
+}
+function docNhapKho() { return docTho('NhapKho').map(nkTuDong).filter(function (x) { return x.id; }); }
 function ghiChuThem(ma, u) { return 'Thêm từ máy · 从设备添加 ' + ma + ' · ' + u.ten + ' · ' + ngayVN(homNayStr()); }
 
 // Nạp kho một lần cho mỗi yêu cầu: tra theo mã và theo tên + quy cách
@@ -3669,6 +3689,12 @@ function nhapKho(u, p) {
     if (doi) { m.capNhat = luc; suaDong('May', m._r, mayThanhDong(m)); dsMayDoi.push(sachMay(m)); }
   });
   tk.themApp = c.moi.length;
+  // Ghi nhớ tồn của lần nhập này cho từng mã (12 lần gần nhất) để lần sau còn nhắc thiếu hàng, gần hết hàng.
+  // Mã không có trong file lần này coi như tồn 0. Linh kiện gõ tay trong app không theo file nên không ghi.
+  c.all.forEach(function (x) {
+    if (x.ng !== 'ERP') return;
+    x.tonCu = (x.tonCu || []).concat([x.ton === '' ? 0 : x.ton]).slice(-KHO_MOC_TOI_DA);
+  });
   // Ghi lại cả trang một lần (nhanh hơn ghi từng dòng)
   var sh = trang('KhoLK'), rows = c.all.map(khoThanhDong), cot = BANG.KhoLK.length;
   var cu = Math.max(soCu, sh.getLastRow() - 1);
@@ -3680,8 +3706,24 @@ function nhapKho(u, p) {
   meta.ver = verMoi(); meta.n = c.all.filter(khoHien).length;
   meta.nhap = { luc: luc, file: catChu(p.file, 120), nguoi: u.ten, soDong: Math.round(Number(p.soDong)) || 0,
     soMa: tk.soMa, moi: tk.moi, doiTon: tk.doiTon, het: tk.het, veLai: tk.veLai, gop: tk.gop };
+  // Mốc của 12 lần nhập gần nhất, khớp thứ tự với dãy TonCu của từng mã
+  meta.moc = (Array.isArray(meta.moc) ? meta.moc : []).concat([{ luc: luc, file: catChu(p.file, 60) }]).slice(-KHO_MOC_TOI_DA);
   ghiKhoMeta(meta);
-  return { ver: meta.ver, nhap: meta.nhap, tk: tk, ds: c.all.map(sachKho), dsMay: dsMayDoi };
+  // Nhật ký: mỗi lần nhập một dòng, giữ lại hết
+  capNhatTieuDe('NhapKho');
+  themDong('NhapKho', [idMoi('NK', dsIdCo(docNhapKho())), luc, anToan(u.ten), anToan(meta.nhap.file), meta.nhap.soDong,
+    tk.soMa, tk.moi, tk.doiTon, tk.het, tk.veLai, tk.gop, meta.ver]);
+  return { ver: meta.ver, nhap: meta.nhap, moc: meta.moc, tk: tk, ds: c.all.map(sachKho), dsMay: dsMayDoi };
+}
+// Ngưỡng chung "gần hết hàng" (mặc định 1): dùng cho linh kiện chưa đặt tồn tối thiểu riêng
+function luuKhoCfg(u, p) {
+  var n = soHoacRong(p.ganHet);
+  if (n === '' || !(n >= 0 && n <= 1000)) throw loi('SO_SAI', 'Ngưỡng gần hết phải từ 0 đến 1000 · 临界库存须在0–1000之间');
+  var c = docCaiDat(), truoc = c.khoGanHet;
+  c.khoGanHet = n;
+  ghiCaiDat(c);
+  ghiNhatKy(u, 'SUA_NGUONG_KHO', 'CaiDat', 'khoGanHet', truoc, n, '');
+  return { caiDat: { khoGanHet: n } };
 }
 // Sửa / ẩn linh kiện thêm trong app (linh kiện từ ERP thì sửa trong ERP rồi nhập lại file)
 function luuKho(u, p) {
@@ -5439,7 +5481,7 @@ function mauKiemTra() {
 // Chạy hàm này một lần trong trình soạn Apps Script (nó cũng hỏi cấp quyền).
 function caiDatBanDau() {
   ['May', 'LichSu', 'NguoiDung', 'CongTo', 'ChiSo', 'NhatKy', 'CongViec', 'ViecLap', 'Chuyen', 'TangCa',
-    'LichTruc', 'NguoiTruc', 'PhanCa'].forEach(trang);
+    'LichTruc', 'NguoiTruc', 'PhanCa', 'NhapKho'].forEach(trang);
   thuocTinh('SALT'); thuocTinh('TOKEN_KEY');
   if (!dsNguoiDung().length) {
     var bay = thoiGianStr();
@@ -5797,11 +5839,49 @@ var MAU_KHO = [
 {"ma":"608060263","ten":"交流接触器","qc":"LC1D65M7C 220V 50*60HZ 55KW-380V","dv":"只","nh":"608","ton":3,"vt":[["越-备品备件仓2","DD34",3]]},
 {"ma":"607030024","ten":"气缸","qc":"TN-20*200-S","dv":"只","nh":"607","ton":2,"vt":[["越-备品备件仓2","EA23",2]]}
 ];
+// Ba lần nhập file kho để có lịch sử tồn: app so được tồn lần này với lần trước và nhắc thiếu hàng
 function mauKho() {
   if (docKho().length) return;
-  nhapKho({ ten: 'Quản lý' }, { file: '20260926ERP.xlsx (mẫu · 样本)', soDong: 203, ds: MAU_KHO });
-  var meta = docKhoMeta();
-  if (meta.nhap) { meta.nhap.luc = '2026-09-26 16:30:00'; ghiKhoMeta(meta); }
+  var ql = { ten: 'Quản lý' };
+  var moc = ['2026-09-05 16:20:00', '2026-09-15 16:10:00', '2026-09-26 16:30:00'];
+  var ten = ['20260905ERP.xlsx (mẫu · 样本)', '20260915ERP.xlsx (mẫu · 样本)', '20260926ERP.xlsx (mẫu · 样本)'];
+  function nhap(i, dat) {
+    var ds = MAU_KHO.map(function (x) {
+      var o = {}, k;
+      for (k in x) o[k] = x[k];
+      if (dat[o.ma] !== undefined) {
+        var v0 = (x.vt && x.vt[0]) || ['越-备品备件仓', '', 0];
+        o.ton = dat[o.ma];
+        o.vt = o.ton ? [[v0[0], v0[1], o.ton]] : [];
+      }
+      return o;
+    });
+    nhapKho(ql, { file: ten[i], soDong: ds.length + 32, ds: ds });
+    var meta = docKhoMeta();
+    if (meta.nhap) meta.nhap.luc = moc[i];
+    if (meta.moc && meta.moc.length) meta.moc[meta.moc.length - 1].luc = moc[i];
+    ghiKhoMeta(meta);
+  }
+  nhap(0, {});
+  // Vài linh kiện hay thay: gắn vào máy rồi cho tiêu hao dần qua hai lần nhập sau, để app có cái mà nhắc
+  // [mã kho, tồn lần nhập 2, tồn lần nhập 3]
+  var mau = [['605010022', 3, 0], ['605010001', 2, 0], ['604010217', 2, 1], ['605010136', 1, 1], ['605010344', 4, 2]];
+  var d2 = {}, d3 = {};
+  mau.forEach(function (v) { d2[v[0]] = v[1]; d3[v[0]] = v[2]; });
+  ganMauVaoMay(mau.map(function (v) { return v[0]; }));
+  nhap(1, d2);
+  nhap(2, d3);
+}
+// Gắn mã kho vào danh sách linh kiện của vài máy (demo), để chúng tính là linh kiện đã dùng
+function ganMauVaoMay(ma) {
+  var mays = dsMay().filter(function (m) { return m.hoatDong; }).slice(0, ma.length), luc = thoiGianStr();
+  mays.forEach(function (m, i) {
+    var k = docKho().filter(function (x) { return x.ma === ma[i]; })[0];
+    if (!k) return;
+    m.linhKien = (m.linhKien || []).concat([{ id: 'LKM' + (i + 1), ten: k.ten, quyCach: k.qc, dv: k.dv, sl: '1', ghiChu: '', maKho: k.ma }]);
+    m.capNhat = luc;
+    suaDong('May', m._r, mayThanhDong(m));
+  });
 }
 
 // Câu mẫu cho Google Dịch giả của bản xem thử (bản thật dùng Google Dịch, dịch được mọi câu)
@@ -6623,7 +6703,7 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 // Quản lý, Quản trị: xem hết. Tài khoản khác (kỹ thuật): chỉ Điện/Nước, Sửa chữa, Bảo dưỡng
 // (kèm hồ sơ máy / chuyền mở từ các mục đó, quét QR, trang cá nhân).
 const xemHet = () => can('xemhet');
-const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
+const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'khoNhac', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
   'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
   'trucGhi', 'trucNguoi']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
@@ -6665,7 +6745,7 @@ function shell() {
     S.gqT = setTimeout(() => { if (topV() && topV().v === 'timKiem') { topV().p.q = q; const b = $('#tkBody'); if (b) b.innerHTML = timKiemBody(q); } else if (q.trim()) go('timKiem', { q }); }, 220);
   });
 }
-const TITLES = { dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
+const TITLES = { khoNhac: 't_khoNhac', dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
   cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi', scDS: 't_scDS', saoLuu: 't_saoLuu',
   tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
@@ -6675,7 +6755,7 @@ const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
   tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me',
-  trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc' };
+  trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc', khoNhac: 'list' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
 function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w.length > 1 ? w[w.length - 1][0] : w[0].slice(0, 2)).toUpperCase(); }
@@ -6938,10 +7018,9 @@ function batThuongKy(k) { return S.V && S.V.cs ? S.V.cs.filter((x) => x.ky === k
 // Linh kiện đang gắn với máy mà tồn ≤ tối thiểu (hoặc hết hàng)
 function lkThapDS() {
   if (!S.V || !S.kho.ds.length) return [];
-  const dung = khoDungMap();
-  return Object.keys(dung).map((ma) => khoGet(ma)).filter((x) => x && khoThap(x));
+  return Object.keys(khoDaDungMap()).map((ma) => khoGet(ma)).filter((x) => x && khoThap(x));
 }
-function khoThap(x) { const n = tonOf(x); if (n === null) return false; const mn = x.tonMin === undefined || x.tonMin === '' ? null : +x.tonMin; return n <= 0 || (mn !== null && n <= mn); }
+
 
 // ---------- Cá nhân ----------
 VIEWS.me = {
@@ -9429,7 +9508,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -12066,12 +12145,15 @@ async function docFileKho(file) {
 }
 
 // ---------- Danh sách kho lưu trên máy ----------
-S.kho = { ver: '', ds: [], nhap: null };
+S.kho = { ver: '', ds: [], nhap: null, moc: [], nhatKy: [] };
 function khoSet(o) {
-  S.kho = { ver: o.ver || '', ds: o.ds || [], nhap: o.nhap || null };
+  S.kho = { ver: o.ver || '', ds: o.ds || [], nhap: o.nhap || null, moc: o.moc || [], nhatKy: o.nhatKy || [] };
   store.set('bd_kho', S.kho);
 }
-function khoTuMay() { const o = store.get('bd_kho', null); if (o && Array.isArray(o.ds)) S.kho = { ver: o.ver || '', ds: o.ds, nhap: o.nhap || null }; }
+function khoTuMay() {
+  const o = store.get('bd_kho', null);
+  if (o && Array.isArray(o.ds)) S.kho = { ver: o.ver || '', ds: o.ds, nhap: o.nhap || null, moc: o.moc || [], nhatKy: o.nhatKy || [] };
+}
 let KHO_IX = null, KHO_IX_DS = null, KHO_BY = {}, KHO_TEN = {};
 // Tên kho ngắn để phân biệt cùng một ô ở hai kho: bỏ phần đầu giống nhau ("越-备品备件仓" / "越-备品备件仓2" → K1 / K2)
 function khoTenNgan(ds) {
@@ -12147,7 +12229,7 @@ function khoApply(k) {
   ds.forEach((x, i) => { ix[x.ma] = i; });
   (k.ds || []).forEach((x) => { if (x.ma in ix) ds[ix[x.ma]] = x; else ds.push(x); });
   const du = S.kho.ver === (k.truoc || '');
-  khoSet({ ver: du ? k.ver : '', ds, nhap: S.kho.nhap });
+  khoSet({ ver: du ? k.ver : '', ds, nhap: S.kho.nhap, moc: S.kho.moc, nhatKy: S.kho.nhatKy });
   if (S.base) { S.base.kho = Object.assign({}, S.base.kho || {}, { ver: k.ver, n: k.n !== undefined ? k.n : (S.base.kho || {}).n }); }
   if (!du) khoLoad();
 }
@@ -12171,7 +12253,7 @@ function tonHtml(x) {
   const n = tonOf(x);
   if (n === null) return `<span class="pill p-ok">${t('khoApp')}</span>`;
   if (n <= 0) return `<span class="pill p-qua">${t('hetHang')}</span>`;
-  return `<span class="pill p-xong"><b class="mono">${esc(soG(n))}</b>${x.dv ? `<span class="zi">${esc(dvTxt(x.dv))}</span>` : ''}</span>`;
+  return `<span class="pill ${khoMuc(x) === 'thap' ? 'p-sap' : 'p-xong'}"><b class="mono">${esc(soG(n))}</b>${x.dv ? `<span class="zi">${esc(dvTxt(x.dv))}</span>` : ''}</span>`;
 }
 // Một dòng chữ: "Tồn kho 4 cái 个 · AB21, AC21" / "Hết hàng"
 function tonLine(x) {
@@ -12215,6 +12297,17 @@ VIEWS.kho = {
       if (inf.ngay >= 7 && can('may')) o += `<div class="note" style="margin:10px 0 0">${t('khoCu', { n: inf.ngay })}</div>`;
     } else if (can('may')) o += `<div class="note" style="margin:10px 0 0">${t('khoChuaNhap')}</div>`;
     if (can('may')) o += `<div style="margin-top:12px">${khoNhapBtn()}</div>${inf ? '' : `<div class="help">${t('khoNhapHelp')}</div>`}`;
+    const nhac = k.ds.length ? khoNhacDS() : { n: 0 };
+    if (nhac.n) o += `<button class="btn r wide" style="margin-top:10px" data-act="khoNhac">${IC.warn} ${t('khoNhacN', { n: nhac.n })}</button>`;
+    if (can('may') && !srvOld('khonhac')) o += `<div class="inrow" style="margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="help" style="margin:0">${t('khoNguongDat')}</span>
+      <input class="inp mono" id="khoNg" inputmode="decimal" maxlength="6" value="${esc(soG(khoGanHetN()))}" style="max-width:90px;min-height:38px;padding:6px 10px">
+      <button class="btn ghost sm" data-act="khoNgLuu">${t('save')}</button></div>
+      <div class="help" style="margin-top:6px">${t('khoNguongHelp')}</div>`;
+    if ((k.nhatKy || []).length) o += `<details class="kdet" style="margin-top:12px"><summary>${t('khoNhatKy')} <span class="cnt mono">${k.nhatKy.length}</span></summary>
+      <div class="list">${k.nhatKy.map((h) => `<div class="row"><div class="main"><div class="nm mono">${esc(fmtD(h.luc.slice(0, 10)))} ${esc(h.luc.slice(11, 16))}</div>
+        <div class="sub">${esc(h.file || '')}${h.nguoi ? ' · ' + esc(h.nguoi) : ''}</div></div>
+        <div class="end"><span class="mono">${esc(tv('khoMaN', { n: fmtNum(h.soMa, 0) }))}</span></div></div>`).join('')}</div></details>`;
     o += '</div>';
     if (!k.ds.length) return o + `<div class="card empty" style="margin-top:14px">${S.khoLoading ? t('khoChoTai') : t(can('may') ? 'khoTrong' : 'khoTrongKT')}</div>`;
     const chip = (v, k2) => `<button class="chip${f.khoF === v ? ' on' : ''}" data-act="khoF" data-v="${v}">${t(k2)}</button>`;
@@ -12232,7 +12325,8 @@ VIEWS.kho = {
 };
 function khoBody() {
   const f = S.f, dung = khoDungMap();
-  const filt = { con: (x) => (tonOf(x) || 0) > 0, het: (x) => tonOf(x) === 0, app: (x) => x.ng === 'APP', may: (x) => !!dung[x.ma], thap: (x) => !!dung[x.ma] && khoThap(x) }[f.khoF] || null;
+  const daDung = khoDaDungMap();
+  const filt = { con: (x) => (tonOf(x) || 0) > 0, het: (x) => tonOf(x) === 0, app: (x) => x.ng === 'APP', may: (x) => !!dung[x.ma], thap: (x) => !!daDung[x.ma] && khoThap(x) }[f.khoF] || null;
   const list = khoFind(f.khoQ, filt), lim = f.khoLim || 60;
   let o = sec('khoKQ', fmtNum(list.length, 0));
   if (!list.length) return o + `<div class="card empty">${t('khoKhongThay')}</div>`;
@@ -12284,6 +12378,7 @@ function openKhoItem(ma) {
       ${x.cn ? `<dt>${t('khoCn')}</dt><dd class="mono" style="font-weight:500">${esc(fmtD(x.cn.slice(0, 10)) + ' ' + x.cn.slice(11, 16))}</dd>` : ''}
       <dt>${t('tonMinN')}</dt><dd>${can('may') && !srvOld('v2') ? `<span class="inrow"><input class="inp mono" id="kxMin" inputmode="decimal" value="${esc(x.tonMin === undefined ? '' : x.tonMin)}" style="max-width:120px;min-height:38px;padding:6px 10px"><button class="btn ghost sm" data-act="khoMin" data-ma="${esc(x.ma)}">${t('save')}</button></span>` : `<span class="mono">${esc(x.tonMin === undefined || x.tonMin === '' ? '—' : soG(x.tonMin))}</span>`}${khoThap(x) && tonOf(x) > 0 ? ` <span class="ktag thap">${t('duoiMin')}</span>` : ''}</dd>
     </dl>
+    ${khoLichSuHtml(x)}
     ${vt.length ? secL('khoViTri', vt.length) + `<div class="list">${vt.map((v) => `<div class="row"><div class="main"><div class="nm mono">${esc(v[1] || '—')}</div><div class="sub">${KHO_TEN[v[0]] ? `<b>${esc(KHO_TEN[v[0]])}</b> · ` : ''}${esc(v[0])}</div></div><div class="end"><b class="mono">${esc(soG(v[2]))}</b> <span class="muted">${esc(dvTxt(x.dv))}</span></div></div>`).join('')}</div>` : ''}
     ${secL('khoDungMay', dung.length)}
     ${dung.length ? `<div class="list">${dung.map(({ m, k }) => `<button class="row" data-act="may" data-ma="${esc(m.ma)}"><div class="main"><div class="nm">${esc(m.ten)}</div>
@@ -12385,6 +12480,7 @@ async function khoLuu(el) {
     S.f.khoQ = ''; S.f.khoF = ''; S.f.khoLim = 60;
     back();
     toast(t('khoDaLuu', { n: fmtNum(d.tk.soMa, 0), a: d.tk.moi, b: d.tk.het }));
+    go('khoNhac', { tuNhap: 1 });
   } catch (e) {
     el.disabled = false; el.innerHTML = lbl;
     fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false;
@@ -14001,6 +14097,144 @@ Object.assign(ACT, {
     try { blob = tcThangWorkbook(ym); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
     const tt = $('.toast'); if (tt) tt.remove();
     await saveFile(blob, 'Tong-hop-tang-ca-' + ym + '.xlsx');
+  }
+});
+
+// ===================== Nhắc hàng kho ngũ kim · 五金仓库缺货提醒 =====================
+// Mỗi lần nhập file kho, máy chủ ghi nhớ tồn của từng mã (12 lần gần nhất). Nhờ đó app so được
+// tồn lần này với lần trước và biết mã nào đã hết liền mấy lần nhập, chứ không chỉ "lần này bằng 0".
+// Chỉ nhắc linh kiện ĐÃ DÙNG: đang gắn vào máy, hoặc từng thay trong sửa chữa / bảo dưỡng / công việc.
+Object.assign(TX, {
+  t_khoNhac: ['Nhắc hàng', '缺货提醒'], khoNhacMo: ['Nhắc hàng', '缺货提醒'],
+  khoNhacN: ['{n} linh kiện cần mua', '{n}个零件需采购'], khoNhacKhong: ['Không có linh kiện nào thiếu hàng', '没有缺货零件'],
+  khoVuaHet: ['Vừa hết hàng', '刚缺货'], khoVuaHetHelp: ['Lần nhập trước vẫn còn, lần này đã hết.', '上次还有库存，这次已缺货。'],
+  khoDangHet: ['Đang hết hàng', '持续缺货'], khoDangHetHelp: ['Hết từ những lần nhập trước, vẫn chưa về hàng.', '之前几次导入就已缺货，至今未到货。'],
+  khoGanHetDS: ['Gần hết hàng', '库存临界'], khoGanHetHelp: ['Tồn còn ít hơn hoặc bằng ngưỡng gần hết.', '库存小于或等于临界值。'],
+  khoHetNLan: ['hết {n} lần nhập liền', '连续{n}次导入缺货'], khoTungThay: ['đã từng thay', '曾更换过'],
+  khoTruocNay: ['lần trước {a} → nay {b}', '上次{a} → 现在{b}'],
+  khoNguongDat: ['Gần hết khi tồn còn', '库存临界值'], khoNguongHelp: ['Áp dụng cho linh kiện chưa đặt tồn tối thiểu riêng. Mặc định 1.', '适用于未单独设置安全库存的零件。默认1。'],
+  khoNguongLuu: ['Đã lưu ngưỡng gần hết', '临界值已保存'],
+  khoLichSuTon: ['Tồn qua các lần nhập', '历次导入库存'], khoNhatKy: ['Lịch sử nhập file kho', '仓库文件导入记录'],
+  khoMaN: ['{n} mã', '{n}个编码'], khoSauNhap: ['Đã nhập xong file kho. Dưới đây là những linh kiện cần mua.', '仓库文件导入完成。以下零件需采购。'],
+  khoXemKho: ['Mở kho ngũ kim', '打开五金仓库'],
+  srvMissKhoNhac: ['Nhắc thiếu hàng, gần hết hàng theo từng lần nhập kho', '按每次导入提醒缺货与库存临界']
+});
+
+// Ngưỡng "gần hết": linh kiện có tồn tối thiểu riêng thì theo số riêng, không thì theo cài đặt chung (mặc định 1)
+const khoGanHetN = () => {
+  const v = S.base && S.base.caiDat ? S.base.caiDat.khoGanHet : undefined;
+  return v === undefined || v === '' || !(+v >= 0) ? 1 : +v;
+};
+const khoNguongOf = (x) => (x.tonMin === undefined || x.tonMin === '' ? khoGanHetN() : +x.tonMin);
+// '' = đủ hàng · 'het' = hết · 'thap' = gần hết
+function khoMuc(x) {
+  const n = tonOf(x);
+  if (n === null) return '';
+  if (n <= 0) return 'het';
+  return n <= khoNguongOf(x) ? 'thap' : '';
+}
+function khoThap(x) { return !!khoMuc(x); }
+// Số lần nhập liên tiếp gần nhất mà tồn bằng 0
+function khoLanHet(h) { let n = 0; for (let i = h.length - 1; i >= 0 && h[i] <= 0; i--) n++; return n; }
+// Linh kiện ĐÃ DÙNG: gắn vào máy, hoặc từng thay trong lịch sử bảo dưỡng / sửa chữa / công việc
+let KHO_DUNG_CACHE = null;
+function khoDaDungMap() {
+  const key = (S.kho.ver || '') + '|' + S.kho.ds.length + '|' + (S.V ? S.V.ls.length + '|' + (S.V.cvAll || []).length : '-');
+  if (KHO_DUNG_CACHE && KHO_DUNG_CACHE.k === key) return KHO_DUNG_CACHE.m;
+  const m = khoDungMap();
+  const them = (ma) => { const g = khoGet(ma); if (g && !m[g.ma]) m[g.ma] = []; };
+  if (S.V) {
+    S.V.ls.forEach((h) => {
+      if (h.trangThai === 'HUY' || !h.chiTiet || !h.chiTiet.lk) return;
+      h.chiTiet.lk.forEach((k) => them(k.maKho));
+    });
+    (S.V.cvAll || []).forEach((v) => (v.linhKien || []).forEach((k) => them(k.maKho)));
+  }
+  KHO_DUNG_CACHE = { k: key, m };
+  return m;
+}
+// Danh sách nhắc hàng, chia ba nhóm
+function khoNhacDS() {
+  const dung = khoDaDungMap(), out = { vuaHet: [], dangHet: [], ganHet: [], n: 0 };
+  Object.keys(dung).forEach((ma) => {
+    const x = khoGet(ma);
+    if (!x) return;
+    const muc = khoMuc(x);
+    if (!muc) return;
+    const h = x.tonCu || [], truoc = h.length > 1 ? h[h.length - 2] : null;
+    const o = { x, dung: dung[ma], truoc, lanHet: khoLanHet(h) };
+    if (muc === 'thap') out.ganHet.push(o);
+    else if (truoc !== null && truoc > 0) out.vuaHet.push(o);
+    else out.dangHet.push(o);
+  });
+  const sx = (a, b) => String(a.x.ten || '').localeCompare(String(b.x.ten || ''));
+  out.vuaHet.sort(sx);
+  out.dangHet.sort((a, b) => b.lanHet - a.lanHet || sx(a, b));
+  out.ganHet.sort((a, b) => (tonOf(a.x) || 0) - (tonOf(b.x) || 0) || sx(a, b));
+  out.n = out.vuaHet.length + out.dangHet.length + out.ganHet.length;
+  return out;
+}
+// Tồn của mã này qua các lần nhập file gần đây (mốc thời gian lấy chung ở S.kho.moc)
+function khoLichSuHtml(x) {
+  const h = x.tonCu || [];
+  if (h.length < 2) return '';
+  const m = (S.kho.moc || []).slice(-h.length), ng = khoNguongOf(x);
+  return secL('khoLichSuTon', h.length) + `<div class="list">${h.map((v, i) => {
+    const mc = m[i] || null, cls = v <= 0 ? ' bad' : v <= ng ? ' warnx' : '';
+    return `<div class="row"><div class="main"><div class="nm mono">${mc && mc.luc ? esc(fmtD(mc.luc.slice(0, 10))) : '—'}</div>
+      ${mc && mc.file ? `<div class="sub">${esc(mc.file)}</div>` : ''}</div>
+      <div class="end"><b class="mono${cls}">${esc(soG(v))}</b></div></div>`;
+  }).reverse().join('')}</div>`;
+}
+function khoNhacRow(o) {
+  const x = o.x, n = tonOf(x), bins = khoBinTxt(x, false);
+  const meta = [];
+  if (o.truoc !== null) meta.push(`<span class="mono">${esc(soG(o.truoc))} → ${esc(soG(n))}</span>`);
+  if (o.lanHet > 1) meta.push(`<span class="warnx">${esc(tv('khoHetNLan', { n: o.lanHet }))}</span>`);
+  meta.push(o.dung.length ? `<span class="kmay">⚙ ${o.dung.length}</span>` : `<span class="muted">${esc(tv('khoTungThay'))}</span>`);
+  if (bins.length) meta.push(`<span class="kbin">${IC.pin}${esc(bins.slice(0, 3).join(' · '))}</span>`);
+  return `<button class="row khorow" data-act="khoItem" data-ma="${esc(x.ma)}"><div class="main"><div class="nm">${lkTenH(x.ten)}</div>
+    <div class="sub"><span class="code">${esc(x.ma)}</span>${x.qc ? ` <span class="qc">${esc(x.qc)}</span>` : ''}</div>
+    <div class="sub kmeta">${meta.join('')}</div></div>
+    <div class="end">${tonHtml(x)}</div></button>`;
+}
+VIEWS.khoNhac = {
+  html(p) {
+    if (srvOld('khonhac')) return srvWarn('khonhac');
+    if (!S.kho.ds.length) return `<div class="card empty">${t(S.khoLoading ? 'khoChoTai' : 'khoTrong')}</div>`;
+    const d = khoNhacDS(), inf = khoNhapInfo();
+    let o = '';
+    if (p && p.tuNhap) o += `<div class="note" style="margin-bottom:12px">${t('khoSauNhap')}</div>`;
+    o += `<div class="card pad"><div class="kh1"><span class="kic">${IC.box}</span><div class="kh1t">
+      <b>${d.n ? t('khoNhacN', { n: d.n }) : t('khoNhacKhong')}</b>
+      ${inf ? `<div class="sub">${esc(tv('khoLuc'))} <span class="mono">${esc(fmtD(inf.nh.luc.slice(0, 10)) + ' ' + inf.nh.luc.slice(11, 16))}</span>${inf.nh.file ? ' · ' + esc(inf.nh.file) : ''}</div>` : ''}</div></div>
+      <div class="tiles ktiles" style="margin-top:12px">
+        <div class="tile ktile t-qua${d.vuaHet.length ? '' : ' zero'}"><b>${d.vuaHet.length}</b><span>${t('khoVuaHet')}</span></div>
+        <div class="tile ktile t-nay${d.dangHet.length ? '' : ' zero'}"><b>${d.dangHet.length}</b><span>${t('khoDangHet')}</span></div>
+        <div class="tile ktile t-sap${d.ganHet.length ? '' : ' zero'}"><b>${d.ganHet.length}</b><span>${t('khoGanHetDS')}</span></div>
+      </div>
+      <div class="help" style="margin-top:10px">${t('khoNguongDat')} <b class="mono">${esc(soG(khoGanHetN()))}</b></div></div>`;
+    const nhom = (k, arr, help) => (arr.length ? sec(k, arr.length) + `<div class="help" style="margin:-4px 0 8px">${t(help)}</div>
+      <div class="list">${arr.slice(0, 200).map(khoNhacRow).join('')}</div>
+      ${arr.length > 200 ? `<div class="help" style="margin-top:8px">${t('khoChiHien', { n: 200 })}</div>` : ''}` : '');
+    o += nhom('khoVuaHet', d.vuaHet, 'khoVuaHetHelp');
+    o += nhom('khoDangHet', d.dangHet, 'khoDangHetHelp');
+    o += nhom('khoGanHetDS', d.ganHet, 'khoGanHetHelp');
+    if (!d.n) o += `<div class="card empty" style="margin-top:14px">${t('khoNhacKhong')}</div>`;
+    o += `<div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="tab" data-v="kho">${IC.box} ${t('khoXemKho')}</button></div>`;
+    return o;
+  }
+};
+Object.assign(ACT, {
+  khoNhac: () => go('khoNhac', {}),
+  khoNgLuu: async (el) => {
+    const v = ($('#khoNg') || {}).value;
+    el.disabled = true;
+    const r = await send('saveKhoCfg', { ganHet: String(v || '').replace(',', '.') });
+    el.disabled = false;
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(r.queued ? t('savedLocal') : t('khoNguongLuu'));
+    render();
   }
 });
 

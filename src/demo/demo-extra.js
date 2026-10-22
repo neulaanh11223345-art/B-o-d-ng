@@ -173,11 +173,49 @@ var MAU_KHO = [
 {"ma":"608060263","ten":"交流接触器","qc":"LC1D65M7C 220V 50*60HZ 55KW-380V","dv":"只","nh":"608","ton":3,"vt":[["越-备品备件仓2","DD34",3]]},
 {"ma":"607030024","ten":"气缸","qc":"TN-20*200-S","dv":"只","nh":"607","ton":2,"vt":[["越-备品备件仓2","EA23",2]]}
 ];
+// Ba lần nhập file kho để có lịch sử tồn: app so được tồn lần này với lần trước và nhắc thiếu hàng
 function mauKho() {
   if (docKho().length) return;
-  nhapKho({ ten: 'Quản lý' }, { file: '20260926ERP.xlsx (mẫu · 样本)', soDong: 203, ds: MAU_KHO });
-  var meta = docKhoMeta();
-  if (meta.nhap) { meta.nhap.luc = '2026-09-26 16:30:00'; ghiKhoMeta(meta); }
+  var ql = { ten: 'Quản lý' };
+  var moc = ['2026-09-05 16:20:00', '2026-09-15 16:10:00', '2026-09-26 16:30:00'];
+  var ten = ['20260905ERP.xlsx (mẫu · 样本)', '20260915ERP.xlsx (mẫu · 样本)', '20260926ERP.xlsx (mẫu · 样本)'];
+  function nhap(i, dat) {
+    var ds = MAU_KHO.map(function (x) {
+      var o = {}, k;
+      for (k in x) o[k] = x[k];
+      if (dat[o.ma] !== undefined) {
+        var v0 = (x.vt && x.vt[0]) || ['越-备品备件仓', '', 0];
+        o.ton = dat[o.ma];
+        o.vt = o.ton ? [[v0[0], v0[1], o.ton]] : [];
+      }
+      return o;
+    });
+    nhapKho(ql, { file: ten[i], soDong: ds.length + 32, ds: ds });
+    var meta = docKhoMeta();
+    if (meta.nhap) meta.nhap.luc = moc[i];
+    if (meta.moc && meta.moc.length) meta.moc[meta.moc.length - 1].luc = moc[i];
+    ghiKhoMeta(meta);
+  }
+  nhap(0, {});
+  // Vài linh kiện hay thay: gắn vào máy rồi cho tiêu hao dần qua hai lần nhập sau, để app có cái mà nhắc
+  // [mã kho, tồn lần nhập 2, tồn lần nhập 3]
+  var mau = [['605010022', 3, 0], ['605010001', 2, 0], ['604010217', 2, 1], ['605010136', 1, 1], ['605010344', 4, 2]];
+  var d2 = {}, d3 = {};
+  mau.forEach(function (v) { d2[v[0]] = v[1]; d3[v[0]] = v[2]; });
+  ganMauVaoMay(mau.map(function (v) { return v[0]; }));
+  nhap(1, d2);
+  nhap(2, d3);
+}
+// Gắn mã kho vào danh sách linh kiện của vài máy (demo), để chúng tính là linh kiện đã dùng
+function ganMauVaoMay(ma) {
+  var mays = dsMay().filter(function (m) { return m.hoatDong; }).slice(0, ma.length), luc = thoiGianStr();
+  mays.forEach(function (m, i) {
+    var k = docKho().filter(function (x) { return x.ma === ma[i]; })[0];
+    if (!k) return;
+    m.linhKien = (m.linhKien || []).concat([{ id: 'LKM' + (i + 1), ten: k.ten, quyCach: k.qc, dv: k.dv, sl: '1', ghiChu: '', maKho: k.ma }]);
+    m.capNhat = luc;
+    suaDong('May', m._r, mayThanhDong(m));
+  });
 }
 
 // Câu mẫu cho Google Dịch giả của bản xem thử (bản thật dùng Google Dịch, dịch được mọi câu)

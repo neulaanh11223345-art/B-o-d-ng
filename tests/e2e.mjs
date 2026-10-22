@@ -535,6 +535,40 @@ await page.evaluate(() => go('trucNguoi')); await wait(500);
 assert.match(await text('#barTitle'), /Chỉ Quản lý/);
 ok('Bản 2.12: lịch trực tuần có nội dung trực song ngữ, tổng số ca, phân công ca trực luân phiên; kỹ thuật chỉ xem');
 
+// 17. Bản 2.13: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng và gần hết hàng
+await logout(); await login('NV002', '222222');
+await page.evaluate(() => tab('kho')); await wait(900);
+await page.waitForFunction(() => S.kho.ds.length > 0, null, { timeout: 20000 });
+// Lịch sử nhập file: ba lần nhập mẫu đều được ghi nhớ
+assert.equal(await page.evaluate(() => S.kho.nhatKy.length), 3, 'nhớ cả ba lần nhập file');
+assert.equal(await page.evaluate(() => S.kho.moc.length), 3, 'ba mốc thời gian để so tồn');
+assert.match(await text('#main'), /Lịch sử nhập file kho/);
+const nhac17 = await page.evaluate(() => { const d = khoNhacDS(); return { n: d.n, vua: d.vuaHet.map((o) => o.x.ma), gan: d.ganHet.map((o) => o.x.ma) }; });
+assert.ok(nhac17.vua.includes('605010001') && nhac17.vua.includes('605010022'), 'hai mã vừa hết hàng');
+assert.ok(nhac17.gan.includes('604010217') && nhac17.gan.includes('605010136'), 'hai mã gần hết (tồn 1)');
+assert.equal(nhac17.gan.includes('605010344'), false, 'tồn 2 chưa coi là gần hết khi ngưỡng là 1');
+await shot('27-kho-nhac-nut');
+// Mở màn Nhắc hàng
+await page.click('[data-act="khoNhac"]'); await wait(700);
+assert.match(await text('#barTitle'), /Nhắc hàng/);
+assert.match(await text('#main'), /Vừa hết hàng/);
+assert.match(await text('#main'), /Gần hết hàng/);
+assert.match(await text('#main'), /2 → 0|3 → 0/, 'hiện tồn lần nhập trước → tồn nay');
+await shot('28-kho-nhac-hang');
+// Chi tiết linh kiện: tồn qua từng lần nhập
+await page.click('.khorow'); await wait(600);
+assert.match(await text('.sheet, #sheetBg'), /Tồn qua các lần nhập/, 'phiếu linh kiện có lịch sử tồn');
+await page.click('#sheetBg'); await wait(400);
+// Đổi ngưỡng gần hết thành 3 thì mã còn tồn 2 cũng được nhắc
+await page.evaluate(() => { back(); tab('kho'); }); await wait(700);
+await page.fill('#khoNg', '3');
+await page.click('[data-act="khoNgLuu"]'); await wait(1200);
+const sau17 = await page.evaluate(() => ({ ng: khoGanHetN(), gan: khoNhacDS().ganHet.map((o) => o.x.ma) }));
+assert.equal(sau17.ng, 3, 'đã lưu ngưỡng gần hết');
+assert.ok(sau17.gan.includes('605010344'), 'tồn 2 nay là gần hết');
+await page.fill('#khoNg', '1'); await page.click('[data-act="khoNgLuu"]'); await wait(1000);
+ok('Bản 2.13: kho nhớ tồn qua từng lần nhập, nhắc vừa hết / đang hết / gần hết, ngưỡng gần hết sửa được');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
