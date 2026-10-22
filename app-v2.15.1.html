@@ -739,6 +739,9 @@ table.mtab .nmc{min-width:156px;max-width:172px}
 .kdet summary{cursor:pointer;font-weight:700;font-size:14.5px;padding:10px 2px;list-style-position:inside}
 .kdet summary .zi{font-weight:500}
 .kdet summary .cnt{color:var(--ink2);font-weight:500;margin-left:4px}
+.kset{border:1px solid var(--line);border-radius:12px;background:var(--soft);padding:0 12px}
+.kset summary{padding:11px 0}
+.kset[open]{padding-bottom:12px}
 .kchg{font-size:13px;gap:5px}
 @media (prefers-reduced-motion:reduce){.dsrow.flash{animation:none}}
 @media (max-width:380px){.ktiles{grid-template-columns:repeat(2,1fr)}}
@@ -1330,7 +1333,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.15.0";
+const APP_VER = "2.15.1";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -7515,17 +7518,20 @@ VIEWS.kho = {
       <button class="btn ghost" data-act="khoMauTon">${IC.dl} ${t('khoMauTonBtn')}</button>
       <label class="btn ghost filebtn">${IC.dl} ${t('khoNapTonBtn')}<input type="file" id="khoMinFile" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label></div>
       <div class="help" style="margin-top:6px">${t('khoMauHelp')}</div>`;
-    if (can('may') && !srvOld('khopct')) o += `<div class="inrow" style="margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
-      <span class="help" style="margin:0">${t('khoPtDat')}</span>
-      <input class="inp mono" id="khoPt" inputmode="decimal" maxlength="5" value="${esc(soG(khoPhanTramN()))}" style="max-width:80px;min-height:38px;padding:6px 10px">
-      <span class="help" style="margin:0">%</span>
-      <button class="btn ghost sm" data-act="khoPtLuu">${t('save')}</button></div>
-      <div class="help" style="margin-top:6px">${t('khoPtHelp', { p: soG(khoPhanTramN()) })}</div>`;
-    if (can('may') && !srvOld('khonhac')) o += `<div class="inrow" style="margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
-      <span class="help" style="margin:0">${t('khoNguongDat')}</span>
-      <input class="inp mono" id="khoNg" inputmode="decimal" maxlength="6" value="${esc(soG(khoGanHetN()))}" style="max-width:90px;min-height:38px;padding:6px 10px">
-      <button class="btn ghost sm" data-act="khoNgLuu">${t('save')}</button></div>
-      <div class="help" style="margin-top:6px">${t('khoNguongHelp')}</div>`;
+    // Hai mức báo gói trong một ô, bấm mới mở cho gọn
+    if (can('may') && !srvOld('khonhac')) o += `<details class="kdet kset" style="margin-top:12px"${S.f.khoCfgMo ? ' open' : ''} id="khoCfg">
+      <summary>${t('khoMucDat')} <span class="cnt mono">${esc(soG(khoPhanTramN()))}% · ${esc(soG(khoGanHetN()))}</span></summary>
+      ${srvOld('khopct') ? '' : `<div class="inrow" style="align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="help" style="margin:0;flex:1;min-width:140px">${t('khoPtDat')}</span>
+        <input class="inp mono" id="khoPt" inputmode="decimal" maxlength="5" value="${esc(soG(khoPhanTramN()))}" style="max-width:80px;min-height:38px;padding:6px 10px">
+        <span class="help" style="margin:0">%</span>
+        <button class="btn ghost sm" data-act="khoPtLuu">${t('save')}</button></div>
+      <div class="help" style="margin:6px 0 14px">${t('khoPtHelp', { p: soG(khoPhanTramN()) })}</div>`}
+      <div class="inrow" style="align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="help" style="margin:0;flex:1;min-width:140px">${t('khoNguongDat')}</span>
+        <input class="inp mono" id="khoNg" inputmode="decimal" maxlength="6" value="${esc(soG(khoGanHetN()))}" style="max-width:80px;min-height:38px;padding:6px 10px">
+        <button class="btn ghost sm" data-act="khoNgLuu">${t('save')}</button></div>
+      <div class="help" style="margin-top:6px">${t('khoNguongHelp')}</div></details>`;
     if ((k.nhatKy || []).length) o += `<details class="kdet" style="margin-top:12px"><summary>${t('khoNhatKy')} <span class="cnt mono">${k.nhatKy.length}</span></summary>
       <div class="list">${k.nhatKy.map((h) => `<div class="row"><div class="main"><div class="nm mono">${esc(fmtD(h.luc.slice(0, 10)))} ${esc(h.luc.slice(11, 16))}</div>
         <div class="sub">${esc(h.file || '')}${h.nguoi ? ' · ' + esc(h.nguoi) : ''}</div></div>
@@ -7545,6 +7551,8 @@ VIEWS.kho = {
     if (fi) fi.addEventListener('change', khoChonFile);
     const fm = $('#khoMinFile');
     if (fm) fm.addEventListener('change', khoChonFileMin);
+    const cf = $('#khoCfg');
+    if (cf) cf.addEventListener('toggle', () => { S.f.khoCfgMo = cf.open; });
   }
 };
 function khoBody() {
@@ -9535,6 +9543,7 @@ Object.assign(TX, {
   t_khoMin: ['Nhập tồn kho an toàn', '导入安全库存'],
   khoThieu: ['Thiếu hàng', '缺料'],
   khoThieuHelp: ['Tồn đã tụt xuống dưới {p}% tồn kho an toàn — cần nhập thêm cho đủ mức an toàn.', '库存已低于安全库存的{p}%，需补至安全水位。'],
+  khoMucDat: ['Mức báo thiếu hàng', '报缺料设置'],
   khoPtDat: ['Báo thiếu khi tồn dưới', '低于以下比例时报缺料'],
   khoPtHelp: ['Chỉ áp dụng cho linh kiện đã đặt tồn kho an toàn: tồn tụt xuống dưới {p}% mức an toàn thì mới báo thiếu. Số cần mua vẫn tính cho đủ 100% mức an toàn.',
     '仅适用于已设安全库存的零件：库存低于安全库存的{p}%才报缺料。采购量仍按补足100%计算。'],
@@ -9543,8 +9552,8 @@ Object.assign(TX, {
   srvMissKhoPct: ['Chỉnh phần trăm báo thiếu hàng', '设置报缺料百分比'],
   khoCanThemN: ['cần thêm {n} {d}', '需补{n}{d}'],
   khoMauTonBtn: ['Tải file mẫu tồn an toàn', '下载安全库存模板'], khoNapTonBtn: ['Nhập tồn an toàn từ file', '从文件导入安全库存'],
-  khoMauHelp: ['Tải file mẫu về, sửa cột Tồn an toàn rồi tải lại lên. Nhận cả bảng số lượng dự phòng của nhà máy (cột Mã sản phẩm + Số lượng dự phòng).',
-    '下载模板，修改"安全库存"列后再上传。也可直接导入工厂的备用数量表（品号 + 备用数量两列）。'],
+  khoMauHelp: ['Sửa cột Tồn an toàn trong file rồi tải lại lên. Nhận cả bảng dự phòng của nhà máy (cột Mã sản phẩm + Số lượng dự phòng).',
+    '在文件中修改"安全库存"列后重新上传。也可直接导入工厂的备用数量表（品号 + 备用数量）。'],
   khoMauHuongDan: ['Chỉ sửa cột "Tồn an toàn" rồi tải file này lại vào app. Không đổi cột "Mã sản phẩm". Để trống là chưa đặt tồn an toàn.',
     '仅修改"安全库存"列后将本文件重新导入应用。请勿改动"品号"列。留空表示未设安全库存。'],
   khoMinDong: ['{n} dòng · {m} mã', '{n}行 · {m}个编码'],

@@ -561,11 +561,13 @@ assert.match(await text('.sheet, #sheetBg'), /Tồn qua các lần nhập/, 'phi
 await page.click('#sheetBg'); await wait(400);
 // Đổi ngưỡng gần hết thành 3 thì mã còn tồn 2 cũng được nhắc
 await page.evaluate(() => { back(); tab('kho'); }); await wait(700);
+await page.click('#khoCfg summary'); await wait(300);
 await page.fill('#khoNg', '3');
 await page.click('[data-act="khoNgLuu"]'); await wait(1200);
 const sau17 = await page.evaluate(() => ({ ng: khoGanHetN(), gan: khoNhacDS().ganHet.map((o) => o.x.ma) }));
 assert.equal(sau17.ng, 3, 'đã lưu ngưỡng gần hết');
 assert.ok(sau17.gan.includes('605010344'), 'tồn 2 nay là gần hết');
+if (!await page.evaluate(() => !!($('#khoCfg') || {}).open)) await page.click('#khoCfg summary');
 await page.fill('#khoNg', '1'); await page.click('[data-act="khoNgLuu"]'); await wait(1000);
 ok('Bản 2.13: kho nhớ tồn qua từng lần nhập, nhắc vừa hết / đang hết / gần hết, ngưỡng gần hết sửa được');
 
@@ -609,10 +611,12 @@ const pt18 = await page.evaluate(() => {
 assert.equal(pt18.pct, 15, 'mặc định báo khi tồn dưới 15% mức an toàn');
 assert.equal(pt18.moc, 3);
 await page.evaluate(() => { back(); tab('kho'); }); await wait(700);
+if (!await page.evaluate(() => !!($('#khoCfg') || {}).open)) { await page.click('#khoCfg summary'); await wait(300); }
 await page.fill('#khoPt', '5'); await page.click('[data-act="khoPtLuu"]'); await wait(1200);
 const pt18b = await page.evaluate(() => ({ pct: khoPhanTramN(), muc: khoMuc(khoGet('605010344')), n: khoNhacDS().thieu.length }));
 assert.equal(pt18b.pct, 5, 'đổi được mức báo thiếu');
 assert.equal(pt18b.muc, '', 'tồn 2 trên mốc 5% của 20 = 1 thì thôi báo thiếu');
+if (!await page.evaluate(() => !!($('#khoCfg') || {}).open)) { await page.click('#khoCfg summary'); await wait(300); }
 await page.fill('#khoPt', '15'); await page.click('[data-act="khoPtLuu"]'); await wait(1000);
 // Trang chủ không còn báo linh kiện thiếu
 await page.evaluate(() => tab('home')); await wait(800);
