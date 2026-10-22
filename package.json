@@ -1,6 +1,6 @@
 {
   "name": "credible-cmms",
-  "version": "2.16.1",
+  "version": "2.17.0",
   "private": true,
   "description": "Credible Việt Nam CMMS — PWA cho iPhone và máy tính, lưu dữ liệu trên Google Sheet (Apps Script)",
   "scripts": {
