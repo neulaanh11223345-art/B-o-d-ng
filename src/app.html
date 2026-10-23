@@ -4720,7 +4720,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -7868,6 +7868,16 @@ Object.assign(TX, {
   mCongViec: ['Công việc', '工作'], mCvMo: ['đang mở', '未完成'], mCvQua: ['{n} quá hạn', '逾期{n}'], mCvCho: ['{n} chờ giao', '待派工{n}'], mCvOk: ['không có việc quá hạn', '无逾期'],
   lap_ngay: ['Hằng ngày', '每天'], lap_tuan: ['Hằng tuần', '每周'], lap_thang: ['Hằng tháng', '每月'], lapKieu: ['Lặp lại', '重复'],
   lapThu: ['Vào các thứ', '每周几'], lapNgayThang: ['Vào các ngày trong tháng', '每月几号'], lapNgayPh: ['Vd: 1, 15', '如：1, 15'],
+  lapPhu: ['Người làm cùng', '协同人员'],
+  lapKieuGiao: ['Cách giao việc', '派工方式'],
+  lapGiaoChung: ['Một việc cho cả nhóm', '全组一个工作'], lapGiaoRieng: ['Mỗi người một việc', '每人一个工作'],
+  lapGiaoRiengHelp: ['Mỗi dòng sinh ra một việc riêng cho người đó, kèm thiết bị của riêng họ — như bảng check sheet mỗi người một máy.',
+    '每行为该人生成独立工作并带各自设备 — 就像点检表每人一台设备。'],
+  lapGiaoThem: ['Thêm người', '添加人员'], lapGiaoN: ['{n} người, mỗi người một việc', '{n}人，每人一个工作'],
+  lapGiaoToiDa: ['Tối đa 30 người', '最多30人'], lapMayChung: ['Theo thiết bị chung ở trên', '用上面的共同设备'],
+  lapPhuHelp: ['Việc sinh ra hằng ngày sẽ giao cho cả nhóm: một người làm chính, những người này làm cùng.', '每次生成的工作派给整组：一人主办，这些人协同。'],
+  lapPhuToiDa: ['Chọn tối đa 5 người làm cùng', '最多选5名协同人员'],
+  srvMissLapPhu: ['Việc lặp lại giao cho nhiều người', '重复工作派给多人'],
   lapNguoi: ['Giao sẵn cho', '默认执行人'], lapNguoiTrong: ['— Không, để vào "Chờ giao" —', '— 不，进入“待派工” —'],
   lapBat: ['Đang bật', '启用中'], lapTat: ['Đã tắt', '已停用'], lapDangBat: ['Bật việc lặp lại này', '启用此重复工作'], lapThem: ['Thêm việc lặp lại', '添加重复工作'],
   lapHelp: ['Mỗi ngày app tự tạo việc theo lịch (khi có người mở app, hoặc lúc gửi nhắc hằng ngày). Có người làm sẵn thì việc được giao luôn, không thì vào mục "Chờ giao".', '应用每天按计划自动创建工作（有人打开应用或每日提醒时）。设置了执行人则直接派工，否则进入“待派工”。'],
@@ -8652,7 +8662,7 @@ VIEWS.cvLap = {
     return `<p class="help" style="margin-top:0">${t('lapHelp')}</p>
       <button class="btn" data-act="go" data-v="cvLapEdit" style="margin:4px 0 14px">${IC.plus} ${t('lapThem')}</button>
       <div class="list">${ds.length ? ds.map((v) => `<button class="row" data-act="cvLapSua" data-id="${esc(v.id)}"><div class="main"><div class="nm">${svH(v.tieuDe, v.tieuDeDich)}</div>
-        <div class="sub">${esc(lapTxt(v))} · ${esc(tv('lv_' + v.loai))}${v.ma ? ' · ' + esc(v.ma) : ''}${v.uidLam ? ' · ' + esc(nvTen(v.uidLam)) : ''}</div></div>
+        <div class="sub">${esc(lapTxt(v))} · ${esc(tv('lv_' + v.loai))}${v.ma ? ' · ' + esc(v.ma) : ''}${(v.dsGiao || []).length ? ' · ' + esc(tv('lapGiaoN', { n: v.dsGiao.length })) : v.uidLam ? ' · ' + esc(nvTen(v.uidLam)) + ((v.uidPhu || []).length ? ' +' + v.uidPhu.length : '') : ''}</div></div>
         <span class="pill ${v.hoatDong ? 'p-xong' : 'p-huy'}">${t(v.hoatDong ? 'lapBat' : 'lapTat')}</span>${IC.chev}</button>`).join('') : `<div class="empty">${t('lapTrong')}</div>`}</div>`;
   }
 };
@@ -8663,6 +8673,9 @@ VIEWS.cvLapEdit = {
       const v = p.id ? S.V.vl.find((x) => x.id === p.id) : null;
       Object.assign(p, v ? { tieuDe: v.tieuDe, moTa: v.moTa || '', dTD: v.tieuDeDich || '', dMT: v.moTaDich || '', dGoc: { td: v.tieuDeDich || '', mt: v.moTaDich || '' }, loai: v.loai, uu: v.uuTien, ma: v.ma || '', kieu: v.kieu, ngay: String(v.ngay || ''), lam: v.uidLam || '', kt: v.canKiemTra, bat: v.hoatDong }
         : { tieuDe: '', moTa: '', loai: 'KHAC', uu: 'TB', ma: '', kieu: 'tuan', ngay: String(wday(TODAY())), lam: '', kt: false, bat: true });
+      p.phu = (v && v.uidPhu ? v.uidPhu.slice() : []).filter((id) => S.V.nvById[id]);
+      p.dsGiao = (v && v.dsGiao ? v.dsGiao : []).filter((g) => S.V.nvById[g.uid]).map((g) => ({ uid: g.uid, ma: g.ma || '' }));
+      p.kieuGiao = p.dsGiao.length ? 'rieng' : 'chung';
     }
     const thu = p.kieu === 'tuan' ? p.ngay.split(',').filter((x) => x !== '') : [];
     return `<form id="vlF" autocomplete="off">
@@ -8674,7 +8687,19 @@ VIEWS.cvLapEdit = {
       ${p.kieu === 'tuan' ? `<div class="fld"><span>${t('lapThu')}</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<button type="button" class="chip${thu.indexOf(String(d)) >= 0 ? ' on' : ''}" data-act="vlThu" data-v="${d}">${WD_VI[d]} ${WD_ZH[d]}</button>`).join('')}</div></div>` : ''}
       ${p.kieu === 'thang' ? `<label class="fld"><span>${t('lapNgayThang')}</span><input class="inp" id="vlNgay" value="${esc(p.ngay)}" placeholder="${esc(tp('lapNgayPh'))}" inputmode="numeric"></label>` : ''}
       <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="vlMa">${tbOptions(p.ma, 'cvKhongMay')}</select></label>
-      <label class="fld"><span>${t('lapNguoi')}</span><select class="inp" id="vlLam"><option value="">${esc(tp('lapNguoiTrong'))}</option>${nvDS().map((n) => `<option value="${esc(n.id)}"${p.lam === n.id ? ' selected' : ''}>${esc(n.ten)}</option>`).join('')}</select></label>
+      ${srvOld('lapphu') ? '' : `<div class="fld"><span>${t('lapKieuGiao')}</span><div class="seg">
+        ${[['chung', 'lapGiaoChung'], ['rieng', 'lapGiaoRieng']].map(([k, lb]) => `<button type="button" class="${p.kieuGiao === k ? 'on' : ''}" data-act="vlSet" data-k="kieuGiao" data-v="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div></div>`}
+      ${p.kieuGiao === 'rieng' && !srvOld('lapphu') ? `<div class="fld"><span>${t('lapGiaoRieng')}</span>
+        <div class="list">${p.dsGiao.map((g, i) => `<div class="card pad" style="margin-bottom:8px">
+          <div class="row2f"><label class="fld"><span>${t('lapNguoi')}</span>
+            <select class="inp" data-gf="${i}:uid">${nvDS().map((n) => `<option value="${esc(n.id)}"${g.uid === n.id ? ' selected' : ''}>${esc(n.ten)}</option>`).join('')}</select></label>
+            <label class="fld"><span>${t('cvMay')}</span><select class="inp" data-gf="${i}:ma">${tbOptions(g.ma, 'lapMayChung')}</select></label></div>
+          <div class="btns" style="margin-top:8px"><button type="button" class="btn ghost sm" data-act="vlGiaoXoa" data-i="${i}">${t('del')}</button></div></div>`).join('')}</div>
+        <button type="button" class="btn ghost" data-act="vlGiaoThem">${IC.plus} ${t('lapGiaoThem')}</button>
+        <span class="help">${t('lapGiaoRiengHelp')}</span></div>`
+    : `<label class="fld"><span>${t('lapNguoi')}</span><select class="inp" id="vlLam"><option value="">${esc(tp('lapNguoiTrong'))}</option>${nvDS().map((n) => `<option value="${esc(n.id)}"${p.lam === n.id ? ' selected' : ''}>${esc(n.ten)}</option>`).join('')}</select></label>
+      ${p.lam && !srvOld('lapphu') ? `<div class="fld"><span>${t('lapPhu')}</span><div class="chips">${nvDS().filter((n) => n.id !== p.lam).map((n) => `<button type="button" class="chip${p.phu.indexOf(n.id) >= 0 ? ' on' : ''}" data-act="vlPhu" data-id="${esc(n.id)}">${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ` <span class="zi" lang="zh-CN">${esc(n.tenZh)}</span>` : ''}</button>`).join('')}</div>
+        <span class="help">${t('lapPhuHelp')}</span></div>` : ''}`}
       <label class="fld"><span>${t('cvMoTa')}</span><textarea class="inp" id="vlMT" rows="2" maxlength="1000">${esc(p.moTa)}</textarea></label>
       ${p.dGoc && (p.moTa || p.dMT) ? `<label class="fld dichfld"><span>${t('cvBanDich')}</span><textarea class="inp" id="vlMTd" rows="2" maxlength="2000">${esc(p.dMT)}</textarea></label>` : ''}
       <label class="checkrow" style="border:0;padding:4px 0"><input type="checkbox" id="vlKT"${p.kt ? ' checked' : ''}><span>${t('cvKT')}</span></label>
@@ -8685,7 +8710,9 @@ VIEWS.cvLapEdit = {
   after(p) {
     const f = $('#vlF'); if (!f) return;
     const sync = () => {
-      p.tieuDe = $('#vlTD').value; p.moTa = $('#vlMT').value; p.ma = $('#vlMa').value; p.lam = $('#vlLam').value;
+      p.tieuDe = $('#vlTD').value; p.moTa = $('#vlMT').value; p.ma = $('#vlMa').value;
+      if ($('#vlLam') && p.lam !== $('#vlLam').value) { p.lam = $('#vlLam').value; p.phu = p.phu.filter((id) => id !== p.lam); render(); return; }
+      $$('[data-gf]').forEach((el) => { const [i, k] = el.dataset.gf.split(':'); if (p.dsGiao[+i]) p.dsGiao[+i][k] = el.value; });
       if ($('#vlTDd')) p.dTD = $('#vlTDd').value;
       if ($('#vlMTd')) p.dMT = $('#vlMTd').value;
       p.kt = $('#vlKT').checked; p.bat = $('#vlBat').checked; if ($('#vlNgay')) p.ngay = $('#vlNgay').value;
@@ -8699,7 +8726,9 @@ VIEWS.cvLapEdit = {
       if (p.kieu !== 'ngay' && !p.ngay.split(/[,;\s]+/).some((x) => x !== '')) return err(t('lapCanNgay'));
       const btn = $('#vlOk'); btn.disabled = true;
       try {
-        const pl = { id: p.id || '', tieuDe: p.tieuDe.trim(), moTa: p.moTa.trim(), loai: p.loai, uuTien: p.uu, ma: p.ma, kieu: p.kieu, ngay: p.ngay, uidLam: p.lam, canKiemTra: p.kt, hoatDong: p.bat };
+        const pl = { id: p.id || '', tieuDe: p.tieuDe.trim(), moTa: p.moTa.trim(), loai: p.loai, uuTien: p.uu, ma: p.ma, kieu: p.kieu, ngay: p.ngay,
+          uidLam: p.kieuGiao === 'rieng' ? '' : p.lam, uidPhu: p.kieuGiao === 'rieng' || !p.lam ? [] : p.phu,
+          dsGiao: p.kieuGiao === 'rieng' ? p.dsGiao.filter((g) => g.uid) : [], canKiemTra: p.kt, hoatDong: p.bat };
         if (p.dGoc && p.dTD !== p.dGoc.td) pl.tieuDeDich = (p.dTD || '').trim();
         if (p.dGoc && p.dMT !== p.dGoc.mt) pl.moTaDich = (p.dMT || '').trim();
         const d = await api('saveRecurring', pl);
@@ -8749,7 +8778,33 @@ Object.assign(ACT, {
   cvXong: (el) => go('cvXong', { id: el.dataset.id }),
   cvGiaoGo: (el) => cvGiaoGo(el),
   cvLapSua: (el) => go('cvLapEdit', { id: el.dataset.id }),
-  vlSet: (el) => { const p = topV().p; if (S.vlSync) S.vlSync(); p[el.dataset.k] = el.dataset.v; if (el.dataset.k === 'kieu') p.ngay = el.dataset.v === 'tuan' ? String(wday(TODAY())) : el.dataset.v === 'thang' ? String(+TODAY().slice(8, 10)) : ''; render(); },
+  vlSet: (el) => { const p = topV().p; if (S.vlSync) S.vlSync(); p[el.dataset.k] = el.dataset.v;
+    // Đổi sang "mỗi người một việc": đưa luôn người đang chọn vào dòng đầu cho đỡ phải gõ lại
+    if (el.dataset.k === 'kieuGiao' && el.dataset.v === 'rieng' && !p.dsGiao.length && p.lam) p.dsGiao.push({ uid: p.lam, ma: p.ma || '' });
+    if (el.dataset.k === 'kieu') p.ngay = el.dataset.v === 'tuan' ? String(wday(TODAY())) : el.dataset.v === 'thang' ? String(+TODAY().slice(8, 10)) : ''; render(); },
+  vlGiaoThem: () => {
+    const p = topV().p, ds = nvDS();
+    if (p.dsGiao.length >= 30) { toast(t('lapGiaoToiDa'), true); return; }
+    if (S.vlSync) S.vlSync();
+    const co = {};
+    p.dsGiao.forEach((g) => { co[g.uid] = 1; });
+    const nv = ds.filter((n) => !co[n.id])[0] || ds[0];
+    if (!nv) return;
+    p.dsGiao.push({ uid: nv.id, ma: p.ma || '' });
+    render();
+  },
+  vlGiaoXoa: (el) => {
+    const p = topV().p;
+    if (S.vlSync) S.vlSync();
+    p.dsGiao.splice(+el.dataset.i, 1);
+    render();
+  },
+  vlPhu: (el) => {
+    const p = topV().p, id = el.dataset.id, i = p.phu.indexOf(id);
+    if (i >= 0) p.phu.splice(i, 1); else if (p.phu.length < 5) p.phu.push(id); else { toast(t('lapPhuToiDa'), true); return; }
+    if (S.vlSync) S.vlSync();
+    render();
+  },
   vlThu: (el) => { const p = topV().p; if (S.vlSync) S.vlSync(); const a = p.ngay.split(',').filter((x) => x !== ''), v = el.dataset.v, i = a.indexOf(v); if (i >= 0) a.splice(i, 1); else a.push(v); p.ngay = a.join(','); render(); }
 });
 

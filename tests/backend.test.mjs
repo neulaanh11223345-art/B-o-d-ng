@@ -1359,3 +1359,50 @@ test('chép lịch trực tuần sang các tuần sau, giữ hoặc ghi đè ng�
   assert.equal(by3['2026-11-09'].noiDung, 'Trực điện xưởng 1');
   assert.equal(by3['2026-11-09'].uid, a.id);
 });
+
+test('việc lặp lại giao cho nhiều người: một việc cho cả nhóm, hoặc mỗi người một việc kèm thiết bị riêng', () => {
+  const b = setupSC();                                   // 2026-10-05 là Thứ Hai
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien;
+  const a = nv.find((n) => n.maNV === 'NV003'), c = nv.find((n) => n.maNV === 'NV002'), q = nv.find((n) => n.maNV === 'NV001');
+
+  // Kiểu 1: một việc, một người làm chính kèm người làm cùng
+  const r1 = ok(b.call('saveRecurring', { tieuDe: 'Vệ sinh xưởng', loai: 'VS', kieu: 'ngay', uidLam: a.id, uidPhu: [c.id, q.id] }, b.ql));
+  assert.deepEqual(r1.viecLap.uidPhu, [c.id, q.id]);
+  assert.equal(r1.dsCongViec.length, 1);
+  assert.equal(r1.dsCongViec[0].uidLam, a.id);
+  assert.deepEqual(r1.dsCongViec[0].uidPhu, [c.id, q.id], 'việc sinh ra giao cho cả nhóm');
+  assert.equal(r1.dsCongViec[0].trangThai, 'DA_GIAO');
+
+  // Kiểu 2: mỗi người một việc, ai máy nấy — như check sheet
+  const r2 = ok(b.call('saveRecurring', { tieuDe: 'Kiểm tra máy đầu ca', loai: 'KHAC', kieu: 'ngay', ma: 'M001',
+    dsGiao: [{ uid: a.id, ma: 'M001' }, { uid: c.id, ma: 'M002' }, { uid: q.id, ma: '' }] }, b.ql));
+  assert.equal(r2.viecLap.dsGiao.length, 3);
+  assert.equal(r2.viecLap.uidLam, '', 'kiểu này không dùng người làm chính');
+  assert.equal(r2.dsCongViec.length, 3, 'mỗi người một việc');
+  const theoNguoi = {};
+  r2.dsCongViec.forEach((x) => { theoNguoi[x.uidLam] = x; });
+  assert.equal(theoNguoi[a.id].ma, 'M001');
+  assert.equal(theoNguoi[c.id].ma, 'M002');
+  assert.equal(theoNguoi[q.id].ma, 'M001', 'để trống thì theo thiết bị chung của mẫu');
+  assert.equal(theoNguoi[a.id].trangThai, 'DA_GIAO');
+  assert.equal(new Set(r2.dsCongViec.map((x) => x.id)).size, 3, 'mã việc không trùng nhau');
+
+  // Ngày sau sinh tiếp đủ ba việc, không sinh trùng
+  b.setNow('2026-10-06T03:00:00Z');
+  let d = ok(b.call('data', {}, b.ql));
+  const ds6 = d.congViec.filter((x) => x.tieuDe === 'Kiểm tra máy đầu ca' && x.han === '2026-10-06');
+  assert.equal(ds6.length, 3);
+  d = ok(b.call('data', {}, b.ql));
+  assert.equal(d.congViec.filter((x) => x.tieuDe === 'Kiểm tra máy đầu ca').length, 6, 'tải lại không sinh trùng');
+
+  // Máy không có thì báo lỗi; trùng người + máy thì bỏ bớt
+  err(b.call('saveRecurring', { tieuDe: 'x', kieu: 'ngay', dsGiao: [{ uid: a.id, ma: 'KHONGCO' }] }, b.ql), 'KHONG_CO_MAY');
+  const r3 = ok(b.call('saveRecurring', { tieuDe: 'Tra dầu', kieu: 'ngay',
+    dsGiao: [{ uid: a.id, ma: 'M001' }, { uid: a.id, ma: 'M001' }, { uid: a.id, ma: 'M002' }, { uid: 'U999', ma: '' }] }, b.ql));
+  assert.equal(r3.viecLap.dsGiao.length, 2, 'bỏ dòng trùng và người không có');
+
+  // Đổi về kiểu một việc thì xoá danh sách giao riêng
+  const r4 = ok(b.call('saveRecurring', { id: r2.viecLap.id, tieuDe: 'Kiểm tra máy đầu ca', kieu: 'ngay', ma: 'M001', uidLam: a.id, dsGiao: [] }, b.ql));
+  assert.deepEqual(r4.viecLap.dsGiao, []);
+  assert.equal(r4.viecLap.uidLam, a.id);
+});
