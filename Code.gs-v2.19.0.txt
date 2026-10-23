@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.18.0';
+var PHIEN_BAN = '2.19.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1576,9 +1576,60 @@ function ngayKhop(vl, d) {
   return so.some(function (n) { return n === day || (n > cuoi && day === cuoi); });
 }
 // Sinh việc từ một mẫu lặp lại cho các ngày (TaoDen, hôm nay], bù tối đa 7 ngày. Mã việc cố định theo mẫu + ngày nên không tạo trùng.
+// Danh sách mã máy của một dòng giao: nhận cả dạng cũ (một mã) và dạng mới (nhiều mã, check sheet vài máy)
+function vlMaDs(v) {
+  var ra = [];
+  (Array.isArray(v) ? v : String(v === undefined || v === null ? '' : v).split(',')).forEach(function (m) {
+    m = s(m).toUpperCase();
+    if (m && ra.indexOf(m) < 0) ra.push(m);
+  });
+  return ra;
+}
+// Một dòng giao sinh ra những việc nào: mỗi máy một việc; không chọn máy nào thì theo máy chung của mẫu
+function vlGiaoDS(vl, nvs) {
+  var ra = [];
+  (vl.dsGiao || []).forEach(function (g) {
+    var nv = timNV(g && g.uid, nvs);
+    if (!nv) return;
+    var mas = vlMaDs(g && g.ma);
+    if (!mas.length) mas = [s(vl.ma)];
+    mas.forEach(function (m) { if (ra.length < VL_VIEC_TOI_DA) ra.push({ nv: nv, ma: m }); });
+  });
+  return ra;
+}
+// Việc do mẫu sinh ra mà chưa ai động tới: còn chờ giao hoặc đã giao, chưa bắt đầu, nhật ký chỉ có dòng lặp và giao
+function vlChuaDung(x) {
+  return (x.trangThai === 'CHO_GIAO' || x.trangThai === 'DA_GIAO') && !x.lucBatDau && !x.lucXong &&
+    (x.nhatKy || []).every(function (n) { return n.b === 'lap' || n.b === 'giao'; });
+}
+// Mẫu vừa sửa: cập nhật việc đã sinh nhưng chưa ai làm, kể cả người làm. Trả về 'giao' nếu vừa giao cho người mới.
+function vlDongBo(x, vl, lam, phu, ma, bay) {
+  var doi = '', dat = function (k, v) { if (x[k] !== v) { x[k] = v; doi = doi || 'sua'; } };
+  dat('tieuDe', vl.tieuDe); dat('tieuDeDich', vl.tieuDeDich || '');
+  dat('moTa', vl.moTa); dat('moTaDich', vl.moTaDich || '');
+  dat('loai', vl.loai); dat('uuTien', vl.uuTien); dat('ma', s(ma)); dat('canKiemTra', !!vl.canKiemTra);
+  var idPhu = phu.map(function (n) { return n.id; }).join(',');
+  if (lam) {
+    if (x.uidLam !== lam.id || (x.uidPhu || []).join(',') !== idPhu) {
+      giaoCho(x, lam, phu, { id: '', ten: vl.nguoiTao }, bay, '');
+      doi = 'giao';
+    }
+  } else if (x.uidLam) {
+    x.uidLam = ''; x.nguoiLam = ''; x.uidPhu = []; x.nguoiGiao = ''; x.uidGiao = ''; x.lucGiao = ''; x.trangThai = 'CHO_GIAO';
+    x.nhatKy.push({ b: 'giao', luc: bay, uid: '', nguoi: vl.nguoiTao, gc: 'Chưa giao · 未派工', op: '' });
+    doi = 'sua';
+  }
+  if (doi) x.capNhat = bay;
+  return doi;
+}
+// Sinh việc từ một mẫu lặp lại cho các ngày (TaoDen, hôm nay], bù tối đa 7 ngày. Mã việc cố định theo mẫu + ngày nên không tạo trùng.
+// Mẫu sửa lại trong ngày thì việc của hôm nay đổi theo (nếu chưa ai làm); việc thừa do bớt người thì huỷ.
 function taoTuMau(vl, homNay, cvs, nvs) {
-  var tu = congNgay(vl.taoDen || congNgay(homNay, -1), 1), min = congNgay(homNay, -6), out = [], so = soLonNhat(cvs), bay = thoiGianStr();
+  var tu = congNgay(vl.taoDen || congNgay(homNay, -1), 1), min = congNgay(homNay, -6);
+  var out = [], sua = [], bao = [], so = soLonNhat(cvs), bay = thoiGianStr();
   if (tu < min) tu = min;
+  var theoId = {};
+  cvs.forEach(function (x) { theoId[x.id] = x; });
   var lam = timNV(vl.uidLam, nvs);
   // Những người làm cùng: bỏ người đã nghỉ và người trùng với người làm chính
   var phu = [];
@@ -1586,36 +1637,57 @@ function taoTuMau(vl, homNay, cvs, nvs) {
     var n = timNV(id, nvs);
     if (n && (!lam || n.id !== lam.id) && phu.indexOf(n) < 0) phu.push(n);
   });
-  // Mỗi người một việc: mỗi dòng trong DsGiao sinh ra một việc riêng, ai máy nấy
-  var giao = [];
-  (vl.dsGiao || []).forEach(function (g) {
-    var nv = timNV(g && g.uid, nvs);
-    if (nv) giao.push({ nv: nv, ma: s(g.ma) || vl.ma });
-  });
+  // Mỗi người một việc: mỗi máy của mỗi dòng trong DsGiao sinh ra một việc riêng, ai máy nấy
+  var giao = vlGiaoDS(vl, nvs);
   var tien = 'CVL' + vl.id.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   for (var d = tu, g2 = 0; d <= homNay && g2 < 40; d = congNgay(d, 1), g2++) {
     if (!ngayKhop(vl, d)) continue;
-    var ngayId = tien + d.replace(/-/g, '');
-    var soDong = giao.length || 1;
+    var ngayId = tien + d.replace(/-/g, ''), canCo = {}, soDong = giao.length || 1;
     for (var k = 0; k < soDong; k++) {
       var id = giao.length ? ngayId + ('0' + (k + 1)).slice(-2) : ngayId;
-      if (cvs.some(function (x) { return x.id === id; })) continue;
+      var nvK = giao.length ? giao[k].nv : lam, phuK = giao.length ? [] : phu, maK = giao.length ? giao[k].ma : vl.ma;
+      canCo[id] = 1;
+      var cu = theoId[id];
+      if (cu) {
+        if (vlChuaDung(cu)) {
+          var doi = vlDongBo(cu, vl, nvK, phuK, maK, bay);
+          if (doi) sua.push(cu);
+          if (doi === 'giao' && nvK) bao.push({ nv: nvK, phu: phuK, x: cu });
+        }
+        continue;
+      }
       so++;
       var x = { id: id, so: so, tieuDe: vl.tieuDe, tieuDeDich: vl.tieuDeDich || '', moTa: vl.moTa, moTaDich: vl.moTaDich || '',
-        ketQuaDich: '', nguyenNhanDich: '', loai: vl.loai, uuTien: vl.uuTien, ma: giao.length ? giao[k].ma : vl.ma, han: d, trangThai: 'CHO_GIAO',
+        ketQuaDich: '', nguyenNhanDich: '', loai: vl.loai, uuTien: vl.uuTien, ma: maK, han: d, trangThai: 'CHO_GIAO',
         uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: vl.nguoiTao, uidTao: '', lucTao: bay,
         lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: [], anhXong: [], canKiemTra: vl.canKiemTra, nguoiKiemTra: '', lucKiemTra: '',
         lapLai: vl.id, opId: '', capNhat: bay, nguyenNhan: '', phutDung: '', nhatKy: [{ b: 'lap', luc: bay, uid: '', nguoi: vl.nguoiTao, gc: '', op: '' }] };
-      if (giao.length) giaoCho(x, giao[k].nv, [], { id: '', ten: vl.nguoiTao }, bay, '');
-      else if (lam) giaoCho(x, lam, phu, { id: '', ten: vl.nguoiTao }, bay, '');
-      cvs.push(x); out.push(x);
+      if (nvK) { giaoCho(x, nvK, phuK, { id: '', ten: vl.nguoiTao }, bay, ''); bao.push({ nv: nvK, phu: phuK, x: x }); }
+      cvs.push(x); theoId[id] = x; out.push(x);
     }
+    // Mẫu đổi cách giao hoặc bớt người: việc thừa của ngày đó, chưa ai động tới, thì huỷ
+    cvs.forEach(function (x) {
+      if (x.lapLai !== vl.id || x.han !== d || canCo[x.id] || !vlChuaDung(x)) return;
+      x.trangThai = 'HUY'; x.capNhat = bay;
+      x.nhatKy.push({ b: 'xoa', luc: bay, uid: '', nguoi: vl.nguoiTao, gc: 'Mẫu lặp lại đã đổi · 重复模板已更改', op: '' });
+      sua.push(x);
+    });
   }
-  if (out.length) { capNhatTieuDe('CongViec'); themNhieu('CongViec', out.map(cvThanhDong)); }
+  if (out.length || sua.length) capNhatTieuDe('CongViec');
+  if (out.length) themNhieu('CongViec', out.map(cvThanhDong));
+  sua.forEach(function (x) { suaDong('CongViec', x._r, cvThanhDong(x)); });
+  // Báo tin giao việc như khi Quản lý giao tay: mỗi người một tin, gộp các việc của người đó
+  var nhom = {}, thuTu = [];
+  bao.forEach(function (b) {
+    if (!nhom[b.nv.id]) { nhom[b.nv.id] = { loai: 'giao', ds: [], lam: b.nv, phu: b.phu, boi: 'Việc lặp lại · 重复工作' }; thuTu.push(b.nv.id); }
+    nhom[b.nv.id].ds.push(b.x);
+  });
+  thuTu.forEach(function (k) { TIN_CHO.push(nhom[k]); });
   vl.taoDen = homNay;
   suaDong('ViecLap', vl._r, vlThanhDong(vl));
-  return out;
+  return out.concat(sua);
 }
+
 function taoViecLap(coLock) {
   var homNay = homNayStr();
   if (!docViecLap().some(function (v) { return v.hoatDong && v.taoDen < homNay; })) return [];
@@ -1644,19 +1716,27 @@ function luuViecLap(u, p) {
   capNhatTieuDe('ViecLap');
   var td = x ? dichKhiSua(f.tieuDe, x.tieuDe, x.tieuDeDich, p.tieuDeDich) : songNgu(f.tieuDe);
   var mt = x ? dichKhiSua(f.moTa, x.moTa, x.moTaDich, p.moTaDich) : songNgu(f.moTa);
-  // Mỗi người một việc: mỗi dòng một người, kèm thiết bị riêng (để trống thì theo thiết bị chung của mẫu)
-  var dsGiao = [], daCoGiao = {};
+  // Mỗi người một việc: mỗi dòng một người, kèm những thiết bị người đó phụ trách (để trống thì theo thiết bị chung của mẫu)
+  var dsGiao = [], viTriGiao = {}, chs = null;
   (Array.isArray(p.dsGiao) ? p.dsGiao : []).forEach(function (g) {
-    if (dsGiao.length >= VL_GIAO_TOI_DA) return;
     var nv = timNV(s(g && g.uid), nvs);
     if (!nv) return;
-    var ma = s(g.ma).toUpperCase();
-    if (ma && !timMay(ma) && !dsChuyen().some(function (c) { return c.ma === ma; })) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
-    var k = nv.id + '|' + ma;
-    if (daCoGiao[k]) return;
-    daCoGiao[k] = 1;
-    dsGiao.push({ uid: nv.id, ma: ma });
+    var at = viTriGiao[nv.id];
+    if (at === undefined) {
+      if (dsGiao.length >= VL_GIAO_TOI_DA) return;
+      at = viTriGiao[nv.id] = dsGiao.length;
+      dsGiao.push({ uid: nv.id, ma: [] });
+    }
+    vlMaDs(g && g.ma).forEach(function (ma) {
+      if (dsGiao[at].ma.length >= VL_MAY_TOI_DA || dsGiao[at].ma.indexOf(ma) >= 0) return;
+      if (!chs) chs = dsChuyen();
+      if (!timMay(ma) && !chs.some(function (c) { return c.ma === ma; })) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
+      dsGiao[at].ma.push(ma);
+    });
   });
+  var tongGiao = 0;
+  dsGiao.forEach(function (g) { tongGiao += g.ma.length || 1; });
+  if (tongGiao > VL_VIEC_TOI_DA) throw loi('QUA_NHIEU_VIEC', 'Tối đa ' + VL_VIEC_TOI_DA + ' việc mỗi ngày · 每天最多 ' + VL_VIEC_TOI_DA + ' 项');
   var o = { tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], loai: f.loai, uuTien: f.uuTien, ma: f.ma, kieu: kieu, ngay: ngay,
     uidLam: dsGiao.length ? '' : (f.lam ? f.lam.id : ''),
     uidPhu: !dsGiao.length && f.lam ? f.phu.map(function (n) { return n.id; }) : [],
@@ -1671,6 +1751,9 @@ function luuViecLap(u, p) {
     if (batLai) x.taoDen = congNgay(homNay, -1);      // bật lại: không sinh bù những ngày đã tắt
     suaDong('ViecLap', x._r, vlThanhDong(x));
   }
+  // Mẫu vừa sửa: việc đã sinh hôm nay phải đổi theo mẫu (người làm, máy, tiêu đề) nên cho sinh lại hôm nay.
+  // Mẫu lâu ngày chưa chạy thì giữ nguyên TaoDen để vẫn sinh bù những ngày đã qua.
+  if (x.hoatDong && x.taoDen >= homNay) x.taoDen = congNgay(homNay, -1);
   var moi = x.hoatDong && x.taoDen < homNay ? taoTuMau(x, homNay, docCongViec(), nvs) : [];
   return { viecLap: sachCV(x), dsCongViec: moi.map(sachCV) };
 }
@@ -1912,7 +1995,9 @@ function maMoi(ds) {
 //        CapNhat, GhiChu, GopVao (linh kiện APP đã gộp vào mã ERP trùng tên + quy cách), An (1: ẩn khỏi danh sách tìm),
 //        TonMin (tồn tối thiểu: lấy từ cột 安全库存 / tồn tối thiểu của file ERP, hoặc Quản lý nhập trong app)
 // Linh kiện của máy và linh kiện đã thay trong LichSu.ChiTiet gắn với kho qua trường maKho.
-var VL_GIAO_TOI_DA = 30;     // số dòng tối đa của việc lặp lại kiểu "mỗi người một việc"
+var VL_GIAO_TOI_DA = 30;     // số người tối đa của việc lặp lại kiểu "mỗi người một việc"
+var VL_MAY_TOI_DA = 20;      // số máy tối đa một người phụ trách trong một mẫu
+var VL_VIEC_TOI_DA = 60;     // số việc tối đa một mẫu sinh ra mỗi ngày
 var KHO_META = 'KHO_META';
 var KHO_TOI_DA = 20000;
 var KHO_MOC_TOI_DA = 12;     // nhớ tồn của 12 lần nhập file gần nhất cho mỗi mã
@@ -3800,6 +3885,7 @@ function noiDungNhac(t, homNay, c, thu) {
 // Trigger hằng ngày (tạo bằng datLichNhac)
 function nhacHangNgay() {
   try { taoViecLap(false); } catch (e) { console.log('taoViecLap: ' + (e && e.message || e)); }
+  try { guiTinCho(); } catch (e) { console.log('guiTinCho: ' + (e && e.message || e)); }   // báo tin giao việc của mẫu lặp lại
   try { dichBu(60, true); } catch (e) { console.log('dichBu: ' + (e && e.message || e)); }
   var c = docCaiDat();
   if (!c.tgBat && !c.mailBat) return;
