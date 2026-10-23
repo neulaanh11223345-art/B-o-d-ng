@@ -290,6 +290,31 @@ assert.ok(await page.evaluate(() => lkChXlsx(chDangDung()).size) > 2000, 'xuất
 // Bảng mẫu linh kiện: tải về rồi đọc lại được (nhập từ Excel)
 const mau = await page.evaluate(async () => { const r = await lkDocFile(new File([lkMauXlsx()], 'mau.xlsx')); return [r.ds.length, r.ds.filter((o) => o.loi.length).length]; });
 assert.ok(mau[0] > 0 && mau[1] === 0, 'bảng mẫu đọc lại đủ dòng, không lỗi máy: ' + mau);
+// Việc lặp lại giao cho nhiều người: mỗi người một việc, ai máy nấy
+await page.evaluate(() => go('cvLapEdit', {})); await wait(600);
+await page.fill('#vlTD', 'Kiểm tra máy đầu ca');
+await page.click('[data-act="vlSet"][data-k="kieu"][data-v="ngay"]'); await wait(400);
+await page.click('[data-act="vlSet"][data-k="kieuGiao"][data-v="rieng"]'); await wait(400);
+assert.match(await text('#main'), /Mỗi người một việc/);
+await page.click('[data-act="vlGiaoThem"]'); await wait(300);
+await page.click('[data-act="vlGiaoThem"]'); await wait(300);
+const nvId10 = await page.evaluate(() => nvDS().map((n) => n.id));
+await page.selectOption('[data-gf="0:uid"]', nvId10[0]);
+await page.selectOption('[data-gf="1:uid"]', nvId10[1]); await wait(300);
+const may10 = await page.evaluate(() => S.V.may.filter((m) => m.hoatDong).slice(0, 2).map((m) => m.ma));
+await page.selectOption('[data-gf="0:ma"]', may10[0]);
+await page.selectOption('[data-gf="1:ma"]', may10[1]); await wait(300);
+await page.click('#vlOk'); await wait(1600);
+const lap10 = await page.evaluate(() => {
+  const v = S.V.vl.find((x) => x.tieuDe === 'Kiểm tra máy đầu ca');
+  const cv = S.V.cvAll.filter((x) => x.lapLai === (v || {}).id);
+  return { n: (v && v.dsGiao || []).length, viec: cv.map((x) => ({ uid: x.uidLam, ma: x.ma, st: x.trangThai })) };
+});
+assert.equal(lap10.n, 2, 'mẫu lặp lại lưu hai dòng giao');
+assert.equal(lap10.viec.length, 2, 'sinh ra hai việc riêng');
+assert.deepEqual(lap10.viec.map((x) => x.uid).sort(), nvId10.slice(0, 2).sort());
+assert.deepEqual(lap10.viec.map((x) => x.ma).sort(), may10.slice().sort(), 'mỗi người một máy');
+assert.ok(lap10.viec.every((x) => x.st === 'DA_GIAO'), 'giao sẵn cho từng người');
 ok('Công việc: ghi và giao, giao nhiều việc, nhân viên làm xong, Quản lý kiểm tra; báo cáo tháng + Excel; giao bảo dưỡng có sẵn tiếng Trung; linh kiện chuyền');
 
 // 11. Máy tính: sidebar, bảng có tiêu đề, phân trang

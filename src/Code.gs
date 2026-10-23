@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.17.0';
+var PHIEN_BAN = '2.18.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -66,8 +66,11 @@ var BANG = {
     'TieuDeDich', 'MoTaDich', 'KetQuaDich', 'NguyenNhanDich', 'Nguon'],
   // Việc lặp lại: mỗi ngày (khi app tải dữ liệu và lúc nhắc hằng ngày) tự sinh việc vào CongViec
   // Kieu: ngay (hằng ngày) · tuan (Ngay = các thứ 0–6, 0 = Chủ nhật) · thang (Ngay = các ngày trong tháng) · TaoDen: đã sinh việc đến ngày
+  // Hai kiểu giao:
+  //  - MỘT VIỆC CHO CẢ NHÓM: UIDLam = người làm chính, UIDPhu (JSON) = những người làm cùng
+  //  - MỖI NGƯỜI MỘT VIỆC: DsGiao (JSON) = [{uid, ma}] — mỗi dòng sinh ra một việc riêng, ai máy nấy (như check sheet)
   ViecLap: ['ID', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Kieu', 'Ngay', 'UIDLam', 'CanKiemTra', 'HoatDong', 'TaoDen', 'NguoiTao', 'CapNhat',
-    'TieuDeDich', 'MoTaDich'],
+    'TieuDeDich', 'MoTaDich', 'UIDPhu', 'DsGiao'],
   // Tài liệu của máy / chuyền: Ma = mã máy hoặc mã chuyền (để trống là chưa gán) · Kieu: TEP (tệp) · ANH (ảnh) · LINK (liên kết)
   // Nhom: HDSD · BANVE · QUYTRINH · KIEMDINH · ANH · KHAC · FileId: mã tệp trên Drive
   // AnhNho: ảnh thu nhỏ (thư mục ảnh của app) · DaiDien = 1: ảnh đại diện của máy · Xoa = 1: đã xoá khỏi danh mục
@@ -1274,8 +1277,8 @@ var CV_KHOA = ['id', 'so', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'han', 'tra
   'tieuDeDich', 'moTaDich', 'ketQuaDich', 'nguyenNhanDich', 'nguon'];
 // nguon: 'SC' = bản ghi sửa chữa (Ghi sửa chữa), chỉ lưu làm lịch sử, không hiện trong danh sách công việc
 var VL_KHOA = ['id', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'kieu', 'ngay', 'uidLam', 'canKiemTra', 'hoatDong', 'taoDen', 'nguoiTao', 'capNhat',
-  'tieuDeDich', 'moTaDich'];
-var CV_JSON = { uidPhu: 1, linhKien: 1, anhTao: 1, anhXong: 1, nhatKy: 1 };
+  'tieuDeDich', 'moTaDich', 'uidPhu', 'dsGiao'];
+var CV_JSON = { uidPhu: 1, linhKien: 1, anhTao: 1, anhXong: 1, nhatKy: 1, dsGiao: 1 };
 var CV_BOOL = { canKiemTra: 1, hoatDong: 1 };
 var CV_NGAY = { han: 1, taoDen: 1 };
 function obTuDong(khoa, r, i) {
@@ -1577,18 +1580,36 @@ function taoTuMau(vl, homNay, cvs, nvs) {
   var tu = congNgay(vl.taoDen || congNgay(homNay, -1), 1), min = congNgay(homNay, -6), out = [], so = soLonNhat(cvs), bay = thoiGianStr();
   if (tu < min) tu = min;
   var lam = timNV(vl.uidLam, nvs);
-  for (var d = tu, g = 0; d <= homNay && g < 40; d = congNgay(d, 1), g++) {
+  // Những người làm cùng: bỏ người đã nghỉ và người trùng với người làm chính
+  var phu = [];
+  (vl.uidPhu || []).forEach(function (id) {
+    var n = timNV(id, nvs);
+    if (n && (!lam || n.id !== lam.id) && phu.indexOf(n) < 0) phu.push(n);
+  });
+  // Mỗi người một việc: mỗi dòng trong DsGiao sinh ra một việc riêng, ai máy nấy
+  var giao = [];
+  (vl.dsGiao || []).forEach(function (g) {
+    var nv = timNV(g && g.uid, nvs);
+    if (nv) giao.push({ nv: nv, ma: s(g.ma) || vl.ma });
+  });
+  var tien = 'CVL' + vl.id.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  for (var d = tu, g2 = 0; d <= homNay && g2 < 40; d = congNgay(d, 1), g2++) {
     if (!ngayKhop(vl, d)) continue;
-    var id = 'CVL' + vl.id.replace(/[^A-Za-z0-9]/g, '').toUpperCase() + d.replace(/-/g, '');
-    if (cvs.some(function (x) { return x.id === id; })) continue;
-    so++;
-    var x = { id: id, so: so, tieuDe: vl.tieuDe, tieuDeDich: vl.tieuDeDich || '', moTa: vl.moTa, moTaDich: vl.moTaDich || '',
-      ketQuaDich: '', nguyenNhanDich: '', loai: vl.loai, uuTien: vl.uuTien, ma: vl.ma, han: d, trangThai: 'CHO_GIAO',
-      uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: vl.nguoiTao, uidTao: '', lucTao: bay,
-      lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: [], anhXong: [], canKiemTra: vl.canKiemTra, nguoiKiemTra: '', lucKiemTra: '',
-      lapLai: vl.id, opId: '', capNhat: bay, nguyenNhan: '', phutDung: '', nhatKy: [{ b: 'lap', luc: bay, uid: '', nguoi: vl.nguoiTao, gc: '', op: '' }] };
-    if (lam) giaoCho(x, lam, [], { id: '', ten: vl.nguoiTao }, bay, '');
-    cvs.push(x); out.push(x);
+    var ngayId = tien + d.replace(/-/g, '');
+    var soDong = giao.length || 1;
+    for (var k = 0; k < soDong; k++) {
+      var id = giao.length ? ngayId + ('0' + (k + 1)).slice(-2) : ngayId;
+      if (cvs.some(function (x) { return x.id === id; })) continue;
+      so++;
+      var x = { id: id, so: so, tieuDe: vl.tieuDe, tieuDeDich: vl.tieuDeDich || '', moTa: vl.moTa, moTaDich: vl.moTaDich || '',
+        ketQuaDich: '', nguyenNhanDich: '', loai: vl.loai, uuTien: vl.uuTien, ma: giao.length ? giao[k].ma : vl.ma, han: d, trangThai: 'CHO_GIAO',
+        uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: vl.nguoiTao, uidTao: '', lucTao: bay,
+        lucBatDau: '', lucXong: '', ketQua: '', linhKien: [], anhTao: [], anhXong: [], canKiemTra: vl.canKiemTra, nguoiKiemTra: '', lucKiemTra: '',
+        lapLai: vl.id, opId: '', capNhat: bay, nguyenNhan: '', phutDung: '', nhatKy: [{ b: 'lap', luc: bay, uid: '', nguoi: vl.nguoiTao, gc: '', op: '' }] };
+      if (giao.length) giaoCho(x, giao[k].nv, [], { id: '', ten: vl.nguoiTao }, bay, '');
+      else if (lam) giaoCho(x, lam, phu, { id: '', ten: vl.nguoiTao }, bay, '');
+      cvs.push(x); out.push(x);
+    }
   }
   if (out.length) { capNhatTieuDe('CongViec'); themNhieu('CongViec', out.map(cvThanhDong)); }
   vl.taoDen = homNay;
@@ -1623,8 +1644,23 @@ function luuViecLap(u, p) {
   capNhatTieuDe('ViecLap');
   var td = x ? dichKhiSua(f.tieuDe, x.tieuDe, x.tieuDeDich, p.tieuDeDich) : songNgu(f.tieuDe);
   var mt = x ? dichKhiSua(f.moTa, x.moTa, x.moTaDich, p.moTaDich) : songNgu(f.moTa);
-  var o = { tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], loai: f.loai, uuTien: f.uuTien, ma: f.ma, kieu: kieu, ngay: ngay, uidLam: f.lam ? f.lam.id : '',
-    canKiemTra: f.canKiemTra, hoatDong: p.hoatDong !== false, capNhat: bay };
+  // Mỗi người một việc: mỗi dòng một người, kèm thiết bị riêng (để trống thì theo thiết bị chung của mẫu)
+  var dsGiao = [], daCoGiao = {};
+  (Array.isArray(p.dsGiao) ? p.dsGiao : []).forEach(function (g) {
+    if (dsGiao.length >= VL_GIAO_TOI_DA) return;
+    var nv = timNV(s(g && g.uid), nvs);
+    if (!nv) return;
+    var ma = s(g.ma).toUpperCase();
+    if (ma && !timMay(ma) && !dsChuyen().some(function (c) { return c.ma === ma; })) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
+    var k = nv.id + '|' + ma;
+    if (daCoGiao[k]) return;
+    daCoGiao[k] = 1;
+    dsGiao.push({ uid: nv.id, ma: ma });
+  });
+  var o = { tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], loai: f.loai, uuTien: f.uuTien, ma: f.ma, kieu: kieu, ngay: ngay,
+    uidLam: dsGiao.length ? '' : (f.lam ? f.lam.id : ''),
+    uidPhu: !dsGiao.length && f.lam ? f.phu.map(function (n) { return n.id; }) : [],
+    dsGiao: dsGiao, canKiemTra: f.canKiemTra, hoatDong: p.hoatDong !== false, capNhat: bay };
   if (!x) {
     x = Object.assign({ id: idMoi('VL', dsIdCo(ds)), taoDen: congNgay(homNay, -1), nguoiTao: u.ten }, o);
     themDong('ViecLap', vlThanhDong(x));
@@ -1876,6 +1912,7 @@ function maMoi(ds) {
 //        CapNhat, GhiChu, GopVao (linh kiện APP đã gộp vào mã ERP trùng tên + quy cách), An (1: ẩn khỏi danh sách tìm),
 //        TonMin (tồn tối thiểu: lấy từ cột 安全库存 / tồn tối thiểu của file ERP, hoặc Quản lý nhập trong app)
 // Linh kiện của máy và linh kiện đã thay trong LichSu.ChiTiet gắn với kho qua trường maKho.
+var VL_GIAO_TOI_DA = 30;     // số dòng tối đa của việc lặp lại kiểu "mỗi người một việc"
 var KHO_META = 'KHO_META';
 var KHO_TOI_DA = 20000;
 var KHO_MOC_TOI_DA = 12;     // nhớ tồn của 12 lần nhập file gần nhất cho mỗi mã
