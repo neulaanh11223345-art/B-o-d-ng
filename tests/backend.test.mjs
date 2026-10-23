@@ -1395,14 +1395,85 @@ test('việc lặp lại giao cho nhiều người: một việc cho cả nhóm,
   d = ok(b.call('data', {}, b.ql));
   assert.equal(d.congViec.filter((x) => x.tieuDe === 'Kiểm tra máy đầu ca').length, 6, 'tải lại không sinh trùng');
 
-  // Máy không có thì báo lỗi; trùng người + máy thì bỏ bớt
+  // Máy không có thì báo lỗi; cùng một người thì gộp về một dòng, máy trùng bỏ bớt
   err(b.call('saveRecurring', { tieuDe: 'x', kieu: 'ngay', dsGiao: [{ uid: a.id, ma: 'KHONGCO' }] }, b.ql), 'KHONG_CO_MAY');
   const r3 = ok(b.call('saveRecurring', { tieuDe: 'Tra dầu', kieu: 'ngay',
     dsGiao: [{ uid: a.id, ma: 'M001' }, { uid: a.id, ma: 'M001' }, { uid: a.id, ma: 'M002' }, { uid: 'U999', ma: '' }] }, b.ql));
-  assert.equal(r3.viecLap.dsGiao.length, 2, 'bỏ dòng trùng và người không có');
+  assert.deepEqual(r3.viecLap.dsGiao, [{ uid: a.id, ma: ['M001', 'M002'] }], 'gộp theo người, bỏ máy trùng và người không có');
 
   // Đổi về kiểu một việc thì xoá danh sách giao riêng
   const r4 = ok(b.call('saveRecurring', { id: r2.viecLap.id, tieuDe: 'Kiểm tra máy đầu ca', kieu: 'ngay', ma: 'M001', uidLam: a.id, dsGiao: [] }, b.ql));
   assert.deepEqual(r4.viecLap.dsGiao, []);
   assert.equal(r4.viecLap.uidLam, a.id);
+});
+
+test('việc lặp lại: một người check sheet nhiều máy, mỗi máy một việc', () => {
+  const b = setupSC();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien;
+  const a = nv.find((n) => n.maNV === 'NV003'), c = nv.find((n) => n.maNV === 'NV002');
+
+  const r = ok(b.call('saveRecurring', { tieuDe: 'Check sheet đầu ca', kieu: 'ngay', ma: 'M001',
+    dsGiao: [{ uid: a.id, ma: ['M001', 'M002', 'M002'] }, { uid: c.id, ma: [] }] }, b.ql));
+  assert.deepEqual(r.viecLap.dsGiao, [{ uid: a.id, ma: ['M001', 'M002'] }, { uid: c.id, ma: [] }]);
+  assert.equal(r.dsCongViec.length, 3, 'người đầu hai máy = hai việc, người sau một việc');
+  const cua = (uid) => r.dsCongViec.filter((x) => x.uidLam === uid).map((x) => x.ma).sort();
+  assert.deepEqual(cua(a.id), ['M001', 'M002']);
+  assert.deepEqual(cua(c.id), ['M001'], 'không chọn máy thì theo thiết bị chung của mẫu');
+  assert.equal(new Set(r.dsCongViec.map((x) => x.id)).size, 3, 'mã việc không trùng nhau');
+  r.dsCongViec.forEach((x) => assert.equal(x.trangThai, 'DA_GIAO'));
+
+  // Một người tối đa 20 máy; cả mẫu tối đa 60 việc mỗi lần
+  const may = ok(b.call('data', {}, b.ql)).may.map((m) => m.ma);
+  assert.ok(may.length >= 40);
+  const r2 = ok(b.call('saveRecurring', { id: r.viecLap.id, tieuDe: 'Check sheet đầu ca', kieu: 'ngay', ma: 'M001',
+    dsGiao: [a, c, nv.find((n) => n.maNV === 'NV001')].map((n) => ({ uid: n.id, ma: may })) }, b.ql));
+  r2.viecLap.dsGiao.forEach((g) => assert.equal(g.ma.length, 20, 'một người tối đa 20 máy'));
+  assert.equal(ok(b.call('data', {}, b.ql)).congViec.filter((x) => x.lapLai === r.viecLap.id && x.trangThai === 'DA_GIAO').length, 60);
+
+  // Máy không có trong danh mục thì báo lỗi
+  err(b.call('saveRecurring', { tieuDe: 'x', kieu: 'ngay', dsGiao: [{ uid: a.id, ma: ['M001', 'KHONGCO'] }] }, b.ql), 'KHONG_CO_MAY');
+});
+
+test('việc lặp lại: sửa mẫu thì việc đã sinh hôm nay đổi theo, việc đang làm thì để nguyên', () => {
+  const b = setupSC();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien;
+  const a = nv.find((n) => n.maNV === 'NV003'), c = nv.find((n) => n.maNV === 'NV002');
+
+  // Mẫu chưa giao ai: việc sinh ra nằm ở "Chờ giao", kỹ thuật không thấy trong việc của mình
+  const r1 = ok(b.call('saveRecurring', { tieuDe: 'Kiểm tra máy', kieu: 'ngay', ma: 'M001' }, b.ql));
+  const id = r1.viecLap.id, cvId = r1.dsCongViec[0].id;
+  assert.equal(r1.dsCongViec[0].trangThai, 'CHO_GIAO');
+
+  // Quản lý mở mẫu ra giao cho một người, ngay trong ngày: việc hôm nay phải được giao luôn
+  const r2 = ok(b.call('saveRecurring', { id, tieuDe: 'Kiểm tra máy', kieu: 'ngay', ma: 'M001', uidLam: a.id }, b.ql));
+  const sua = r2.dsCongViec.find((x) => x.id === cvId);
+  assert.ok(sua, 'việc đã sinh hôm nay được trả về đã cập nhật');
+  assert.equal(sua.uidLam, a.id);
+  assert.equal(sua.trangThai, 'DA_GIAO');
+  const cua = ok(b.call('data', {}, b.kt)).congViec.filter((x) => x.lapLai === id);
+  assert.equal(cua.length, 1, 'tài khoản nhân viên nhận được việc');
+  assert.equal(cua[0].uidLam, a.id);
+
+  // Đổi người: việc chưa ai làm thì sang người mới
+  const r3 = ok(b.call('saveRecurring', { id, tieuDe: 'Kiểm tra máy', kieu: 'ngay', ma: 'M001', uidLam: c.id }, b.ql));
+  assert.equal(r3.dsCongViec.find((x) => x.id === cvId).uidLam, c.id);
+
+  // Nhân viên đã bắt đầu làm: sửa mẫu không được đổi việc đó nữa
+  ok(b.call('updateTask', { id: cvId, buoc: 'batdau' }, b.ql));
+  const r4 = ok(b.call('saveRecurring', { id, tieuDe: 'Kiểm tra máy (đổi tên)', kieu: 'ngay', ma: 'M001', uidLam: a.id }, b.ql));
+  assert.equal(r4.dsCongViec.filter((x) => x.id === cvId).length, 0, 'việc đang làm không bị sửa');
+  const giu = ok(b.call('data', {}, b.ql)).congViec.find((x) => x.id === cvId);
+  assert.equal(giu.uidLam, c.id);
+  assert.equal(giu.tieuDe, 'Kiểm tra máy');
+
+  // Bớt người trong kiểu "mỗi người một việc": việc thừa chưa ai làm thì huỷ
+  const r5 = ok(b.call('saveRecurring', { tieuDe: 'Tra dầu', kieu: 'ngay', ma: 'M001',
+    dsGiao: [{ uid: a.id, ma: ['M001'] }, { uid: c.id, ma: ['M002'] }] }, b.ql));
+  assert.equal(r5.dsCongViec.length, 2);
+  const r6 = ok(b.call('saveRecurring', { id: r5.viecLap.id, tieuDe: 'Tra dầu', kieu: 'ngay', ma: 'M001',
+    dsGiao: [{ uid: a.id, ma: ['M001'] }] }, b.ql));
+  const huy = r6.dsCongViec.filter((x) => x.trangThai === 'HUY');
+  assert.equal(huy.length, 1, 'việc của người bị bỏ thì huỷ');
+  assert.equal(huy[0].uidLam, c.id);
+  assert.equal(ok(b.call('data', {}, b.ql)).congViec.filter((x) => x.lapLai === r5.viecLap.id && x.trangThai === 'DA_GIAO').length, 1);
 });

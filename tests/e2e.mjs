@@ -301,20 +301,31 @@ await page.click('[data-act="vlGiaoThem"]'); await wait(300);
 const nvId10 = await page.evaluate(() => nvDS().map((n) => n.id));
 await page.selectOption('[data-gf="0:uid"]', nvId10[0]);
 await page.selectOption('[data-gf="1:uid"]', nvId10[1]); await wait(300);
-const may10 = await page.evaluate(() => S.V.may.filter((m) => m.hoatDong).slice(0, 2).map((m) => m.ma));
-await page.selectOption('[data-gf="0:ma"]', may10[0]);
-await page.selectOption('[data-gf="1:ma"]', may10[1]); await wait(300);
+// Người đầu check sheet hai máy, người sau một máy → ba việc
+const may10 = await page.evaluate(() => S.V.may.filter((m) => m.hoatDong).slice(0, 3).map((m) => m.ma));
+await page.selectOption('[data-chg="vlMayThem"][data-i="0"]', may10[0]); await wait(300);
+await page.selectOption('[data-chg="vlMayThem"][data-i="0"]', may10[1]); await wait(300);
+await page.selectOption('[data-chg="vlMayThem"][data-i="1"]', may10[2]); await wait(300);
+assert.equal(await page.locator('[data-act="vlMayXoa"]').count(), 3, 'thẻ máy của từng người');
 await page.click('#vlOk'); await wait(1600);
-const lap10 = await page.evaluate(() => {
-  const v = S.V.vl.find((x) => x.tieuDe === 'Kiểm tra máy đầu ca');
-  const cv = S.V.cvAll.filter((x) => x.lapLai === (v || {}).id);
-  return { n: (v && v.dsGiao || []).length, viec: cv.map((x) => ({ uid: x.uidLam, ma: x.ma, st: x.trangThai })) };
-});
-assert.equal(lap10.n, 2, 'mẫu lặp lại lưu hai dòng giao');
-assert.equal(lap10.viec.length, 2, 'sinh ra hai việc riêng');
-assert.deepEqual(lap10.viec.map((x) => x.uid).sort(), nvId10.slice(0, 2).sort());
-assert.deepEqual(lap10.viec.map((x) => x.ma).sort(), may10.slice().sort(), 'mỗi người một máy');
+const lapId = await page.evaluate(() => (S.V.vl.find((x) => x.tieuDe === 'Kiểm tra máy đầu ca') || {}).id);
+const xem10 = () => page.evaluate((id) => {
+  const v = S.V.vl.find((x) => x.id === id), cv = S.V.cvAll.filter((x) => x.lapLai === id && x.trangThai !== 'HUY');
+  return { giao: (v && v.dsGiao || []).map((g) => [g.uid, (g.ma || []).length]), viec: cv.map((x) => ({ uid: x.uidLam, ma: x.ma, st: x.trangThai })) };
+}, lapId);
+const lap10 = await xem10();
+assert.deepEqual(lap10.giao, [[nvId10[0], 2], [nvId10[1], 1]], 'mỗi người một dòng, kèm số máy của họ');
+assert.equal(lap10.viec.length, 3, 'một người hai máy thì sinh hai việc');
+assert.deepEqual(lap10.viec.map((x) => x.ma).sort(), may10.slice().sort(), 'mỗi việc một máy');
+assert.equal(lap10.viec.filter((x) => x.uid === nvId10[0]).length, 2);
 assert.ok(lap10.viec.every((x) => x.st === 'DA_GIAO'), 'giao sẵn cho từng người');
+// Sửa mẫu trong ngày: bỏ một máy của người đầu → việc hôm nay đổi theo, nhân viên nhận được ngay
+await page.evaluate((id) => go('cvLapEdit', { id: id }), lapId); await wait(600);
+await page.click(`[data-act="vlMayXoa"][data-i="0"][data-ma="${may10[1]}"]`); await wait(300);
+await page.click('#vlOk'); await wait(1600);
+const lap10b = await xem10();
+assert.equal(lap10b.viec.length, 2, 'bỏ máy thì việc thừa của hôm nay được huỷ');
+assert.deepEqual(lap10b.viec.map((x) => x.ma).sort(), [may10[0], may10[2]].sort());
 ok('Công việc: ghi và giao, giao nhiều việc, nhân viên làm xong, Quản lý kiểm tra; báo cáo tháng + Excel; giao bảo dưỡng có sẵn tiếng Trung; linh kiện chuyền');
 
 // 11. Máy tính: sidebar, bảng có tiêu đề, phân trang
