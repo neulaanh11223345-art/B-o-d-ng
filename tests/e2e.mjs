@@ -250,8 +250,9 @@ assert.match(await text('#main'), /Việc của tôi/);
 assert.equal(await page.locator('.gap.g-toi .scrow').count(), 0, 'trang chủ: Việc của tôi gọn một ô, chưa mở');
 await page.click('.gap.g-toi .gaph'); await wait();
 await page.click('.scrow:has-text("Thay vòi nước")'); await wait();
-await page.click('[data-act="cvB"][data-b="batdau"]'); await wait(900);
-assert.match(await text('.schead'), /Đang làm/);
+// Giao việc là bắt đầu luôn: không còn nút "Bắt đầu", nhân viên làm xong là bấm Xong việc
+assert.equal(await page.locator('[data-act="cvB"][data-b="batdau"]').count(), 0, 'bỏ bước xác nhận bắt đầu');
+assert.match(await text('.schead'), /Đã giao/);
 await page.click('[data-act="cvXong"]'); await wait();
 await page.fill('#cxKQ', 'Đã thay 2 vòi, hết rò');
 await page.click('#cxOk'); await wait(900);

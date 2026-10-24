@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.19.0';
+var PHIEN_BAN = '2.20.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1342,6 +1342,7 @@ function giaoCho(x, lam, phu, u, bay, op) {
   x.uidLam = lam.id; x.nguoiLam = lam.ten; x.uidPhu = phu.map(function (n) { return n.id; });
   x.nguoiGiao = u.ten; x.uidGiao = u.id; x.lucGiao = bay;
   if (x.trangThai === 'CHO_GIAO') x.trangThai = 'DA_GIAO';
+  if (!x.lucBatDau) x.lucBatDau = bay;          // giao việc là bắt đầu luôn, không phải bấm "Bắt đầu" nữa
   x.nhatKy.push({ b: 'giao', luc: bay, uid: u.id, nguoi: u.ten, gc: lam.ten + (phu.length ? ' + ' + phu.map(function (n) { return n.ten; }).join(', ') : ''), op: op || '' });
 }
 
@@ -1599,7 +1600,7 @@ function vlGiaoDS(vl, nvs) {
 }
 // Việc do mẫu sinh ra mà chưa ai động tới: còn chờ giao hoặc đã giao, chưa bắt đầu, nhật ký chỉ có dòng lặp và giao
 function vlChuaDung(x) {
-  return (x.trangThai === 'CHO_GIAO' || x.trangThai === 'DA_GIAO') && !x.lucBatDau && !x.lucXong &&
+  return (x.trangThai === 'CHO_GIAO' || x.trangThai === 'DA_GIAO') && !x.lucXong &&
     (x.nhatKy || []).every(function (n) { return n.b === 'lap' || n.b === 'giao'; });
 }
 // Mẫu vừa sửa: cập nhật việc đã sinh nhưng chưa ai làm, kể cả người làm. Trả về 'giao' nếu vừa giao cho người mới.

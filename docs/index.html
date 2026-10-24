@@ -1333,7 +1333,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.19.0";
+const APP_VER = "2.20.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -7850,7 +7850,7 @@ Object.assign(ACT, {
 });
 
 // ===================== CÔNG VIỆC · 工作 =====================
-// Ghi việc → (Chờ giao) → Quản lý giao cho người có tài khoản → Bắt đầu → Xong → (Quản lý kiểm tra) → Đóng.
+// Ghi việc → (Chờ giao) → Quản lý giao cho người có tài khoản (giao là bắt đầu luôn) → Xong → (Quản lý kiểm tra) → Đóng.
 Object.assign(TX, {
   navCV: ['Công việc', '工作'], t_cv: ['Công việc', '工作'], t_cvNew: ['Ghi việc', '记录工作'], t_cvView: ['Công việc', '工作详情'],
   t_cvGiao: ['Giao việc', '派工'], t_cvXong: ['Xong việc', '完成工作'], t_cvLap: ['Việc lặp lại', '重复工作'], t_cvLapEdit: ['Việc lặp lại', '重复工作'],
@@ -8072,6 +8072,7 @@ function cvGiaoLocal(x, lam, phu, luc, nguoi, op) {
   x.uidLam = lam; x.nguoiLam = nvTen(lam); x.uidPhu = (phu || []).filter((id) => id !== lam);
   x.nguoiGiao = nguoi; x.lucGiao = luc;
   if (x.trangThai === 'CHO_GIAO') x.trangThai = 'DA_GIAO';
+  if (!x.lucBatDau) x.lucBatDau = luc;          // giao việc là bắt đầu luôn
   x.nhatKy.push({ b: 'giao', luc, nguoi, gc: x.nguoiLam, op });
 }
 function cvApDung(x, p, luc, nguoi, op) {
@@ -8414,7 +8415,8 @@ function cvActions(x) {
   const b = (cls, act, k, ic, bc, extra) => `<button class="btn ${cls}" data-act="${act}" data-id="${esc(x.id)}"${bc ? ` data-b="${bc}"` : ''}${extra || ''}>${ic || ''}<span class="stk">${tv(k)}<span class="zi">${tz(k)}</span></span></button>`;
   const lam = toi || ql;
   if (st === 'CHO_GIAO' && ql) out.push(b('y', 'cvGiao1', 'cvGiaoBtn', IC.user));
-  if ((st === 'DA_GIAO' || st === 'TAM_HOAN') && lam) out.push(b('y', 'cvB', st === 'TAM_HOAN' ? 'cvLamTiep' : 'cvBatDau', IC.wrench, 'batdau'));
+  // Việc đã giao là bắt đầu luôn (ngày giao = ngày bắt đầu) nên không có nút "Bắt đầu"; tạm hoãn thì vẫn có "Làm tiếp"
+  if (st === 'TAM_HOAN' && lam) out.push(b('y', 'cvB', 'cvLamTiep', IC.wrench, 'batdau'));
   if (CV_LAM.indexOf(st) >= 0 && lam) {
     if (x.loai === 'BD' && x.ma && S.V.byMa[x.ma] && S.V.byMa[x.ma].hoatDong) out.push(b('g', 'xn', 'cvXacNhanBD', IC.check, '', ` data-ma="${esc(x.ma)}"`));
     else out.push(b('g', 'cvXong', 'cvXongBtn', IC.check));
