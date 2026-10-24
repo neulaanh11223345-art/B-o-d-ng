@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.19.0
+# Credible Việt Nam CMMS · 设备管理 — v2.20.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.19.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.20.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.19.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.19.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.20.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.20.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.19.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.20.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò | Xem được |
 |---|---|---|---|
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.19.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.20.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.19.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.20.0.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -96,6 +96,16 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Việc chờ gửi chỉ được gửi khi app đang mở và có mạng. iOS không có gửi ngầm.
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
+
+## Điểm mới của v2.20.0: bỏ bước xác nhận bắt đầu, ngày giao việc là ngày bắt đầu
+
+Trước đây nhân viên nhận việc phải bấm **Bắt đầu** rồi mới bấm **Xong việc** — một bước thừa, vì việc đã giao là coi như bắt đầu từ lúc giao.
+
+Nay **bỏ hẳn nút Bắt đầu**. Việc *Đã giao* hiện thẳng **Xong việc** và **Tạm hoãn**; nhân viên làm xong là bấm Xong việc, không phải xác nhận gì trước đó.
+
+**Giờ bắt đầu lấy theo giờ giao việc**: lúc giao (giao tay, giao nhiều việc một lúc, hay việc lặp lại tự sinh ra) app ghi luôn `LucBatDau` bằng giờ giao. Trước đây việc không bấm Bắt đầu thì giờ bắt đầu bị lấy bằng **giờ xong**, nên thời gian làm việc trong báo cáo bằng 0.
+
+Việc **Tạm hoãn** vẫn có nút **Làm tiếp** như cũ. Việc đang ở *Đang làm* từ trước vẫn chạy bình thường.
 
 ## Điểm mới của v2.19.0: giao việc lặp lại tới được tài khoản nhân viên, một người check sheet nhiều máy
 
@@ -204,7 +214,7 @@ Danh sách sắp theo **thiếu nhiều nhất lên trước**, và **xuất Exc
 
 Toàn bộ phần này nằm trong **Kho ngũ kim**, chỉ **Quản lý, Quản trị** xem và sửa. Trang chủ không còn ô cảnh báo linh kiện dưới mức tối thiểu, ô *Linh kiện* ở Tổng quan chỉ còn đếm số mã còn hàng.
 
-Dán `Code.gs-v2.19.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Không có trang mới.
+Dán `Code.gs-v2.20.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Không có trang mới.
 
 ## Điểm mới của v2.13.0: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng
 
@@ -238,7 +248,7 @@ Phiếu chi tiết mỗi linh kiện có thêm mục **Tồn qua các lần nh�
 
 Màn **Ca làm việc** (phần Tăng ca) khi lưu đang ghi đè cả khối cài đặt, làm mất **giá điện**, **sản lượng tháng**, ngưỡng cảnh báo điện và cả **token Telegram** đã nhập — những thứ đó âm thầm quay về mặc định. Nay sửa thành đọc rồi sửa, chỉ thay phần ca làm việc.
 
-Dán `Code.gs-v2.19.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Trang `NhapKho` và cột `TonCu` tự thêm, dữ liệu cũ giữ nguyên. Lịch sử tồn bắt đầu tính từ lần nhập file đầu tiên sau khi nâng cấp.
+Dán `Code.gs-v2.20.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Trang `NhapKho` và cột `TonCu` tự thêm, dữ liệu cũ giữ nguyên. Lịch sử tồn bắt đầu tính từ lần nhập file đầu tiên sau khi nâng cấp.
 
 ## Điểm mới của v2.12.0: lịch trực tuần và phân công ca trực
 
@@ -266,7 +276,7 @@ Dựng đúng bảng giấy của nhà máy: **ca ngày (7h30–19h30)** và **c
 
 **Phân quyền:** ai cũng **xem** được cả hai bảng (để biết ai trực, gọi số nào); chỉ **Quản lý, Quản trị** xếp lịch, nhập nội dung trực và sửa danh sách người trực ca.
 
-**Ba trang mới tự tạo khi nâng cấp:** `LichTruc` (mỗi ngày một dòng), `NguoiTruc` (danh sách người trực ca), `PhanCa` (bảng phân công từng tuần). Dán `Code.gs-v2.19.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới; dữ liệu cũ giữ nguyên.
+**Ba trang mới tự tạo khi nâng cấp:** `LichTruc` (mỗi ngày một dòng), `NguoiTruc` (danh sách người trực ca), `PhanCa` (bảng phân công từng tuần). Dán `Code.gs-v2.20.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới; dữ liệu cũ giữ nguyên.
 
 ## Điểm mới của v2.11.3: Ghi sửa chữa chọn linh kiện từ kho
 
@@ -288,7 +298,7 @@ Máy chủ vẫn nhận dạng chữ nhiều dòng của bản cũ, nên bản g
 
 ## Điểm mới của v2.11.2: xác nhận tiêu thụ bất thường, mã việc lặp lại không trùng
 
-Bản sửa lỗi, không thêm bảng dữ liệu nào. Dán `Code.gs-v2.19.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới là xong, dữ liệu cũ giữ nguyên.
+Bản sửa lỗi, không thêm bảng dữ liệu nào. Dán `Code.gs-v2.20.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới là xong, dữ liệu cũ giữ nguyên.
 
 ### Xác nhận tiêu thụ bất thường (chỉ Quản lý)
 
@@ -318,7 +328,7 @@ Nay mã **đánh số tăng dần** trong cùng một giây (`CV26102012340001`,
 
 ## Điểm mới của v2.11.1: chọn thiết bị cho mọi loại việc, mã bản ghi không trùng
 
-Bản này đã nằm trong v2.11.2 ở trên — dán `Code.gs-v2.19.0.txt` là có cả hai.
+Bản này đã nằm trong v2.11.2 ở trên — dán `Code.gs-v2.20.0.txt` là có cả hai.
 
 ### Mọi loại việc đều chọn được chuyền sản xuất hoặc máy của chuyền
 
@@ -379,7 +389,7 @@ Tài liệu đã để trên Google Drive thì **không cần tải lại**. App
 - **Bỏ khỏi danh mục:** tài liệu quét từ Drive chỉ bị gỡ khỏi danh mục của app, tệp gốc trên Drive không bị xoá và những lần quét sau cũng không thêm lại. Muốn nhận lại thì xoá dấu ở cột `Xoa` của dòng đó trên trang `TaiLieu`. Tệp do app tải lên thì vẫn vào thùng rác Drive như trước.
 - Trang `TaiLieu` có thêm 5 cột: `DuongDan` (đường dẫn thư mục trên Drive), `Nguon` (`APP` tải từ app · `DRIVE` tài liệu có sẵn), `ConTrenDrive`, `HienHanh`, `LucQuet`.
 
-- Nâng cấp: dán `Code.gs-v2.19.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
+- Nâng cấp: dán `Code.gs-v2.20.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
 
 ## Điểm mới của v2.10.0: phân quyền xem theo vai trò
 
@@ -563,7 +573,7 @@ Tài liệu đã để trên Google Drive thì **không cần tải lại**. App
 - **Ai ghi việc:** Quản lý / Quản trị ghi và giao luôn được. Kỹ thuật ghi việc thì việc vào mục **Chờ giao** để Quản lý giao.
 - **Màn Giao việc:** tích chọn nhiều việc đang chờ, chọn người. Mỗi người hiện **số việc đang làm và số việc quá hạn** để chia đều. Đổi hạn được cho cả nhóm việc.
 - **Trên máy tính:** bảng **Theo người**, mỗi người một cột; kéo thẻ việc sang cột người khác để giao hoặc giao lại.
-- **Nhân viên:** trang chủ có mục **Việc của tôi** (gồm cả phiếu sửa chữa được giao), xếp việc gấp / sắp hết hạn lên trước. Bấm Bắt đầu → Xong (ghi kết quả, linh kiện / vật tư đã dùng, ảnh). Bị vướng thì **Tạm hoãn** kèm lý do.
+- **Nhân viên:** trang chủ có mục **Việc của tôi** (gồm cả phiếu sửa chữa được giao), xếp việc gấp / sắp hết hạn lên trước. Làm xong bấm **Xong việc** (ghi kết quả, linh kiện / vật tư đã dùng, ảnh) — không phải bấm Bắt đầu, vì ngày giao việc là ngày bắt đầu. Bị vướng thì **Tạm hoãn** kèm lý do.
 - **Kiểm tra khi xong:** mỗi việc có ô "Cần Quản lý kiểm tra khi xong". Mặc định bật cho Sửa nhỏ, Lắp đặt, Cải tiến, Khác và mọi việc Gấp; tắt cho Vệ sinh, Hỗ trợ sản xuất, Bảo dưỡng. Quản lý kiểm tra: **Đạt, đóng việc** hoặc **Chưa đạt, trả lại**.
 - **Việc lặp lại:** hằng ngày / hằng tuần (chọn thứ) / hằng tháng (chọn ngày). Mỗi ngày app tự tạo việc (khi có người mở app hoặc lúc gửi nhắc hằng ngày); có người làm sẵn thì giao luôn, không thì vào Chờ giao. Không tạo trùng; bật lại sau khi tắt thì không tạo bù những ngày đã tắt.
 - **Nối với Sửa chữa và Bảo dưỡng:**
@@ -722,6 +732,6 @@ Tài liệu đã để trên Google Drive thì **không cần tải lại**. App
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 50 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node --test tests/backend.test.mjs      # 51 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
 node tests/e2e.mjs                      # 18 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```

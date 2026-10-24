@@ -1407,6 +1407,30 @@ test('việc lặp lại giao cho nhiều người: một việc cho cả nhóm,
   assert.equal(r4.viecLap.uidLam, a.id);
 });
 
+test('giao việc là bắt đầu luôn: không cần bấm Bắt đầu, xong việc thẳng từ Đã giao', () => {
+  const b = setupSC();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien;
+  const a = nv.find((n) => n.maNV === 'NV003');
+
+  const r = ok(b.call('saveTask', { tieuDe: 'Thay vòi nước', loai: 'KHAC', uidLam: a.id, han: '2026-10-05' }, b.ql));
+  const x = r.congViec;
+  assert.equal(x.trangThai, 'DA_GIAO');
+  assert.equal(x.lucBatDau, x.lucGiao, 'ngày giao việc chính là ngày bắt đầu');
+
+  // Nhân viên bấm Xong việc thẳng, không qua bước Bắt đầu
+  const r2 = ok(b.call('updateTask', { id: x.id, buoc: 'xong', ketQua: 'Đã thay 2 vòi' }, b.kt));
+  assert.ok(['XONG', 'DONG'].indexOf(r2.congViec.trangThai) >= 0);
+  assert.equal(r2.congViec.lucBatDau, x.lucGiao, 'giữ nguyên giờ bắt đầu = giờ giao, không lấy giờ xong');
+  assert.equal(r2.congViec.nhatKy.some((n) => n.b === 'batdau'), false);
+
+  // Việc chưa giao ai thì chưa có giờ bắt đầu; giao sau thì lấy giờ giao đó
+  const c = ok(b.call('saveTask', { tieuDe: 'Tra dầu', loai: 'KHAC', han: '2026-10-05' }, b.ql)).congViec;
+  assert.equal(c.trangThai, 'CHO_GIAO');
+  assert.equal(c.lucBatDau, '');
+  const c2 = ok(b.call('updateTask', { id: c.id, buoc: 'giao', uidLam: a.id }, b.ql)).congViec;
+  assert.equal(c2.lucBatDau, c2.lucGiao);
+});
+
 test('việc lặp lại: một người check sheet nhiều máy, mỗi máy một việc', () => {
   const b = setupSC();
   const nv = ok(b.call('data', {}, b.ql)).nhanVien;
