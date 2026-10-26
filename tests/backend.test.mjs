@@ -1524,6 +1524,88 @@ test('tăng ca: nhân viên chỉ ghi / sửa từ thứ Hai tuần trước đ�
   assert.equal(ok(ghi('2026-10-13', kt)).tangCa.ngay, '2026-10-13');
 });
 
+test('kiểm định thiết bị: sổ riêng, ghi từng lần kiểm định, tính hạn theo chu kỳ, chỉ Quản lý dùng được', () => {
+  const b = setupSC();
+  // Kỹ thuật không vào được
+  err(b.call('saveInspect', { ten: 'Xe nâng', loai: 'XE_NANG' }, b.kt), 'KHONG_QUYEN');
+  assert.deepEqual(ok(b.call('data', {}, b.kt)).kiemDinh, [], 'kỹ thuật không nhận sổ kiểm định');
+
+  // Loại sai, máy lạ thì báo lỗi
+  err(b.call('saveInspect', { ten: 'Xe nâng', loai: 'KHONGCO' }, b.ql), 'KD_LOAI_SAI');
+  err(b.call('saveInspect', { ten: 'Xe nâng', loai: 'XE_NANG', ma: 'KHONGCO' }, b.ql), 'KHONG_CO_MAY');
+  err(b.call('saveInspect', { ten: '', loai: 'XE_NANG' }, b.ql), 'THIEU_TEN');
+  err(b.call('saveInspect', { ten: 'Xe nâng', loai: 'XE_NANG', namSX: 1800 }, b.ql), 'NAM_SX_SAI');
+
+  // Thêm thiết bị: chu kỳ và nhóm nghiêm ngặt lấy mặc định theo loại
+  const x = ok(b.call('saveInspect', { ten: 'Xe nâng hàng Komatsu', loai: 'XE_NANG', soHieu: 'FD25T', viTri: 'Kho' }, b.ql)).kiemDinh;
+  assert.equal(x.chuKy, 24, 'xe nâng mặc định 24 tháng');
+  assert.equal(x.nghiemNgat, true, 'xe nâng thuộc nhóm nghiêm ngặt');
+  assert.equal(x.ketQua, 'CHUA');
+  assert.equal(x.ngayHetHan, '');
+  assert.ok(x.tenZh, 'tên được dịch sang tiếng Trung');
+
+  // Nối với máy trong danh mục thì nhận
+  const y = ok(b.call('saveInspect', { ten: 'Bình tích áp', loai: 'BINH_AL', ma: 'M001', nghiemNgat: false }, b.ql)).kiemDinh;
+  assert.equal(y.ma, 'M001');
+  assert.equal(y.nghiemNgat, false, 'đánh dấu tay thì theo người nhập');
+
+  // Ghi một lần kiểm định: hạn = ngày kiểm định + chu kỳ, lùi một ngày
+  err(b.call('doInspect', { id: x.id, ngayKD: '2026-10-05', ketQua: 'DAT' }, b.ql), 'KD_THIEU_DV');
+  err(b.call('doInspect', { id: x.id, ngayKD: '2026-12-01', ketQua: 'DAT', donViKD: 'TT1' }, b.ql), 'NGAY_TUONG_LAI');
+  const x1 = ok(b.call('doInspect', { id: x.id, ngayKD: '2026-10-05', ketQua: 'DAT', donViKD: 'Trung tâm KĐ Khu vực I', soGiayKD: 'KD-01' }, b.ql)).kiemDinh;
+  assert.equal(x1.ngayHetHan, '2028-10-04');
+  assert.equal(x1.ketQua, 'DAT');
+  assert.equal(x1.lichSu.length, 1);
+
+  // Không đạt thì xoá hạn, phải kiểm định lại
+  const x2 = ok(b.call('doInspect', { id: x.id, ngayKD: '2026-10-05', ketQua: 'KHONG_DAT', donViKD: 'Trung tâm KĐ Khu vực I' }, b.ql)).kiemDinh;
+  assert.equal(x2.ngayHetHan, '');
+  assert.equal(x2.lichSu.length, 2, 'lần cũ vẫn giữ trong lịch sử');
+
+  // Kiểm định lại đạt, đổi chu kỳ 12 tháng
+  const x3 = ok(b.call('doInspect', { id: x.id, ngayKD: '2026-10-05', ketQua: 'DAT', chuKy: 12, donViKD: 'Trung tâm KĐ Khu vực I' }, b.ql)).kiemDinh;
+  assert.equal(x3.chuKy, 12);
+  assert.equal(x3.ngayHetHan, '2027-10-04');
+
+  // Sửa chu kỳ ở hồ sơ thì hạn tính lại theo lần kiểm định gần nhất
+  const x4 = ok(b.call('saveInspect', { id: x.id, ten: x.ten, loai: 'XE_NANG', chuKy: 24 }, b.ql)).kiemDinh;
+  assert.equal(x4.ngayHetHan, '2028-10-04');
+
+  // Bỏ khỏi sổ thì thôi nhắc, dòng vẫn giữ
+  ok(b.call('deleteInspect', { id: y.id }, b.ql));
+  const ds = ok(b.call('data', {}, b.ql)).kiemDinh;
+  assert.equal(ds.length, 2, 'vẫn giữ dòng trên sheet');
+  assert.equal(ds.find((r) => r.id === y.id).hoatDong, false);
+});
+
+test('kiểm định: thiết bị quá hạn và sắp hết hạn đi vào tin nhắn nhắc hằng ngày', () => {
+  const b = setupSC();                                       // hôm nay 2026-10-05
+  const them = (ten, loai, ngay, ck) => {
+    const x = ok(b.call('saveInspect', { ten, loai }, b.ql)).kiemDinh;
+    if (ngay) ok(b.call('doInspect', { id: x.id, ngayKD: ngay, chuKy: ck, ketQua: 'DAT', donViKD: 'TT KĐ' }, b.ql));
+    return x;
+  };
+  them('Nồi hơi quá hạn', 'NOI_HOI', '2024-09-01', 12);      // hết hạn 2025-08-31 → quá hạn
+  them('Palăng sắp hết hạn', 'PA_LANG', '2025-10-20', 12);   // hết hạn 2026-10-19 → còn 14 ngày
+  them('Thang máy còn hạn', 'THANG_MAY', '2026-09-01', 36);
+  them('Bình khí chưa kiểm định', 'CHAI_KHI', '', 0);
+
+  const kd = JSON.parse(JSON.stringify(b.ctx.kdSapHet('2026-10-05', 30)));
+  assert.deepEqual(kd.qua.map((o) => o.ten), ['Nồi hơi quá hạn']);
+  assert.deepEqual(kd.sap.map((o) => o.ten), ['Palăng sắp hết hạn']);
+  assert.equal(kd.chua.length, 1);
+
+  // Tin nhắn hằng ngày có mục kiểm định
+  ok(b.call('notifySave', { tgToken: '123:abc', tgChat: '-100123', tgBat: true }, b.ad));
+  b.ctx.__net.log.length = 0;
+  b.ctx.nhacHangNgay();
+  const tin = String((b.ctx.__net.log.find((l) => /sendMessage/.test(l.url)) || { opt: { payload: '' } }).opt.payload);
+  assert.match(tin, /Kiểm định thiết bị/);
+  assert.match(tin, /Nồi hơi quá hạn/);
+  assert.match(tin, /Palăng sắp hết hạn/);
+  assert.doesNotMatch(tin, /Thang máy còn hạn/, 'còn hạn thì không nhắc');
+});
+
 test('việc lặp lại: một người check sheet nhiều máy, mỗi máy một việc', () => {
   const b = setupSC();
   const nv = ok(b.call('data', {}, b.ql)).nhanVien;

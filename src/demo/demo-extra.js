@@ -448,6 +448,30 @@ mauTangCa();
 mauLichTruc();
 mauPhanCa();
 mauTaiLieu();
+mauKiemDinh();
+function mauKiemDinh() {
+  if (docKiemDinh().length) return;
+  capNhatTieuDe('KiemDinh');
+  var hn = homNayStr(), bay = thoiGianStr(), so = 0;
+  function kd(ten, zh, loai, ma, soHieu, nsx, nam, ts, vt, dv, giay, ngay, ck) {
+    so++;
+    var hh = kdHetHan(ngay, ck);
+    themDong('KiemDinh', ['KDMAU' + (so < 10 ? '0' : '') + so, ten, zh, loai, ma, soHieu, nsx, nam, ts, vt, 1,
+      dv, giay, ngay, hh, ck, 'DAT', congNgay(ngay, 20), '', '', 1,
+      JSON.stringify([{ ngay: ngay, hetHan: hh, donVi: dv, soGiay: giay, ketQua: 'DAT', nguoi: 'Bùi Văn Chung', luc: bay, gc: '', gcDich: '' }]),
+      'Bùi Văn Chung', 'U002', bay, bay]);
+  }
+  // Một cái quá hạn, một cái sắp hết hạn, còn lại còn hạn — để thấy đủ các tình trạng
+  kd('Xe nâng hàng Komatsu 2.5 tấn', '小松2.5吨叉车', 'XE_NANG', '', 'FD25T-16', 'Komatsu', 2019, '2500 kg', 'Kho thành phẩm',
+    'Trung tâm Kiểm định KTAT Khu vực I', 'KD-2024-0471', congNgay(hn, -760), 24);
+  kd('Nồi hơi đốt dầu 1 tấn/giờ', '1吨/时燃油锅炉', 'NOI_HOI', '', 'LHS1-0.7', 'Taiguo', 2018, '1 tấn/h · 0,7 MPa', 'Nhà nồi hơi',
+    'Trung tâm Kiểm định KTAT Khu vực I', 'KD-2025-1182', congNgay(hn, -715), 24);
+  kd('Bình tích áp máy nén khí', '空压机储气罐', 'BINH_AL', '', 'BTA-1000L', 'Hanshin', 2020, '1000 L · 1,0 MPa', 'Phòng máy nén khí',
+    'Công ty CP Kiểm định An toàn Việt Nam', 'KD-2025-0933', congNgay(hn, -300), 36);
+  kd('Palăng xích điện 2 tấn xưởng 2', '二车间2吨电动葫芦', 'PA_LANG', '', 'HHBB-2T', 'Kito', 2021, '2000 kg · 6 m', 'Xưởng 2',
+    'Công ty CP Kiểm định An toàn Việt Nam', 'KD-2026-0218', congNgay(hn, -120), 36);
+}
+
 return {
   call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); },
   net: __net                            // nhật ký gọi mạng giả, dùng cho bài kiểm thử toàn luồng

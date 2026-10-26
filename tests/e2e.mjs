@@ -753,6 +753,68 @@ await page.click('[data-act="wwXoaGo"]'); await wait(1200);
 assert.equal(await page.evaluate(() => topV().p.c.wwCo), false, 'xoá được địa chỉ webhook');
 ok('Bản 2.21: báo tin vào nhóm WeChat Work, chặn địa chỉ webhook lạ, gửi thử và xoá được');
 
+// 20. Kiểm định thiết bị và Tính toán TB — chỉ Quản lý dùng được
+await logout(); await login('NV003', '333333');
+assert.equal(await page.evaluate(() => xemDuoc('kd') || xemDuoc('tt')), false, 'kỹ thuật không vào được hai mục này');
+await logout(); await login('NV002', '222222');
+await page.evaluate(() => tab('list')); await wait(700);
+assert.equal(await page.locator('[data-act="go"][data-v="kd"]').count(), 1, 'màn Thiết bị có nút Kiểm định');
+await page.click('[data-act="go"][data-v="kd"]'); await wait(800);
+assert.match(await text('#barTitle'), /Kiểm định/);
+const kd20 = await page.evaluate(() => kdDem());
+assert.ok(kd20.qua >= 1 && kd20.sap >= 1, 'dữ liệu mẫu có cả quá hạn và sắp hết hạn: ' + JSON.stringify(kd20));
+assert.ok(await page.locator('.row[data-act="kdMo"]').count() >= 4, 'sổ kiểm định có thiết bị');
+await shot('33-kiem-dinh-so');
+// Thêm một thiết bị mới: chu kỳ và nhóm nghiêm ngặt tự điền theo loại
+await page.click('[data-act="kdNew"]'); await wait(600);
+await page.fill('#kdTen', 'Cầu trục dầm đơn 3 tấn');
+await page.selectOption('#kdLoai', 'CAN_TRUC'); await wait(500);
+assert.equal(await page.inputValue('#kdCk'), '36', 'chu kỳ điền sẵn theo loại');
+assert.equal(await page.isChecked('#kdNN'), true, 'cần trục thuộc nhóm nghiêm ngặt');
+await page.fill('#kdSo', 'CT-03'); await page.fill('#kdVt', 'Xưởng 3');
+await page.click('#kdOk'); await wait(1200);
+const moi20 = await page.evaluate(() => kdDS().find((x) => x.ten === 'Cầu trục dầm đơn 3 tấn'));
+assert.ok(moi20 && moi20.nghiemNgat && moi20.chuKy === 36, 'đã lưu hồ sơ thiết bị');
+assert.ok(moi20.tenZh, 'tên thiết bị được dịch sang tiếng Trung');
+// Ghi một lần kiểm định → có hạn kế tiếp
+await page.click(`.row[data-act="kdMo"]:has-text("Cầu trục dầm đơn 3 tấn")`); await wait(700);
+await page.click('[data-act="kdGhi1"]'); await wait(700);
+await page.fill('#kgDv', 'Trung tâm Kiểm định KTAT Khu vực I');
+await page.fill('#kgSo', 'KD-2026-0999');
+await page.click('#kgOk'); await wait(1400);
+const sau20 = await page.evaluate(() => kdDS().find((x) => x.ten === 'Cầu trục dầm đơn 3 tấn'));
+assert.equal(sau20.ketQua, 'DAT');
+assert.equal(await page.evaluate((d) => kdHanTu(d.ngayKD, d.chuKy), sau20), sau20.ngayHetHan, 'hạn tính đúng theo chu kỳ');
+assert.equal(sau20.lichSu.length, 1);
+assert.ok(await page.evaluate(() => kdXlsx(kdDS()).size) > 2000, 'xuất được Excel sổ kiểm định');
+await shot('34-kiem-dinh-ho-so');
+// Tính toán TB: động cơ → dây dẫn → tụ bù → sụt áp
+await page.evaluate(() => { back(); back(); go('tt', {}); }); await wait(800);
+assert.match(await text('#barTitle'), /Tính toán/);
+const dc20 = await page.evaluate(() => ttDongCo({ kw: '7.5', u: '380', pha: '3', cos: '0.85', eta: '88', k: '6', kd: 'DOL' }));
+assert.ok(Math.abs(dc20.I - 15.24) < 0.1, 'dòng định mức 7,5 kW/380V ≈ 15,2 A, ra ' + dc20.I);
+assert.equal(dc20.cb, 20, 'chọn CB 20 A');
+assert.match(await text('#ttKQ'), /A/);
+await shot('35-tinh-toan-dong-co');
+await page.click('[data-act="ttSeg"][data-v="day"]'); await wait(600);
+await page.click('[data-act="ttLayDC"]'); await wait(600);
+assert.equal(await page.inputValue('#ttI'), '15.2', 'lấy được dòng từ bài động cơ');
+const day20 = await page.evaluate(() => ttDay({ i: '100', l: '120', u: '380', pha: '3', cos: '0.85', vl: 'CU', cd: 'PVC', di: 'C', nd: '35', mach: '1', du: '5', icp: '' }));
+assert.ok(day20.S >= day20.sDong && day20.S >= day20.sSutChon, 'lấy tiết diện lớn hơn trong hai điều kiện');
+assert.ok(day20.pct <= 5, 'tiết diện chọn xong thì sụt áp đạt: ' + day20.pct);
+assert.equal(day20.pe, day20.S <= 16 ? day20.S : day20.S <= 35 ? 16 : day20.pe, 'tính được dây PE');
+assert.equal(await page.evaluate(() => ttDay({ i: '2000', l: '10', u: '380', pha: '3', cos: '0.85', vl: 'CU', cd: 'PVC', di: 'B2', nd: '30', mach: '1', du: '5', icp: '' }).S), null, 'quá tải thì báo không đủ');
+await shot('36-tinh-toan-day');
+await page.click('[data-act="ttSeg"][data-v="tu"]'); await wait(600);
+const tu20 = await page.evaluate(() => ttTuBu({ kw: '100', cos1: '0.78', cos2: '0.95' }));
+assert.ok(Math.abs(tu20.Q - 47.4) < 0.6, 'bù từ 0,78 lên 0,95 cho 100 kW ≈ 47,4 kVAr, ra ' + tu20.Q);
+assert.equal(await page.evaluate(() => ttTuBu({ kw: '100', cos1: '0.95', cos2: '0.8' })), null, 'cosφ mong muốn thấp hơn thì không tính');
+await page.click('[data-act="ttSeg"][data-v="su"]'); await wait(600);
+const su20 = await page.evaluate(() => ttSutAp({ i: '50', l: '80', s: '25', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' }));
+assert.ok(su20.dat && su20.pct < 5, 'tuyến cáp mẫu đạt: ' + su20.pct);
+assert.equal(await page.evaluate(() => ttSutAp({ i: '50', l: '400', s: '6', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' }).dat), false, 'cáp nhỏ đi xa thì không đạt');
+ok('Bản 2.23: sổ kiểm định thiết bị (nghiêm ngặt, hạn theo chu kỳ, Excel) và tính toán động cơ / dây dẫn / tụ bù / sụt áp; kỹ thuật không vào được');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
