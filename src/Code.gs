@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.21.0';
+var PHIEN_BAN = '2.22.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -632,6 +632,16 @@ function dsCaTC() {
   var ds = docCaiDat().caTangCa;
   return ds && ds.length ? ds : CAI_DAT_MAC_DINH.caTangCa;
 }
+// Nhân viên chỉ ghi / sửa tăng ca trong khoảng [thứ Hai tuần trước … hôm nay]:
+// mỗi thứ Hai là tuần cũ nhất tự khoá lại, và không ghi trước cho ngày mai được.
+// Quản lý, Quản trị (quyền xemhet) không bị khoá — ai ghi sai tuần cũ thì báo Quản lý sửa hộ.
+function tcMoTu(homNay) { return congNgay(trucThuHai(homNay), -7); }
+function tcKhoa(u, ngay) {
+  if (coQuyen(u, 'xemhet')) return;
+  var homNay = homNayStr();
+  if (ngay > homNay) throw loi('TC_TUONG_LAI', 'Chưa ghi trước cho ngày chưa tới · 不能提前登记未来日期');
+  if (ngay < tcMoTu(homNay)) throw loiDL('TC_DA_KHOA', 'Tuần này đã khoá, nhờ Quản lý sửa · 该周已锁定，请管理人员修改', { tu: tcMoTu(homNay) });
+}
 function luuTangCa(u, p, opId) {
   var ds = docTangCa(), id = s(p.id).toUpperCase();
   var x = id ? ds.filter(function (r) { return r.id === id && !r.xoa; })[0] : null;
@@ -648,6 +658,8 @@ function luuTangCa(u, p, opId) {
   if (!nvs.some(function (n) { return n.id === uid; })) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
   var ngay = ngayStr(p.ngay);
   if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  if (x) tcKhoa(u, x.ngay);          // bản ghi cũ phải còn trong khoảng sửa được
+  tcKhoa(u, ngay);                   // ngày mới cũng phải nằm trong khoảng đó
   var ca = s(p.ca) || 'HC';
   if (!dsCaTC().some(function (c) { return c.k === ca; })) throw loi('CA_SAI', 'Ca làm việc không hợp lệ · 班次无效');
   var tu = s(p.tu), den = s(p.den);
@@ -675,6 +687,7 @@ function xoaTangCa(u, p) {
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
   if (x.xoa) return { xoaTC: x.id };
   if (x.uid !== u.id && !coQuyen(u, 'xemhet')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  tcKhoa(u, x.ngay);
   capNhatTieuDe('TangCa');
   x.xoa = true; x.capNhat = thoiGianStr();
   suaDong('TangCa', x._r, tcThanhDong(x));

@@ -385,6 +385,9 @@ assert.match(await text('#barTitle'), /Đăng ký tăng ca/);
 assert.match(await text('#main'), /V25066/, 'mã số thẻ tự điền từ tài khoản');
 const tcTruoc = await page.locator('.tcrow').count();
 await page.click('[data-act="tcThem"]'); await wait(500);
+// Chỉ ghi được từ thứ Hai tuần trước đến hôm nay
+assert.deepEqual(await page.evaluate(() => [$('#tcNgay').min, $('#tcNgay').max]),
+  await page.evaluate(() => [addD(tcThuHai(TODAY()), -7), TODAY()]), 'ô ngày chặn tuần đã khoá và ngày chưa tới');
 await page.click('.chip[data-act="tcCaChon"][data-k="DEM"]'); await wait(400);
 assert.equal(await page.inputValue('#tcTu'), '06:00', 'chọn ca thì giờ điền sẵn theo ca');
 await page.fill('#tcTu', '22:00'); await page.dispatchEvent('#tcTu', 'change'); await wait(250);
@@ -399,6 +402,8 @@ await page.evaluate(() => go('tcXem')); await wait(500);
 const don = await text('.tcsheet');
 assert.match(don, /ĐƠN XIN TĂNG CA/); assert.match(don, /自愿加班申请单/);
 assert.match(don, /Trực sự cố máy nén khí/, 'lý do in ở cột Chú thích');
+assert.match(don, /Sửa máy in phun VKY01 维修喷印机VKY01/, 'cột Chú thích in kèm bản dịch tiếng Trung của lý do');
+assert.match(don, /Ca đêm\s*夜班/, 'cột Chú thích in ca làm việc song ngữ');
 assert.match(don, /Kỹ thuật 技术员/, 'họ tên in kèm tên tiếng Trung');
 assert.match(don, /TỔNG CỘNG/); assert.match(don, /Hành chính nhân sự/);
 assert.equal(await page.locator('.tcsheet .ot tr').count(), 8, 'bảng 6 dòng + tiêu đề + tổng cộng');
@@ -416,7 +421,25 @@ await shot('19-tang-ca-thang');
 assert.ok(await page.evaluate(() => tcThangWorkbook(tcThangHT()).size) > 2000, 'xuất được Excel tổng hợp tháng');
 await page.evaluate(() => go('tcCfg')); await wait(500);
 assert.equal(await page.locator('[data-cf$=":ten"]').count(), 4, 'bốn ca làm việc');
-ok('Bản 2.11: đăng ký tăng ca theo tuần, in đơn đúng mẫu công ty, tổng hợp tháng, Excel; kỹ thuật chỉ thấy của mình');
+// Quản lý ghi hộ được cho tuần đã khoá (3 tuần trước)
+const cu13 = await page.evaluate(async () => {
+  const uid = S.V.nv.find((n) => n.maNV === 'NV003').id, ngay = addD(tcThuHai(TODAY()), -21);
+  await api('saveOT', { uid, ngay, ca: 'HC', tu: '17:30', den: '19:30', lyDo: 'Sửa quạt hút tuần cũ' });
+  return ngay;
+});
+// Nhân viên: tuần đó đã khoá, không sửa và không thêm được
+await logout(); await login('NV003', '333333');
+await page.evaluate((d) => { tab('tc'); S.f.tcTuan = tcThuHai(d); }, cu13); await wait(300);
+await page.evaluate(() => render()); await wait(600);
+assert.equal(await page.locator('.tcrow[disabled]').count(), 1, 'dòng của tuần đã khoá không bấm sửa được');
+assert.equal(await page.locator('[data-act="tcThem"]').count(), 0, 'tuần đã khoá thì không thêm được');
+assert.match(await text('#main'), /đã khoá/, 'có dòng nhắc tuần đã khoá');
+await shot('32-tang-ca-tuan-da-khoa');
+// Quay lại tuần này thì ghi thêm bình thường
+await page.evaluate(() => { S.f.tcTuan = null; render(); }); await wait(600);
+assert.equal(await page.locator('[data-act="tcThem"]').count(), 1, 'tuần này vẫn thêm được');
+await logout(); await login('NV002', '222222');      // bước sau chạy tiếp với Quản lý
+ok('Bản 2.11 + 2.22: tăng ca theo tuần, đơn đúng mẫu công ty song ngữ, tổng hợp tháng, Excel; tuần cũ tự khoá với nhân viên');
 
 // 14. Bản 2.11: nối thư mục Drive của nhà máy, quét vào danh mục, sắp xếp, tra cứu; kỹ thuật không mở được tài liệu
 await page.evaluate(() => go('tlCfg')); await wait(600);

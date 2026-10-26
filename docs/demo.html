@@ -437,6 +437,8 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .tcsheet .tto{position:absolute;right:18px;bottom:7px;margin:0;text-align:right;font-size:6px;line-height:1.2;color:#666}
 .tcrow{width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);color:var(--ink);display:flex;flex-direction:column;gap:8px;cursor:pointer;font:inherit}
 .tcrow:hover{border-color:var(--brand)}
+.tcrow[disabled]{cursor:default;opacity:.72;background:var(--bg)}
+.tcrow[disabled]:hover{border-color:var(--line)}
 .tcrow .h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .tcrow .no{width:26px;height:26px;flex:none;border-radius:8px;background:var(--brand-bg);color:var(--brand);font:700 12.5px var(--f-mono);display:grid;place-items:center}
 .tcrow .g{margin-left:auto;font:700 17px var(--f-mono);color:var(--green)}
@@ -1333,7 +1335,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.21.0";
+const APP_VER = "2.22.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1732,7 +1734,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.21.0';
+var PHIEN_BAN = '2.22.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -2347,6 +2349,16 @@ function dsCaTC() {
   var ds = docCaiDat().caTangCa;
   return ds && ds.length ? ds : CAI_DAT_MAC_DINH.caTangCa;
 }
+// Nhân viên chỉ ghi / sửa tăng ca trong khoảng [thứ Hai tuần trước … hôm nay]:
+// mỗi thứ Hai là tuần cũ nhất tự khoá lại, và không ghi trước cho ngày mai được.
+// Quản lý, Quản trị (quyền xemhet) không bị khoá — ai ghi sai tuần cũ thì báo Quản lý sửa hộ.
+function tcMoTu(homNay) { return congNgay(trucThuHai(homNay), -7); }
+function tcKhoa(u, ngay) {
+  if (coQuyen(u, 'xemhet')) return;
+  var homNay = homNayStr();
+  if (ngay > homNay) throw loi('TC_TUONG_LAI', 'Chưa ghi trước cho ngày chưa tới · 不能提前登记未来日期');
+  if (ngay < tcMoTu(homNay)) throw loiDL('TC_DA_KHOA', 'Tuần này đã khoá, nhờ Quản lý sửa · 该周已锁定，请管理人员修改', { tu: tcMoTu(homNay) });
+}
 function luuTangCa(u, p, opId) {
   var ds = docTangCa(), id = s(p.id).toUpperCase();
   var x = id ? ds.filter(function (r) { return r.id === id && !r.xoa; })[0] : null;
@@ -2363,6 +2375,8 @@ function luuTangCa(u, p, opId) {
   if (!nvs.some(function (n) { return n.id === uid; })) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
   var ngay = ngayStr(p.ngay);
   if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  if (x) tcKhoa(u, x.ngay);          // bản ghi cũ phải còn trong khoảng sửa được
+  tcKhoa(u, ngay);                   // ngày mới cũng phải nằm trong khoảng đó
   var ca = s(p.ca) || 'HC';
   if (!dsCaTC().some(function (c) { return c.k === ca; })) throw loi('CA_SAI', 'Ca làm việc không hợp lệ · 班次无效');
   var tu = s(p.tu), den = s(p.den);
@@ -2390,6 +2404,7 @@ function xoaTangCa(u, p) {
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
   if (x.xoa) return { xoaTC: x.id };
   if (x.uid !== u.id && !coQuyen(u, 'xemhet')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  tcKhoa(u, x.ngay);
   capNhatTieuDe('TangCa');
   x.xoa = true; x.capNhat = thoiGianStr();
   suaDong('TangCa', x._r, tcThanhDong(x));
@@ -6561,6 +6576,8 @@ const ERR = {
   KHOA_HT: ['Hệ thống tạm khoá đăng nhập 10 phút.', '系统暂时锁定登录10分钟。'],
   KHONG_QUYEN: ['Bạn không có quyền làm việc này.', '您没有此操作权限。'],
   KHONG_CO_MAY: ['Không tìm thấy máy này.', '找不到该设备。'],
+  TC_TUONG_LAI: ['Chưa ghi trước tăng ca cho ngày chưa tới được.', '不能提前登记未来日期的加班。'],
+  TC_DA_KHOA: ['Tuần này đã khoá. Chỉ ghi và sửa được từ thứ Hai tuần trước đến hôm nay; cần sửa tuần cũ thì báo Quản lý.', '该周已锁定。只能登记和修改上周一至今天的记录；需修改往周请联系管理人员。'],
   WW_URL_SAI: ['Địa chỉ Webhook không đúng. Phải là địa chỉ qyapi.weixin.qq.com/cgi-bin/webhook/send?key=… copy từ 群机器人 trong 企业微信.', 'Webhook 地址不正确。必须是从企业微信群机器人复制的 qyapi.weixin.qq.com/cgi-bin/webhook/send?key=… 地址。'],
   WW_CHUA_DU: ['Chưa nhập địa chỉ Webhook robot nhóm.', '未填写群机器人 Webhook 地址。'],
   QUA_NHIEU_VIEC: ['Mẫu này sinh quá nhiều việc mỗi lần. Bớt máy hoặc bớt người đi.', '此模板每次生成的工作过多，请减少设备或人员。'],
@@ -9887,7 +9904,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -14180,6 +14197,9 @@ Object.assign(TX, {
   tcInHelp: ['Trên iPhone: bấm nút này, Safari hiện trang in, chọn Chia sẻ → Lưu vào Tệp là ra PDF. Trên máy tính: chọn máy in "Save as PDF".', 'iPhone：点击后Safari显示打印页，选择"共享→存储到文件"即可生成PDF。电脑：打印机选择"Save as PDF"。'],
   tcXuatTuan: ['Xuất Excel tuần', '导出本周Excel'], tcXuatThang: ['Xuất Excel tổng hợp tháng', '导出月度汇总Excel'],
   tcMoThang: ['Tổng hợp theo tháng', '月度汇总'], tcNguoiXem: ['Đang xem', '正在查看'], tcCuaToi: ['Tăng ca của tôi', '我的加班'],
+  tcTuanKhoa: ['Tuần này đã khoá, không ghi thêm hay sửa được nữa. Cần sửa thì báo Quản lý.', '该周已锁定，不能再添加或修改。需修改请联系管理人员。'],
+  tcKhoaHelp: ['Ghi và sửa được từ thứ Hai tuần trước đến hôm nay. Mỗi thứ Hai, tuần cũ nhất tự khoá lại.', '可登记和修改上周一至今天的记录。每周一，最早的一周自动锁定。'],
+  srvMissTcKhoa: ['Khoá tăng ca tuần cũ', '锁定往周加班'],
   tcLuu: ['Lưu', '保存'], tcXoa: ['Xoá lần tăng ca này', '删除此条加班'], tcXoaHoi: ['Xoá rồi thì bảng tổng hợp tháng sẽ thiếu phần này.', '删除后月度汇总将不含此条。'],
   tcDaXoa: ['Đã xoá', '已删除'], tcDaLuu: ['Đã lưu tăng ca', '加班已保存'],
   tcGioSai: ['Giờ bắt đầu và kết thúc không hợp lệ', '开始或结束时间无效'],
@@ -14223,6 +14243,12 @@ const tcTuanHT = () => S.f.tcTuan || tcThuHai(TODAY());
 const tcThangHT = () => S.f.tcThang || TODAY().slice(0, 7);
 const tcUid = () => S.f.tcUid || (S.me ? S.me.id : '');
 const tcSuaDuoc = (uid) => uid === (S.me ? S.me.id : '') || xemHet();
+// Nhân viên chỉ ghi / sửa tăng ca từ thứ Hai tuần trước đến hôm nay: mỗi thứ Hai tuần cũ nhất tự khoá,
+// và không ghi trước cho ngày chưa tới. Quản lý, Quản trị không bị khoá.
+const tcMoTu = () => addD(tcThuHai(TODAY()), -7);
+const tcTuDo = () => xemHet() || srvOld('tckhoa');
+const tcNgayOk = (d) => tcTuDo() || (d >= tcMoTu() && d <= TODAY());
+const tcTuanMo = (tu) => tcTuDo() || addD(tu, 6) >= tcMoTu();
 function tcNguoi(uid) {
   const me = S.me || {}, n = (S.V && S.V.nvById && S.V.nvById[uid]) || {};
   const b = uid === me.id ? Object.assign({}, n, me) : n;
@@ -14266,7 +14292,9 @@ VIEWS.tc = {
       <button data-act="tcTuan" data-d="1" aria-label="+">${IC.right}</button></div></div>`;
     o += `<div class="list" style="margin-top:12px">${ds.length ? ds.map((x, i) => tcRowHtml(x, i + 1)).join('')
       : `<div class="card empty">${t('tcTrong')}</div>`}</div>`;
-    if (sua) o += `<button class="tcadd" data-act="tcThem">+ ${t('tcThem')}</button>`;
+    const mo = tcTuanMo(tu);
+    if (sua && mo) o += `<button class="tcadd" data-act="tcThem">+ ${t('tcThem')}</button>`;
+    if (sua && !mo) o += `<div class="note" style="margin-top:12px">${t('tcTuanKhoa')}</div>`;
     o += `<div class="card pad" style="margin-top:14px"><div class="tctot" style="margin:0;padding:0;border:0">
       <span class="k">${t('tcTongTuan')}</span><span class="v">${tcSo(tcCong(ds))}</span>
       <span class="k" style="margin-left:auto">${tv('tcTongThang', { m: +ym.slice(5, 7) })}</span>
@@ -14285,8 +14313,8 @@ VIEWS.tc = {
   }
 };
 function tcRowHtml(x, i) {
-  const c = tcCaOf(x.ca), w = wday(x.ngay);
-  return `<button class="tcrow" data-act="tcSua" data-id="${esc(x.id)}">
+  const c = tcCaOf(x.ca), w = wday(x.ngay), kh = !tcNgayOk(x.ngay);
+  return `<button class="tcrow"${kh ? ' disabled' : ` data-act="tcSua" data-id="${esc(x.id)}"`}>
     <div class="h"><span class="no">${i}</span><b>${WD_VI_F[w]}, ${fmtDM(x.ngay)}</b>
       <span class="mdtag md-KHONG">${esc(c.ten)}<i>${esc(c.zh || '')}</i></span>
       ${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}
@@ -14300,7 +14328,8 @@ VIEWS.tcGhi = {
     if (!p.init) {
       const cu = p.id ? (S.V.tc || []).filter((x) => x.id === p.id)[0] : null;
       const tu = tcTuanHT(), ht = TODAY();
-      const ngay = cu ? cu.ngay : (ht >= tu && ht <= addD(tu, 6) ? ht : tu);
+      let ngay = cu ? cu.ngay : (ht >= tu && ht <= addD(tu, 6) ? ht : tu);
+      if (!cu && !tcNgayOk(ngay)) ngay = ngay > ht ? ht : tcMoTu();
       const ca = cu ? cu.ca : (wday(ngay) === 0 ? 'CN' : tcCaDS()[0].k), c = tcCaOf(ca);
       Object.assign(p, { init: 1, uid: (cu && cu.uid) || tcUid(), ngay, ca,
         tu: cu ? cu.tu : c.tu, den: cu ? cu.den : c.den, gio: cu ? tcSo(cu.soGio) : tcSo(tcGio(c.tu, c.den)), ly: cu ? cu.lyDo : '' });
@@ -14310,13 +14339,14 @@ VIEWS.tcGhi = {
       <div class="help" style="margin-bottom:12px">${esc(n.ten)}${n.maThe ? ' · ' + esc(n.maThe) : ''}</div>
       <div class="fld"><span>${t('tcCa')}</span><div class="chips">${tcCaDS().map((c) => `<button type="button" class="chip${c.k === p.ca ? ' on' : ''}" data-act="tcCaChon" data-k="${esc(c.k)}">${esc(c.ten)} <span class="zi">${esc(c.zh || '')}</span></button>`).join('')}</div></div>
       <div class="row2f" style="margin-top:12px">
-        <label class="fld"><span>${t('tcNgay')}</span><input class="inp" id="tcNgay" type="date" value="${esc(p.ngay)}"></label>
+        <label class="fld"><span>${t('tcNgay')}</span><input class="inp" id="tcNgay" type="date" value="${esc(p.ngay)}"${tcTuDo() ? '' : ` min="${esc(tcMoTu())}" max="${esc(TODAY())}"`}></label>
         <div class="row2f" style="gap:10px">
           <label class="fld"><span>${t('tcTu')}</span><input class="inp mono" id="tcTu" type="time" value="${esc(p.tu)}"></label>
           <label class="fld"><span>${t('tcDen')}</span><input class="inp mono" id="tcDen" type="time" value="${esc(p.den)}"></label></div></div>
       <div class="tcgio"><span>${tv('tcSoGio')} <span class="zi">${tz('tcSoGio')}</span></span><input id="tcGioIn" inputmode="decimal" maxlength="6" value="${esc(p.gio)}"><small class="help">${t('tcTuTinh')}</small></div>
       <label class="fld"><span>${t('tcLyDo')}</span><textarea class="inp" id="tcLy" rows="2" maxlength="300" placeholder="${esc(tp('tcLyDoPh'))}">${esc(p.ly)}</textarea></label>
       <div class="help" style="margin-top:6px">${t('tcLyDoHelp')}</div>
+      ${tcTuDo() ? '' : `<div class="help" style="margin-top:6px">${t('tcKhoaHelp')}</div>`}
       <div id="tcErr" class="err" hidden></div>
       <div class="btns" style="margin-top:16px"><button type="button" class="btn pri" id="tcOk">${IC.check} ${t('tcLuu')}</button>
         ${p.id ? `<button type="button" class="btn ghost" data-act="tcXoa" data-id="${esc(p.id)}">${t('tcXoa')}</button>` : ''}</div>
@@ -14338,6 +14368,7 @@ async function tcGui() {
   if (!tcLaGio(p.tu) || !tcLaGio(p.den) || p.tu === p.den) { bao(t('tcGioSai')); return; }
   const gio = Number(String(p.gio || '').replace(',', '.'));
   if (!(gio > 0 && gio <= 24)) { bao(t('tcGioSai')); return; }
+  if (!tcNgayOk(p.ngay)) { bao(t(p.ngay > TODAY() ? 'TC_TUONG_LAI' : 'TC_DA_KHOA')); return; }
   e.hidden = true;
   const btn = $('#tcOk'); btn.disabled = true;
   const r = await send('saveOT', { id: p.id || '', uid: p.uid, ngay: p.ngay, ca: p.ca, tu: p.tu, den: p.den, soGio: gio, lyDo: p.ly || '' });
@@ -14359,8 +14390,14 @@ function tcDonHtml(uid, tu) {
     for (let i = 0; i < Math.max(6, a.length); i++) {
       const x = a[i];
       if (!x) { tr += `<tr><td>${t0 * 6 + i + 1}</td><td></td><td></td><td></td><td class="ct"></td></tr>`; continue; }
-      const c = tcCaOf(x.ca), ct = x.lyDo ? c.ten + ' — ' + x.lyDo : c.ten;
-      tr += `<tr><td>${t0 * 6 + i + 1}</td><td>${fmtDM(x.ngay)}</td><td>${esc(x.tu)} - ${esc(x.den)}</td><td>${tcSo(x.soGio)}</td><td class="ct">${esc(ct)}</td></tr>`;
+      // Cột Chú thích 备注: ca làm việc và lý do đều in song ngữ Việt — Trung
+      const c = tcCaOf(x.ca);
+      let ct = esc(c.ten) + (c.zh ? ` <span class="zh">${esc(c.zh)}</span>` : '');
+      if (x.lyDo) {
+        ct += ' — ' + esc(x.lyDo);
+        if (x.lyDoDich && x.lyDoDich !== x.lyDo) ct += ` <span class="zh">${esc(x.lyDoDich)}</span>`;
+      }
+      tr += `<tr><td>${t0 * 6 + i + 1}</td><td>${fmtDM(x.ngay)}</td><td>${esc(x.tu)} - ${esc(x.den)}</td><td>${tcSo(x.soGio)}</td><td class="ct">${ct}</td></tr>`;
     }
     o += `<div class="tcsheet">
       <div class="co">CÔNG TY TNHH CREDIBLE VIỆT NAM<br><span class="zh">可悦（越南）有限公司</span></div>

@@ -995,7 +995,7 @@ test('tăng ca: mỗi người ghi của mình, Quản lý ghi hộ và xem hế
   assert.deepEqual([x.uid, x.soGio, x.ca], [uid('NV003'), 2, 'HC']);
   assert.ok(x.lyDoDich, 'lý do được dịch sang tiếng Trung');
   // Qua 0 giờ: 22:00 → 02:00 là 4 tiếng
-  assert.equal(ok(b.call('saveOT', { ngay: '2026-10-15', ca: 'DEM', tu: '22:00', den: '02:00' }, kt)).tangCa.soGio, 4);
+  assert.equal(ok(b.call('saveOT', { ngay: '2026-10-13', ca: 'DEM', tu: '22:00', den: '02:00' }, kt)).tangCa.soGio, 4);
   // Sửa tay số giờ thì giữ nguyên số đã sửa
   const y = ok(b.call('saveOT', { id: x.id, ngay: x.ngay, ca: 'HC', tu: '17:30', den: '19:30', soGio: 1.5 }, kt)).tangCa;
   assert.deepEqual([y.id, y.soGio], [x.id, 1.5]);
@@ -1036,7 +1036,7 @@ test('tăng ca: mỗi người ghi của mình, Quản lý ghi hộ và xem hế
   assert.deepEqual([cd.caTangCa.length, cd.caTangCa[0].tu, cd.gioTCThang, cd.gioTCNam], [2, '17:00', 36, 180]);
   err(b.call('saveOTCfg', { ca: [{ k: 'HC', ten: 'Hành chính', tu: '99:00', den: '19:00' }] }, ql), 'GIO_SAI');
   // Ca đã bỏ thì không ghi tăng ca theo ca đó nữa
-  err(b.call('saveOT', { ngay: '2026-10-16', ca: 'CN', tu: '08:00', den: '17:00' }, kt), 'CA_SAI');
+  err(b.call('saveOT', { ngay: '2026-10-11', ca: 'CN', tu: '08:00', den: '17:00' }, kt), 'CA_SAI');
 });
 
 test('lịch trực tuần: Quản lý xếp người và nội dung, tự dịch; sửa tay bản dịch thì không dịch đè; kỹ thuật chỉ xem', () => {
@@ -1481,6 +1481,47 @@ test('giao việc là bắt đầu luôn: không cần bấm Bắt đầu, xong 
   assert.equal(c.lucBatDau, '');
   const c2 = ok(b.call('updateTask', { id: c.id, buoc: 'giao', uidLam: a.id }, b.ql)).congViec;
   assert.equal(c2.lucBatDau, c2.lucGiao);
+});
+
+test('tăng ca: nhân viên chỉ ghi / sửa từ thứ Hai tuần trước đến hôm nay, không ghi trước cho ngày chưa tới', () => {
+  // 2026-10-14 là thứ Tư. Thứ Hai tuần này 12/10, thứ Hai tuần trước 05/10 → mở từ 05/10 đến 14/10.
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const ghi = (ngay, tk, id) => b.call('saveOT', { id: id || '', ngay, ca: 'HC', tu: '17:30', den: '19:30' }, tk);
+
+  // Trong khoảng: ghi được cả tuần trước lẫn tuần này
+  const tuanTruoc = ok(ghi('2026-10-05', kt)).tangCa;
+  const tuanNay = ok(ghi('2026-10-14', kt)).tangCa;
+  assert.equal(tuanTruoc.ngay, '2026-10-05');
+
+  // Ngày chưa tới: chặn
+  err(ghi('2026-10-15', kt), 'TC_TUONG_LAI');
+  // Tuần cũ hơn: đã khoá
+  err(ghi('2026-10-04', kt), 'TC_DA_KHOA');
+  err(ghi('2026-09-28', kt), 'TC_DA_KHOA');
+
+  // Sửa và xoá bản ghi còn trong khoảng thì được
+  assert.equal(ok(ghi('2026-10-06', kt, tuanTruoc.id)).tangCa.ngay, '2026-10-06');
+  ok(b.call('deleteOT', { id: tuanNay.id }, kt));
+
+  // Không được chuyển một bản ghi đang mở sang ngày đã khoá hay ngày chưa tới
+  err(ghi('2026-10-01', kt, tuanTruoc.id), 'TC_DA_KHOA');
+  err(ghi('2026-10-20', kt, tuanTruoc.id), 'TC_TUONG_LAI');
+
+  // Quản lý ghi hộ được cho mọi tuần, kể cả tuần đã khoá
+  const cu = ok(b.call('saveOT', { uid: tuanTruoc.uid, ngay: '2026-09-28', ca: 'HC', tu: '17:30', den: '19:30' }, ql)).tangCa;
+  assert.equal(cu.ngay, '2026-09-28');
+  // Nhân viên vẫn không sửa / xoá được bản ghi tuần đã khoá đó
+  err(ghi('2026-10-06', kt, cu.id), 'TC_DA_KHOA');
+  err(b.call('deleteOT', { id: cu.id }, kt), 'TC_DA_KHOA');
+  // Quản lý thì sửa và xoá được
+  assert.equal(ok(b.call('saveOT', { id: cu.id, uid: cu.uid, ngay: '2026-09-29', ca: 'HC', tu: '17:30', den: '19:30' }, ql)).tangCa.ngay, '2026-09-29');
+  ok(b.call('deleteOT', { id: cu.id }, ql));
+
+  // Sang thứ Hai tuần sau thì tuần 05/10 tự khoá, tuần 12/10 vẫn mở
+  b.setNow('2026-10-19T03:00:00Z');
+  err(ghi('2026-10-06', kt, tuanTruoc.id), 'TC_DA_KHOA');
+  assert.equal(ok(ghi('2026-10-13', kt)).tangCa.ngay, '2026-10-13');
 });
 
 test('việc lặp lại: một người check sheet nhiều máy, mỗi máy một việc', () => {
