@@ -465,6 +465,58 @@ test('tự dịch: dịch khi lưu (Việt → Trung, Trung → Việt), tách "
   assert.match(String(b.ctx.__net.log.find((l) => /sendMessage/.test(l.url)).opt.payload), /Thay phớt máy bơm · 更换水泵密封圈/);
 });
 
+test('báo tin WeChat Work: chỉ nhận webhook robot nhóm, gửi Markdown, chạy song song với Telegram', () => {
+  const b = setupSC();
+  const WW = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abc123def456';
+  const kt = ok(b.call('data', {}, b.ql)).nhanVien.find((n) => n.maNV === 'NV003');
+
+  // Địa chỉ lạ thì không nhận (không cho gửi dữ liệu nhà máy đi chỗ khác)
+  err(b.call('notifySave', { wwUrl: 'https://vidu.com/hook?key=abc123def456' }, b.ad), 'WW_URL_SAI');
+  err(b.call('notifySave', { wwUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send' }, b.ad), 'WW_URL_SAI');
+  // Bật mà chưa có địa chỉ cũng không cho lưu
+  err(b.call('notifySave', { wwBat: true }, b.ad), 'WW_CHUA_DU');
+
+  const c = ok(b.call('notifySave', { wwUrl: WW, wwTen: 'Tổ bảo trì 维修组', wwBat: true }, b.ad));
+  assert.equal(c.wwBat, true);
+  assert.equal(c.wwCo, true);
+  assert.equal(c.wwTen, 'Tổ bảo trì 维修组');
+  assert.equal(c.wwUrl, undefined, 'không trả địa chỉ đầy đủ về app');
+
+  // Giao việc: tin vào nhóm WeChat Work, đổi thẻ HTML sang Markdown
+  b.ctx.__net.log.length = 0;
+  ok(viec(b, b.ql, { tieuDe: 'Thay phớt máy bơm', uidLam: kt.id }));
+  const g = b.ctx.__net.log.find((l) => /qyapi\.weixin\.qq\.com/.test(l.url));
+  assert.ok(g, 'có gửi vào WeChat Work');
+  const body = JSON.parse(g.opt.payload);
+  assert.equal(body.msgtype, 'markdown');
+  assert.match(body.markdown.content, /\*\*GIAO VIỆC · 派工\*\*/, 'thẻ <b> đổi thành Markdown');
+  assert.doesNotMatch(body.markdown.content, /<b>|<\/b>|&amp;/, 'không còn thẻ HTML');
+
+  // Bật cả hai kênh thì cả hai cùng nhận
+  ok(b.call('notifySave', { tgToken: '123:abc', tgChat: '-100123', tgBat: true }, b.ad));
+  b.ctx.__net.log.length = 0;
+  ok(viec(b, b.ql, { tieuDe: 'Tra dầu băng tải', uidLam: kt.id }));
+  assert.equal(b.ctx.__net.log.filter((l) => /sendMessage/.test(l.url)).length, 1);
+  assert.equal(b.ctx.__net.log.filter((l) => /qyapi\.weixin\.qq\.com/.test(l.url)).length, 1);
+
+  // Gửi thử báo trạng thái từng kênh
+  const thu = ok(b.call('notifyTest', {}, b.ad));
+  assert.equal(thu.ww, 'ok');
+  assert.equal(thu.tg, 'ok');
+
+  // WeChat Work báo lỗi thì ghi lại, không làm hỏng việc đang lưu
+  b.ctx.__net.reply = (url) => (/qyapi/.test(url) ? { code: 200, body: { errcode: 93000, errmsg: 'invalid webhook url' } } : null);
+  const v = ok(viec(b, b.ql, { tieuDe: 'Siết bu lông', uidLam: kt.id }));
+  assert.equal(v.congViec.uidLam, kt.id, 'việc vẫn lưu bình thường');
+  assert.match(ok(b.call('notifyGet', {}, b.ad)).loi.loi, /93000/);
+  b.ctx.__net.reply = null;
+
+  // Xoá địa chỉ thì tắt kênh
+  const c2 = ok(b.call('notifySave', { xoaWw: true }, b.ad));
+  assert.equal(c2.wwCo, false);
+  assert.equal(c2.wwBat, false);
+});
+
 test('tự dịch: Google lỗi / hết hạn mức thì việc vẫn lưu, 1 giờ sau tự dịch bù; việc lặp lại dịch một lần ở mẫu', () => {
   const b = setupSC();
   b.ctx.__dichMau.push(['Kiểm tra bình chữa cháy', '检查灭火器'], ['Vệ sinh nhà ăn', '清洁食堂']);

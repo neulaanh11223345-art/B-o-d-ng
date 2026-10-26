@@ -1333,7 +1333,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.20.0";
+const APP_VER = "2.21.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1628,6 +1628,7 @@ var UrlFetchApp = {
       if (/getUpdates/.test(url)) r = { code: 200, body: { ok: true, result: [
         { update_id: 1, message: { chat: { id: -100123, type: 'supergroup', title: 'Tổ bảo trì 维修组' } } },
         { update_id: 2, message: { chat: { id: 555, type: 'private', first_name: 'Admin' } } }] } };
+      else if (/qyapi\.weixin\.qq\.com/.test(url)) r = { code: 200, body: { errcode: 0, errmsg: 'ok' } };
       else r = { code: 200, body: { ok: true, result: { message_id: 1 } } };
     }
     return { getResponseCode: function () { return r.code; }, getContentText: function () { return JSON.stringify(r.body); } };
@@ -1731,7 +1732,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.20.0';
+var PHIEN_BAN = '2.21.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1846,6 +1847,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
+  wwBat: false, wwUrl: '', wwTen: '',               // robot nhóm WeChat Work · 企业微信群机器人
   mailBat: false, baoXong: false, linkApp: '',
   baoViec: true,                     // báo lên Telegram khi giao việc
   saoLuuTat: false,                  // true = tắt sao lưu tự động hằng đêm
@@ -5425,6 +5427,7 @@ function layCaiDatBaoTin() {
   return {
     nhacTruoc: c.nhacTruoc, gio: c.gio, tgBat: c.tgBat, tgCo: !!c.tgToken, tgDuoi: c.tgToken ? c.tgToken.slice(-4) : '',
     tgChat: c.tgChat, tgTen: c.tgTen, mailBat: c.mailBat, baoXong: c.baoXong, baoViec: c.baoViec, linkApp: c.linkApp, lichBat: lich,
+    wwBat: c.wwBat, wwCo: !!c.wwUrl, wwTen: c.wwTen, wwDuoi: c.wwUrl ? c.wwUrl.slice(-4) : '',
     loi: docLoiBaoTin(),
     nhanMail: dsNguoiDung().filter(function (x) { return x.hoatDong && x.email; }).map(function (x) { return x.ten + ' <' + x.email + '>'; })
   };
@@ -5441,12 +5444,19 @@ function luuCaiDatBaoTin(p) {
     if (!(g >= 0 && g <= 23)) throw loi('SO_SAI', 'Giờ 0–23');
     c.gio = g;
   }
-  ['tgBat', 'mailBat', 'baoXong', 'baoViec'].forEach(function (k) { if (p[k] !== undefined) c[k] = !!p[k]; });
+  ['tgBat', 'wwBat', 'mailBat', 'baoXong', 'baoViec'].forEach(function (k) { if (p[k] !== undefined) c[k] = !!p[k]; });
   if (p.xoaTg) { c.tgToken = ''; c.tgChat = ''; c.tgTen = ''; c.tgBat = false; }
   if (s(p.tgToken)) c.tgToken = s(p.tgToken);
   if (p.tgChat !== undefined) { c.tgChat = s(p.tgChat); c.tgTen = catChu(p.tgTen, 80); }
   if (s(p.linkApp)) c.linkApp = s(p.linkApp).slice(0, 300);
+  if (p.xoaWw) { c.wwUrl = ''; c.wwTen = ''; c.wwBat = false; }
+  if (s(p.wwUrl)) {
+    if (!wwHopLe(p.wwUrl)) throw loi('WW_URL_SAI', 'Địa chỉ webhook robot nhóm không đúng · 群机器人 Webhook 地址不正确');
+    c.wwUrl = s(p.wwUrl).slice(0, 300);
+  }
+  if (p.wwTen !== undefined) c.wwTen = catChu(p.wwTen, 80);
   if (c.tgBat && (!c.tgToken || !c.tgChat)) throw loi('TG_CHUA_DU', 'Chưa đủ mã bot và nhóm Telegram');
+  if (c.wwBat && !c.wwUrl) throw loi('WW_CHUA_DU', 'Chưa nhập địa chỉ webhook robot nhóm · 未填写群机器人 Webhook');
   ghiCaiDat(c);
   datLichNhac(c.gio);
   return layCaiDatBaoTin();
@@ -5487,6 +5497,41 @@ function guiTelegram(c, text) {
     o = goiTelegram(c.tgToken, 'sendMessage', { chat_id: c.tgChat, text: text, parse_mode: 'HTML', disable_web_page_preview: true });
   }
   if (!o.ok) throw new Error('Telegram: ' + (o.description || 'lỗi gửi'));
+}
+// ----- WeChat Work · 企业微信: robot nhóm -----
+// Chỉ nhận đúng địa chỉ webhook của robot nhóm, không cho gửi dữ liệu nhà máy đi chỗ khác.
+var WW_TIEN = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send';
+function wwHopLe(u) { return s(u).slice(0, WW_TIEN.length) === WW_TIEN && /[?&]key=[A-Za-z0-9-]{10,}/.test(s(u)); }
+// Tin đang soạn theo kiểu Telegram (HTML). WeChat Work ăn Markdown nên đổi thẻ sang Markdown rồi trả chữ về như cũ.
+function mdTuHtml(t) {
+  return String(t)
+    .replace(/<a href="([^"]*)">([\s\S]*?)<\/a>/g, '[$2]($1)')
+    .replace(/<\/?b>/g, '**')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+}
+// WeChat Work giới hạn 4096 byte mỗi tin; chữ Việt và chữ Trung đều 3 byte nên cắt theo byte cho chắc.
+function catByte(t, toiDa) {
+  t = String(t);
+  var b = 0, i = 0;
+  for (; i < t.length; i++) {
+    var c = t.charCodeAt(i);
+    b += c < 128 ? 1 : c < 2048 ? 2 : 3;
+    if (b > toiDa) return t.slice(0, i - 1) + '…';
+  }
+  return t;
+}
+function guiWeCom(c, text) {
+  if (!wwHopLe(c.wwUrl)) throw new Error('WeChat Work: địa chỉ webhook không đúng');
+  var r = UrlFetchApp.fetch(c.wwUrl, {
+    method: 'post', contentType: 'application/json',
+    payload: JSON.stringify({ msgtype: 'markdown', markdown: { content: catByte(mdTuHtml(text), 3800) } }),
+    muteHttpExceptions: true
+  });
+  var o = {};
+  try { o = JSON.parse(r.getContentText()) || {}; } catch (e) { o = { errcode: -1, errmsg: 'HTTP ' + r.getResponseCode() }; }
+  if (o.errcode) throw new Error('WeChat Work ' + o.errcode + ': ' + (o.errmsg || 'lỗi gửi'));
+  return 'ok';
 }
 function guiEmail(tieuDe, text, html) {
   var ds = dsNguoiDung().filter(function (x) { return x.hoatDong && x.email; }).map(function (x) { return x.email; });
@@ -5603,20 +5648,22 @@ function nhacHangNgay() {
   try { guiTinCho(); } catch (e) { console.log('guiTinCho: ' + (e && e.message || e)); }   // báo tin giao việc của mẫu lặp lại
   try { dichBu(60, true); } catch (e) { console.log('dichBu: ' + (e && e.message || e)); }
   var c = docCaiDat();
-  if (!c.tgBat && !c.mailBat) return;
+  if (!c.tgBat && !c.wwBat && !c.mailBat) return;
   var homNay = homNayStr(), t = tomTat(homNay, c.nhacTruoc);
   if (!coNhac(t)) return;
   var nd = noiDungNhac(t, homNay, c, false), loiDs = [];
   if (c.tgBat) { try { guiTelegram(c, nd.tg); } catch (e) { loiDs.push(String(e.message || e)); } }
+  if (c.wwBat) { try { guiWeCom(c, nd.tg); } catch (e) { loiDs.push(String(e.message || e)); } }
   if (c.mailBat) { try { guiEmail(nd.tieuDe, nd.text, nd.html); } catch (e) { loiDs.push(String(e.message || e)); } }
   ghiLoiBaoTin(loiDs);
 }
 function guiThu() {
   var c = docCaiDat();
-  if (!c.tgBat && !c.mailBat) throw loi('CHUA_BAT', 'Chưa bật kênh báo tin nào');
+  if (!c.tgBat && !c.wwBat && !c.mailBat) throw loi('CHUA_BAT', 'Chưa bật kênh báo tin nào');
   var homNay = homNayStr(), nd = noiDungNhac(tomTat(homNay, c.nhacTruoc), homNay, c, true);
-  var kq = { tg: null, mail: null }, loiDs = [];
+  var kq = { tg: null, ww: null, mail: null }, loiDs = [];
   if (c.tgBat) { try { guiTelegram(c, nd.tg); kq.tg = 'ok'; } catch (e) { kq.tg = String(e.message || e); loiDs.push(kq.tg); } }
+  if (c.wwBat) { try { guiWeCom(c, nd.tg); kq.ww = 'ok'; } catch (e) { kq.ww = String(e.message || e); loiDs.push(kq.ww); } }
   if (c.mailBat) { try { kq.mail = guiEmail(nd.tieuDe, nd.text, nd.html); } catch (e) { kq.mail = String(e.message || e); loiDs.push(kq.mail); } }
   if (loiDs.length) ghiLoiBaoTin(loiDs); else PropertiesService.getScriptProperties().deleteProperty('BAO_TIN_LOI');
   return kq;
@@ -5643,7 +5690,8 @@ function guiTinCho() {
   var ds = TIN_CHO; TIN_CHO = [];
   var c;
   try { c = docCaiDat(); } catch (e) { return; }
-  if (!c.tgBat || !c.tgToken || !c.tgChat) return;
+  var coTg = c.tgBat && c.tgToken && c.tgChat, coWw = c.wwBat && c.wwUrl;
+  if (!coTg && !coWw) return;
   var loiDs = [];
   ds.forEach(function (tin) {
     var txt = '';
@@ -5657,7 +5705,8 @@ function guiTinCho() {
       txt = tinGiaoViec(tin, c);
     }
     if (!txt) return;
-    try { guiTelegram(c, txt); } catch (e) { loiDs.push(String(e.message || e)); }
+    if (coTg) { try { guiTelegram(c, txt); } catch (e) { loiDs.push(String(e.message || e)); } }
+    if (coWw) { try { guiWeCom(c, txt); } catch (e) { loiDs.push(String(e.message || e)); } }
   });
   ghiLoiBaoTin(loiDs);
 }
@@ -6391,7 +6440,10 @@ mauTangCa();
 mauLichTruc();
 mauPhanCa();
 mauTaiLieu();
-return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };
+return {
+  call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); },
+  net: __net                            // nhật ký gọi mạng giả, dùng cho bài kiểm thử toàn luồng
+};
 
 })();
 
@@ -6469,6 +6521,14 @@ const TX = {
   notifyHead: ['Nhắc tự động mỗi ngày', '每日自动提醒'], notifyIntro: ['App gửi danh sách máy quá hạn, đến hạn hôm nay và sắp đến vào giờ đã chọn.', '每天在设定时间发送逾期、今天到期和即将到期的设备清单。'],
   remindDays: ['Báo "sắp đến" trước', '提前提醒天数'], sendHour: ['Giờ gửi mỗi ngày', '每天发送时间'],
   tgOn: ['Gửi vào nhóm Telegram', '发送到Telegram群组'], tgToken: ['Mã bot Telegram', 'Telegram机器人令牌'],
+  wwOn: ['Gửi vào nhóm WeChat Work', '发送到企业微信群'],
+  wwUrl: ['Địa chỉ Webhook của robot nhóm', '群机器人 Webhook 地址'],
+  wwTen: ['Tên nhóm (để nhớ)', '群名称（备注用）'], wwTenPh: ['Vd: Tổ bảo trì 维修组', '如：维修组'],
+  wwSteps: ['Trong 企业微信: mở nhóm chat → bấm dấu ⋯ góc trên → 群机器人 → 添加 → chọn 新创建一个机器人 → đặt tên → copy Webhook地址 dán vào đây. Chỉ nhận địa chỉ qyapi.weixin.qq.com.',
+    '企业微信中：打开群聊 → 右上角 ⋯ → 群机器人 → 添加 → 新创建一个机器人 → 命名 → 复制 Webhook 地址粘贴到此处。仅接受 qyapi.weixin.qq.com 地址。'],
+  wwXoa: ['Xoá địa chỉ Webhook', '删除 Webhook 地址'],
+  wwXoaHoi: ['Xoá địa chỉ Webhook robot nhóm? App sẽ thôi gửi tin vào WeChat Work.', '删除群机器人 Webhook 地址？应用将停止向企业微信发送消息。'],
+  srvMissWeCom: ['Báo tin qua WeChat Work', '企业微信通知'],
   tgFind: ['Tìm nhóm', '查找群组'], tgPick: ['Chọn nhóm nhận tin', '选择接收群组'], tgNoChat: ['Chưa thấy nhóm nào. Thêm bot vào nhóm, gửi /start trong nhóm rồi bấm Tìm nhóm lại.', '没找到群组。把机器人加入群组，在群里发送 /start 后再点查找。'],
   tgSteps: ['Cách tạo bot: mở Telegram → tìm @BotFather → gửi /newbot → đặt tên → chép mã bot dán vào đây. Thêm bot vào nhóm tổ bảo trì, gửi /start trong nhóm, rồi bấm Tìm nhóm.', '创建机器人：Telegram搜索 @BotFather → 发送 /newbot → 起名 → 复制令牌粘贴到这里。把机器人加入维修群，在群里发 /start，再点“查找群组”。'],
   mailOn: ['Gửi email', '发送邮件'], mailTo: ['Người nhận: người dùng có email', '收件人：填写了邮箱的用户'], mailNone: ['Chưa ai có email. Nhập email ở màn Người dùng.', '还没有人填写邮箱，请在用户页面填写。'],
@@ -6501,6 +6561,8 @@ const ERR = {
   KHOA_HT: ['Hệ thống tạm khoá đăng nhập 10 phút.', '系统暂时锁定登录10分钟。'],
   KHONG_QUYEN: ['Bạn không có quyền làm việc này.', '您没有此操作权限。'],
   KHONG_CO_MAY: ['Không tìm thấy máy này.', '找不到该设备。'],
+  WW_URL_SAI: ['Địa chỉ Webhook không đúng. Phải là địa chỉ qyapi.weixin.qq.com/cgi-bin/webhook/send?key=… copy từ 群机器人 trong 企业微信.', 'Webhook 地址不正确。必须是从企业微信群机器人复制的 qyapi.weixin.qq.com/cgi-bin/webhook/send?key=… 地址。'],
+  WW_CHUA_DU: ['Chưa nhập địa chỉ Webhook robot nhóm.', '未填写群机器人 Webhook 地址。'],
   QUA_NHIEU_VIEC: ['Mẫu này sinh quá nhiều việc mỗi lần. Bớt máy hoặc bớt người đi.', '此模板每次生成的工作过多，请减少设备或人员。'],
   KHONG_CO: ['Không tìm thấy.', '找不到。'],
   MAY_NGUNG: ['Máy đã ngừng theo dõi.', '该设备已停用。'],
@@ -8538,6 +8600,13 @@ VIEWS.notify = {
         <label class="switch" style="margin-top:10px"><span class="t">${t('doneOn')}</span><input type="checkbox" id="nXong" ${c.baoXong ? 'checked' : ''}></label>
         <label class="switch" style="margin-top:10px"><span class="t">${t('doneViec')}</span><input type="checkbox" id="nViec" ${c.baoViec !== false ? 'checked' : ''}></label>
       </div>
+      ${srvOld('wecom') ? '' : `<div class="sec"><h2>WeChat Work <span class="zi" lang="zh-CN">企业微信</span></h2></div><div class="card pad">
+        <label class="switch"><span class="t">${t('wwOn')}</span><input type="checkbox" id="nWw" ${c.wwBat ? 'checked' : ''}></label>
+        <label class="fld" style="margin-top:8px"><span>${t('wwUrl')}</span><input class="inp mono" id="nWwUrl" placeholder="${c.wwCo ? '••••••' + esc(c.wwDuoi) : 'https://qyapi.weixin.qq.com/…key=…'}"></label>
+        <label class="fld" style="margin:0"><span>${t('wwTen')}</span><input class="inp" id="nWwTen" maxlength="80" value="${esc(c.wwTen || '')}" placeholder="${esc(tp('wwTenPh'))}"></label>
+        <div class="help">${t('wwSteps')}</div>
+        ${c.wwCo ? `<button type="button" class="btn ghost sm" style="margin-top:10px" data-act="wwXoa">${t('wwXoa')}</button>` : ''}
+      </div>`}
       <div class="sec"><h2>Email</h2></div><div class="card pad">
         <label class="switch"><span class="t">${t('mailOn')}<div class="help">${t('mailTo')}</div></span><input type="checkbox" id="nMail" ${c.mailBat ? 'checked' : ''}></label>
         <div class="help">${c.nhanMail.length ? c.nhanMail.map(esc).join('<br>') : t('mailNone')}</div></div>
@@ -8560,6 +8629,11 @@ function notifyPayload() {
     baoXong: $('#nXong').checked, baoViec: $('#nViec').checked, linkApp: IS_DEMO ? '' : appLink() };
   const tk = $('#nToken').value.trim(); if (tk) o.tgToken = tk;
   if (ch) { o.tgChat = ch.value; o.tgTen = ch.dataset.ten; }
+  if ($('#nWw')) {
+    o.wwBat = $('#nWw').checked;
+    const u = $('#nWwUrl').value.trim(); if (u) o.wwUrl = u;
+    o.wwTen = $('#nWwTen').value.trim();
+  }
   return o;
 }
 async function saveNotify(quiet) {
@@ -8577,7 +8651,7 @@ async function tgFind(el) {
     const d = await api('notifyChats', { tgToken: $('#nToken').value.trim() });
     const p = topV().p, keep = notifyPayload();
     p.chats = d.chats;
-    p.c = Object.assign({}, p.c, { tgBat: keep.tgBat, mailBat: keep.mailBat, baoXong: keep.baoXong, baoViec: keep.baoViec, nhacTruoc: keep.nhacTruoc, gio: keep.gio });
+    p.c = Object.assign({}, p.c, { tgBat: keep.tgBat, mailBat: keep.mailBat, baoXong: keep.baoXong, baoViec: keep.baoViec, nhacTruoc: keep.nhacTruoc, gio: keep.gio, wwBat: !!keep.wwBat, wwTen: keep.wwTen || '' });
     const tok = $('#nToken').value;
     render(); $('#nToken').value = tok;
     if (d.chats.length === 1) { const r = $('input[name="nChat"]'); if (r) r.checked = true; }
@@ -8588,7 +8662,7 @@ async function tgTest(el) {
   if (!(await saveNotify(true))) return;
   try {
     const d = await api('notifyTest', {}, { timeout: 60 });
-    const bad = [d.tg, d.mail].filter((x) => typeof x === 'string' && x !== 'ok');
+    const bad = [d.tg, d.ww, d.mail].filter((x) => typeof x === 'string' && x !== 'ok');
     toast(bad.length ? esc(bad.join(' · ')) : t('testOk') + (typeof d.mail === 'number' ? ' · email ×' + d.mail : ''), !!bad.length);
     const c = await api('notifyGet'); topV().p.c = c; render();
   } catch (e) { toast(e.code === 'MANG' ? t('needNet') : errMsg(e), true); render(); }
@@ -8938,6 +9012,16 @@ const ACT = {
   saveUser: (el) => saveUser(el),
   tgFind: (el) => tgFind(el),
   tgTest: (el) => tgTest(el),
+  wwXoa: () => openSheet(`<div class="grab"></div><h3>${tv('wwXoa')}<span class="zi">${tz('wwXoa')}</span></h3>
+    <p class="help">${t('wwXoaHoi')}</p><div class="err" id="wwErr" hidden></div>
+    <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="wwXoaGo">${t('wwXoa')}</button></div>`),
+  wwXoaGo: async (el) => {
+    el.disabled = true;
+    try {
+      const c = await api('notifySave', Object.assign(notifyPayload(), { wwBat: false, wwUrl: '', xoaWw: true }));
+      topV().p.c = c; closeSheet(); toast(t('saved')); render();
+    } catch (e) { el.disabled = false; const fe = $('#wwErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  },
   pinForm: () => pinForm(),
   doPin: (el) => doPin(el),
   doRefresh: () => { closeSheet(); refresh(false); },
@@ -9803,7 +9887,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {

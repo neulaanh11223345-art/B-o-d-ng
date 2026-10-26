@@ -291,6 +291,7 @@ var UrlFetchApp = {
       if (/getUpdates/.test(url)) r = { code: 200, body: { ok: true, result: [
         { update_id: 1, message: { chat: { id: -100123, type: 'supergroup', title: 'Tổ bảo trì 维修组' } } },
         { update_id: 2, message: { chat: { id: 555, type: 'private', first_name: 'Admin' } } }] } };
+      else if (/qyapi\.weixin\.qq\.com/.test(url)) r = { code: 200, body: { errcode: 0, errmsg: 'ok' } };
       else r = { code: 200, body: { ok: true, result: { message_id: 1 } } };
     }
     return { getResponseCode: function () { return r.code; }, getContentText: function () { return JSON.stringify(r.body); } };

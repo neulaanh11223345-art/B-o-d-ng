@@ -521,7 +521,13 @@ await page.evaluate(() => go('trucTong')); await wait(600);
 assert.match(await text('#barTitle'), /Tổng số ca/);
 const tong16 = await page.evaluate(() => trucTongDS(TODAY().slice(0, 7)));
 assert.ok(tong16.length >= 3, 'bảng tổng liệt kê từng người');
-assert.ok(tong16.reduce((a, x) => a + x.cn, 0) >= 1, 'đếm riêng số ngày Chủ nhật');
+// Chủ nhật của tuần đang xem có thể rơi sang tháng sau (vd thứ Hai 26/10 thì Chủ nhật là 1/11),
+// nên đếm ngày Chủ nhật theo đúng tháng chứa Chủ nhật đó.
+const cn16 = await page.evaluate(() => {
+  const cn = addD(tcThuHai(TODAY()), 6);
+  return trucTongDS(cn.slice(0, 7)).reduce((a, x) => a + x.cn, 0);
+});
+assert.ok(cn16 >= 1, 'đếm riêng số ngày Chủ nhật');
 await shot('25-truc-tong-so-ca');
 // Phân công ca trực: bảng giống bảng giấy, bấm luân phiên thì tiếp nối tuần trước
 await page.evaluate(() => { back(); go('phanCa'); }); await wait(700);
@@ -700,6 +706,29 @@ assert.equal(/dưới tối thiểu/i.test(await text('#main')), false, 'ô Linh
 await shot('30-nhac-hang-thieu');
 assert.ok(await page.evaluate(() => khoThieuBlob(khoNhacDS()).size > 2000), 'xuất được danh sách cần mua');
 ok('Bản 2.16: tồn an toàn từ file (quy cách, đơn vị, bỏ theo dõi), báo thiếu theo phần trăm, không báo ra trang chủ');
+
+// 19. Báo tin qua WeChat Work: nhập webhook robot nhóm, chặn địa chỉ lạ, gửi thử (chỉ Quản trị vào được)
+await logout();
+await login('NV001', '111111');
+await page.evaluate(() => go('notify', {})); await wait(1500);
+assert.match(await text('#main'), /企业微信/, 'có mục WeChat Work trong Báo tin');
+await page.fill('#nWwUrl', 'https://vidu.com/hook?key=abcdef123456');
+await page.check('#nWw');
+await page.click('#nSave'); await wait(1000);
+assert.match(await text('#nErr'), /Webhook/i, 'địa chỉ lạ bị chặn');
+await page.fill('#nWwUrl', 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abcdef123456');
+await page.fill('#nWwTen', 'Tổ bảo trì 维修组');
+await page.click('#nSave'); await wait(1200);
+const ww19 = await page.evaluate(() => { const c = topV().p.c; return { bat: c.wwBat, co: c.wwCo, ten: c.wwTen, url: c.wwUrl }; });
+assert.deepEqual(ww19, { bat: true, co: true, ten: 'Tổ bảo trì 维修组', url: undefined }, 'lưu được, không trả địa chỉ về app');
+await shot('31-baotin-wechat-work');
+await page.click('[data-act="tgTest"]'); await wait(1600);
+assert.ok(await page.evaluate(() => DemoBackend.net.log.some((l) => /qyapi\.weixin\.qq\.com/.test(l.url))), 'gửi thử có vào WeChat Work');
+// Xoá địa chỉ thì tắt kênh
+await page.click('[data-act="wwXoa"]'); await wait(600);
+await page.click('[data-act="wwXoaGo"]'); await wait(1200);
+assert.equal(await page.evaluate(() => topV().p.c.wwCo), false, 'xoá được địa chỉ webhook');
+ok('Bản 2.21: báo tin vào nhóm WeChat Work, chặn địa chỉ webhook lạ, gửi thử và xoá được');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

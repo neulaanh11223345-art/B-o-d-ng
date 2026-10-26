@@ -448,4 +448,7 @@ mauTangCa();
 mauLichTruc();
 mauPhanCa();
 mauTaiLieu();
-return { call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); } };
+return {
+  call: function (req) { return JSON.parse(JSON.stringify(xuLy(JSON.parse(JSON.stringify(req))))); },
+  net: __net                            // nhật ký gọi mạng giả, dùng cho bài kiểm thử toàn luồng
+};

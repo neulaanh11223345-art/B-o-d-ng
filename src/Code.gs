@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.20.0';
+var PHIEN_BAN = '2.21.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -132,6 +132,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
+  wwBat: false, wwUrl: '', wwTen: '',               // robot nhóm WeChat Work · 企业微信群机器人
   mailBat: false, baoXong: false, linkApp: '',
   baoViec: true,                     // báo lên Telegram khi giao việc
   saoLuuTat: false,                  // true = tắt sao lưu tự động hằng đêm
@@ -3711,6 +3712,7 @@ function layCaiDatBaoTin() {
   return {
     nhacTruoc: c.nhacTruoc, gio: c.gio, tgBat: c.tgBat, tgCo: !!c.tgToken, tgDuoi: c.tgToken ? c.tgToken.slice(-4) : '',
     tgChat: c.tgChat, tgTen: c.tgTen, mailBat: c.mailBat, baoXong: c.baoXong, baoViec: c.baoViec, linkApp: c.linkApp, lichBat: lich,
+    wwBat: c.wwBat, wwCo: !!c.wwUrl, wwTen: c.wwTen, wwDuoi: c.wwUrl ? c.wwUrl.slice(-4) : '',
     loi: docLoiBaoTin(),
     nhanMail: dsNguoiDung().filter(function (x) { return x.hoatDong && x.email; }).map(function (x) { return x.ten + ' <' + x.email + '>'; })
   };
@@ -3727,12 +3729,19 @@ function luuCaiDatBaoTin(p) {
     if (!(g >= 0 && g <= 23)) throw loi('SO_SAI', 'Giờ 0–23');
     c.gio = g;
   }
-  ['tgBat', 'mailBat', 'baoXong', 'baoViec'].forEach(function (k) { if (p[k] !== undefined) c[k] = !!p[k]; });
+  ['tgBat', 'wwBat', 'mailBat', 'baoXong', 'baoViec'].forEach(function (k) { if (p[k] !== undefined) c[k] = !!p[k]; });
   if (p.xoaTg) { c.tgToken = ''; c.tgChat = ''; c.tgTen = ''; c.tgBat = false; }
   if (s(p.tgToken)) c.tgToken = s(p.tgToken);
   if (p.tgChat !== undefined) { c.tgChat = s(p.tgChat); c.tgTen = catChu(p.tgTen, 80); }
   if (s(p.linkApp)) c.linkApp = s(p.linkApp).slice(0, 300);
+  if (p.xoaWw) { c.wwUrl = ''; c.wwTen = ''; c.wwBat = false; }
+  if (s(p.wwUrl)) {
+    if (!wwHopLe(p.wwUrl)) throw loi('WW_URL_SAI', 'Địa chỉ webhook robot nhóm không đúng · 群机器人 Webhook 地址不正确');
+    c.wwUrl = s(p.wwUrl).slice(0, 300);
+  }
+  if (p.wwTen !== undefined) c.wwTen = catChu(p.wwTen, 80);
   if (c.tgBat && (!c.tgToken || !c.tgChat)) throw loi('TG_CHUA_DU', 'Chưa đủ mã bot và nhóm Telegram');
+  if (c.wwBat && !c.wwUrl) throw loi('WW_CHUA_DU', 'Chưa nhập địa chỉ webhook robot nhóm · 未填写群机器人 Webhook');
   ghiCaiDat(c);
   datLichNhac(c.gio);
   return layCaiDatBaoTin();
@@ -3773,6 +3782,41 @@ function guiTelegram(c, text) {
     o = goiTelegram(c.tgToken, 'sendMessage', { chat_id: c.tgChat, text: text, parse_mode: 'HTML', disable_web_page_preview: true });
   }
   if (!o.ok) throw new Error('Telegram: ' + (o.description || 'lỗi gửi'));
+}
+// ----- WeChat Work · 企业微信: robot nhóm -----
+// Chỉ nhận đúng địa chỉ webhook của robot nhóm, không cho gửi dữ liệu nhà máy đi chỗ khác.
+var WW_TIEN = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send';
+function wwHopLe(u) { return s(u).slice(0, WW_TIEN.length) === WW_TIEN && /[?&]key=[A-Za-z0-9-]{10,}/.test(s(u)); }
+// Tin đang soạn theo kiểu Telegram (HTML). WeChat Work ăn Markdown nên đổi thẻ sang Markdown rồi trả chữ về như cũ.
+function mdTuHtml(t) {
+  return String(t)
+    .replace(/<a href="([^"]*)">([\s\S]*?)<\/a>/g, '[$2]($1)')
+    .replace(/<\/?b>/g, '**')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+}
+// WeChat Work giới hạn 4096 byte mỗi tin; chữ Việt và chữ Trung đều 3 byte nên cắt theo byte cho chắc.
+function catByte(t, toiDa) {
+  t = String(t);
+  var b = 0, i = 0;
+  for (; i < t.length; i++) {
+    var c = t.charCodeAt(i);
+    b += c < 128 ? 1 : c < 2048 ? 2 : 3;
+    if (b > toiDa) return t.slice(0, i - 1) + '…';
+  }
+  return t;
+}
+function guiWeCom(c, text) {
+  if (!wwHopLe(c.wwUrl)) throw new Error('WeChat Work: địa chỉ webhook không đúng');
+  var r = UrlFetchApp.fetch(c.wwUrl, {
+    method: 'post', contentType: 'application/json',
+    payload: JSON.stringify({ msgtype: 'markdown', markdown: { content: catByte(mdTuHtml(text), 3800) } }),
+    muteHttpExceptions: true
+  });
+  var o = {};
+  try { o = JSON.parse(r.getContentText()) || {}; } catch (e) { o = { errcode: -1, errmsg: 'HTTP ' + r.getResponseCode() }; }
+  if (o.errcode) throw new Error('WeChat Work ' + o.errcode + ': ' + (o.errmsg || 'lỗi gửi'));
+  return 'ok';
 }
 function guiEmail(tieuDe, text, html) {
   var ds = dsNguoiDung().filter(function (x) { return x.hoatDong && x.email; }).map(function (x) { return x.email; });
@@ -3889,20 +3933,22 @@ function nhacHangNgay() {
   try { guiTinCho(); } catch (e) { console.log('guiTinCho: ' + (e && e.message || e)); }   // báo tin giao việc của mẫu lặp lại
   try { dichBu(60, true); } catch (e) { console.log('dichBu: ' + (e && e.message || e)); }
   var c = docCaiDat();
-  if (!c.tgBat && !c.mailBat) return;
+  if (!c.tgBat && !c.wwBat && !c.mailBat) return;
   var homNay = homNayStr(), t = tomTat(homNay, c.nhacTruoc);
   if (!coNhac(t)) return;
   var nd = noiDungNhac(t, homNay, c, false), loiDs = [];
   if (c.tgBat) { try { guiTelegram(c, nd.tg); } catch (e) { loiDs.push(String(e.message || e)); } }
+  if (c.wwBat) { try { guiWeCom(c, nd.tg); } catch (e) { loiDs.push(String(e.message || e)); } }
   if (c.mailBat) { try { guiEmail(nd.tieuDe, nd.text, nd.html); } catch (e) { loiDs.push(String(e.message || e)); } }
   ghiLoiBaoTin(loiDs);
 }
 function guiThu() {
   var c = docCaiDat();
-  if (!c.tgBat && !c.mailBat) throw loi('CHUA_BAT', 'Chưa bật kênh báo tin nào');
+  if (!c.tgBat && !c.wwBat && !c.mailBat) throw loi('CHUA_BAT', 'Chưa bật kênh báo tin nào');
   var homNay = homNayStr(), nd = noiDungNhac(tomTat(homNay, c.nhacTruoc), homNay, c, true);
-  var kq = { tg: null, mail: null }, loiDs = [];
+  var kq = { tg: null, ww: null, mail: null }, loiDs = [];
   if (c.tgBat) { try { guiTelegram(c, nd.tg); kq.tg = 'ok'; } catch (e) { kq.tg = String(e.message || e); loiDs.push(kq.tg); } }
+  if (c.wwBat) { try { guiWeCom(c, nd.tg); kq.ww = 'ok'; } catch (e) { kq.ww = String(e.message || e); loiDs.push(kq.ww); } }
   if (c.mailBat) { try { kq.mail = guiEmail(nd.tieuDe, nd.text, nd.html); } catch (e) { kq.mail = String(e.message || e); loiDs.push(kq.mail); } }
   if (loiDs.length) ghiLoiBaoTin(loiDs); else PropertiesService.getScriptProperties().deleteProperty('BAO_TIN_LOI');
   return kq;
@@ -3929,7 +3975,8 @@ function guiTinCho() {
   var ds = TIN_CHO; TIN_CHO = [];
   var c;
   try { c = docCaiDat(); } catch (e) { return; }
-  if (!c.tgBat || !c.tgToken || !c.tgChat) return;
+  var coTg = c.tgBat && c.tgToken && c.tgChat, coWw = c.wwBat && c.wwUrl;
+  if (!coTg && !coWw) return;
   var loiDs = [];
   ds.forEach(function (tin) {
     var txt = '';
@@ -3943,7 +3990,8 @@ function guiTinCho() {
       txt = tinGiaoViec(tin, c);
     }
     if (!txt) return;
-    try { guiTelegram(c, txt); } catch (e) { loiDs.push(String(e.message || e)); }
+    if (coTg) { try { guiTelegram(c, txt); } catch (e) { loiDs.push(String(e.message || e)); } }
+    if (coWw) { try { guiWeCom(c, txt); } catch (e) { loiDs.push(String(e.message || e)); } }
   });
   ghiLoiBaoTin(loiDs);
 }
