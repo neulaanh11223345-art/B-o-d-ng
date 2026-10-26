@@ -1335,7 +1335,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.23.0";
+const APP_VER = "2.24.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -1939,7 +1939,7 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 const xemHet = () => can('xemhet');
 const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
   'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
-  'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt']);
+  'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
@@ -1985,13 +1985,13 @@ const TITLES = { khoNhac: 't_khoNhac', khoMin: 't_khoMin', dien: 't_dien', dienN
   tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
   tlCfg: 't_tlCfg', tlGan: 't_tlGan', tlDS: 't_tlDS',
   truc: 't_truc', trucGhi: 't_trucGhi', trucTong: 't_trucTong', phanCa: 't_phanCa', trucNguoi: 't_trucNguoi',
-  kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt' };
+  kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit' };
 const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc'];
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
   tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me',
   trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc', khoNhac: 'list', khoMin: 'list',
-  kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list' };
+  kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list', ttLoiEdit: 'list' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
 function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w.length > 1 ? w[w.length - 1][0] : w[0].slice(0, 2)).toUpperCase(); }
@@ -4789,7 +4789,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -10426,18 +10426,190 @@ function ttSutAp(p) {
   const pct = dU / U * 100;
   return { dU, pct, dat: pct <= (du > 0 ? du : 5) };
 }
-const TT_SEG = [['dc', 'tt_dc'], ['day', 'tt_day'], ['tu', 'tt_tu'], ['su', 'tt_su']];
+// ----- Tra lỗi thiết bị: biến tần và servo (driver) Mitsubishi -----
+// Bảng tra sẵn soạn theo tài liệu của hãng, kèm phần ghi chú của chính nhà máy (lưu trên máy chủ)
+// và những lần đã gặp mã lỗi đó trong sổ sửa chữa. Tên lỗi song ngữ; nguyên nhân và cách xử lý
+// viết tiếng Việt cho thợ đọc nhanh. PHẢI đối chiếu manual đúng đời máy trước khi thao tác.
+Object.assign(TX, {
+  tt_loi: ['Tra lỗi', '故障查询'],
+  ttLoiTim: ['Nhập mã lỗi hoặc từ khoá', '输入故障代码或关键词'],
+  ttLoiPh: ['Vd: E.OC1, AL.32, quá dòng, quá nhiệt', '如：E.OC1、AL.32、过流、过热'],
+  ttLoiHang: ['Thiết bị', '设备'],
+  ttLoi_all: ['Tất cả', '全部'], ttLoi_bt: ['Biến tần FR', 'FR变频器'], ttLoi_sv: ['Servo MR', 'MR伺服'], ttLoi_nm: ['Nhà máy ghi', '工厂补充'],
+  ttLoiNguyenNhan: ['Nguyên nhân thường gặp', '常见原因'], ttLoiXuLy: ['Cách xử lý', '处理方法'],
+  ttLoiNhaMay: ['Ghi chú của nhà máy', '工厂备注'], ttLoiThem: ['Thêm ghi chú', '添加备注'],
+  ttLoiDaGap: ['Đã gặp ở nhà máy', '本厂已遇到'], ttLoiDaGapN: ['{n} lần trong sổ sửa chữa', '维修记录中{n}次'],
+  ttLoiKhong: ['Không tìm thấy mã lỗi nào. Thử gõ ngắn hơn, hoặc thêm ghi chú cho mã này.', '未找到故障代码。请尝试更短的关键词，或为该代码添加备注。'],
+  ttLoiGoiY: ['Gõ mã lỗi hiện trên màn hình thiết bị, hoặc từ khoá tiếng Việt.', '输入设备显示的故障代码，或越南语关键词。'],
+  ttLoiNguon: ['Bảng tra soạn theo tài liệu Mitsubishi cho FR-E700/D700/A700/F700 và MR-J4/MR-JE. Mỗi đời máy có thể khác — đối chiếu manual đúng đời trước khi thao tác.',
+    '参考表依据三菱 FR-E700/D700/A700/F700 与 MR-J4/MR-JE 资料编写。不同型号可能有差异 — 操作前请核对对应型号手册。'],
+  ttLoiCanh: ['Cắt nguồn và chờ đèn CHARGE tắt hẳn mới được mở tủ hay chạm vào đầu cốt.', '必须断电并等 CHARGE 指示灯完全熄灭后才能开柜或触碰端子。'],
+  // Màn thêm / sửa ghi chú
+  t_ttLoiEdit: ['Ghi chú mã lỗi', '故障代码备注'],
+  mlHang: ['Thiết bị', '设备'], mlHangBT: ['Biến tần', '变频器'], mlHangSV: ['Servo / driver', '伺服驱动器'], mlHangKhac: ['Khác', '其他'],
+  mlDong: ['Dòng máy', '型号系列'], mlDongPh: ['Vd: FR-E740, MR-J4-70A', '如：FR-E740、MR-J4-70A'],
+  mlMa: ['Mã lỗi', '故障代码'], mlTen: ['Tên lỗi', '故障名称'],
+  mlXuLy: ['Nguyên nhân và cách xử lý tại nhà máy', '本厂原因与处理方法'],
+  mlLuu: ['Lưu ghi chú', '保存备注'], mlXoa: ['Xoá ghi chú này', '删除此备注'],
+  mlXoaHoi: ['Ghi chú sẽ không còn hiện khi tra mã lỗi này.', '该备注将不再显示在此故障代码下。'],
+  srvMissML: ['Ghi chú mã lỗi của nhà máy', '工厂故障代码备注']
+});
+Object.assign(ERR, { ML_THIEU_MA: ['Chưa nhập mã lỗi.', '未填写故障代码。'] });
+// [hãng, dòng, mã, tên VI, tên ZH, nguyên nhân, cách xử lý]
+const TT_LOI = [
+  // ----- Biến tần Mitsubishi FR (E700 · D700 · A700 · F700) -----
+  ['BT', 'FR', 'E.OC1', 'Quá dòng khi tăng tốc', '加速中过电流', 'Thời gian tăng tốc quá ngắn; tải kẹt hoặc nặng đột ngột; ngắn mạch đầu ra; đặt mô-men khởi động quá cao.', 'Kéo dài thời gian tăng tốc (Pr.7). Quay tay thử trục xem có kẹt không. Đo cách điện và thông mạch ba pha đầu ra, kiểm tra cáp ra motor.'],
+  ['BT', 'FR', 'E.OC2', 'Quá dòng khi chạy đều', '恒速中过电流', 'Tải tăng đột ngột, kẹt cơ khí; mất pha đầu ra; cáp ra chạm chập.', 'Kiểm tra tải cơ khí và bạc đạn. Đo dòng ba pha xem có lệch. Kiểm tra cáp và đầu cốt ra motor.'],
+  ['BT', 'FR', 'E.OC3', 'Quá dòng khi giảm tốc / dừng', '减速中过电流', 'Thời gian giảm tốc quá ngắn; phanh cơ khí bó; tải quán tính lớn.', 'Kéo dài thời gian giảm tốc (Pr.8). Kiểm tra phanh cơ khí có nhả hết không. Cân nhắc lắp điện trở hãm.'],
+  ['BT', 'FR', 'E.OV1', 'Quá áp khi tăng tốc', '加速中过电压', 'Điện áp lưới cao; tải kéo ngược trong lúc tăng tốc.', 'Đo điện áp lưới. Bật chức năng chống quá áp (Pr.882–885) hoặc kéo dài thời gian tăng tốc.'],
+  ['BT', 'FR', 'E.OV2', 'Quá áp khi chạy đều', '恒速中过电压', 'Tải kéo ngược (hạ hàng, băng tải xuống dốc); điện áp lưới dao động cao.', 'Lắp điện trở hãm hoặc bộ hãm tái sinh. Kiểm tra điện áp lưới và máy biến áp.'],
+  ['BT', 'FR', 'E.OV3', 'Quá áp khi giảm tốc / dừng', '减速中过电压', 'Giảm tốc quá nhanh với tải quán tính lớn — năng lượng trả về làm dâng áp DC bus.', 'Kéo dài thời gian giảm tốc (Pr.8). Lắp điện trở hãm đúng công suất; kiểm tra điện trở hãm có đứt không.'],
+  ['BT', 'FR', 'E.THT', 'Quá tải biến tần (rơle nhiệt điện tử)', '变频器过载', 'Chạy quá dòng định mức biến tần kéo dài; biến tần chọn nhỏ hơn tải.', 'Giảm tải hoặc đổi biến tần công suất lớn hơn. Kiểm tra Pr.9 đặt đúng dòng motor chưa.'],
+  ['BT', 'FR', 'E.THM', 'Quá tải động cơ (rơle nhiệt điện tử)', '电机过载', 'Motor chạy quá tải lâu; đặt Pr.9 sai; motor quạt làm mát hỏng; chạy tần số thấp kéo dài.', 'Đo dòng thực tế của motor. Đặt lại Pr.9 bằng dòng định mức trên nhãn motor. Kiểm tra quạt và tải cơ khí.'],
+  ['BT', 'FR', 'E.FIN', 'Quá nhiệt tản nhiệt', '散热片过热', 'Quạt làm mát hỏng hoặc bám bụi; nhiệt độ tủ cao; lắp sát tường thiếu khe thoát nhiệt.', 'Vệ sinh tản nhiệt và lưới gió, thay quạt. Kiểm tra quạt hút tủ và nhiệt độ trong tủ.'],
+  ['BT', 'FR', 'E.IPF', 'Mất điện tức thời', '瞬时停电', 'Lưới chớp mất điện; tiếp điểm contactor đầu vào rỗ; sụt áp do khởi động tải lớn gần đó.', 'Kiểm tra nguồn vào và các đầu cốt R/S/T. Bật chức năng chạy tiếp khi mất điện ngắn (Pr.57) nếu quy trình cho phép.'],
+  ['BT', 'FR', 'E.UVT', 'Thấp áp', '欠电压', 'Điện áp lưới tụt; mất pha đầu vào; contactor hoặc cầu chì đầu vào tiếp xúc kém.', 'Đo điện áp ba pha đầu vào lúc đang tải. Siết lại đầu cốt, kiểm tra cầu chì và contactor.'],
+  ['BT', 'FR', 'E.ILF', 'Mất pha đầu vào', '输入缺相', 'Đứt một pha nguồn; cầu chì một pha đứt; đầu cốt lỏng.', 'Đo điện áp từng pha R/S/T. Kiểm tra cầu chì, aptomat và đầu cốt.'],
+  ['BT', 'FR', 'E.LF', 'Mất pha đầu ra', '输出缺相', 'Đứt một pha cáp ra motor; đầu cốt motor lỏng; cuộn dây motor đứt.', 'Đo thông mạch ba pha ra motor và điện trở ba cuộn dây xem có cân nhau không.'],
+  ['BT', 'FR', 'E.GF', 'Chạm đất đầu ra', '输出侧接地故障', 'Cáp ra motor chạm vỏ; motor ẩm hoặc cháy cách điện.', 'Tháo cáp ra, đo cách điện (megaohm) riêng cáp và riêng motor để khoanh vùng. Sấy hoặc thay motor nếu cách điện thấp.'],
+  ['BT', 'FR', 'E.OLT', 'Dừng do chống kẹt (stall prevention)', '失速防止停止', 'Tải quá nặng kéo dài, biến tần giữ dòng ở mức chống kẹt rồi ngắt.', 'Giảm tải, kiểm tra cơ khí. Xem lại mức chống kẹt Pr.22 và thời gian tăng/giảm tốc.'],
+  ['BT', 'FR', 'E.OHT', 'Rơle nhiệt ngoài tác động', '外部热继电器动作', 'Rơle nhiệt của motor nhảy; đấu dây chân OH bị hở.', 'Kiểm tra rơle nhiệt và dòng motor. Nếu không dùng chân OH thì phải đấu tắt theo hướng dẫn.'],
+  ['BT', 'FR', 'E.PTC', 'Nhiệt điện trở PTC tác động', 'PTC热敏电阻动作', 'Motor quá nhiệt; cảm biến PTC đứt hoặc đấu sai.', 'Đo nhiệt độ motor và thông mạch PTC. Kiểm tra quạt làm mát của motor.'],
+  ['BT', 'FR', 'E.BE', 'Lỗi transistor hãm', '制动晶体管异常', 'Transistor hãm hỏng do hãm liên tục; điện trở hãm sai trị số hoặc chập.', 'Cắt nguồn, đo điện trở hãm. Hỏng transistor hãm thì phải sửa hoặc thay biến tần.'],
+  ['BT', 'FR', 'E.PE', 'Lỗi bộ nhớ thông số', '参数存储异常', 'EEPROM hỏng do ghi thông số quá nhiều lần hoặc mất điện lúc đang ghi.', 'Thử reset về mặc định rồi nạp lại thông số. Vẫn báo lỗi thì thay bo điều khiển.'],
+  ['BT', 'FR', 'E.PUE', 'Mất kết nối bàn phím (PU)', '操作面板脱落', 'Bàn phím tháo ra khi Pr.75 đang đặt chặn; cáp PU lỏng.', 'Cắm lại bàn phím, kiểm tra cáp. Xem lại Pr.75 nếu cần tháo bàn phím khi chạy.'],
+  ['BT', 'FR', 'E.RET', 'Vượt số lần chạy lại', '重试次数超限', 'Lỗi gốc lặp lại nhiều lần, biến tần thử chạy lại hết số lần cho phép.', 'Xem lịch sử lỗi trong biến tần để tìm lỗi gốc rồi xử lý lỗi đó, đừng chỉ tăng số lần chạy lại.'],
+  ['BT', 'FR', 'E.CPU', 'Lỗi CPU', 'CPU异常', 'Nhiễu từ thiết bị khác; bo điều khiển hỏng.', 'Kiểm tra tiếp đất và chống nhiễu, tách cáp động lực khỏi cáp tín hiệu. Vẫn lỗi thì thay bo.'],
+  ['BT', 'FR', 'E.OPT', 'Lỗi card mở rộng', '选件异常', 'Card truyền thông hoặc card mở rộng cắm lỏng, hỏng, đặt sai thông số.', 'Cắt nguồn, cắm lại card. Kiểm tra thông số truyền thông và cáp mạng.'],
+  ['BT', 'FR', 'E.AIE', 'Lỗi đầu vào analog', '模拟量输入异常', 'Đặt đầu vào dòng/áp sai so với công tắc gạt; tín hiệu vượt dải.', 'Kiểm tra công tắc chọn V/I và thông số tương ứng; đo tín hiệu đưa vào.'],
+  ['BT', 'FR', 'E.SAF', 'Lỗi mạch an toàn', '安全回路异常', 'Chân an toàn S1/S2 hở; dây nối tắt an toàn bị tháo.', 'Kiểm tra mạch dừng khẩn và đấu nối chân an toàn theo sơ đồ.'],
+  ['BT', 'FR', 'OL', 'Cảnh báo chống kẹt quá dòng', '过电流失速防止中', 'Biến tần đang giữ dòng để chống kẹt — chưa ngắt nhưng sắp ngắt.', 'Giảm tải hoặc kéo dài thời gian tăng tốc trước khi thành E.OLT.'],
+  ['BT', 'FR', 'oL', 'Cảnh báo chống kẹt quá áp', '过电压失速防止中', 'Đang giảm tốc, áp DC bus dâng cao, biến tần tự kéo dài giảm tốc.', 'Kéo dài thời gian giảm tốc hoặc lắp điện trở hãm.'],
+  ['BT', 'FR', 'TH', 'Cảnh báo trước quá tải nhiệt', '热过载预报警', 'Đã đạt ngưỡng cảnh báo của rơle nhiệt điện tử, sắp thành E.THM / E.THT.', 'Giảm tải ngay, kiểm tra quạt motor và dòng thực tế.'],
+  ['BT', 'FR', 'RB', 'Cảnh báo điện trở hãm làm việc nhiều', '制动电阻预报警', 'Tỉ lệ thời gian hãm vượt mức cho phép của điện trở.', 'Giảm số lần dừng gấp, hoặc lắp điện trở hãm lớn hơn.'],
+  ['BT', 'FR', 'FN', 'Lỗi quạt làm mát', '风扇异常', 'Quạt kẹt bụi, hỏng, hoặc tốc độ giảm.', 'Vệ sinh hoặc thay quạt. Kiểm tra lưới lọc gió tủ điện.'],
+  ['BT', 'FR', 'PS', 'Dừng từ bàn phím', '操作面板停止', 'Người vận hành bấm STOP trên bàn phím khi đang chạy chế độ ngoài.', 'Reset lỗi rồi chạy lại từ đúng nguồn lệnh; xem Pr.75.'],
+  ['BT', 'FR', 'E.P24', 'Chập nguồn 24V ra', '24V输出短路', 'Chân 24V ra bị chạm; cảm biến đấu vào bị chập.', 'Tháo lần lượt các dây 24V để tìm điểm chạm.'],
+  ['BT', 'FR', 'E.CTE', 'Chập nguồn cổng PU', 'PU接口电源短路', 'Cáp truyền thông PU chạm hoặc sai chân.', 'Rút cáp PU, kiểm tra cáp và cổng; dùng đúng cáp của hãng.'],
+  ['BT', 'FR', 'Err', 'Lỗi thao tác / ghi thông số', '操作或参数写入错误', 'Ghi thông số khi đang chạy; thông số bị khoá; nhập trị số ngoài dải.', 'Dừng biến tần rồi ghi lại. Kiểm tra Pr.77 (khoá ghi thông số) và dải cho phép.'],
+  ['BT', 'FR', 'HOLD', 'Bàn phím đang khoá', '操作面板锁定', 'Chức năng khoá phím đang bật.', 'Giữ phím MODE khoảng 2 giây để mở khoá.'],
+  ['BT', 'FR', 'LOCd', 'Đang khoá bằng mật khẩu', '密码锁定中', 'Đã đặt mật khẩu ở Pr.297.', 'Nhập đúng mật khẩu ở Pr.296. Mất mật khẩu thì phải reset toàn bộ thông số.'],
+  // ----- Servo / driver Mitsubishi MR-J4 · MR-JE -----
+  ['SV', 'MR-J4', 'AL.10', 'Thấp áp', '欠电压', 'Điện áp nguồn tụt; mất pha; contactor đầu vào tiếp xúc kém.', 'Đo điện áp nguồn lúc đang tải, siết lại đầu cốt L1/L2/L3, kiểm tra cầu chì.'],
+  ['SV', 'MR-J4', 'AL.12', 'Lỗi bộ nhớ 1 (RAM)', '存储器异常1', 'Bo điều khiển hỏng; nhiễu mạnh.', 'Cắt nguồn và bật lại. Lặp lại thì thay bộ khuếch đại servo.'],
+  ['SV', 'MR-J4', 'AL.13', 'Lỗi đồng hồ', '时钟异常', 'Lỗi mạch định thời trên bo điều khiển.', 'Thử tắt bật nguồn; lặp lại thì thay bộ khuếch đại servo.'],
+  ['SV', 'MR-J4', 'AL.15', 'Lỗi bộ nhớ 2 (EEP-ROM)', '存储器异常2', 'EEPROM hỏng do ghi thông số quá nhiều lần hoặc mất điện lúc ghi.', 'Nạp lại thông số; vẫn lỗi thì thay bộ khuếch đại.'],
+  ['SV', 'MR-J4', 'AL.16', 'Lỗi truyền thông encoder lần đầu', '编码器初始通信异常1', 'Cáp encoder đứt, lỏng, cắm sai; encoder hỏng; nhiễu.', 'Cắm lại và đo thông mạch cáp encoder. Thử cáp khác. Tách cáp encoder khỏi cáp động lực.'],
+  ['SV', 'MR-J4', 'AL.17', 'Lỗi bo mạch', '电路板异常', 'Hỏng phần cứng bộ khuếch đại.', 'Thay bộ khuếch đại servo.'],
+  ['SV', 'MR-J4', 'AL.1A', 'Sai tổ hợp động cơ', '伺服电机组合错误', 'Lắp motor không đúng mã với bộ khuếch đại; thông số motor sai.', 'Đối chiếu mã motor và mã amplifier theo catalogue; đặt lại thông số cho đúng cặp.'],
+  ['SV', 'MR-J4', 'AL.20', 'Lỗi truyền thông encoder khi chạy', '编码器通信异常1', 'Cáp encoder chập chờn, đầu nối ẩm; nhiễu; encoder hỏng.', 'Kiểm tra đầu nối và gioăng chống ẩm, đi lại cáp xa cáp động lực, đo thông mạch.'],
+  ['SV', 'MR-J4', 'AL.24', 'Lỗi mạch chính (chạm đất)', '主回路异常（接地）', 'Cáp động lực ra motor chạm vỏ; motor cháy cách điện.', 'Cắt nguồn, chờ đèn CHARGE tắt. Tháo cáp U/V/W, đo cách điện riêng cáp và riêng motor.'],
+  ['SV', 'MR-J4', 'AL.25', 'Mất vị trí tuyệt đối', '绝对位置丢失', 'Pin encoder hết hoặc cáp pin tháo ra khi mất nguồn.', 'Thay pin, sau đó phải chạy lại gốc (home) và đặt lại vị trí tuyệt đối.'],
+  ['SV', 'MR-J4', 'AL.30', 'Lỗi hãm tái sinh', '回生异常', 'Hãm quá nhiều; điện trở hãm sai trị số, đứt hoặc chưa đấu; thông số điện trở hãm sai.', 'Đo điện trở hãm, kiểm tra đấu nối P/C. Đặt đúng thông số loại điện trở hãm. Giảm số lần dừng gấp.'],
+  ['SV', 'MR-J4', 'AL.31', 'Vượt tốc', '超速', 'Lệnh tốc độ vượt mức; chỉnh gain quá cao gây vọt lố; encoder sai tín hiệu.', 'Giảm lệnh tốc độ, chỉnh lại gain (auto tuning), kiểm tra encoder và tỉ số truyền.'],
+  ['SV', 'MR-J4', 'AL.32', 'Quá dòng', '过电流', 'Ngắn mạch đầu ra U/V/W; motor kẹt cơ khí; gain quá cao; IGBT hỏng.', 'Cắt nguồn, đo thông mạch và cách điện cáp ra. Quay tay trục xem có kẹt. Giảm gain rồi thử lại không tải.'],
+  ['SV', 'MR-J4', 'AL.33', 'Quá áp', '过电压', 'Điện áp lưới cao; thiếu điện trở hãm khi tải quán tính lớn; điện trở hãm đứt.', 'Đo điện áp lưới. Lắp hoặc thay điện trở hãm đúng trị số, kiểm tra đấu nối P/C.'],
+  ['SV', 'MR-J4', 'AL.34', 'Lỗi nhận dữ liệu SSCNET', 'SSCNET接收异常', 'Cáp quang SSCNET bẩn, gãy, cắm lỏng; nhiễu.', 'Lau đầu cáp quang bằng khăn chuyên dụng, cắm lại chắc, thay cáp nếu gãy gập.'],
+  ['SV', 'MR-J4', 'AL.35', 'Lỗi tần số xung lệnh', '指令频率异常', 'Tần số xung từ PLC vượt mức cho phép; nhiễu trên dây xung.', 'Giảm tần số xung hoặc đổi tỉ lệ điện tử. Dùng cáp xoắn có chống nhiễu, nối đất vỏ cáp.'],
+  ['SV', 'MR-J4', 'AL.37', 'Lỗi thông số', '参数异常', 'Thông số đặt ngoài dải hoặc mâu thuẫn nhau; EEPROM lỗi.', 'Xem số thông số báo kèm, đặt lại cho đúng dải. Cần thì reset về mặc định rồi nạp lại.'],
+  ['SV', 'MR-J4', 'AL.42', 'Lỗi điều khiển servo', '伺服控制异常', 'Sai lệch giữa lệnh và phản hồi quá lớn; đấu sai pha U/V/W; encoder lệch.', 'Kiểm tra thứ tự pha U/V/W, cáp encoder, và tải cơ khí có bị kẹt không.'],
+  ['SV', 'MR-J4', 'AL.45', 'Quá nhiệt linh kiện mạch chính', '主回路器件过热', 'Quạt hỏng, tản nhiệt bám bụi, nhiệt độ tủ cao, chu kỳ làm việc nặng.', 'Vệ sinh tản nhiệt, thay quạt, kiểm tra quạt hút tủ và khoảng cách lắp đặt.'],
+  ['SV', 'MR-J4', 'AL.46', 'Quá nhiệt động cơ servo', '伺服电机过热', 'Motor chạy quá tải lâu; môi trường nóng; cảm biến nhiệt trong motor lỗi.', 'Đo nhiệt độ vỏ motor, giảm tải hoặc tăng thời gian chu kỳ. Kiểm tra cáp encoder (mang tín hiệu nhiệt).'],
+  ['SV', 'MR-J4', 'AL.47', 'Lỗi quạt làm mát', '冷却风扇异常', 'Quạt kẹt, bám bụi hoặc hỏng.', 'Vệ sinh hoặc thay quạt của bộ khuếch đại.'],
+  ['SV', 'MR-J4', 'AL.50', 'Quá tải 1', '过载1', 'Chạy quá mô-men định mức kéo dài; kẹt cơ khí; phanh chưa nhả; gain thấp.', 'Quay tay trục kiểm tra kẹt, kiểm tra phanh điện từ đã nhả chưa, giảm tải hoặc chỉnh gain.'],
+  ['SV', 'MR-J4', 'AL.51', 'Quá tải 2 (dòng đỉnh kéo dài)', '过载2', 'Motor bị chặn cứng; đấu sai pha U/V/W; encoder sai.', 'Kiểm tra cơ khí có vật cản, đối chiếu lại thứ tự pha và cáp encoder.'],
+  ['SV', 'MR-J4', 'AL.52', 'Sai lệch vị trí quá lớn', '误差过大', 'Tải nặng hoặc kẹt; gain quá thấp; thời gian tăng tốc quá ngắn; phanh chưa nhả.', 'Kiểm tra cơ khí và phanh, tăng gain, kéo dài thời gian tăng tốc, kiểm tra giới hạn mô-men.'],
+  ['SV', 'MR-J4', 'AL.56', 'Lỗi dừng khẩn cấp', '强制停止异常', 'Mạch dừng khẩn hở trong lúc đang chạy; đấu chân EM2/EM1 sai.', 'Kiểm tra nút dừng khẩn, rơle an toàn và đấu nối chân dừng khẩn.'],
+  ['SV', 'MR-J4', 'AL.63', 'Lỗi thời gian STO', 'STO时序异常', 'Hai kênh tín hiệu STO lệch nhau quá lâu; dây một kênh hở.', 'Kiểm tra cả hai kênh STO và rơle an toàn, đo thời gian đóng cắt.'],
+  ['SV', 'MR-J4', 'AL.8A', 'Hết thời gian chờ truyền thông nối tiếp', '串行通信超时', 'Chủ (PLC/PC) ngừng gửi lệnh; cáp truyền thông lỏng.', 'Kiểm tra cáp và chương trình phía chủ, đối chiếu thông số truyền thông hai đầu.'],
+  ['SV', 'MR-J4', 'AL.8E', 'Lỗi truyền thông nối tiếp', '串行通信异常', 'Sai tốc độ baud, nhiễu, cáp hỏng.', 'Đặt lại thông số truyền thông, dùng cáp có chống nhiễu, nối đất vỏ cáp.'],
+  ['SV', 'MR-J4', 'AL.888', 'Lỗi watchdog', '看门狗异常', 'CPU bộ khuếch đại treo; nhiễu mạnh.', 'Tắt bật nguồn. Lặp lại thì kiểm tra tiếp đất, chống nhiễu, rồi thay bộ khuếch đại.'],
+  ['SV', 'MR-J4', 'AL.90', 'Cảnh báo chưa về gốc', '原点未完成警告', 'Chưa chạy về gốc sau khi cấp nguồn hoặc sau khi mất vị trí tuyệt đối.', 'Chạy lệnh về gốc (home) trước khi chạy tự động.'],
+  ['SV', 'MR-J4', 'AL.91', 'Cảnh báo quá nhiệt bộ khuếch đại', '伺服放大器过热警告', 'Sắp đạt ngưỡng AL.45 — tản nhiệt kém hoặc tủ nóng.', 'Vệ sinh tản nhiệt, kiểm tra quạt tủ trước khi thành lỗi dừng máy.'],
+  ['SV', 'MR-J4', 'AL.92', 'Cảnh báo đứt cáp pin', '电池电缆断线警告', 'Pin encoder tháo ra, cáp pin lỏng hoặc pin yếu.', 'Kiểm tra cáp pin và thay pin khi máy vẫn có nguồn, để không mất vị trí tuyệt đối.'],
+  ['SV', 'MR-J4', 'AL.9F', 'Cảnh báo pin yếu', '电池电压低警告', 'Pin giữ vị trí tuyệt đối sắp hết.', 'Thay pin ngay khi bộ khuếch đại đang có nguồn; thay lúc mất nguồn sẽ mất vị trí (AL.25).'],
+  ['SV', 'MR-J4', 'AL.E0', 'Cảnh báo hãm tái sinh nhiều', '回生过多警告', 'Điện trở hãm làm việc gần mức cho phép.', 'Giảm số lần dừng gấp hoặc lắp điện trở hãm lớn hơn trước khi thành AL.30.'],
+  ['SV', 'MR-J4', 'AL.E1', 'Cảnh báo quá tải 1', '过载警告1', 'Mô-men đang gần ngưỡng quá tải.', 'Giảm tải hoặc kiểm tra cơ khí trước khi thành AL.50.'],
+  ['SV', 'MR-J4', 'AL.E6', 'Cảnh báo dừng khẩn servo', '伺服强制停止警告', 'Chân dừng khẩn EM2/EM1 đang hở.', 'Nhả nút dừng khẩn và kiểm tra mạch an toàn.'],
+  ['SV', 'MR-J4', 'AL.E9', 'Cảnh báo chưa đóng mạch chính', '主回路未接通警告', 'Chưa cấp nguồn động lực L1/L2/L3 trong khi nguồn điều khiển đã có.', 'Kiểm tra contactor nguồn động lực và mạch điều khiển contactor đó.'],
+  ['SV', 'MR-J4', 'AL.EC', 'Cảnh báo quá tải 2', '过载警告2', 'Dòng đỉnh lặp lại nhiều lần trong thời gian ngắn.', 'Giảm tần suất tăng/giảm tốc, kiểm tra tải quán tính.']
+].map(([hang, dong, ma, vi, zh, nn, xl]) => ({ hang, dong, ma, vi, zh, nn, xl }));
+const mlDS = () => (S.base.maLoi || []).filter((x) => x.hoatDong);
+const mlChuan = (v) => String(v || '').toUpperCase().replace(/[\s.\-_]/g, '');
+// Những lần đã gặp mã lỗi này trong sổ sửa chữa / công việc của nhà máy
+function ttLoiDaGap(ma) {
+  const k = mlChuan(ma);
+  if (k.length < 3) return [];
+  return (S.V.cvAll || []).filter((x) => [x.tieuDe, x.moTa, x.nguyenNhan, x.ketQua].some((v) => mlChuan(v).indexOf(k) >= 0))
+    .sort((a, b) => String(b.lucTao).localeCompare(String(a.lucTao))).slice(0, 5);
+}
+function ttLoiTim(q, loc) {
+  const k = String(q || '').trim().toLowerCase(), kc = mlChuan(q);
+  const sanBuilt = TT_LOI.filter((x) => (loc === 'all' || (loc === 'bt' && x.hang === 'BT') || (loc === 'sv' && x.hang === 'SV')));
+  const built = loc === 'nm' ? [] : sanBuilt.filter((x) => !k || mlChuan(x.ma).indexOf(kc) >= 0
+    || [x.vi, x.zh, x.nn, x.xl].some((v) => String(v).toLowerCase().indexOf(k) >= 0));
+  const nm = mlDS().filter((x) => (loc === 'all' || loc === 'nm' || (loc === 'bt' && x.hang === 'BT') || (loc === 'sv' && x.hang === 'SV')))
+    .filter((x) => !k || mlChuan(x.ma).indexOf(kc) >= 0 || [x.tenLoi, x.tenLoiDich, x.cachXuLy].some((v) => String(v || '').toLowerCase().indexOf(k) >= 0));
+  return { built, nm };
+}
+function ttLoiCard(x) {
+  const nm = mlDS().filter((n) => mlChuan(n.ma) === mlChuan(x.ma));
+  const gap = ttLoiDaGap(x.ma);
+  return `<div class="card pad" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <b class="mono" style="font-size:17px">${esc(x.ma)}</b>
+      <span class="pill p-cho">${x.hang === 'BT' ? t('ttLoi_bt') : t('ttLoi_sv')}</span></div>
+    <div style="margin-top:4px"><b>${esc(x.vi)}</b> <span class="zi" lang="zh-CN">${esc(x.zh)}</span></div>
+    <dl class="kv kvwide" style="margin-top:8px"><dt>${t('ttLoiNguyenNhan')}</dt><dd>${esc(x.nn)}</dd>
+      <dt>${t('ttLoiXuLy')}</dt><dd>${esc(x.xl)}</dd></dl>
+    ${nm.length ? `<div class="note" style="margin-top:10px"><b>${t('ttLoiNhaMay')}</b>${nm.map((n) => `<div style="margin-top:4px">${svH(n.cachXuLy, n.cachXuLyDich)}
+      <button class="lnkbtn" data-act="mlSua" data-id="${esc(n.id)}">${IC.edit}</button></div>`).join('')}</div>` : ''}
+    ${gap.length ? `<div class="help" style="margin-top:8px"><b>${t('ttLoiDaGap')}</b> — ${t('ttLoiDaGapN', { n: gap.length })}
+      ${gap.map((c) => `<div><button class="lnkbtn" data-act="cvView" data-id="${esc(c.id)}">#${c.so} ${esc(c.tieuDe)}${c.ma ? ' · ' + esc(mh(c.ma)) : ''}</button></div>`).join('')}</div>` : ''}
+    <div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="mlThem" data-ma="${esc(x.ma)}" data-hang="${esc(x.hang)}">${IC.plus} ${t('ttLoiThem')}</button></div></div>`;
+}
+function ttLoiNmCard(n) {
+  const gap = ttLoiDaGap(n.ma);
+  return `<div class="card pad" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <b class="mono" style="font-size:17px">${esc(n.ma)}</b>
+      <span class="pill p-ok">${t('ttLoi_nm')}</span>${n.dong ? `<span class="code">${esc(n.dong)}</span>` : ''}</div>
+    ${n.tenLoi ? `<div style="margin-top:4px"><b>${svH(n.tenLoi, n.tenLoiDich)}</b></div>` : ''}
+    <dl class="kv kvwide" style="margin-top:8px"><dt>${t('ttLoiXuLy')}</dt><dd>${svH(n.cachXuLy, n.cachXuLyDich)}</dd></dl>
+    ${gap.length ? `<div class="help" style="margin-top:8px"><b>${t('ttLoiDaGap')}</b> — ${t('ttLoiDaGapN', { n: gap.length })}</div>` : ''}
+    <div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="mlSua" data-id="${esc(n.id)}">${IC.edit} ${t('cvSua')}</button></div></div>`;
+}
+function ttLoiBody(p) {
+  const r = ttLoiTim(p.loi.q, p.loi.loc);
+  const rieng = r.nm.filter((n) => !r.built.some((b) => mlChuan(b.ma) === mlChuan(n.ma)));
+  if (!r.built.length && !rieng.length) {
+    return `<div class="card empty">${p.loi.q ? t('ttLoiKhong') : t('ttLoiGoiY')}</div>
+      <button class="btn ghost" style="margin-top:10px" data-act="mlThem" data-ma="${esc(p.loi.q || '')}">${IC.plus} ${t('ttLoiThem')}</button>`;
+  }
+  return rieng.map(ttLoiNmCard).join('') + r.built.map(ttLoiCard).join('');
+}
+
+const TT_SEG = [['dc', 'tt_dc'], ['day', 'tt_day'], ['tu', 'tt_tu'], ['su', 'tt_su'], ['loi', 'tt_loi']];
 VIEWS.tt = {
   html(p) {
     if (!p.init) Object.assign(p, { init: 1, seg: 'dc',
       dc: { kw: '7.5', u: '380', pha: '3', cos: '0.85', eta: '88', k: '6', kd: 'DOL' },
       day: { i: '', l: '50', u: '380', pha: '3', cos: '0.85', vl: 'CU', cd: 'PVC', di: 'B2', nd: '35', mach: '1', du: '5', icp: '' },
       tu: { kw: '100', cos1: '0.78', cos2: '0.95' },
-      su: { i: '50', l: '80', s: '25', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' } });
+      su: { i: '50', l: '80', s: '25', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' },
+      loi: { q: '', loc: 'all' } });
     const f = (id, k, lb, extra) => `<label class="fld"><span>${t(lb)}</span><input class="inp" id="${id}" inputmode="decimal" maxlength="9" value="${esc(p[p.seg][k])}"${extra || ''}></label>`;
     const seg = (k, lb, ds, cur) => `<div class="fld"><span>${t(lb)}</span><div class="seg">${ds.map(([v, n]) => `<button type="button" class="${cur === v ? 'on' : ''}" data-act="ttSet" data-k="${k}" data-v="${v}">${tv(n)} ${tz(n)}</button>`).join('')}</div></div>`;
-    let o = `<div class="seg" style="margin-bottom:12px">${TT_SEG.map(([v, k]) => `<button type="button" class="${p.seg === v ? 'on' : ''}" data-act="ttSeg" data-v="${v}">${tv(k)} ${tz(k)}</button>`).join('')}</div>
-      <div class="note" style="margin-bottom:12px">${t('ttCanhBao')}</div><form id="ttF" class="card pad" autocomplete="off">`;
+    let o = `<div class="hscroll stchips" style="margin-bottom:12px">${TT_SEG.map(([v, k]) => `<button type="button" class="chip${p.seg === v ? ' on' : ''}" data-act="ttSeg" data-v="${v}">${tv(k)} ${tz(k)}</button>`).join('')}</div>`;
+    if (p.seg === 'loi') {
+      if (srvOld('maloi')) return o + srvWarn('maloi');
+      return o + `<div class="note" style="margin-bottom:12px">${t('ttLoiCanh')}</div>
+        <div class="tools"><div class="searchbox">${IC.search}<input class="inp" id="ttLoiQ" type="search" value="${esc(p.loi.q)}" placeholder="${esc(tp('ttLoiPh'))}" autocomplete="off"></div>
+        <div class="hscroll stchips">${[['all', 'ttLoi_all'], ['bt', 'ttLoi_bt'], ['sv', 'ttLoi_sv'], ['nm', 'ttLoi_nm']].map(([v, k]) => `<button class="chip${p.loi.loc === v ? ' on' : ''}" data-act="ttLoiLoc" data-v="${v}">${t(k)}</button>`).join('')}</div></div>
+        <div id="ttLoiBody" style="margin-top:12px">${ttLoiBody(p)}</div>
+        <div class="help" style="margin-top:10px">${t('ttLoiNguon')}</div>`;
+    }
+    o += `<div class="note" style="margin-bottom:12px">${t('ttCanhBao')}</div><form id="ttF" class="card pad" autocomplete="off">`;
     const d = p[p.seg];
     if (p.seg === 'dc') {
       o += f('ttKw', 'kw', 'ttCS') + seg('pha', 'ttPha', [['3', 'ttPha3'], ['1', 'ttPha1']], d.pha)
@@ -10468,6 +10640,11 @@ VIEWS.tt = {
     return o;
   },
   after(p) {
+    const q = $('#ttLoiQ');
+    if (q) {
+      q.addEventListener('input', () => { p.loi.q = q.value; $('#ttLoiBody').innerHTML = ttLoiBody(p); });
+      return;
+    }
     const f = $('#ttF'); if (!f) return;
     const sync = () => {
       $$('#ttF .inp').forEach((el) => {
@@ -10516,8 +10693,70 @@ Object.assign(TX, { tt_pvc: ['PVC (70 °C)', 'PVC (70 °C)'], tt_xlpe: ['XLPE (9
 Object.assign(ACT, {
   ttSeg: (el) => { topV().p.seg = el.dataset.v; render(); },
   ttSet: (el) => { const p = topV().p; p[p.seg][el.dataset.k] = el.dataset.v; render(); },
-  ttLayDC: () => { const p = topV().p, r = ttDongCo(p.dc); if (r) { p.day.i = String(Math.round(r.I * 10) / 10); p.day.u = p.dc.u; p.day.pha = p.dc.pha; p.day.cos = p.dc.cos; render(); } }
+  ttLayDC: () => { const p = topV().p, r = ttDongCo(p.dc); if (r) { p.day.i = String(Math.round(r.I * 10) / 10); p.day.u = p.dc.u; p.day.pha = p.dc.pha; p.day.cos = p.dc.cos; render(); } },
+  ttLoiLoc: (el) => { topV().p.loi.loc = el.dataset.v; render(); },
+  mlThem: (el) => go('ttLoiEdit', { ma: el.dataset.ma || '', hang: el.dataset.hang || 'BT' }),
+  mlSua: (el) => go('ttLoiEdit', { id: el.dataset.id }),
+  mlXoaHoi: (el) => openSheet(`<div class="grab"></div><h3>${tv('mlXoa')}<span class="zi">${tz('mlXoa')}</span></h3>
+    <p class="help">${t('mlXoaHoi')}</p><div class="err" id="mlxErr" hidden></div>
+    <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="mlXoaGo" data-id="${esc(el.dataset.id)}">${t('mlXoa')}</button></div>`),
+  mlXoaGo: async (el) => {
+    el.disabled = true;
+    try {
+      const d = await api('deleteFault', { id: el.dataset.id });
+      mlApDung(d); closeSheet(); toast(t('scDaXoa'));
+      S.stack = S.stack.filter((v) => v.v !== 'ttLoiEdit');
+      render();
+    } catch (e) { el.disabled = false; const fe = $('#mlxErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  }
 });
+function mlApDung(d) {
+  if (!d || !d.maLoi) return;
+  const L = S.base.maLoi = S.base.maLoi || [], i = L.findIndex((x) => x.id === d.maLoi.id);
+  if (i >= 0) L[i] = d.maLoi; else L.push(d.maLoi);
+  saveSnap();
+}
+VIEWS.ttLoiEdit = {
+  html(p) {
+    if (!p.init) {
+      const x = p.id ? (S.base.maLoi || []).find((v) => v.id === p.id) : null;
+      Object.assign(p, x
+        ? { init: 1, hang: x.hang, dong: x.dong || '', ma: x.ma, ten: x.tenLoi || '', tenD: x.tenLoiDich || '', tenGoc: x.tenLoiDich || '',
+          xl: x.cachXuLy || '', xlD: x.cachXuLyDich || '', xlGoc: x.cachXuLyDich || '' }
+        : { init: 1, hang: p.hang || 'BT', dong: '', ma: String(p.ma || '').toUpperCase(), ten: '', tenD: '', tenGoc: null, xl: '', xlD: '', xlGoc: null });
+    }
+    return `<form id="mlF" autocomplete="off">
+      <div class="fld"><span>${t('mlHang')}</span><div class="seg">${[['BT', 'mlHangBT'], ['SV', 'mlHangSV'], ['KHAC', 'mlHangKhac']].map(([k, lb]) => `<button type="button" class="${p.hang === k ? 'on' : ''}" data-act="mlSet" data-k="hang" data-v="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div></div>
+      <div class="row2f"><label class="fld"><span>${t('mlMa')}</span><input class="inp mono" id="mlMa" maxlength="40" value="${esc(p.ma)}"></label>
+        <label class="fld"><span>${t('mlDong')}</span><input class="inp" id="mlDong" maxlength="60" value="${esc(p.dong)}" placeholder="${esc(tp('mlDongPh'))}"></label></div>
+      <label class="fld"><span>${t('mlTen')}</span><input class="inp" id="mlTen" maxlength="150" value="${esc(p.ten)}">${p.tenGoc === null ? `<span class="help">${t('cvTuDich')}</span>` : ''}</label>
+      ${p.tenGoc !== null ? `<label class="fld dichfld"><span>${t('cvBanDich')}</span><input class="inp" id="mlTenD" maxlength="300" value="${esc(p.tenD)}"></label>` : ''}
+      <label class="fld"><span>${t('mlXuLy')}</span><textarea class="inp" id="mlXl" rows="4" maxlength="1000">${esc(p.xl)}</textarea></label>
+      ${p.xlGoc !== null ? `<label class="fld dichfld"><span>${t('cvBanDich')}</span><textarea class="inp" id="mlXlD" rows="3" maxlength="2000">${esc(p.xlD)}</textarea></label>` : ''}
+      <div class="err" id="mlErr" hidden></div>
+      <div class="btns" style="margin-top:16px"><button type="submit" class="btn bigbtn" id="mlOk">${IC.check} ${t('mlLuu')}</button>
+        ${p.id ? `<button type="button" class="btn ghost" data-act="mlXoaHoi" data-id="${esc(p.id)}">${t('mlXoa')}</button>` : ''}</div></form>`;
+  },
+  after(p) {
+    const f = $('#mlF'); if (!f) return;
+    const sync = () => {
+      p.ma = $('#mlMa').value; p.dong = $('#mlDong').value; p.ten = $('#mlTen').value; p.xl = $('#mlXl').value;
+      if ($('#mlTenD')) p.tenD = $('#mlTenD').value;
+      if ($('#mlXlD')) p.xlD = $('#mlXlD').value;
+    };
+    f.addEventListener('input', sync); f.addEventListener('change', sync);
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault(); sync();
+      const fe = $('#mlErr'), b = $('#mlOk'); fe.hidden = true; b.disabled = true;
+      const pl = { id: p.id || '', hang: p.hang, dong: p.dong.trim(), ma: p.ma.trim(), tenLoi: p.ten.trim(), cachXuLy: p.xl.trim() };
+      if (p.tenGoc !== null && p.tenD !== p.tenGoc) pl.tenLoiDich = p.tenD.trim();
+      if (p.xlGoc !== null && p.xlD !== p.xlGoc) pl.cachXuLyDich = p.xlD.trim();
+      try { const d = await api('saveFault', pl); mlApDung(d); toast(t('scDaLuu')); back(); }
+      catch (er) { b.disabled = false; fe.innerHTML = er.code === 'MANG' ? t('needNet') : errMsg(er); fe.hidden = false; }
+    });
+  }
+};
+Object.assign(ACT, { mlSet: (el) => { topV().p[el.dataset.k] = el.dataset.v; render(); } });
 
 // ===================== Lịch trực · 值班表 =====================
 // Hai phần tách riêng: LỊCH TRỰC TUẦN (17:00–19:30, người trong app, mỗi người một nội dung trực riêng)

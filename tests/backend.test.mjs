@@ -1578,6 +1578,37 @@ test('kiểm định thiết bị: sổ riêng, ghi từng lần kiểm định,
   assert.equal(ds.find((r) => r.id === y.id).hoatDong, false);
 });
 
+test('ghi chú mã lỗi của nhà máy: chỉ Quản lý ghi, mã lỗi và cách xử lý tự dịch sang tiếng Trung', () => {
+  const b = setupSC();
+  err(b.call('saveFault', { ma: 'E.OC1', cachXuLy: 'x' }, b.kt), 'KHONG_QUYEN');
+  assert.deepEqual(ok(b.call('data', {}, b.kt)).maLoi, [], 'kỹ thuật không nhận ghi chú mã lỗi');
+
+  err(b.call('saveFault', { ma: '', cachXuLy: 'Vệ sinh quạt' }, b.ql), 'ML_THIEU_MA');
+  err(b.call('saveFault', { ma: 'E.FIN', cachXuLy: '  ' }, b.ql), 'CAN_KET_QUA');
+
+  const x = ok(b.call('saveFault', { hang: 'BT', dong: 'FR-E740', ma: 'e.fin',
+    tenLoi: 'Quá nhiệt tản nhiệt', cachXuLy: 'Lần trước do quạt tủ hỏng, thay quạt là hết' }, b.ql)).maLoi;
+  assert.equal(x.ma, 'E.FIN', 'mã lỗi lưu chữ hoa');
+  assert.equal(x.hang, 'BT');
+  assert.ok(x.cachXuLyDich, 'cách xử lý được dịch sang tiếng Trung');
+  assert.ok(x.tenLoiDich);
+
+  // Hãng lạ thì về KHAC
+  const y = ok(b.call('saveFault', { hang: 'XX', ma: 'ER-9', cachXuLy: 'Khởi động lại máy' }, b.ql)).maLoi;
+  assert.equal(y.hang, 'KHAC');
+
+  // Sửa tay bản dịch rồi thì không dịch đè
+  const z = ok(b.call('saveFault', { id: x.id, hang: 'BT', ma: 'E.FIN', tenLoi: x.tenLoi,
+    cachXuLy: x.cachXuLy, cachXuLyDich: '上次是柜内风扇坏，换风扇即可' }, b.ql)).maLoi;
+  assert.equal(z.cachXuLyDich, '上次是柜内风扇坏，换风扇即可');
+
+  // Xoá thì thôi hiện, dòng vẫn giữ
+  ok(b.call('deleteFault', { id: y.id }, b.ql));
+  const ds = ok(b.call('data', {}, b.ql)).maLoi;
+  assert.equal(ds.length, 2);
+  assert.equal(ds.find((r) => r.id === y.id).hoatDong, false);
+});
+
 test('kiểm định: thiết bị quá hạn và sắp hết hạn đi vào tin nhắn nhắc hằng ngày', () => {
   const b = setupSC();                                       // hôm nay 2026-10-05
   const them = (ten, loai, ngay, ck) => {

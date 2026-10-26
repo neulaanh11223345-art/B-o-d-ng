@@ -813,7 +813,39 @@ await page.click('[data-act="ttSeg"][data-v="su"]'); await wait(600);
 const su20 = await page.evaluate(() => ttSutAp({ i: '50', l: '80', s: '25', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' }));
 assert.ok(su20.dat && su20.pct < 5, 'tuyến cáp mẫu đạt: ' + su20.pct);
 assert.equal(await page.evaluate(() => ttSutAp({ i: '50', l: '400', s: '6', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' }).dat), false, 'cáp nhỏ đi xa thì không đạt');
-ok('Bản 2.23: sổ kiểm định thiết bị (nghiêm ngặt, hạn theo chu kỳ, Excel) và tính toán động cơ / dây dẫn / tụ bù / sụt áp; kỹ thuật không vào được');
+// Tra lỗi biến tần / servo Mitsubishi
+await page.click('[data-act="ttSeg"][data-v="loi"]'); await wait(700);
+await page.fill('#ttLoiQ', 'E.OC1'); await wait(500);
+let loi20 = await text('#ttLoiBody');
+assert.match(loi20, /Quá dòng khi tăng tốc/, 'tra được mã lỗi biến tần');
+assert.match(loi20, /加速中过电流/, 'tên lỗi có tiếng Trung');
+assert.match(loi20, /Pr\.7/, 'có cách xử lý cụ thể');
+// Gõ không dấu chấm vẫn ra, và tra được mã servo
+await page.fill('#ttLoiQ', 'al32'); await wait(500);
+assert.match(await text('#ttLoiBody'), /Quá dòng/, 'gõ gọn al32 vẫn ra AL.32');
+await page.fill('#ttLoiQ', 'quá nhiệt'); await wait(500);
+assert.ok((await page.locator('#ttLoiBody .card').count()) >= 2, 'tìm được theo từ khoá tiếng Việt');
+await shot('37-tra-loi-bien-tan');
+// Lọc theo nhóm thiết bị
+await page.fill('#ttLoiQ', ''); await wait(400);
+await page.click('[data-act="ttLoiLoc"][data-v="sv"]'); await wait(600);
+assert.equal(await page.evaluate(() => ttLoiTim('', 'sv').built.every((x) => x.hang === 'SV')), true, 'lọc đúng nhóm servo');
+// Nhà máy thêm ghi chú cho một mã lỗi
+await page.click('[data-act="ttLoiLoc"][data-v="all"]'); await wait(500);
+await page.fill('#ttLoiQ', 'E.FIN'); await wait(500);
+await page.click('#ttLoiBody [data-act="mlThem"]'); await wait(700);
+assert.equal(await page.inputValue('#mlMa'), 'E.FIN', 'mã lỗi điền sẵn');
+await page.fill('#mlDong', 'FR-E740');
+await page.fill('#mlXl', 'Máy in phun VKY01: lần trước do quạt tủ hỏng, thay quạt là hết');
+await page.click('#mlOk'); await wait(1400);
+const ml20 = await page.evaluate(() => mlDS().find((x) => x.ma === 'E.FIN'));
+assert.ok(ml20 && ml20.cachXuLyDich, 'ghi chú của nhà máy đã lưu và được dịch');
+await page.fill('#ttLoiQ', 'E.FIN'); await wait(500);
+loi20 = await text('#ttLoiBody');
+assert.match(loi20, /Ghi chú của nhà máy/);
+assert.match(loi20, /quạt tủ hỏng/, 'ghi chú hiện ngay dưới mã lỗi');
+await shot('38-tra-loi-ghi-chu-nha-may');
+ok('Bản 2.23: sổ kiểm định thiết bị (nghiêm ngặt, hạn theo chu kỳ, Excel) và tính toán động cơ / dây dẫn / tụ bù / sụt áp; tra lỗi biến tần và servo Mitsubishi kèm ghi chú nhà máy; kỹ thuật không vào được');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

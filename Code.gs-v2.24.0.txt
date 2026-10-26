@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.23.0';
+var PHIEN_BAN = '2.24.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -94,11 +94,15 @@ var BANG = {
   // LichSu (JSON): các lần đã kiểm định [{ngay, hetHan, donVi, soGiay, ketQua, nguoi, luc, gc}]
   KiemDinh: ['ID', 'Ten', 'TenZh', 'Loai', 'Ma', 'SoHieu', 'NhaSX', 'NamSX', 'ThongSo', 'ViTri', 'NghiemNgat',
     'DonViKD', 'SoGiayKD', 'NgayKD', 'NgayHetHan', 'ChuKy', 'KetQua', 'NgayKhaiBao', 'GhiChu', 'GhiChuDich',
-    'HoatDong', 'LichSu', 'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat']
+    'HoatDong', 'LichSu', 'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat'],
+  // Ghi chú mã lỗi của riêng nhà máy (bảng tra lỗi dựng sẵn nằm trong app, không lưu ở đây).
+  // Hang: BT (biến tần) · SV (servo / driver) · KHAC
+  MaLoi: ['ID', 'Hang', 'Dong', 'Ma', 'TenLoi', 'TenLoiDich', 'CachXuLy', 'CachXuLyDich', 'HoatDong',
+    'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
-  NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'], KiemDinh: ['NamSX', 'ChuKy', 'NghiemNgat', 'HoatDong'],
+  NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'], KiemDinh: ['NamSX', 'ChuKy', 'NghiemNgat', 'HoatDong'], MaLoi: ['HoatDong'],
   NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
@@ -134,7 +138,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg', 'importMin',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
-  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect',
+  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'saveFault', 'deleteFault',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy'];
 
 var CAI_DAT_MAC_DINH = {
@@ -329,6 +333,8 @@ function dieuHuong(a, p, req) {
     case 'saveInspect': canQuyen(u, 'may'); return luuKiemDinh(u, p);
     case 'doInspect': canQuyen(u, 'may'); return ghiKiemDinh(u, p);
     case 'deleteInspect': canQuyen(u, 'may'); return xoaKiemDinh(u, p);
+    case 'saveFault': canQuyen(u, 'may'); return luuMaLoi(u, p);
+    case 'deleteFault': canQuyen(u, 'may'); return xoaMaLoi(u, p);
     case 'importMin': canQuyen(u, 'may'); return nhapTonMin(u, p);
     case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
@@ -770,6 +776,7 @@ function layDuLieu(u) {
     }),
     kho: coQuyen(u, 'xemhet') ? khoTomTat() : null,
     kiemDinh: coQuyen(u, 'may') ? docKiemDinh().map(sachKD) : [],
+    maLoi: coQuyen(u, 'may') ? docMaLoi().map(sachML) : [],
     me: congKhai(u),
     phienBan: PHIEN_BAN
   };
@@ -1926,6 +1933,48 @@ function kdSapHet(homNay, truoc) {
   var xep = function (a, b) { return (a.d || 0) - (b.d || 0); };
   qua.sort(xep); sap.sort(xep);
   return { qua: qua, sap: sap, chua: chua };
+}
+
+// ----- Ghi chú mã lỗi của nhà máy -----
+// Bảng tra lỗi biến tần / servo dựng sẵn nằm trong app. Đây là phần nhà máy tự ghi thêm:
+// mã lỗi chưa có trong bảng, hoặc cách xử lý thực tế đã làm ở xưởng. Chỉ Quản lý, Quản trị (quyền may).
+var ML_KHOA = ['id', 'hang', 'dong', 'ma', 'tenLoi', 'tenLoiDich', 'cachXuLy', 'cachXuLyDich', 'hoatDong',
+  'nguoiTao', 'uidTao', 'lucTao', 'capNhat'];
+var ML_HANG = ['BT', 'SV', 'KHAC'];
+function mlThanhDong(x) { return obThanhDong(ML_KHOA, x); }
+function docMaLoi() { return docTho('MaLoi').map(function (r, i) { return obTuDong(ML_KHOA, r, i); }).filter(function (x) { return x.id; }); }
+function sachML(x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; }); return o; }
+function luuMaLoi(u, p) {
+  var ds = docMaLoi(), id = s(p.id), x = id ? ds.filter(function (r) { return r.id === id; })[0] : null;
+  if (id && !x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  var ma = catChu(p.ma, 40).toUpperCase();
+  if (!ma) throw loi('ML_THIEU_MA', 'Chưa nhập mã lỗi · 请输入故障代码');
+  var xl = catNhieuDong(p.cachXuLy, 1000).trim();
+  if (!xl) throw loi('CAN_KET_QUA', 'Chưa ghi cách xử lý · 请填写处理方法');
+  var bay = thoiGianStr(), moi = !x;
+  capNhatTieuDe('MaLoi');
+  var ten = catChu(p.tenLoi, 150);
+  var tenD = x ? dichKhiSua(ten, x.tenLoi, x.tenLoiDich, p.tenLoiDich) : songNgu(ten, p.tenLoiDich);
+  var xlD = x ? dichKhiSua(xl, x.cachXuLy, x.cachXuLyDich, p.cachXuLyDich) : songNgu(xl, p.cachXuLyDich);
+  if (moi) x = { id: idMoi('ML', dsIdCo(ds)), nguoiTao: u.ten, uidTao: u.id, lucTao: bay };
+  x.hang = ML_HANG.indexOf(s(p.hang)) >= 0 ? s(p.hang) : 'KHAC';
+  x.dong = catChu(p.dong, 60); x.ma = ma;
+  x.tenLoi = tenD[0]; x.tenLoiDich = tenD[1];
+  x.cachXuLy = xlD[0]; x.cachXuLyDich = xlD[1];
+  x.hoatDong = p.hoatDong !== false; x.capNhat = bay;
+  if (moi) themDong('MaLoi', mlThanhDong(x)); else suaDong('MaLoi', x._r, mlThanhDong(x));
+  ghiNhatKy(u, moi ? 'THEM_MA_LOI' : 'SUA_MA_LOI', 'MaLoi', x.id, '', x.ma, '');
+  return { maLoi: sachML(x) };
+}
+function xoaMaLoi(u, p) {
+  var x = docMaLoi().filter(function (r) { return r.id === s(p.id); })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  if (!x.hoatDong) return { maLoi: sachML(x) };
+  capNhatTieuDe('MaLoi');
+  x.hoatDong = false; x.capNhat = thoiGianStr();
+  suaDong('MaLoi', x._r, mlThanhDong(x));
+  ghiNhatKy(u, 'XOA_MA_LOI', 'MaLoi', x.id, x.ma, '', '');
+  return { maLoi: sachML(x) };
 }
 
 // ===================== Danh mục máy =====================
