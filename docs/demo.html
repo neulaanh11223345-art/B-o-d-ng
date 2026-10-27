@@ -7321,13 +7321,14 @@ const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
 // Chức năng gom theo nhóm thay vì một danh sách phẳng. Mỗi dòng: [màn, nhãn, biểu tượng].
 // Màn nào tài khoản không được xem thì tự rụng khỏi nhóm; nhóm rỗng thì không hiện.
+// QUY TẮC: màn nào đã có tab bên trong thì chỉ được MỘT dòng ở menu.
+// Thiết bị / Bảo dưỡng / Lịch sử / Kho vốn là bốn tab của cùng một màn → một dòng "Thiết bị".
+// Nhắc hàng, tồn an toàn, tem QR, phân ca, tổng số ca… đều đã nằm trong màn của chúng → không đưa ra menu.
 const NHOM = [
-  ['nhomViec', [['cv', 'navCV', 'list'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist']]],
-  ['nhomTB', [['list', 'navMay', 'gear'], ['tlCfg', 'navTL', 'img'], ['kd', 't_kd', 'check'], ['labels', 't_labels', 'qr']]],
-  ['nhomVT', [['kho', 'segKho', 'drop'], ['khoNhac', 't_khoNhac', 'bell'], ['khoMin', 't_khoMin', 'list']]],
+  ['nhomViec', [['cv', 'navCV', 'list'], ['list', 'navMay', 'gear']]],
   ['nhomDien', [['dien', 'navDien', 'bolt']]],
-  ['nhomNS', [['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users'], ['phanCa', 't_phanCa', 'cal']]],
-  ['nhomCC', [['tt', 't_tt', 'wrench'], ['scan', 't_scan', 'scan']]],
+  ['nhomNS', [['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users']]],
+  ['nhomCC', [['kd', 't_kd', 'check'], ['tt', 't_tt', 'wrench'], ['tlCfg', 'navTL', 'img']]],
   ['nhomHT', [['me', 'navMe', 'user']]]
 ];
 // Nhóm đã lọc theo quyền của tài khoản đang đăng nhập
@@ -7355,7 +7356,7 @@ function shell() {
     <button class="tab" data-act="tab" data-v="home"><span class="tabic">${IC.home}<span class="badge" id="bdg" hidden></span></span>${tv('home')}<small>${tz('home')}</small></button>
     <button class="tab" data-act="tab" data-v="cv"><span class="tabic">${xemHet() ? IC.list : IC.wrench}<span class="badge" id="bdgC" hidden></span></span>${tv(xemHet() ? 'navCV' : 'navSC')}<small>${tz(xemHet() ? 'navCV' : 'navSC')}</small></button>
     <button class="tab" data-act="tab" data-v="scan" aria-label="${esc(tp('scan'))}"><span class="sc">${IC.scan}</span></button>
-    <button class="tab" data-act="tab" data-v="cal"><span class="tabic">${IC.cal}</span>${tv('navBD')}<small>${tz('navBD')}</small></button>
+    <button class="tab" data-act="tab" data-v="list"><span class="tabic">${xemHet() ? IC.gear : IC.cal}</span>${tv(xemHet() ? 'machines' : 'navBD')}<small>${tz(xemHet() ? 'machines' : 'navBD')}</small></button>
     <button class="tab" data-act="tab" data-v="them"><span class="tabic">${IC.keyb}<span class="badge" id="bdgE" hidden></span></span>${tv('navThem')}<small>${tz('navThem')}</small></button>
   </div></nav>`;
   const gq = $('#gq');
@@ -7506,8 +7507,8 @@ Object.assign(TX, {
   mTongHa: ['tổng hạ áp kỳ {d}', '{d}期低压合计'], mChuaDu: ['kỳ {d} chưa đủ số', '{d}期未抄完'],
   meInfo: ['Tài khoản', '账号'], meMa: ['Mã nhân viên', '员工编号'], meVai: ['Vai trò', '角色'],
   navThem: ['Thêm', '更多'], t_them: ['Tất cả chức năng', '全部功能'], navTL: ['Tài liệu máy', '设备资料'],
-  nhomViec: ['Việc hằng ngày', '日常工作'], nhomTB: ['Thiết bị', '设备'], nhomVT: ['Vật tư · Kho', '物料·仓库'],
-  nhomDien: ['Điện · Nước', '电·水'], nhomNS: ['Nhân sự', '人事'], nhomCC: ['Công cụ', '工具'], nhomHT: ['Hệ thống', '系统'],
+  nhomViec: ['Việc hằng ngày', '日常工作'], nhomDien: ['Điện · Nước', '电·水'],
+  nhomNS: ['Nhân sự', '人事'], nhomCC: ['Tra cứu · Công cụ', '查询·工具'], nhomHT: ['Hệ thống', '系统'],
   nhatKy: ['Nhật ký sửa đổi', '修改日志'], dienCfg: ['Cảnh báo tiêu thụ bất thường', '用电异常预警'],
   ketQua: ['Kết quả', '结果'], tkMay: ['Thiết bị', '设备'], tkCT: ['Công tơ', '电表'], tkLK: ['Linh kiện', '零件'],
   nhapItNhat: ['Gõ ít nhất 2 ký tự', '至少输入2个字符']
