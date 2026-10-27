@@ -29,6 +29,11 @@ async function login(nv, pin) {
   await page.waitForSelector('#main', { timeout: 20000 });
   await wait(600);
 }
+// Mở một mục qua màn "Thêm" — đúng đường người dùng bấm trên điện thoại
+async function moThem(v) {
+  await page.click('.tabs .tab[data-v="them"]'); await wait(500);
+  await page.click(`#main .row[data-v="${v}"]`); await wait(700);
+}
 async function logout() {
   await page.click('#meBtn'); await wait();
   await page.click('[data-act="logout"]'); await wait();
@@ -115,7 +120,7 @@ assert.match(await text('#main'), /Không có ngoại lệ chờ duyệt/);
 ok('Quản lý thấy cảnh báo ở trang chủ, mở đúng danh sách, duyệt ngoại lệ');
 
 // 6. Khoá kỳ, kỹ thuật không sửa được kỳ đã khoá
-await page.click('.tabs .tab[data-v="dien"]'); await wait();
+await moThem('dien');
 await page.click('[data-act="lockSheet"]'); await wait();
 await shot('06-khoa-ky');
 await page.click('[data-act="doLock"]'); await wait(900);
@@ -130,8 +135,14 @@ ok('Khoá kỳ; kỹ thuật không sửa được số kỳ đã khoá');
 // 7. Phân quyền: kỹ thuật chỉ thấy Điện/Nước, Sửa chữa, Bảo dưỡng; cảnh báo trang chủ mở đúng nhóm máy
 await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.equal(await page.locator('.tabs .tab[data-v="list"]').count(), 0, 'kỹ thuật: không có tab Thiết bị');
-assert.match(await text('.tabs .tab[data-v="cal"]'), /Bảo dưỡng/);
+assert.match(await text('.tabs .tab[data-v="cal"]'), /Bảo dưỡng/, 'ô thứ tư của kỹ thuật là Bảo dưỡng');
 assert.match(await text('.tabs .tab[data-v="cv"]'), /Sửa chữa/);
+// Màn Thêm của kỹ thuật: không có Thiết bị, Kho, Kiểm định, Tính toán, Tài liệu
+await page.click('.tabs .tab[data-v="them"]'); await wait(600);
+const them7 = await page.locator('#main .row .nm').allTextContents();
+assert.deepEqual(them7, ['Công việc', 'Bảo dưỡng', 'Điện / Nước', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
+  'kỹ thuật chỉ thấy đúng sáu mục: ' + JSON.stringify(them7));
+await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.match(await text('.mtiles'), /Sửa chữa/);
 assert.doesNotMatch(await text('.mtiles'), /Linh kiện|Thiết bị|Công việc/, 'Tổng quan chỉ còn Sửa chữa, Bảo dưỡng, Điện, Nước');
 await shot('16-ky-thuat-trang-chu');
@@ -338,8 +349,11 @@ assert.match(await text('.pager'), /kết quả/);
 await shot('07-desktop-list');
 await page.click('.side .nav[data-v="dien"]'); await wait(600);
 assert.ok(await page.isVisible('table.dt'), 'bảng công tơ trên máy tính');
-await page.click('.side .nav[data-v="cal"]'); await wait(600);
+await page.click('.side .nav[data-v="list"]'); await wait(600);
+await page.locator('#main .seg button').nth(1).click(); await wait(600);   // tab Bảo dưỡng trong màn Thiết bị
 assert.match(await text('#barTitle'), /Bảo dưỡng/);
+assert.ok(await page.evaluate(() => $('.side .nav[data-v="list"]').classList.contains('on')),
+  'đang ở Bảo dưỡng thì ô Thiết bị sáng, vì cùng một màn');
 assert.ok(await page.isVisible('.kstrip'), 'trang Bảo dưỡng có ô tóm tắt');
 await page.click('.side .nav[data-v="cv"]'); await wait(600);
 await page.click('[data-act="cvXem"][data-v="nguoi"]'); await wait();
@@ -756,10 +770,10 @@ ok('Bản 2.21: báo tin vào nhóm WeChat Work, chặn địa chỉ webhook l�
 // 20. Kiểm định thiết bị và Tính toán TB — chỉ Quản lý dùng được
 await logout(); await login('NV003', '333333');
 assert.equal(await page.evaluate(() => xemDuoc('kd') || xemDuoc('tt')), false, 'kỹ thuật không vào được hai mục này');
+await page.click('.tabs .tab[data-v="them"]'); await wait(600);
+assert.equal(await page.locator('#main .row[data-v="kd"], #main .row[data-v="tt"]').count(), 0, 'kỹ thuật: màn Thêm không có hai mục này');
 await logout(); await login('NV002', '222222');
-await page.evaluate(() => tab('list')); await wait(700);
-assert.equal(await page.locator('[data-act="go"][data-v="kd"]').count(), 1, 'màn Thiết bị có nút Kiểm định');
-await page.click('[data-act="go"][data-v="kd"]'); await wait(800);
+await moThem('kd');
 assert.match(await text('#barTitle'), /Kiểm định/);
 const kd20 = await page.evaluate(() => kdDem());
 assert.ok(kd20.qua >= 1 && kd20.sap >= 1, 'dữ liệu mẫu có cả quá hạn và sắp hết hạn: ' + JSON.stringify(kd20));
@@ -789,7 +803,8 @@ assert.equal(sau20.lichSu.length, 1);
 assert.ok(await page.evaluate(() => kdXlsx(kdDS()).size) > 2000, 'xuất được Excel sổ kiểm định');
 await shot('34-kiem-dinh-ho-so');
 // Tính toán TB: động cơ → dây dẫn → tụ bù → sụt áp
-await page.evaluate(() => { back(); back(); go('tt', {}); }); await wait(800);
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
+await moThem('tt');
 assert.match(await text('#barTitle'), /Tính toán/);
 const dc20 = await page.evaluate(() => ttDongCo({ kw: '7.5', u: '380', pha: '3', cos: '0.85', eta: '88', k: '6', kd: 'DOL' }));
 assert.ok(Math.abs(dc20.I - 15.24) < 0.1, 'dòng định mức 7,5 kW/380V ≈ 15,2 A, ra ' + dc20.I);

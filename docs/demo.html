@@ -436,6 +436,8 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .tcsheet .ky span{display:block;font-family:var(--f-zh);font-weight:400;font-size:.88em;margin-top:2px}
 .tcsheet .tto{position:absolute;right:18px;bottom:7px;margin:0;text-align:right;font-size:6px;line-height:1.2;color:#666}
 .tcrow{width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);color:var(--ink);display:flex;flex-direction:column;gap:8px;cursor:pointer;font:inherit}
+.navnhom{padding:14px 12px 5px;font:700 11px/1.3 var(--f);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.navnhom .zi{font-weight:600;letter-spacing:0}
 .tcrow:hover{border-color:var(--brand)}
 .tcrow[disabled]{cursor:default;opacity:.72;background:var(--bg)}
 .tcrow[disabled]:hover{border-color:var(--line)}
@@ -1335,7 +1337,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.24.0";
+const APP_VER = "2.25.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1734,7 +1736,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.24.0';
+var PHIEN_BAN = '2.25.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -7317,17 +7319,31 @@ const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuye
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
-const SIDE = [['home', 'home', 'home'], ['cv', 'navCV', 'list'], ['list', 'navMay', 'gear'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'],
-  ['dien', 'navDien', 'bolt'], ['kho', 'segKho', 'box'], ['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
-const SIDE_HC = [['home', 'home', 'home'], ['cv', 'navSC', 'wrench'], ['cal', 'navBD', 'cal'], ['hist', 'navLS', 'hist'], ['dien', 'navDien', 'bolt'],
-  ['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users'], ['scan', 't_scan', 'scan'], ['me', 'navMe', 'user']];
-const sideDS = () => (xemHet() ? SIDE : SIDE_HC);
+// Chức năng gom theo nhóm thay vì một danh sách phẳng. Mỗi dòng: [màn, nhãn, biểu tượng].
+// Màn nào tài khoản không được xem thì tự rụng khỏi nhóm; nhóm rỗng thì không hiện.
+// QUY TẮC: màn nào đã có tab bên trong thì chỉ được MỘT dòng ở menu.
+// Thiết bị / Bảo dưỡng / Lịch sử / Kho vốn là bốn tab của cùng một màn → một dòng "Thiết bị".
+// Nhắc hàng, tồn an toàn, tem QR, phân ca, tổng số ca… đều đã nằm trong màn của chúng → không đưa ra menu.
+const NHOM = [
+  ['nhomViec', [['cv', 'navCV', 'list'], ['list', 'navMay', 'gear']]],
+  ['nhomDien', [['dien', 'navDien', 'bolt']]],
+  ['nhomNS', [['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users']]],
+  ['nhomCC', [['kd', 't_kd', 'check'], ['tt', 't_tt', 'wrench'], ['tlCfg', 'navTL', 'img']]],
+  ['nhomHT', [['me', 'navMe', 'user']]]
+];
+// Nhóm đã lọc theo quyền. Tài khoản không xem được danh mục máy thì dòng đó thành Bảo dưỡng
+// (cùng một màn, chỉ khác tab mặc định) — giống cách tabGoc vẫn đổi từ trước.
+const nhomDong = (r) => (r[0] === 'list' && !xemHet() ? ['cal', 'navBD', 'cal'] : r);
+const nhomDS = () => NHOM.map(([k, ds]) => [k, ds.map(nhomDong).filter(([v]) => xemDuoc(v))]).filter(([, ds]) => ds.length);
+const sideDS = () => [['home', 'home', 'home']].concat(nhomDS().reduce((a, [, ds]) => a.concat(ds), []));
 const tabGoc = (v) => { const g = TAB_OF[v] || v; return !xemHet() && g === 'list' ? 'cal' : g; };
 function shell() {
   $('#root').innerHTML = `
   <aside class="side" aria-label="${esc(tp('appName'))}">
     <div class="brandrow">${LOGO}<div><b>${esc(tv('factoryShort'))}</b><small>${esc(tz('factoryShort'))}</small></div></div>
-    ${sideDS().map(([v, k, ic]) => `<button class="nav" data-act="tab" data-v="${v}">${IC[ic]}<span>${esc(tv(k))}<small>${esc(tz(k))}</small></span><span class="bdg" id="sb_${v}" hidden></span></button>`).join('')}
+    <button class="nav" data-act="tab" data-v="home">${IC.home}<span>${esc(tv('home'))}<small>${esc(tz('home'))}</small></span><span class="bdg" id="sb_home" hidden></span></button>
+    ${nhomDS().map(([k, ds]) => `<div class="navnhom">${esc(tv(k))} <span class="zi" lang="zh-CN">${esc(tz(k))}</span></div>`
+    + ds.map(([v, lb, ic]) => `<button class="nav" data-act="tab" data-v="${v}">${IC[ic]}<span>${esc(tv(lb))}<small>${esc(tz(lb))}</small></span><span class="bdg" id="sb_${v}" hidden></span></button>`).join('')).join('')}
     <div class="grow"></div><div class="ver">v${esc(APP_VER)}${IS_DEMO ? ' · demo' : ''}</div>
   </aside>
   <header class="bar"><div class="bar-in">
@@ -7340,11 +7356,10 @@ function shell() {
   <main id="main"></main>
   <nav class="tabs" aria-label="${esc(tp('appName'))}"><div class="tabs-in">
     <button class="tab" data-act="tab" data-v="home"><span class="tabic">${IC.home}<span class="badge" id="bdg" hidden></span></span>${tv('home')}<small>${tz('home')}</small></button>
-    ${xemHet() ? `<button class="tab" data-act="tab" data-v="list"><span class="tabic">${IC.gear}</span>${tv('machines')}<small>${tz('machines')}</small></button>`
-    : `<button class="tab" data-act="tab" data-v="cal"><span class="tabic">${IC.cal}</span>${tv('navBD')}<small>${tz('navBD')}</small></button>`}
-    <button class="tab" data-act="tab" data-v="scan" aria-label="${esc(tp('scan'))}"><span class="sc">${IC.scan}</span></button>
     <button class="tab" data-act="tab" data-v="cv"><span class="tabic">${xemHet() ? IC.list : IC.wrench}<span class="badge" id="bdgC" hidden></span></span>${tv(xemHet() ? 'navCV' : 'navSC')}<small>${tz(xemHet() ? 'navCV' : 'navSC')}</small></button>
-    <button class="tab" data-act="tab" data-v="dien"><span class="tabic">${IC.bolt}<span class="badge" id="bdgE" hidden></span></span>${tv('navDienN')}<small>${tz('navDienN')}</small></button>
+    <button class="tab" data-act="tab" data-v="scan" aria-label="${esc(tp('scan'))}"><span class="sc">${IC.scan}</span></button>
+    <button class="tab" data-act="tab" data-v="${xemHet() ? 'list' : 'cal'}"><span class="tabic">${xemHet() ? IC.gear : IC.cal}</span>${tv(xemHet() ? 'machines' : 'navBD')}<small>${tz(xemHet() ? 'machines' : 'navBD')}</small></button>
+    <button class="tab" data-act="tab" data-v="them"><span class="tabic">${IC.keyb}<span class="badge" id="bdgE" hidden></span></span>${tv('navThem')}<small>${tz('navThem')}</small></button>
   </div></nav>`;
   const gq = $('#gq');
   if (gq) gq.addEventListener('input', () => {
@@ -7353,14 +7368,14 @@ function shell() {
     S.gqT = setTimeout(() => { if (topV() && topV().v === 'timKiem') { topV().p.q = q; const b = $('#tkBody'); if (b) b.innerHTML = timKiemBody(q); } else if (q.trim()) go('timKiem', { q }); }, 220);
   });
 }
-const TITLES = { khoNhac: 't_khoNhac', khoMin: 't_khoMin', dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
+const TITLES = { them: 't_them', khoNhac: 't_khoNhac', khoMin: 't_khoMin', dien: 't_dien', dienNhap: 't_dienNhap', ctEdit: 't_ctEdit', thongSo: 't_thongSo', home: 't_home', cal: 't_cal', scan: 't_scan', list: 't_list', hist: 't_hist', may: 't_may', mayEdit: 't_mayEdit',
   labels: 't_labels', admin: 't_admin', users: 't_users', notify: 't_notify', queue: 't_sync', sync: 't_sync', me: 't_me', timKiem: 't_timKiem', duyet: 't_duyet', nhatKy: 't_nhatKy', dienCfg: 't_dienCfg',
   cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi', scDS: 't_scDS', saoLuu: 't_saoLuu',
   tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
   tlCfg: 't_tlCfg', tlGan: 't_tlGan', tlDS: 't_tlDS',
   truc: 't_truc', trucGhi: 't_trucGhi', trucTong: 't_trucTong', phanCa: 't_phanCa', trucNguoi: 't_trucNguoi',
   kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit' };
-const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc'];
+const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg'];
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
   tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me',
@@ -7384,7 +7399,10 @@ function render() {
     : `<button class="logo" data-act="tab" data-v="home" aria-label="${tp('home')}">${LOGO}</button>`;
   const r0 = S.stack[0].v, tabRoot = tabGoc(r0);
   $$('.tab').forEach((b) => b.classList.toggle('on', b.dataset.v === tabRoot));
-  const sideRoot = S.stack.length > 1 && TAB_OF[cur.v] && sideDS().some((x) => x[0] === cur.v) ? cur.v : r0;
+  // Bảo dưỡng / Lịch sử / Kho là tab bên trong màn Thiết bị nên sáng chung một ô với nó
+  const coTrongMenu = (v) => sideDS().some((x) => x[0] === v);
+  const r0g = coTrongMenu(r0) ? r0 : tabRoot;
+  const sideRoot = S.stack.length > 1 && TAB_OF[cur.v] && coTrongMenu(cur.v) ? cur.v : r0g;
   $$('.side .nav').forEach((b) => b.classList.toggle('on', b.dataset.v === sideRoot || (b.dataset.v === 'me' && TAB_OF[r0] === 'me')));
   $('#meBtn').textContent = initials(S.me ? S.me.ten : '?');
   $('#meBtn').setAttribute('aria-label', S.me ? S.me.ten : '');
@@ -7493,6 +7511,9 @@ Object.assign(TX, {
   mDaGhi: ['đã ghi {a}/{b}', '已抄{a}/{b}'], mDuoiMin: ['{n} dưới tối thiểu', '{n}种低于最低库存'], mConHang: ['{n} còn hàng', '{n}种有货'],
   mTongHa: ['tổng hạ áp kỳ {d}', '{d}期低压合计'], mChuaDu: ['kỳ {d} chưa đủ số', '{d}期未抄完'],
   meInfo: ['Tài khoản', '账号'], meMa: ['Mã nhân viên', '员工编号'], meVai: ['Vai trò', '角色'],
+  navThem: ['Thêm', '更多'], t_them: ['Tất cả chức năng', '全部功能'], navTL: ['Tài liệu máy', '设备资料'],
+  nhomViec: ['Việc hằng ngày', '日常工作'], nhomDien: ['Điện · Nước', '电·水'],
+  nhomNS: ['Nhân sự', '人事'], nhomCC: ['Tra cứu · Công cụ', '查询·工具'], nhomHT: ['Hệ thống', '系统'],
   nhatKy: ['Nhật ký sửa đổi', '修改日志'], dienCfg: ['Cảnh báo tiêu thụ bất thường', '用电异常预警'],
   ketQua: ['Kết quả', '结果'], tkMay: ['Thiết bị', '设备'], tkCT: ['Công tơ', '电表'], tkLK: ['Linh kiện', '零件'],
   nhapItNhat: ['Gõ ít nhất 2 ký tự', '至少输入2个字符']
@@ -8502,8 +8523,7 @@ VIEWS.list = {
       <div class="hscroll stchips">${ST_CHIP.map(([v, k]) => `<button class="chip${(f.st || '') === v ? ' on' : ''}" data-act="listSt2" data-st="${v}">${t(k)}</button>`).join('')}</div></div>
       <div style="margin-top:10px">${grpChips(f.grp, 'listGrp').replace('</div>', stopped.length ? `<button class="chip${f.grp === '__stop' ? ' on' : ''}" data-act="listGrp" data-g="__stop">${t('stopped')} (${stopped.length})</button></div>` : '</div>')}</div>`;
     if (can('may')) o += `<div class="btns" style="margin-bottom:14px"><button class="btn sm" data-act="newMay">${IC.plus} ${t('addMachine')}</button><button class="btn ghost sm" data-act="labels">${IC.qr} ${t('printQR')}</button>
-      <button class="btn ghost sm" data-act="go" data-v="kd">${IC.check} ${t('kdMo')}${kdDem().qua ? ` <b class="acnt">${kdDem().qua}</b>` : ''}</button>
-      <button class="btn ghost sm" data-act="go" data-v="tt">${IC.bolt} ${t('ttMo')}</button></div>`;
+</div>`;
     o += '<div id="listBody">' + listBody() + '</div>';
     return o;
   },
@@ -15356,6 +15376,14 @@ Object.assign(ACT, {
   }
 });
 
+// Màn "Thêm" trên điện thoại: đúng các nhóm như sidebar máy tính, để không phải nhớ chức năng nằm ở đâu
+VIEWS.them = {
+  html() {
+    return nhomDS().map(([k, ds]) => sec(k) + `<div class="list">${ds.map(([v, lb, ic]) => `<button class="row" data-act="tab" data-v="${v}">
+      <span class="aic">${IC[ic]}</span><div class="main"><div class="nm">${esc(tv(lb))}</div>
+      <div class="sub zi" lang="zh-CN">${esc(tz(lb))}</div></div>${IC.chev}</button>`).join('')}</div>`).join('');
+  }
+};
 // ===================== Kiểm định thiết bị · 设备检定 =====================
 // Sổ riêng cho thiết bị phải kiểm định kỹ thuật an toàn định kỳ, trong đó có nhóm có yêu cầu
 // NGHIÊM NGẶT về an toàn, vệ sinh lao động. Chỉ Quản lý, Quản trị (quyền may) xem và sửa.
