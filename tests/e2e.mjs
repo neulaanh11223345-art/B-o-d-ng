@@ -771,8 +771,8 @@ ok('Bản 2.21: báo tin vào nhóm WeChat Work, chặn địa chỉ webhook l�
 await logout(); await login('NV003', '333333');
 assert.equal(await page.evaluate(() => xemDuoc('kd') || xemDuoc('tt')), false, 'kỹ thuật không vào được hai mục này');
 await page.click('.tabs .tab[data-v="them"]'); await wait(600);
-assert.equal(await page.locator('#main .row[data-v="kd"], #main .row[data-v="tt"], #main .row[data-v="sd"]').count(), 0, 'kỹ thuật: màn Thêm không có ba mục này');
-assert.equal(await page.evaluate(() => xemDuoc('sd')), false, 'kỹ thuật không xem được Sơ đồ đấu');
+assert.equal(await page.locator('#main .row[data-v="kd"], #main .row[data-v="tt"], #main .row[data-v="tlTb"]').count(), 0, 'kỹ thuật: màn Thêm không có ba mục này');
+assert.equal(await page.evaluate(() => xemDuoc('tlTb')), false, 'kỹ thuật không xem được Tài liệu thiết bị');
 await logout(); await login('NV002', '222222');
 await moThem('kd');
 assert.match(await text('#barTitle'), /Kiểm định/);
@@ -829,8 +829,15 @@ await page.click('[data-act="ttSeg"][data-v="su"]'); await wait(600);
 const su20 = await page.evaluate(() => ttSutAp({ i: '50', l: '80', s: '25', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' }));
 assert.ok(su20.dat && su20.pct < 5, 'tuyến cáp mẫu đạt: ' + su20.pct);
 assert.equal(await page.evaluate(() => ttSutAp({ i: '50', l: '400', s: '6', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' }).dat), false, 'cáp nhỏ đi xa thì không đạt');
-// Tra lỗi biến tần / servo Mitsubishi
-await page.click('[data-act="ttSeg"][data-v="loi"]'); await wait(700);
+// Tính toán TB không còn tab Tra lỗi
+assert.equal(await page.locator('[data-act="ttSeg"][data-v="loi"]').count(), 0, 'Tra lỗi đã tách khỏi Tính toán TB');
+assert.equal(await page.locator('[data-act="ttSeg"]').count(), 4, 'Tính toán TB còn bốn bài tính');
+// Mục Tài liệu thiết bị: tra lỗi · sơ đồ đấu · tài liệu máy
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
+await moThem('tlTb');
+assert.match(await text('#barTitle'), /Tài liệu thiết bị/);
+assert.deepEqual((await page.locator('#main [data-act="tlTbSeg"]').allTextContents()).map((s) => s.split(' ')[0]),
+  ['Tra', 'Sơ', 'Tài'], 'ba tab: Tra lỗi · Sơ đồ đấu · Tài liệu máy');
 await page.fill('#ttLoiQ', 'E.OC1'); await wait(500);
 let loi20 = await text('#ttLoiBody');
 assert.match(loi20, /Quá dòng khi tăng tốc/, 'tra được mã lỗi biến tần');
@@ -871,9 +878,7 @@ await page.click('[data-act="ttLoiLoc"][data-v="INV"]'); await wait(700);
 assert.equal(await page.evaluate(() => ttLoiTim('', 'INV').built.every((x) => x.hsx === 'INV')), true, 'lọc đúng hãng Inovance');
 assert.equal(await page.evaluate(() => ttLoiTim('', 'MIT').built.every((x) => x.hsx === 'MIT')), true, 'lọc đúng hãng Mitsubishi');
 // Sơ đồ đấu: bốn dòng máy, bảng chân đấu, nhảy sang tài liệu
-await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
-await moThem('sd');
-assert.match(await text('#barTitle'), /Sơ đồ đấu/);
+await page.click('[data-act="tlTbSeg"][data-v="sd"]'); await wait(700);
 assert.equal(await page.locator('[data-act="sdMo"]').count(), 4, 'bốn dòng máy: FR, MR-J4, MD, SV660');
 assert.match(await text('#main'), /CHARGE/, 'có cảnh báo an toàn ngay đầu màn');
 await page.click('[data-act="sdMo"][data-k="MD"]'); await wait(700);
@@ -883,9 +888,9 @@ assert.match(sd20, /Dễ sai chỗ này/);
 assert.doesNotMatch(sd20, /chân số \d|pin \d/i, 'cố ý không ghi số chân của giắc');
 await shot('39-so-do-dau');
 await page.click('[data-act="sdTL"]'); await wait(900);
-assert.match(await text('#barTitle'), /tài liệu/i, 'nhảy được sang mục Tài liệu của dòng máy đó');
+assert.equal(await page.inputValue('#tlDSQ'), 'MD', 'sang tab Tài liệu máy với từ khoá đã lọc sẵn');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
-ok('Bản 2.23: sổ kiểm định thiết bị (nghiêm ngặt, hạn theo chu kỳ, Excel) và tính toán động cơ / dây dẫn / tụ bù / sụt áp; tra lỗi Mitsubishi + Inovance kèm ghi chú nhà máy; sơ đồ đấu bốn dòng máy; kỹ thuật không vào được');
+ok('Bản 2.23: sổ kiểm định thiết bị (nghiêm ngặt, hạn theo chu kỳ, Excel) và tính toán động cơ / dây dẫn / tụ bù / sụt áp; tra lỗi Mitsubishi + Inovance kèm ghi chú nhà máy; mục Tài liệu thiết bị gộp tra lỗi, sơ đồ đấu và tài liệu máy; kỹ thuật không vào được');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

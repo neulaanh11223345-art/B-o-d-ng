@@ -1938,7 +1938,7 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 const xemHet = () => can('xemhet');
 const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
   'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
-  'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit', 'sd']);
+  'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit', 'tlTb']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
@@ -1951,7 +1951,7 @@ const NHOM = [
   ['nhomViec', [['cv', 'navCV', 'list'], ['list', 'navMay', 'gear']]],
   ['nhomDien', [['dien', 'navDien', 'bolt']]],
   ['nhomNS', [['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users']]],
-  ['nhomCC', [['kd', 't_kd', 'check'], ['tt', 't_tt', 'wrench'], ['sd', 't_sd', 'link'], ['tlCfg', 'navTL', 'img']]],
+  ['nhomCC', [['kd', 't_kd', 'check'], ['tlTb', 't_tlTb', 'img'], ['tt', 't_tt', 'wrench']]],
   ['nhomHT', [['me', 'navMe', 'user']]]
 ];
 // Nhóm đã lọc theo quyền. Tài khoản không xem được danh mục máy thì dòng đó thành Bảo dưỡng
@@ -1997,13 +1997,13 @@ const TITLES = { them: 't_them', khoNhac: 't_khoNhac', khoMin: 't_khoMin', dien:
   tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
   tlCfg: 't_tlCfg', tlGan: 't_tlGan', tlDS: 't_tlDS',
   truc: 't_truc', trucGhi: 't_trucGhi', trucTong: 't_trucTong', phanCa: 't_phanCa', trucNguoi: 't_trucNguoi',
-  kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit', sd: 't_sd' };
-const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg', 'sd'];
+  kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit', tlTb: 't_tlTb' };
+const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg', 'tlTb'];
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
   tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me',
   trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc', khoNhac: 'list', khoMin: 'list',
-  kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list', ttLoiEdit: 'list', sd: 'list' };
+  kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list', ttLoiEdit: 'list', tlTb: 'list' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
 function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w.length > 1 ? w[w.length - 1][0] : w[0].slice(0, 2)).toUpperCase(); }
@@ -10680,12 +10680,12 @@ function ttLoiNmCard(n) {
     ${gap.length ? `<div class="help" style="margin-top:8px"><b>${t('ttLoiDaGap')}</b> — ${t('ttLoiDaGapN', { n: gap.length })}</div>` : ''}
     <div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="mlSua" data-id="${esc(n.id)}">${IC.edit} ${t('cvSua')}</button></div></div>`;
 }
-function ttLoiBody(p) {
-  const r = ttLoiTim(p.loi.q, p.loi.loc);
+function ttLoiBody(st) {
+  const r = ttLoiTim(st.q, st.loc);
   const rieng = r.nm.filter((n) => !r.built.some((b) => mlChuan(b.ma) === mlChuan(n.ma)));
   if (!r.built.length && !rieng.length) {
-    return `<div class="card empty">${p.loi.q ? t('ttLoiKhong') : t('ttLoiGoiY')}</div>
-      <button class="btn ghost" style="margin-top:10px" data-act="mlThem" data-ma="${esc(p.loi.q || '')}">${IC.plus} ${t('ttLoiThem')}</button>`;
+    return `<div class="card empty">${st.q ? t('ttLoiKhong') : t('ttLoiGoiY')}</div>
+      <button class="btn ghost" style="margin-top:10px" data-act="mlThem" data-ma="${esc(st.q || '')}">${IC.plus} ${t('ttLoiThem')}</button>`;
   }
   return rieng.map(ttLoiNmCard).join('') + r.built.map(ttLoiCard).join('');
 }
@@ -10695,6 +10695,7 @@ function ttLoiBody(p) {
 // ghi sai là hỏng thiết bị. Sơ đồ thật thì tải trang manual của hãng vào mục Tài liệu.
 Object.assign(TX, {
   t_sd: ['Sơ đồ đấu', '接线图'], sdMo: ['Sơ đồ đấu', '接线图'],
+  t_tlTb: ['Tài liệu thiết bị', '设备资料'],
   sdCanhBao: ['Cắt nguồn và chờ đèn CHARGE tắt hẳn mới được mở tủ hay chạm vào đầu cốt. Tụ một chiều còn giữ điện áp nguy hiểm vài phút sau khi cắt nguồn.',
     '必须断电并等 CHARGE 指示灯完全熄灭后才能开柜或触碰端子。断电后直流电容仍会保持危险电压数分钟。'],
   sdNguon: ['Bảng dưới ghi TÊN đầu cốt in trên máy và chức năng của nó, không phải sơ đồ của hãng. Số chân của các giắc điều khiển khác nhau theo từng đời máy nên app cố ý không ghi — phải xem manual đúng đời. Tải trang sơ đồ trong manual vào mục Tài liệu để thợ mở ngay tại máy.',
@@ -10794,9 +10795,8 @@ function sdTaiLieu(tim) {
   if (!k || typeof tlAll !== 'function') return [];
   return tlAll().filter((x) => [x.ten, x.duongDan].some((v) => String(v || '').toLowerCase().includes(k)));
 }
-VIEWS.sd = {
-  html(p) {
-    if (srvOld('kd')) return srvWarn('kd');
+function sdBody(p) {
+  {
     const mo = p.mo || '';
     let o = `<div class="note" style="margin-bottom:12px">${t('sdCanhBao')}</div>`;
     o += SD_DS.map((d) => {
@@ -10818,32 +10818,46 @@ VIEWS.sd = {
     o += `<div class="help" style="margin-top:10px">${t('sdNguon')}</div>`;
     return o;
   }
-};
+}
 Object.assign(ACT, {
-  sdMo: (el) => { const p = topV().p; p.mo = p.mo === el.dataset.k ? '' : el.dataset.k; render(); },
-  sdTL: (el) => go('tlDS', { init: 1, nhom: '', q: el.dataset.tim })
+  sdMo: (el) => { const p = topV().p; p.sd.mo = p.sd.mo === el.dataset.k ? '' : el.dataset.k; render(); },
+  sdTL: (el) => { const p = topV().p; p.seg = 'tl'; p.tl.q = el.dataset.tim; p.tl.nhom = ''; render(); },
+  tlTbSeg: (el) => { topV().p.seg = el.dataset.v; render(); }
 });
+// ===== Tài liệu thiết bị: tra lỗi · sơ đồ đấu · tài liệu máy =====
+// Ba thứ cùng trả lời một câu hỏi "máy này đấu sao, lỗi này là gì, manual đâu" nên gộp một màn.
+const TLTB_SEG = [['loi', 'tt_loi'], ['sd', 't_sd'], ['tl', 'navTL']];
+VIEWS.tlTb = {
+  html(p) {
+    if (!p.init) Object.assign(p, { init: 1, seg: p.seg || 'loi', loi: { q: '', loc: 'all' }, sd: { mo: '' }, tl: { init: 1, nhom: '', q: '' } });
+    let o = `<div class="hscroll stchips" style="margin-bottom:12px">${TLTB_SEG.map(([v, k]) => `<button type="button" class="chip${p.seg === v ? ' on' : ''}" data-act="tlTbSeg" data-v="${v}">${tv(k)} ${tz(k)}</button>`).join('')}</div>`;
+    if (p.seg === 'sd') return o + sdBody(p.sd);
+    if (p.seg === 'tl') return o + (can('tailieu') ? VIEWS.tlDS.html(p.tl) : `<div class="card empty">${t('tlCanQL')}</div>`);
+    if (srvOld('maloi')) return o + srvWarn('maloi');
+    return o + `<div class="note" style="margin-bottom:12px">${t('ttLoiCanh')}</div>
+      <div class="tools"><div class="searchbox">${IC.search}<input class="inp" id="ttLoiQ" type="search" value="${esc(p.loi.q)}" placeholder="${esc(tp('ttLoiPh'))}" autocomplete="off"></div>
+      <div class="hscroll stchips">${[['all', 'ttLoi_all'], ['MIT', 'ttLoi_mit'], ['INV', 'ttLoi_inv'], ['nm', 'ttLoi_nm']].map(([v, k]) => `<button class="chip${p.loi.loc === v ? ' on' : ''}" data-act="ttLoiLoc" data-v="${v}">${t(k)}</button>`).join('')}</div></div>
+      <div id="ttLoiBody" style="margin-top:12px">${ttLoiBody(p.loi)}</div>
+      <div class="help" style="margin-top:10px">${t('ttLoiNguon')}</div>`;
+  },
+  after(p) {
+    if (p.seg === 'tl') { if ($('#tlDSQ')) VIEWS.tlDS.after(p.tl); return; }
+    const q = $('#ttLoiQ');
+    if (q) q.addEventListener('input', () => { p.loi.q = q.value; $('#ttLoiBody').innerHTML = ttLoiBody(p.loi); });
+  }
+};
 
-const TT_SEG = [['dc', 'tt_dc'], ['day', 'tt_day'], ['tu', 'tt_tu'], ['su', 'tt_su'], ['loi', 'tt_loi']];
+const TT_SEG = [['dc', 'tt_dc'], ['day', 'tt_day'], ['tu', 'tt_tu'], ['su', 'tt_su']];
 VIEWS.tt = {
   html(p) {
     if (!p.init) Object.assign(p, { init: 1, seg: 'dc',
       dc: { kw: '7.5', u: '380', pha: '3', cos: '0.85', eta: '88', k: '6', kd: 'DOL' },
       day: { i: '', l: '50', u: '380', pha: '3', cos: '0.85', vl: 'CU', cd: 'PVC', di: 'B2', nd: '35', mach: '1', du: '5', icp: '' },
       tu: { kw: '100', cos1: '0.78', cos2: '0.95' },
-      su: { i: '50', l: '80', s: '25', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' },
-      loi: { q: '', loc: 'all' } });
+      su: { i: '50', l: '80', s: '25', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' } });
     const f = (id, k, lb, extra) => `<label class="fld"><span>${t(lb)}</span><input class="inp" id="${id}" inputmode="decimal" maxlength="9" value="${esc(p[p.seg][k])}"${extra || ''}></label>`;
     const seg = (k, lb, ds, cur) => `<div class="fld"><span>${t(lb)}</span><div class="seg">${ds.map(([v, n]) => `<button type="button" class="${cur === v ? 'on' : ''}" data-act="ttSet" data-k="${k}" data-v="${v}">${tv(n)} ${tz(n)}</button>`).join('')}</div></div>`;
     let o = `<div class="hscroll stchips" style="margin-bottom:12px">${TT_SEG.map(([v, k]) => `<button type="button" class="chip${p.seg === v ? ' on' : ''}" data-act="ttSeg" data-v="${v}">${tv(k)} ${tz(k)}</button>`).join('')}</div>`;
-    if (p.seg === 'loi') {
-      if (srvOld('maloi')) return o + srvWarn('maloi');
-      return o + `<div class="note" style="margin-bottom:12px">${t('ttLoiCanh')}</div>
-        <div class="tools"><div class="searchbox">${IC.search}<input class="inp" id="ttLoiQ" type="search" value="${esc(p.loi.q)}" placeholder="${esc(tp('ttLoiPh'))}" autocomplete="off"></div>
-        <div class="hscroll stchips">${[['all', 'ttLoi_all'], ['MIT', 'ttLoi_mit'], ['INV', 'ttLoi_inv'], ['nm', 'ttLoi_nm']].map(([v, k]) => `<button class="chip${p.loi.loc === v ? ' on' : ''}" data-act="ttLoiLoc" data-v="${v}">${t(k)}</button>`).join('')}</div></div>
-        <div id="ttLoiBody" style="margin-top:12px">${ttLoiBody(p)}</div>
-        <div class="help" style="margin-top:10px">${t('ttLoiNguon')}</div>`;
-    }
     o += `<div class="note" style="margin-bottom:12px">${t('ttCanhBao')}</div><form id="ttF" class="card pad" autocomplete="off">`;
     const d = p[p.seg];
     if (p.seg === 'dc') {
@@ -10875,11 +10889,6 @@ VIEWS.tt = {
     return o;
   },
   after(p) {
-    const q = $('#ttLoiQ');
-    if (q) {
-      q.addEventListener('input', () => { p.loi.q = q.value; $('#ttLoiBody').innerHTML = ttLoiBody(p); });
-      return;
-    }
     const f = $('#ttF'); if (!f) return;
     const sync = () => {
       $$('#ttF .inp').forEach((el) => {
