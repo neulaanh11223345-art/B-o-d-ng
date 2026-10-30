@@ -1938,7 +1938,7 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 const xemHet = () => can('xemhet');
 const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
   'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
-  'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit']);
+  'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit', 'sd']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
@@ -1951,7 +1951,7 @@ const NHOM = [
   ['nhomViec', [['cv', 'navCV', 'list'], ['list', 'navMay', 'gear']]],
   ['nhomDien', [['dien', 'navDien', 'bolt']]],
   ['nhomNS', [['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users']]],
-  ['nhomCC', [['kd', 't_kd', 'check'], ['tt', 't_tt', 'wrench'], ['tlCfg', 'navTL', 'img']]],
+  ['nhomCC', [['kd', 't_kd', 'check'], ['tt', 't_tt', 'wrench'], ['sd', 't_sd', 'link'], ['tlCfg', 'navTL', 'img']]],
   ['nhomHT', [['me', 'navMe', 'user']]]
 ];
 // Nhóm đã lọc theo quyền. Tài khoản không xem được danh mục máy thì dòng đó thành Bảo dưỡng
@@ -1997,13 +1997,13 @@ const TITLES = { them: 't_them', khoNhac: 't_khoNhac', khoMin: 't_khoMin', dien:
   tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
   tlCfg: 't_tlCfg', tlGan: 't_tlGan', tlDS: 't_tlDS',
   truc: 't_truc', trucGhi: 't_trucGhi', trucTong: 't_trucTong', phanCa: 't_phanCa', trucNguoi: 't_trucNguoi',
-  kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit' };
-const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg'];
+  kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit', sd: 't_sd' };
+const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg', 'sd'];
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
   tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me',
   trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc', khoNhac: 'list', khoMin: 'list',
-  kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list', ttLoiEdit: 'list' };
+  kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list', ttLoiEdit: 'list', sd: 'list' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
 function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w.length > 1 ? w[w.length - 1][0] : w[0].slice(0, 2)).toUpperCase(); }
@@ -10460,14 +10460,15 @@ Object.assign(TX, {
   ttLoiTim: ['Nhập mã lỗi hoặc từ khoá', '输入故障代码或关键词'],
   ttLoiPh: ['Vd: E.OC1, AL.32, quá dòng, quá nhiệt', '如：E.OC1、AL.32、过流、过热'],
   ttLoiHang: ['Thiết bị', '设备'],
-  ttLoi_all: ['Tất cả', '全部'], ttLoi_bt: ['Biến tần FR', 'FR变频器'], ttLoi_sv: ['Servo MR', 'MR伺服'], ttLoi_nm: ['Nhà máy ghi', '工厂补充'],
+  ttLoi_all: ['Tất cả', '全部'], ttLoi_mit: ['Mitsubishi', '三菱'], ttLoi_inv: ['Inovance', '汇川'],
+  ttLoi_bt: ['Biến tần', '变频器'], ttLoi_sv: ['Servo', '伺服'], ttLoi_nm: ['Nhà máy ghi', '工厂补充'],
   ttLoiNguyenNhan: ['Nguyên nhân thường gặp', '常见原因'], ttLoiXuLy: ['Cách xử lý', '处理方法'],
   ttLoiNhaMay: ['Ghi chú của nhà máy', '工厂备注'], ttLoiThem: ['Thêm ghi chú', '添加备注'],
   ttLoiDaGap: ['Đã gặp ở nhà máy', '本厂已遇到'], ttLoiDaGapN: ['{n} lần trong sổ sửa chữa', '维修记录中{n}次'],
   ttLoiKhong: ['Không tìm thấy mã lỗi nào. Thử gõ ngắn hơn, hoặc thêm ghi chú cho mã này.', '未找到故障代码。请尝试更短的关键词，或为该代码添加备注。'],
   ttLoiGoiY: ['Gõ mã lỗi hiện trên màn hình thiết bị, hoặc từ khoá tiếng Việt.', '输入设备显示的故障代码，或越南语关键词。'],
-  ttLoiNguon: ['Bảng tra soạn theo tài liệu Mitsubishi cho FR-E700/D700/A700/F700 và MR-J4/MR-JE. Mỗi đời máy có thể khác — đối chiếu manual đúng đời trước khi thao tác.',
-    '参考表依据三菱 FR-E700/D700/A700/F700 与 MR-J4/MR-JE 资料编写。不同型号可能有差异 — 操作前请核对对应型号手册。'],
+  ttLoiNguon: ['Bảng tra soạn theo tài liệu của hãng: Mitsubishi FR-E700/D700/A700/F700 và MR-J4/MR-JE; Inovance MD200/MD380/MD500 và SV660/IS620. Mỗi đời máy có thể khác — đối chiếu manual đúng đời trước khi thao tác.',
+    '参考表依据厂家资料编写：三菱 FR-E700/D700/A700/F700 与 MR-J4/MR-JE；汇川 MD200/MD380/MD500 与 SV660/IS620。不同型号可能有差异 — 操作前请核对对应型号手册。'],
   ttLoiCanh: ['Cắt nguồn và chờ đèn CHARGE tắt hẳn mới được mở tủ hay chạm vào đầu cốt.', '必须断电并等 CHARGE 指示灯完全熄灭后才能开柜或触碰端子。'],
   // Màn thêm / sửa ghi chú
   t_ttLoiEdit: ['Ghi chú mã lỗi', '故障代码备注'],
@@ -10480,7 +10481,10 @@ Object.assign(TX, {
   srvMissML: ['Ghi chú mã lỗi của nhà máy', '工厂故障代码备注']
 });
 Object.assign(ERR, { ML_THIEU_MA: ['Chưa nhập mã lỗi.', '未填写故障代码。'] });
-// [hãng, dòng, mã, tên VI, tên ZH, nguyên nhân, cách xử lý]
+// Hãng sản xuất suy ra từ dòng máy
+const TT_HSX = { FR: 'MIT', 'MR-J4': 'MIT', MD: 'INV', SV660: 'INV' };
+const TT_HANG_TEN = { MIT: 'Mitsubishi', INV: 'Inovance' };
+// [loại thiết bị, dòng, mã, tên VI, tên ZH, nguyên nhân, cách xử lý]
 const TT_LOI = [
   // ----- Biến tần Mitsubishi FR (E700 · D700 · A700 · F700) -----
   ['BT', 'FR', 'E.OC1', 'Quá dòng khi tăng tốc', '加速中过电流', 'Thời gian tăng tốc quá ngắn; tải kẹt hoặc nặng đột ngột; ngắn mạch đầu ra; đặt mô-men khởi động quá cao.', 'Kéo dài thời gian tăng tốc (Pr.7). Quay tay thử trục xem có kẹt không. Đo cách điện và thông mạch ba pha đầu ra, kiểm tra cáp ra motor.'],
@@ -10557,8 +10561,78 @@ const TT_LOI = [
   ['SV', 'MR-J4', 'AL.E1', 'Cảnh báo quá tải 1', '过载警告1', 'Mô-men đang gần ngưỡng quá tải.', 'Giảm tải hoặc kiểm tra cơ khí trước khi thành AL.50.'],
   ['SV', 'MR-J4', 'AL.E6', 'Cảnh báo dừng khẩn servo', '伺服强制停止警告', 'Chân dừng khẩn EM2/EM1 đang hở.', 'Nhả nút dừng khẩn và kiểm tra mạch an toàn.'],
   ['SV', 'MR-J4', 'AL.E9', 'Cảnh báo chưa đóng mạch chính', '主回路未接通警告', 'Chưa cấp nguồn động lực L1/L2/L3 trong khi nguồn điều khiển đã có.', 'Kiểm tra contactor nguồn động lực và mạch điều khiển contactor đó.'],
-  ['SV', 'MR-J4', 'AL.EC', 'Cảnh báo quá tải 2', '过载警告2', 'Dòng đỉnh lặp lại nhiều lần trong thời gian ngắn.', 'Giảm tần suất tăng/giảm tốc, kiểm tra tải quán tính.']
-].map(([hang, dong, ma, vi, zh, nn, xl]) => ({ hang, dong, ma, vi, zh, nn, xl }));
+  ['SV', 'MR-J4', 'AL.EC', 'Cảnh báo quá tải 2', '过载警告2', 'Dòng đỉnh lặp lại nhiều lần trong thời gian ngắn.', 'Giảm tần suất tăng/giảm tốc, kiểm tra tải quán tính.'],
+  // ----- Biến tần Inovance MD (MD200 · MD280 · MD290 · MD310 · MD380 · MD500 · MD520) -----
+  ['BT', 'MD', 'Err01', 'Bảo vệ khối nghịch lưu', '逆变单元保护', 'Ngắn mạch đầu ra U/V/W; cáp ra chạm nhau hoặc chạm vỏ; mô-đun IGBT hỏng; thời gian tăng tốc quá ngắn.', 'Cắt nguồn, tháo cáp ra motor rồi đo thông mạch và cách điện. Chạy thử không tải; vẫn báo lỗi là hỏng mô-đun công suất.'],
+  ['BT', 'MD', 'Err02', 'Quá dòng khi tăng tốc', '加速过流', 'Thời gian tăng tốc quá ngắn; tải nặng hoặc kẹt; công suất biến tần nhỏ hơn tải; bù mô-men thủ công đặt cao.', 'Kéo dài thời gian tăng tốc (F0-17). Quay tay thử trục. Giảm bù mô-men. Nếu tải thật nặng thì đổi biến tần lớn hơn.'],
+  ['BT', 'MD', 'Err03', 'Quá dòng khi giảm tốc', '减速过流', 'Thời gian giảm tốc quá ngắn; tải quán tính lớn; thiếu điện trở hãm; phanh cơ khí bó.', 'Kéo dài thời gian giảm tốc (F0-18). Lắp hoặc kiểm tra điện trở hãm. Kiểm tra phanh cơ khí có nhả hết không.'],
+  ['BT', 'MD', 'Err04', 'Quá dòng khi chạy đều', '恒速过流', 'Tải tăng đột ngột; kẹt cơ khí; mất pha đầu ra; công suất biến tần nhỏ.', 'Kiểm tra tải và bạc đạn. Đo dòng ba pha xem có lệch. Kiểm tra cáp và đầu cốt ra motor.'],
+  ['BT', 'MD', 'Err05', 'Quá áp khi tăng tốc', '加速过压', 'Điện áp lưới cao; tải kéo ngược trong lúc tăng tốc.', 'Đo điện áp lưới. Kéo dài thời gian tăng tốc. Kiểm tra có nguồn ngoài kéo trục không.'],
+  ['BT', 'MD', 'Err06', 'Quá áp khi giảm tốc', '减速过压', 'Giảm tốc quá nhanh với tải quán tính lớn; thiếu điện trở hãm hoặc điện trở hãm đứt.', 'Kéo dài thời gian giảm tốc. Đo điện trở hãm, kiểm tra đấu nối P/PB (hoặc (+)/PB).'],
+  ['BT', 'MD', 'Err07', 'Quá áp khi chạy đều', '恒速过压', 'Tải kéo ngược (hạ hàng, băng tải xuống dốc); điện áp lưới dao động cao.', 'Lắp điện trở hãm hoặc bộ hãm. Kiểm tra điện áp lưới và máy biến áp.'],
+  ['BT', 'MD', 'Err08', 'Lỗi nguồn điều khiển', '控制电源故障', 'Điện áp vào vượt dải cho phép; nguồn switching trong biến tần hỏng.', 'Đo điện áp vào có đúng dải ghi trên nhãn không. Vẫn lỗi thì phải sửa bo nguồn.'],
+  ['BT', 'MD', 'Err09', 'Thấp áp', '欠压故障', 'Điện áp lưới tụt; mất pha đầu vào; contactor hoặc cầu chì tiếp xúc kém; mất điện tức thời.', 'Đo điện áp ba pha lúc đang tải. Siết đầu cốt R/S/T, kiểm tra cầu chì và contactor.'],
+  ['BT', 'MD', 'Err10', 'Quá tải biến tần', '变频器过载', 'Chạy quá dòng định mức biến tần kéo dài; chọn biến tần nhỏ hơn tải.', 'Giảm tải hoặc đổi biến tần công suất lớn hơn. Kiểm tra tải cơ khí có nặng bất thường không.'],
+  ['BT', 'MD', 'Err11', 'Quá tải động cơ', '电机过载', 'Motor chạy quá tải lâu; hệ số bảo vệ quá tải (F9-01) đặt sai; quạt làm mát motor hỏng.', 'Đo dòng thực tế. Đặt lại F9-01 theo dòng trên nhãn motor. Kiểm tra quạt và tải cơ khí.'],
+  ['BT', 'MD', 'Err12', 'Mất pha đầu vào', '输入缺相', 'Đứt một pha nguồn; cầu chì một pha đứt; đầu cốt R/S/T lỏng.', 'Đo điện áp từng pha. Kiểm tra cầu chì, aptomat, siết lại đầu cốt.'],
+  ['BT', 'MD', 'Err13', 'Mất pha đầu ra', '输出缺相', 'Đứt một pha cáp ra motor; đầu cốt motor lỏng; cuộn dây motor đứt; contactor đầu ra tiếp xúc kém.', 'Đo thông mạch ba pha ra motor và điện trở ba cuộn dây xem có cân nhau không.'],
+  ['BT', 'MD', 'Err14', 'Quá nhiệt mô-đun', '模块过热', 'Quạt làm mát hỏng hoặc bám bụi; nhiệt độ tủ cao; lắp sát tường thiếu khe thoát nhiệt.', 'Vệ sinh tản nhiệt và lưới gió, thay quạt. Kiểm tra quạt hút tủ và nhiệt độ trong tủ.'],
+  ['BT', 'MD', 'Err15', 'Lỗi thiết bị ngoài', '外部设备故障', 'Chân DI đặt chức năng "lỗi ngoài" đang bị kích; rơle nhiệt ngoài nhảy.', 'Kiểm tra thiết bị đấu vào chân DI đó và rơle nhiệt của motor.'],
+  ['BT', 'MD', 'Err16', 'Lỗi truyền thông', '通讯故障', 'Cáp 485 đứt hoặc đấu ngược A/B; sai tốc độ baud hoặc địa chỉ; chủ ngừng gửi lệnh; thiếu điện trở đầu cuối.', 'Kiểm tra cáp và đấu nối 485+/485−, đối chiếu thông số truyền thông hai đầu, bật điện trở đầu cuối ở hai đầu tuyến.'],
+  ['BT', 'MD', 'Err17', 'Lỗi contactor nạp', '接触器故障', 'Contactor nạp mềm không đóng; điện áp lưới thấp; bo nguồn hỏng.', 'Đo điện áp vào. Nghe xem contactor trong biến tần có đóng không khi cấp nguồn.'],
+  ['BT', 'MD', 'Err18', 'Lỗi mạch đo dòng', '电流检测故障', 'Cảm biến Hall hoặc mạch đo dòng hỏng; đầu nối trong máy lỏng.', 'Tắt bật nguồn thử. Lặp lại thì phải sửa bo, không tự xử lý ở xưởng được.'],
+  ['BT', 'MD', 'Err19', 'Lỗi tự học thông số motor', '电机自学习故障', 'Thông số motor nhập sai; tự học khi motor còn nối tải; hết thời gian tự học.', 'Nhập lại đúng thông số trên nhãn motor, tháo tải rồi chạy tự học lại.'],
+  ['BT', 'MD', 'Err20', 'Lỗi encoder / card PG', '码盘故障', 'Cáp encoder đứt, lỏng, đấu sai; chọn sai loại encoder; card PG hỏng.', 'Kiểm tra cáp và loại encoder đã đặt đúng chưa; đi cáp encoder tách khỏi cáp động lực.'],
+  ['BT', 'MD', 'Err21', 'Lỗi đọc ghi thông số', '参数读写异常', 'EEPROM hỏng do ghi thông số quá nhiều lần hoặc mất điện lúc đang ghi.', 'Khôi phục mặc định rồi nạp lại thông số. Vẫn lỗi thì thay bo điều khiển.'],
+  ['BT', 'MD', 'Err22', 'Lỗi phần cứng', '变频器硬件故障', 'Mạch bảo vệ quá áp hoặc quá dòng phần cứng tác động.', 'Xử lý theo lỗi quá áp / quá dòng tương ứng trước. Vẫn lỗi thì phải sửa bo.'],
+  ['BT', 'MD', 'Err23', 'Chạm đất đầu ra', '对地短路', 'Cáp ra motor chạm vỏ; motor ẩm hoặc cháy cách điện.', 'Tháo cáp ra, đo cách điện (megaohm) riêng cáp và riêng motor. Sấy hoặc thay motor nếu cách điện thấp.'],
+  ['BT', 'MD', 'Err26', 'Đến hạn tổng giờ chạy', '累计运行时间到达', 'Tổng giờ chạy đã đạt mức đặt ở thông số bảo dưỡng.', 'Làm bảo dưỡng rồi xoá mốc giờ tích luỹ trong thông số.'],
+  ['BT', 'MD', 'Err27', 'Lỗi tự đặt 1', '用户自定义故障1', 'Chân DI đặt chức năng lỗi tự định nghĩa 1 đang bị kích.', 'Kiểm tra thiết bị đấu vào chân DI đó theo sơ đồ của nhà máy.'],
+  ['BT', 'MD', 'Err28', 'Lỗi tự đặt 2', '用户自定义故障2', 'Chân DI đặt chức năng lỗi tự định nghĩa 2 đang bị kích.', 'Kiểm tra thiết bị đấu vào chân DI đó theo sơ đồ của nhà máy.'],
+  ['BT', 'MD', 'Err29', 'Đến hạn tổng giờ cấp nguồn', '累计上电时间到达', 'Tổng giờ cấp nguồn đã đạt mức đặt.', 'Xoá mốc giờ tích luỹ sau khi kiểm tra thiết bị.'],
+  ['BT', 'MD', 'Err30', 'Mất tải', '掉载故障', 'Dòng ra tụt dưới ngưỡng phát hiện mất tải: đứt dây đai, gãy khớp nối, motor quay không tải.', 'Kiểm tra khớp nối và dây đai. Nếu máy chạy không tải là bình thường thì tắt chức năng phát hiện mất tải.'],
+  ['BT', 'MD', 'Err31', 'Mất phản hồi PID khi chạy', '运行时PID反馈丢失', 'Cảm biến áp suất / lưu lượng hỏng hoặc đứt dây; tín hiệu dưới ngưỡng.', 'Đo tín hiệu cảm biến đưa về chân AI, kiểm tra nguồn cấp cho cảm biến.'],
+  ['BT', 'MD', 'Err40', 'Lỗi hạn dòng từng chu kỳ', '逐波限流故障', 'Tải quá nặng kéo dài, biến tần liên tục phải hạn dòng; công suất biến tần nhỏ hơn tải.', 'Giảm tải, kiểm tra cơ khí, hoặc đổi biến tần lớn hơn.'],
+  ['BT', 'MD', 'Err41', 'Lỗi chuyển motor khi đang chạy', '运行时切换电机故障', 'Đổi bộ thông số motor trong lúc biến tần đang chạy.', 'Dừng hẳn biến tần rồi mới chuyển sang bộ thông số motor khác.'],
+  ['BT', 'MD', 'Err42', 'Sai lệch tốc độ quá lớn', '速度偏差过大', 'Tải kẹt; thông số encoder sai; ngưỡng phát hiện sai lệch đặt quá nhỏ.', 'Kiểm tra cơ khí và encoder, đặt lại ngưỡng và thời gian phát hiện cho hợp tải.'],
+  ['BT', 'MD', 'Err43', 'Vượt tốc', '电机超速', 'Thông số encoder sai; ngưỡng vượt tốc đặt quá nhỏ; tải kéo motor vượt tốc.', 'Kiểm tra số xung encoder và tỉ số truyền, đặt lại ngưỡng vượt tốc.'],
+  ['BT', 'MD', 'Err45', 'Quá nhiệt động cơ', '电机过温', 'Motor quá nhiệt; cảm biến nhiệt trong motor đứt hoặc đấu sai chân AI.', 'Đo nhiệt độ vỏ motor, kiểm tra quạt làm mát và dây cảm biến nhiệt.'],
+  ['BT', 'MD', 'Err51', 'Lỗi vị trí ban đầu', '初始位置错误', 'Thông số motor đồng bộ không khớp; chưa chạy nhận dạng vị trí ban đầu.', 'Nhập lại thông số motor và chạy tự học lại theo hướng dẫn của dòng máy.'],
+  // ----- Servo / driver Inovance (SV660 · IS620 · SV620) -----
+  ['SV', 'SV660', 'Er.101', 'Lỗi thông số bên trong', '参数异常', 'Thông số vượt dải hoặc hỏng vùng nhớ sau khi nâng cấp phần mềm.', 'Khôi phục mặc định rồi nạp lại thông số. Vẫn lỗi thì thay bộ điều khiển.'],
+  ['SV', 'SV660', 'Er.102', 'Lỗi phần mềm / phần cứng không khớp', '逻辑配置故障', 'Phiên bản phần mềm và phần cứng không hợp nhau.', 'Liên hệ hãng để nạp đúng phiên bản; không tự xử lý ở xưởng.'],
+  ['SV', 'SV660', 'Er.104', 'Lỗi logic điều khiển', '逻辑错误', 'Nhiễu mạnh; bo điều khiển lỗi.', 'Kiểm tra tiếp đất và chống nhiễu, tách cáp động lực khỏi cáp tín hiệu. Vẫn lỗi thì thay bộ điều khiển.'],
+  ['SV', 'SV660', 'Er.105', 'Lỗi đọc ghi thông số', '内部程序异常', 'Ghi thông số quá nhiều lần; mất điện lúc đang ghi.', 'Khôi phục mặc định, nạp lại thông số rồi tắt bật nguồn.'],
+  ['SV', 'SV660', 'Er.120', 'Sai tổ hợp driver và động cơ', '产品匹配故障', 'Mã motor không hợp với mã driver; thông số motor đặt sai.', 'Đối chiếu mã motor và mã driver theo catalogue, đặt lại mã motor cho đúng.'],
+  ['SV', 'SV660', 'Er.121', 'Lệnh sai khi servo đang bật', '伺服ON指令无效', 'Gửi lệnh chạy thử hoặc lệnh nội bộ trong khi servo đang ở trạng thái bật.', 'Tắt servo (servo OFF) rồi mới gửi lệnh đó.'],
+  ['SV', 'SV660', 'Er.136', 'Lỗi đọc dữ liệu trong encoder', '编码器参数异常', 'Cáp encoder đứt hoặc chập chờn; bộ nhớ trong encoder hỏng.', 'Cắm lại và đo thông mạch cáp encoder; thử cáp khác. Vẫn lỗi thì thay motor hoặc encoder.'],
+  ['SV', 'SV660', 'Er.201', 'Quá dòng', '过流', 'Ngắn mạch đầu ra U/V/W; motor kẹt; gain quá cao; IGBT hỏng.', 'Cắt nguồn, đo thông mạch và cách điện cáp ra. Quay tay trục xem có kẹt. Giảm gain rồi thử lại không tải.'],
+  ['SV', 'SV660', 'Er.207', 'Dòng ra ba pha không cân', '三相电流不平衡', 'Một pha cáp ra đứt hoặc tiếp xúc kém; cuộn dây motor chạm chập.', 'Đo thông mạch ba pha U/V/W và điện trở ba cuộn dây motor.'],
+  ['SV', 'SV660', 'Er.208', 'Quá thời gian xử lý', '处理超时', 'Nhiễu mạnh; bo điều khiển lỗi.', 'Kiểm tra tiếp đất, chống nhiễu. Lặp lại thì thay bộ điều khiển.'],
+  ['SV', 'SV660', 'Er.210', 'Chạm đất đầu ra', '输出对地短路', 'Cáp ra motor chạm vỏ; motor cháy cách điện.', 'Tháo cáp U/V/W, đo cách điện riêng cáp và riêng motor.'],
+  ['SV', 'SV660', 'Er.220', 'Sai thứ tự pha động cơ', '电机相序错误', 'Đấu sai thứ tự U/V/W giữa driver và motor.', 'Đấu lại đúng thứ tự U–U, V–V, W–W theo nhãn trên motor.'],
+  ['SV', 'SV660', 'Er.234', 'Chạy ngược chiều lệnh', '飞车', 'Đấu sai pha hoặc sai chiều encoder; thông số chiều quay đặt sai.', 'Kiểm tra thứ tự pha và cáp encoder. Chạy thử không tải trước khi nối tải.'],
+  ['SV', 'SV660', 'Er.400', 'Quá áp mạch chính', '主回路过压', 'Điện áp lưới cao; thiếu điện trở hãm khi tải quán tính lớn; điện trở hãm đứt.', 'Đo điện áp lưới. Lắp hoặc thay điện trở hãm đúng trị số, kiểm tra đấu nối.'],
+  ['SV', 'SV660', 'Er.410', 'Thấp áp mạch chính', '主回路欠压', 'Điện áp nguồn tụt; mất pha; contactor tiếp xúc kém.', 'Đo điện áp nguồn lúc đang tải, siết lại đầu cốt, kiểm tra cầu chì và contactor.'],
+  ['SV', 'SV660', 'Er.420', 'Mất pha nguồn', '主回路缺相', 'Đứt một pha nguồn vào; cầu chì một pha đứt.', 'Đo điện áp từng pha vào driver, kiểm tra cầu chì và aptomat.'],
+  ['SV', 'SV660', 'Er.430', 'Thấp áp nguồn điều khiển', '控制电欠压', 'Nguồn điều khiển tụt áp hoặc chập chờn.', 'Đo nguồn cấp cho mạch điều khiển, kiểm tra đầu cốt và nguồn 24V nếu có.'],
+  ['SV', 'SV660', 'Er.500', 'Vượt tốc', '超速', 'Lệnh tốc độ vượt mức; gain quá cao gây vọt lố; encoder sai tín hiệu.', 'Giảm lệnh tốc độ, chỉnh lại gain, kiểm tra encoder và tỉ số truyền.'],
+  ['SV', 'SV660', 'Er.602', 'Lỗi tự chỉnh gain', '角度辨识失败', 'Chạy tự chỉnh khi tải quá nặng hoặc cơ khí bị kẹt.', 'Tháo bớt tải, kiểm tra cơ khí rồi chạy tự chỉnh lại.'],
+  ['SV', 'SV660', 'Er.605', 'Vượt tốc khi chạy nội bộ', '内部速度超限', 'Lệnh tốc độ nội bộ đặt vượt giới hạn của motor.', 'Đặt lại lệnh tốc độ trong giới hạn ghi trên nhãn motor.'],
+  ['SV', 'SV660', 'Er.620', 'Quá tải động cơ', '电机过载', 'Chạy quá mô-men định mức kéo dài; kẹt cơ khí; phanh chưa nhả; gain thấp.', 'Quay tay trục kiểm tra kẹt, kiểm tra phanh điện từ đã nhả chưa, giảm tải hoặc chỉnh gain.'],
+  ['SV', 'SV660', 'Er.625', 'Quá tải bộ điều khiển', '驱动器过载', 'Dòng đỉnh lặp lại nhiều lần trong thời gian ngắn.', 'Giảm tần suất tăng giảm tốc, kiểm tra tải quán tính, hoặc đổi driver lớn hơn.'],
+  ['SV', 'SV660', 'Er.630', 'Bảo vệ motor bị chặn cứng', '电机堵转过温保护', 'Trục bị chặn, motor không quay được mà vẫn có lệnh.', 'Cắt lệnh, kiểm tra vật cản cơ khí và phanh điện từ.'],
+  ['SV', 'SV660', 'Er.650', 'Quá nhiệt tản nhiệt', '散热器过热', 'Quạt hỏng, tản nhiệt bám bụi, nhiệt độ tủ cao.', 'Vệ sinh tản nhiệt, thay quạt, kiểm tra quạt hút tủ.'],
+  ['SV', 'SV660', 'Er.731', 'Pin encoder yếu', '编码器电池失效', 'Pin giữ vị trí tuyệt đối hết hoặc cáp pin lỏng.', 'Thay pin khi driver vẫn có nguồn; thay lúc mất nguồn sẽ mất vị trí tuyệt đối.'],
+  ['SV', 'SV660', 'Er.733', 'Tràn bộ đếm vòng encoder', '编码器多圈计数溢出', 'Số vòng tích luỹ vượt dải của encoder tuyệt đối.', 'Xoá bộ đếm vòng rồi chạy lại về gốc và đặt lại vị trí tuyệt đối.'],
+  ['SV', 'SV660', 'Er.740', 'Lỗi truyền thông encoder', '编码器通信异常', 'Cáp encoder đứt, lỏng, ẩm đầu nối; nhiễu từ cáp động lực.', 'Kiểm tra đầu nối và gioăng chống ẩm, đi cáp encoder tách khỏi cáp động lực, đo thông mạch.'],
+  ['SV', 'SV660', 'Er.A33', 'Lỗi dữ liệu encoder', '编码器数据异常', 'Encoder hỏng hoặc dữ liệu trong encoder sai.', 'Thử cáp khác; vẫn lỗi thì phải thay encoder hoặc motor.'],
+  ['SV', 'SV660', 'Er.B00', 'Sai lệch vị trí quá lớn', '位置偏差过大', 'Tải nặng hoặc kẹt; gain quá thấp; thời gian tăng tốc quá ngắn; phanh chưa nhả.', 'Kiểm tra cơ khí và phanh, tăng gain, kéo dài thời gian tăng tốc, kiểm tra giới hạn mô-men.'],
+  ['SV', 'SV660', 'Er.B01', 'Tần số xung lệnh quá cao', '指令脉冲频率过高', 'Tần số xung từ PLC vượt mức cho phép; nhiễu trên dây xung.', 'Giảm tần số xung hoặc đổi tỉ lệ điện tử. Dùng cáp xoắn có chống nhiễu, nối đất vỏ cáp.'],
+  ['SV', 'SV660', 'Er.D03', 'Lỗi truyền thông với bộ điều khiển', '通信异常', 'Cáp truyền thông lỏng hoặc đứt; sai thông số truyền thông; chủ ngừng gửi lệnh.', 'Kiểm tra cáp và thông số truyền thông hai đầu, kiểm tra chương trình phía PLC.'],
+  ['SV', 'SV660', 'Er.D09', 'Lỗi hành trình giới hạn', '限位异常', 'Chạm công tắc hành trình; đấu sai chân giới hạn dương/âm.', 'Chạy lùi khỏi công tắc hành trình, kiểm tra đấu nối hai chân giới hạn.'],
+  ['SV', 'SV660', 'Er.950', 'Cảnh báo dừng khẩn cấp', '正向超程警告', 'Chân dừng khẩn hoặc chân giới hạn đang hở.', 'Nhả nút dừng khẩn và kiểm tra mạch an toàn.']
+].map(([hang, dong, ma, vi, zh, nn, xl]) => ({ hang, dong, ma, vi, zh, nn, xl, hsx: TT_HSX[dong] || 'KHAC' }));
 const mlDS = () => (S.base.maLoi || []).filter((x) => x.hoatDong);
 const mlChuan = (v) => String(v || '').toUpperCase().replace(/[\s.\-_]/g, '');
 // Những lần đã gặp mã lỗi này trong sổ sửa chữa / công việc của nhà máy
@@ -10570,10 +10644,11 @@ function ttLoiDaGap(ma) {
 }
 function ttLoiTim(q, loc) {
   const k = String(q || '').trim().toLowerCase(), kc = mlChuan(q);
-  const sanBuilt = TT_LOI.filter((x) => (loc === 'all' || (loc === 'bt' && x.hang === 'BT') || (loc === 'sv' && x.hang === 'SV')));
-  const built = loc === 'nm' ? [] : sanBuilt.filter((x) => !k || mlChuan(x.ma).indexOf(kc) >= 0
-    || [x.vi, x.zh, x.nn, x.xl].some((v) => String(v).toLowerCase().indexOf(k) >= 0));
-  const nm = mlDS().filter((x) => (loc === 'all' || loc === 'nm' || (loc === 'bt' && x.hang === 'BT') || (loc === 'sv' && x.hang === 'SV')))
+  const hop = (x) => loc === 'all' || loc === x.hsx;
+  const built = loc === 'nm' ? [] : TT_LOI.filter(hop).filter((x) => !k || mlChuan(x.ma).indexOf(kc) >= 0
+    || [x.vi, x.zh, x.nn, x.xl, x.dong].some((v) => String(v).toLowerCase().indexOf(k) >= 0));
+  // Ghi chú của nhà máy không gắn hãng nên luôn hiện, trừ khi đang lọc đúng một hãng
+  const nm = mlDS().filter(() => loc === 'all' || loc === 'nm')
     .filter((x) => !k || mlChuan(x.ma).indexOf(kc) >= 0 || [x.tenLoi, x.tenLoiDich, x.cachXuLy].some((v) => String(v || '').toLowerCase().indexOf(k) >= 0));
   return { built, nm };
 }
@@ -10583,7 +10658,8 @@ function ttLoiCard(x) {
   return `<div class="card pad" style="margin-bottom:10px">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <b class="mono" style="font-size:17px">${esc(x.ma)}</b>
-      <span class="pill p-cho">${x.hang === 'BT' ? t('ttLoi_bt') : t('ttLoi_sv')}</span></div>
+      <span class="pill p-cho">${esc(TT_HANG_TEN[x.hsx] || '')} ${esc(x.dong)}</span>
+      <span class="code">${x.hang === 'BT' ? t('ttLoi_bt') : t('ttLoi_sv')}</span></div>
     <div style="margin-top:4px"><b>${esc(x.vi)}</b> <span class="zi" lang="zh-CN">${esc(x.zh)}</span></div>
     <dl class="kv kvwide" style="margin-top:8px"><dt>${t('ttLoiNguyenNhan')}</dt><dd>${esc(x.nn)}</dd>
       <dt>${t('ttLoiXuLy')}</dt><dd>${esc(x.xl)}</dd></dl>
@@ -10614,6 +10690,140 @@ function ttLoiBody(p) {
   return rieng.map(ttLoiNmCard).join('') + r.built.map(ttLoiCard).join('');
 }
 
+// ----- Sơ đồ đấu: bảng chân đấu theo tên in trên máy, KHÔNG vẽ lại sơ đồ của hãng -----
+// Cố ý không ghi số chân của các giắc (CN1 chân mấy…): số chân khác nhau theo đời máy,
+// ghi sai là hỏng thiết bị. Sơ đồ thật thì tải trang manual của hãng vào mục Tài liệu.
+Object.assign(TX, {
+  t_sd: ['Sơ đồ đấu', '接线图'], sdMo: ['Sơ đồ đấu', '接线图'],
+  sdCanhBao: ['Cắt nguồn và chờ đèn CHARGE tắt hẳn mới được mở tủ hay chạm vào đầu cốt. Tụ một chiều còn giữ điện áp nguy hiểm vài phút sau khi cắt nguồn.',
+    '必须断电并等 CHARGE 指示灯完全熄灭后才能开柜或触碰端子。断电后直流电容仍会保持危险电压数分钟。'],
+  sdNguon: ['Bảng dưới ghi TÊN đầu cốt in trên máy và chức năng của nó, không phải sơ đồ của hãng. Số chân của các giắc điều khiển khác nhau theo từng đời máy nên app cố ý không ghi — phải xem manual đúng đời. Tải trang sơ đồ trong manual vào mục Tài liệu để thợ mở ngay tại máy.',
+    '下表为机器上印刷的端子名称及其功能，并非厂家接线图。控制插头的针脚号因型号而异，故本应用不予列出 — 须查阅对应型号手册。请将手册接线图页上传至“设备资料”，方便现场查看。'],
+  sdDongLuc: ['Mạch động lực', '主回路'], sdDieuKhien: ['Mạch điều khiển', '控制回路'],
+  sdGiac: ['Giắc cắm', '插头'], sdLuuY: ['Dễ sai chỗ này', '易错之处'],
+  sdTaiLieu: ['Mở tài liệu của dòng này', '查看该型号资料'],
+  sdChuaCo: ['Chưa có tài liệu nào cho dòng này. Tải trang sơ đồ trong manual lên mục Tài liệu, nhóm Bản vẽ.', '该型号暂无资料。请将手册接线图页上传至“设备资料”的“图纸”类别。'],
+  sdCoN: ['{n} tài liệu', '{n}份资料'],
+  srvMissSD: ['Sơ đồ đấu', '接线图']
+});
+// [khoá, tên, dòng máy, từ khoá tìm tài liệu, mạch động lực, mạch điều khiển, giắc, dễ sai]
+const SD_DS = [
+  { k: 'FR', ten: 'Biến tần Mitsubishi FR', zh: '三菱 FR 变频器', dong: 'FR-E700 · FR-D700 · FR-A700 · FR-F700', tim: 'FR-',
+    dl: [['R/L1 · S/L2 · T/L3', 'Nguồn vào ba pha 380V', '三相380V进线'],
+      ['U · V · W', 'Ra động cơ — KHÔNG BAO GIỜ đấu nguồn lưới vào đây', '接电机 — 严禁接入电源'],
+      ['P/+ · PR', 'Điện trở hãm ngoài (dòng nhỏ)', '外接制动电阻（小容量）'],
+      ['P/+ · N/−', 'Bus một chiều, đấu bộ hãm ngoài', '直流母线，接外部制动单元'],
+      ['P/+ · P1', 'Cuộn kháng cải thiện hệ số công suất (tháo cầu nối khi lắp)', '直流电抗器（加装时取下短接片）'],
+      ['PR · PX', 'Cầu nối chọn transistor hãm trong máy', '内置制动晶体管短接片'],
+      ['⏚ (PE)', 'Tiếp đất vỏ máy và vỏ motor', '机壳与电机接地']],
+    dk: [['STF', 'Lệnh chạy thuận', '正转启动'], ['STR', 'Lệnh chạy nghịch', '反转启动'],
+      ['RH · RM · RL', 'Chọn cấp tốc độ đặt sẵn', '多段速选择'],
+      ['SD', 'Chân chung của đầu vào số (kiểu sink)', '数字输入公共端（漏型）'],
+      ['PC', 'Nguồn 24V ra / chân chung kiểu source', '24V输出 / 源型公共端'],
+      ['10 · 2 · 5', 'Nguồn biến trở 10V · tín hiệu 0–10V vào · chân chung analog', '10V电源·0-10V输入·模拟公共端'],
+      ['4', 'Tín hiệu dòng 4–20mA vào (phải bật AU)', '4-20mA输入（需开启AU）'],
+      ['AM · 5', 'Đồng hồ ra analog', '模拟量输出'],
+      ['A · B · C', 'Tiếp điểm rơle báo lỗi', '故障继电器触点'],
+      ['RUN · SE', 'Đầu ra cực thu hở báo đang chạy', '运行中集电极开路输出']],
+    giac: [['PU', 'Cổng bàn phím và truyền thông RS-485', '操作面板与RS-485通信口']],
+    sai: ['Đấu nhầm nguồn lưới vào U/V/W là cháy máy ngay — kiểm tra hai lần trước khi đóng điện.',
+      'Dùng chân 4 (4–20mA) mà quên bật AU thì biến tần không nhận tín hiệu.',
+      'Lắp cuộn kháng ở P/+ và P1 mà quên tháo cầu nối thì cuộn kháng không có tác dụng.',
+      'Kiểu sink và source chọn bằng cầu nối trên bo — đấu sai thì đầu vào không ăn.'] },
+  { k: 'MRJ4', ten: 'Servo Mitsubishi MR-J4', zh: '三菱 MR-J4 伺服', dong: 'MR-J4 · MR-JE', tim: 'MR-J',
+    dl: [['L1 · L2 · L3', 'Nguồn động lực vào', '主回路电源'],
+      ['L11 · L21', 'Nguồn mạch điều khiển (phải có, kể cả khi cắt mạch động lực)', '控制回路电源'],
+      ['U · V · W', 'Ra động cơ — đúng thứ tự U–U, V–V, W–W', '接电机 — 相序须一一对应'],
+      ['P+ · C', 'Điện trở hãm ngoài (tháo cầu nối P+ – D trước)', '外接再生电阻（先取下 P+ – D 短接片）'],
+      ['P+ · D', 'Cầu nối điện trở hãm trong máy', '内置再生电阻短接片'],
+      ['N−', 'Cực âm bus một chiều', '直流母线负极'],
+      ['⏚ (PE)', 'Tiếp đất — bắt buộc, nếu không encoder sẽ nhiễu', '接地 — 必须，否则编码器受干扰']],
+    dk: [],
+    giac: [['CN1', 'Vào ra điều khiển: lệnh xung, dừng khẩn EM2/EM1, giới hạn hành trình, báo lỗi', '控制输入输出：脉冲指令、急停、限位、报警'],
+      ['CN2', 'Cáp encoder của động cơ', '电机编码器'],
+      ['CN3', 'Truyền thông RS-422 / USB với máy tính', 'RS-422/USB通信'],
+      ['CN4', 'Pin giữ vị trí tuyệt đối', '绝对位置电池'],
+      ['CN8', 'Mạch an toàn STO (có cầu nối sẵn khi không dùng)', 'STO安全回路（不用时带短接插头）'],
+      ['CNP1 · CNP2 · CNP3', 'Giắc cắm mạch động lực và nguồn điều khiển', '主回路与控制电源插头']],
+    sai: ['Quên cấp nguồn L11/L21 thì màn hình không sáng dù đã có nguồn động lực.',
+      'Tháo giắc STO ở CN8 mà không đấu mạch an toàn thì servo không bật được.',
+      'Thay pin ở CN4 lúc mất nguồn sẽ mất vị trí tuyệt đối, báo AL.25 và phải chạy lại gốc.',
+      'Lắp điện trở hãm ngoài mà quên tháo cầu nối P+ – D là cháy điện trở trong máy.'] },
+  { k: 'MD', ten: 'Biến tần Inovance MD', zh: '汇川 MD 变频器', dong: 'MD200 · MD280 · MD290 · MD310 · MD380 · MD500 · MD520', tim: 'MD',
+    dl: [['R · S · T', 'Nguồn vào ba pha 380V', '三相380V进线'],
+      ['U · V · W', 'Ra động cơ — KHÔNG BAO GIỜ đấu nguồn lưới vào đây', '接电机 — 严禁接入电源'],
+      ['(+) · PB', 'Điện trở hãm ngoài', '外接制动电阻'],
+      ['(+) · (−)', 'Bus một chiều, đấu bộ hãm ngoài', '直流母线，接外部制动单元'],
+      ['P · (+)', 'Cuộn kháng một chiều (tháo cầu nối khi lắp)', '直流电抗器（加装时取下短接片）'],
+      ['⏚ (PE)', 'Tiếp đất vỏ máy và vỏ motor', '机壳与电机接地']],
+    dk: [['DI1 … DI5', 'Đầu vào số, gán chức năng bằng thông số F4-00 trở đi', '数字输入，功能由F4-00起设定'],
+      ['COM', 'Chân chung của đầu vào số', '数字输入公共端'],
+      ['+24V', 'Nguồn 24V ra cho đầu vào số và cảm biến', '24V输出'],
+      ['OP', 'Chân chung ngoài khi dùng nguồn 24V bên ngoài (tháo cầu nối +24V – OP)', '外部电源公共端（取下 +24V – OP 短接片）'],
+      ['AI1 · AI2', 'Tín hiệu analog vào, chọn 0–10V hay 4–20mA bằng cầu gạt trên bo', '模拟量输入，拨码选择电压/电流'],
+      ['GND', 'Chân chung analog', '模拟公共端'],
+      ['AO1', 'Đồng hồ ra analog', '模拟量输出'],
+      ['TA · TB · TC', 'Tiếp điểm rơle (TA–TB thường đóng, TA–TC thường mở)', '继电器触点'],
+      ['485+ · 485−', 'Truyền thông Modbus RTU', 'Modbus RTU通信']],
+    giac: [],
+    sai: ['Cầu gạt chọn V/I của AI phải khớp với thông số, không khớp thì tín hiệu sai hoặc hỏng đầu vào.',
+      'Dùng nguồn 24V bên ngoài mà quên tháo cầu nối +24V – OP là chập hai nguồn.',
+      'Lắp cuộn kháng ở P – (+) mà quên tháo cầu nối thì biến tần không chạy.',
+      'Tuyến 485 phải bật điện trở đầu cuối ở hai đầu, không thì lỗi truyền thông Err16.'] },
+  { k: 'SV660', ten: 'Servo Inovance SV660 · IS620', zh: '汇川 SV660 · IS620 伺服', dong: 'SV660 · SV620 · IS620', tim: 'SV6',
+    dl: [['L1 · L2 · L3', 'Nguồn động lực vào', '主回路电源'],
+      ['L1C · L2C', 'Nguồn mạch điều khiển', '控制回路电源'],
+      ['U · V · W', 'Ra động cơ — đúng thứ tự, sai là báo Er.220', '接电机 — 相序错误报 Er.220'],
+      ['P⊕ · C', 'Điện trở hãm ngoài (tháo cầu nối P⊕ – D trước)', '外接制动电阻（先取下 P⊕ – D 短接片）'],
+      ['P⊕ · D', 'Cầu nối điện trở hãm trong máy', '内置制动电阻短接片'],
+      ['⊖', 'Cực âm bus một chiều', '直流母线负极'],
+      ['⏚ (PE)', 'Tiếp đất — bắt buộc cho cả driver và motor', '接地 — 驱动器与电机均须接地']],
+    dk: [],
+    giac: [['CN1', 'Vào ra điều khiển: lệnh xung, giới hạn hành trình, báo lỗi, phanh điện từ', '控制输入输出：脉冲指令、限位、报警、抱闸'],
+      ['CN2', 'Cáp encoder của động cơ', '电机编码器'],
+      ['CN3 · CN4', 'Truyền thông với máy tính và nối tầng nhiều trục', '通信口与多轴级联'],
+      ['CN5', 'Pin giữ vị trí tuyệt đối (encoder tuyệt đối)', '绝对值编码器电池']],
+    sai: ['Thay pin encoder lúc mất nguồn sẽ mất vị trí tuyệt đối, phải chạy lại gốc.',
+      'Phanh điện từ của motor phải có nguồn riêng, không lấy trực tiếp từ CN1.',
+      'Lắp điện trở hãm ngoài mà quên tháo cầu nối P⊕ – D là cháy điện trở trong máy.',
+      'Cáp encoder phải đi riêng, tách khỏi cáp động lực, nếu không hay báo Er.740.'] }
+];
+// Tài liệu đã tải lên cho dòng máy này (tìm theo từ khoá trong tên tệp hoặc đường dẫn)
+function sdTaiLieu(tim) {
+  const k = String(tim || '').toLowerCase();
+  if (!k || typeof tlAll !== 'function') return [];
+  return tlAll().filter((x) => [x.ten, x.duongDan].some((v) => String(v || '').toLowerCase().includes(k)));
+}
+VIEWS.sd = {
+  html(p) {
+    if (srvOld('kd')) return srvWarn('kd');
+    const mo = p.mo || '';
+    let o = `<div class="note" style="margin-bottom:12px">${t('sdCanhBao')}</div>`;
+    o += SD_DS.map((d) => {
+      const tl = sdTaiLieu(d.tim), hien = mo === d.k;
+      let c = `<button class="row" data-act="sdMo" data-k="${d.k}"><div class="main">
+        <div class="nm">${esc(d.ten)} <span class="zi" lang="zh-CN">${esc(d.zh)}</span></div>
+        <div class="sub">${esc(d.dong)}</div>
+        <div class="sub">${tl.length ? t('sdCoN', { n: tl.length }) : t('sdChuaCo')}</div></div>${IC.chev}</button>`;
+      if (!hien) return `<div class="list" style="margin-bottom:8px">${c}</div>`;
+      const bang = (nhan, ds) => ds.length ? `<div class="sec"><h2>${t(nhan)}</h2></div>
+        <div class="card pad"><dl class="kv kvwide">${ds.map(([a, b, z]) => `<dt class="mono">${esc(a)}</dt>
+          <dd>${esc(b)}<div class="zi" lang="zh-CN">${esc(z)}</div></dd>`).join('')}</dl></div>` : '';
+      return `<div class="list" style="margin-bottom:8px">${c}</div>
+        ${bang('sdDongLuc', d.dl)}${bang('sdDieuKhien', d.dk)}${bang('sdGiac', d.giac)}
+        <div class="sec"><h2>${t('sdLuuY')}</h2></div>
+        <div class="card pad"><ul style="margin:0;padding-left:18px">${d.sai.map((s) => `<li style="margin-bottom:6px">${esc(s)}</li>`).join('')}</ul></div>
+        <div class="btns" style="margin:10px 0 16px"><button class="btn ghost sm" data-act="sdTL" data-tim="${esc(d.tim)}">${IC.img} ${t('sdTaiLieu')}${tl.length ? ` (${tl.length})` : ''}</button></div>`;
+    }).join('');
+    o += `<div class="help" style="margin-top:10px">${t('sdNguon')}</div>`;
+    return o;
+  }
+};
+Object.assign(ACT, {
+  sdMo: (el) => { const p = topV().p; p.mo = p.mo === el.dataset.k ? '' : el.dataset.k; render(); },
+  sdTL: (el) => go('tlDS', { init: 1, nhom: '', q: el.dataset.tim })
+});
+
 const TT_SEG = [['dc', 'tt_dc'], ['day', 'tt_day'], ['tu', 'tt_tu'], ['su', 'tt_su'], ['loi', 'tt_loi']];
 VIEWS.tt = {
   html(p) {
@@ -10630,7 +10840,7 @@ VIEWS.tt = {
       if (srvOld('maloi')) return o + srvWarn('maloi');
       return o + `<div class="note" style="margin-bottom:12px">${t('ttLoiCanh')}</div>
         <div class="tools"><div class="searchbox">${IC.search}<input class="inp" id="ttLoiQ" type="search" value="${esc(p.loi.q)}" placeholder="${esc(tp('ttLoiPh'))}" autocomplete="off"></div>
-        <div class="hscroll stchips">${[['all', 'ttLoi_all'], ['bt', 'ttLoi_bt'], ['sv', 'ttLoi_sv'], ['nm', 'ttLoi_nm']].map(([v, k]) => `<button class="chip${p.loi.loc === v ? ' on' : ''}" data-act="ttLoiLoc" data-v="${v}">${t(k)}</button>`).join('')}</div></div>
+        <div class="hscroll stchips">${[['all', 'ttLoi_all'], ['MIT', 'ttLoi_mit'], ['INV', 'ttLoi_inv'], ['nm', 'ttLoi_nm']].map(([v, k]) => `<button class="chip${p.loi.loc === v ? ' on' : ''}" data-act="ttLoiLoc" data-v="${v}">${t(k)}</button>`).join('')}</div></div>
         <div id="ttLoiBody" style="margin-top:12px">${ttLoiBody(p)}</div>
         <div class="help" style="margin-top:10px">${t('ttLoiNguon')}</div>`;
     }
