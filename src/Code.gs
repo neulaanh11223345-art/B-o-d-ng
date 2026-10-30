@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.20.0';
+var PHIEN_BAN = '2.28.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -87,11 +87,22 @@ var BANG = {
   NguoiTruc: ['ID', 'Ten', 'TenZh', 'DienThoai', 'Nhom', 'ThuTu', 'HoatDong', 'CapNhat', 'Cap'],
   // Bảng phân công ca trực từng tuần: TuNgay = thứ Hai của tuần · Ca: NGAY (7h30–19h30) · DEM (19h30–7h30)
   // Tên và số điện thoại lưu luôn theo người đã chọn, để bảng tuần cũ không đổi khi danh sách đổi
-  PhanCa: ['TuNgay', 'Nhom', 'Ca', 'NguoiID', 'Ten', 'TenZh', 'DienThoai', 'Nguoi', 'CapNhat']
+  PhanCa: ['TuNgay', 'Nhom', 'Ca', 'NguoiID', 'Ten', 'TenZh', 'DienThoai', 'Nguoi', 'CapNhat'],
+  // Sổ kiểm định thiết bị. NghiemNgat = 1: thuộc danh mục máy, thiết bị có yêu cầu nghiêm ngặt về an toàn, vệ sinh lao động.
+  // Ma: mã máy / chuyền trong danh mục (để trống nếu thiết bị không nằm trong danh mục máy, vd xe nâng, bình khí).
+  // KetQua: DAT · KHONG_DAT · CHUA (chưa kiểm định lần nào) · ChuKy: số tháng giữa hai lần kiểm định
+  // LichSu (JSON): các lần đã kiểm định [{ngay, hetHan, donVi, soGiay, ketQua, nguoi, luc, gc}]
+  KiemDinh: ['ID', 'Ten', 'TenZh', 'Loai', 'Ma', 'SoHieu', 'NhaSX', 'NamSX', 'ThongSo', 'ViTri', 'NghiemNgat',
+    'DonViKD', 'SoGiayKD', 'NgayKD', 'NgayHetHan', 'ChuKy', 'KetQua', 'NgayKhaiBao', 'GhiChu', 'GhiChuDich',
+    'HoatDong', 'LichSu', 'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat'],
+  // Ghi chú mã lỗi của riêng nhà máy (bảng tra lỗi dựng sẵn nằm trong app, không lưu ở đây).
+  // Hang: BT (biến tần) · SV (servo / driver) · KHAC
+  MaLoi: ['ID', 'Hang', 'Dong', 'Ma', 'TenLoi', 'TenLoiDich', 'CachXuLy', 'CachXuLyDich', 'HoatDong',
+    'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
-  NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'],
+  NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'], KiemDinh: ['NamSX', 'ChuKy', 'NghiemNgat', 'HoatDong'], MaLoi: ['HoatDong'],
   NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
@@ -111,6 +122,7 @@ var THONG_SO_MAC_DINH = [
 var VAI_TRO = { admin: 'Quản trị · 管理员', quanly: 'Quản lý · 主管', kythuat: 'Kỹ thuật · 技术员' };
 var QUYEN = {
   xacnhan: ['admin', 'quanly', 'kythuat'],
+  ghiviec: ['admin', 'quanly'],     // ghi việc mới: chỉ Quản lý, Quản trị. Kỹ thuật làm việc được giao và ghi sửa chữa.
   may: ['admin', 'quanly'],
   huy: ['admin', 'quanly'],
   nguoidung: ['admin'],
@@ -127,11 +139,12 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg', 'importMin',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
-  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring',
+  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'saveFault', 'deleteFault',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
+  wwBat: false, wwUrl: '', wwTen: '',               // robot nhóm WeChat Work · 企业微信群机器人
   mailBat: false, baoXong: false, linkApp: '',
   baoViec: true,                     // báo lên Telegram khi giao việc
   saoLuuTat: false,                  // true = tắt sao lưu tự động hằng đêm
@@ -318,8 +331,13 @@ function dieuHuong(a, p, req) {
     case 'importKho': canQuyen(u, 'may'); return nhapKho(u, p);
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
     case 'saveKhoCfg': canQuyen(u, 'may'); return luuKhoCfg(u, p);
+    case 'saveInspect': canQuyen(u, 'may'); return luuKiemDinh(u, p);
+    case 'doInspect': canQuyen(u, 'may'); return ghiKiemDinh(u, p);
+    case 'deleteInspect': canQuyen(u, 'may'); return xoaKiemDinh(u, p);
+    case 'saveFault': canQuyen(u, 'may'); return luuMaLoi(u, p);
+    case 'deleteFault': canQuyen(u, 'may'); return xoaMaLoi(u, p);
     case 'importMin': canQuyen(u, 'may'); return nhapTonMin(u, p);
-    case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
+    case 'saveTask': canQuyen(u, 'ghiviec'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
     case 'saveOT': return luuTangCa(u, p, s(req.opId));
     case 'deleteOT': return xoaTangCa(u, p);
@@ -631,6 +649,16 @@ function dsCaTC() {
   var ds = docCaiDat().caTangCa;
   return ds && ds.length ? ds : CAI_DAT_MAC_DINH.caTangCa;
 }
+// Nhân viên chỉ ghi / sửa tăng ca trong khoảng [thứ Hai tuần trước … hôm nay]:
+// mỗi thứ Hai là tuần cũ nhất tự khoá lại, và không ghi trước cho ngày mai được.
+// Quản lý, Quản trị (quyền xemhet) không bị khoá — ai ghi sai tuần cũ thì báo Quản lý sửa hộ.
+function tcMoTu(homNay) { return congNgay(trucThuHai(homNay), -7); }
+function tcKhoa(u, ngay) {
+  if (coQuyen(u, 'xemhet')) return;
+  var homNay = homNayStr();
+  if (ngay > homNay) throw loi('TC_TUONG_LAI', 'Chưa ghi trước cho ngày chưa tới · 不能提前登记未来日期');
+  if (ngay < tcMoTu(homNay)) throw loiDL('TC_DA_KHOA', 'Tuần này đã khoá, nhờ Quản lý sửa · 该周已锁定，请管理人员修改', { tu: tcMoTu(homNay) });
+}
 function luuTangCa(u, p, opId) {
   var ds = docTangCa(), id = s(p.id).toUpperCase();
   var x = id ? ds.filter(function (r) { return r.id === id && !r.xoa; })[0] : null;
@@ -647,6 +675,8 @@ function luuTangCa(u, p, opId) {
   if (!nvs.some(function (n) { return n.id === uid; })) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
   var ngay = ngayStr(p.ngay);
   if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  if (x) tcKhoa(u, x.ngay);          // bản ghi cũ phải còn trong khoảng sửa được
+  tcKhoa(u, ngay);                   // ngày mới cũng phải nằm trong khoảng đó
   var ca = s(p.ca) || 'HC';
   if (!dsCaTC().some(function (c) { return c.k === ca; })) throw loi('CA_SAI', 'Ca làm việc không hợp lệ · 班次无效');
   var tu = s(p.tu), den = s(p.den);
@@ -674,6 +704,7 @@ function xoaTangCa(u, p) {
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
   if (x.xoa) return { xoaTC: x.id };
   if (x.uid !== u.id && !coQuyen(u, 'xemhet')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  tcKhoa(u, x.ngay);
   capNhatTieuDe('TangCa');
   x.xoa = true; x.capNhat = thoiGianStr();
   suaDong('TangCa', x._r, tcThanhDong(x));
@@ -745,6 +776,8 @@ function layDuLieu(u) {
       return o;
     }),
     kho: coQuyen(u, 'xemhet') ? khoTomTat() : null,
+    kiemDinh: coQuyen(u, 'may') ? docKiemDinh().map(sachKD) : [],
+    maLoi: coQuyen(u, 'may') ? docMaLoi().map(sachML) : [],
     me: congKhai(u),
     phienBan: PHIEN_BAN
   };
@@ -1278,9 +1311,9 @@ var CV_KHOA = ['id', 'so', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'han', 'tra
 // nguon: 'SC' = bản ghi sửa chữa (Ghi sửa chữa), chỉ lưu làm lịch sử, không hiện trong danh sách công việc
 var VL_KHOA = ['id', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'kieu', 'ngay', 'uidLam', 'canKiemTra', 'hoatDong', 'taoDen', 'nguoiTao', 'capNhat',
   'tieuDeDich', 'moTaDich', 'uidPhu', 'dsGiao'];
-var CV_JSON = { uidPhu: 1, linhKien: 1, anhTao: 1, anhXong: 1, nhatKy: 1, dsGiao: 1 };
-var CV_BOOL = { canKiemTra: 1, hoatDong: 1 };
-var CV_NGAY = { han: 1, taoDen: 1 };
+var CV_JSON = { uidPhu: 1, linhKien: 1, anhTao: 1, anhXong: 1, nhatKy: 1, dsGiao: 1, lichSu: 1 };
+var CV_BOOL = { canKiemTra: 1, hoatDong: 1, nghiemNgat: 1 };
+var CV_NGAY = { han: 1, taoDen: 1, ngayKD: 1, ngayHetHan: 1, ngayKhaiBao: 1 };
 function obTuDong(khoa, r, i) {
   var o = { _r: i + 2 };
   khoa.forEach(function (k, j) {
@@ -1757,6 +1790,192 @@ function luuViecLap(u, p) {
   if (x.hoatDong && x.taoDen >= homNay) x.taoDen = congNgay(homNay, -1);
   var moi = x.hoatDong && x.taoDen < homNay ? taoTuMau(x, homNay, docCongViec(), nvs) : [];
   return { viecLap: sachCV(x), dsCongViec: moi.map(sachCV) };
+}
+
+// ===================== Kiểm định thiết bị · 设备检定 =====================
+// Sổ riêng cho thiết bị phải kiểm định kỹ thuật an toàn định kỳ, trong đó có nhóm có yêu cầu
+// NGHIÊM NGẶT về an toàn, vệ sinh lao động (xe nâng, nồi hơi, bình chịu áp lực, palăng, thang máy…).
+// Thiết bị nào đã có trong danh mục máy thì nối bằng cột Ma; thiết bị không có trong danh mục vẫn ghi được.
+// Chỉ Quản lý, Quản trị (quyền may) xem và sửa.
+var KD_KHOA = ['id', 'ten', 'tenZh', 'loai', 'ma', 'soHieu', 'nhaSX', 'namSX', 'thongSo', 'viTri', 'nghiemNgat',
+  'donViKD', 'soGiayKD', 'ngayKD', 'ngayHetHan', 'chuKy', 'ketQua', 'ngayKhaiBao', 'ghiChu', 'ghiChuDich',
+  'hoatDong', 'lichSu', 'nguoiTao', 'uidTao', 'lucTao', 'capNhat'];
+var KD_KQ = ['DAT', 'KHONG_DAT', 'CHUA'];
+var KD_LICH_SU_TOI_DA = 30;
+// Nhóm thiết bị theo danh mục có yêu cầu nghiêm ngặt về an toàn, vệ sinh lao động của Bộ LĐ-TB&XH.
+// nn = 1: mặc định thuộc nhóm nghiêm ngặt. ck: chu kỳ kiểm định thường gặp (tháng) — sửa lại được cho từng thiết bị.
+var KD_LOAI = [
+  { k: 'NOI_HOI', vi: 'Nồi hơi, nồi đun nước nóng', zh: '锅炉、热水锅炉', nn: 1, ck: 24 },
+  { k: 'BINH_AL', vi: 'Bình chịu áp lực', zh: '压力容器', nn: 1, ck: 36 },
+  { k: 'DUONG_ONG', vi: 'Hệ thống đường ống hơi, nước nóng', zh: '蒸汽、热水管道系统', nn: 1, ck: 36 },
+  { k: 'HE_LANH', vi: 'Hệ thống lạnh', zh: '制冷系统', nn: 1, ck: 36 },
+  { k: 'CHAI_KHI', vi: 'Chai, bình chứa khí', zh: '气瓶、储气罐', nn: 1, ck: 36 },
+  { k: 'CAN_TRUC', vi: 'Cần trục, cầu trục, cổng trục', zh: '起重机、桥式起重机', nn: 1, ck: 36 },
+  { k: 'PA_LANG', vi: 'Palăng, tời nâng tải', zh: '葫芦、提升卷扬机', nn: 1, ck: 36 },
+  { k: 'XE_NANG', vi: 'Xe nâng hàng, xe nâng người', zh: '叉车、高空作业车', nn: 1, ck: 24 },
+  { k: 'SAN_NANG', vi: 'Sàn nâng, bàn nâng', zh: '升降平台', nn: 1, ck: 24 },
+  { k: 'THANG_MAY', vi: 'Thang máy', zh: '电梯', nn: 1, ck: 36 },
+  { k: 'THANG_CUON', vi: 'Thang cuốn, băng tải chở người', zh: '自动扶梯、自动人行道', nn: 1, ck: 36 },
+  { k: 'MAY_HAN', vi: 'Thiết bị hàn hơi', zh: '气焊设备', nn: 1, ck: 36 },
+  { k: 'NEN_KHI', vi: 'Máy nén khí', zh: '空压机', nn: 0, ck: 36 },
+  { k: 'DIEN', vi: 'Thiết bị điện, hệ thống chống sét', zh: '电气设备、防雷系统', nn: 0, ck: 12 },
+  { k: 'PCCC', vi: 'Thiết bị phòng cháy chữa cháy', zh: '消防设备', nn: 0, ck: 12 },
+  { k: 'DO_LUONG', vi: 'Thiết bị đo lường phải hiệu chuẩn', zh: '需校准的计量设备', nn: 0, ck: 12 },
+  { k: 'KHAC', vi: 'Khác', zh: '其他', nn: 0, ck: 12 }
+];
+function kdLoaiOf(k) {
+  k = s(k).toUpperCase();
+  for (var i = 0; i < KD_LOAI.length; i++) if (KD_LOAI[i].k === k) return KD_LOAI[i];
+  return null;
+}
+function kdThanhDong(x) { return obThanhDong(KD_KHOA, x); }
+function docKiemDinh() { return docTho('KiemDinh').map(function (r, i) { return obTuDong(KD_KHOA, r, i); }).filter(function (x) { return x.id; }); }
+function sachKD(x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; }); return o; }
+// Hạn kiểm định kế tiếp = ngày kiểm định + chu kỳ (tháng), lùi một ngày cho đúng "đến hết ngày…"
+function kdHetHan(ngay, thang) {
+  if (!hopLeNgay(ngay) || !(thang > 0)) return '';
+  var y = +ngay.slice(0, 4), m = +ngay.slice(5, 7), d = +ngay.slice(8, 10);
+  var tong = (y * 12 + (m - 1)) + Math.round(thang), y2 = Math.floor(tong / 12), m2 = tong % 12 + 1;
+  var cuoi = cuoiThang(y2, m2);
+  var ngay2 = y2 + '-' + ('0' + m2).slice(-2) + '-' + ('0' + Math.min(d, cuoi)).slice(-2);
+  return congNgay(ngay2, -1);
+}
+function kdTruong(p) {
+  var ten = catChu(p.ten, 120);
+  if (!ten) throw loi('THIEU_TEN', 'Chưa nhập tên thiết bị · 请输入设备名称');
+  var lo = kdLoaiOf(p.loai);
+  if (!lo) throw loi('KD_LOAI_SAI', 'Loại thiết bị không hợp lệ · 设备类别无效');
+  var ma = s(p.ma).toUpperCase();
+  if (ma && !timMay(ma) && !dsChuyen().some(function (c) { return c.ma === ma; })) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
+  var ck = Math.round(Number(p.chuKy));
+  if (!(ck >= 1 && ck <= 120)) ck = lo.ck;
+  var nam = s(p.namSX) === '' ? '' : Math.round(Number(p.namSX));
+  if (nam !== '' && !(nam >= 1950 && nam <= 2100)) throw loi('NAM_SX_SAI', 'Năm sản xuất không hợp lệ · 出厂年份无效');
+  return { ten: ten, loai: lo.k, ma: ma, soHieu: catChu(p.soHieu, 80), nhaSX: catChu(p.nhaSX, 120), namSX: nam,
+    thongSo: catChu(p.thongSo, 200), viTri: catChu(p.viTri, 120), chuKy: ck,
+    nghiemNgat: p.nghiemNgat === undefined || p.nghiemNgat === null ? !!lo.nn : !!p.nghiemNgat };
+}
+function luuKiemDinh(u, p) {
+  var ds = docKiemDinh(), id = s(p.id), x = id ? ds.filter(function (r) { return r.id === id; })[0] : null;
+  if (id && !x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  var f = kdTruong(p), bay = thoiGianStr();
+  capNhatTieuDe('KiemDinh');
+  var tenZh = x ? dichKhiSua(f.ten, x.ten, x.tenZh, p.tenZh) : songNgu(f.ten, p.tenZh);
+  var gcGoc = catNhieuDong(p.ghiChu, 500).trim();
+  var gc = x ? dichKhiSua(gcGoc, x.ghiChu, x.ghiChuDich, p.ghiChuDich) : songNgu(gcGoc, p.ghiChuDich);
+  var kb = s(p.ngayKhaiBao) ? ngayStr(p.ngayKhaiBao) : (x ? x.ngayKhaiBao : '');
+  if (kb && !hopLeNgay(kb)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  var moi = !x;
+  if (moi) x = { id: idMoi('KD', dsIdCo(ds)), ngayKD: '', ngayHetHan: '', ketQua: 'CHUA', soGiayKD: '', donViKD: '',
+    lichSu: [], nguoiTao: u.ten, uidTao: u.id, lucTao: bay };
+  x.ten = f.ten; x.tenZh = tenZh[1] || ''; x.loai = f.loai; x.ma = f.ma; x.soHieu = f.soHieu;
+  x.nhaSX = f.nhaSX; x.namSX = f.namSX; x.thongSo = f.thongSo; x.viTri = f.viTri;
+  x.nghiemNgat = f.nghiemNgat; x.ngayKhaiBao = kb;
+  x.ghiChu = gc[0]; x.ghiChuDich = gc[1];
+  x.hoatDong = p.hoatDong !== false;
+  // Đổi chu kỳ thì hạn kế tiếp tính lại theo lần kiểm định gần nhất
+  if (x.chuKy !== f.chuKy || !x.ngayHetHan) { x.chuKy = f.chuKy; if (x.ngayKD) x.ngayHetHan = kdHetHan(x.ngayKD, x.chuKy); }
+  x.capNhat = bay;
+  if (moi) themDong('KiemDinh', kdThanhDong(x)); else suaDong('KiemDinh', x._r, kdThanhDong(x));
+  ghiNhatKy(u, moi ? 'THEM_KIEM_DINH' : 'SUA_KIEM_DINH', 'KiemDinh', x.id, '', x.ten, '');
+  return { kiemDinh: sachKD(x) };
+}
+// Ghi một lần kiểm định: cập nhật giấy chứng nhận đang có hiệu lực và đẩy lần cũ vào lịch sử
+function ghiKiemDinh(u, p) {
+  var ds = docKiemDinh(), x = ds.filter(function (r) { return r.id === s(p.id); })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  var ngay = ngayStr(p.ngayKD);
+  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  if (ngay > homNayStr()) throw loi('NGAY_TUONG_LAI', 'Chưa ghi trước cho ngày chưa tới · 不能提前登记未来日期');
+  var kq = KD_KQ.indexOf(s(p.ketQua)) >= 0 ? s(p.ketQua) : 'DAT';
+  if (kq === 'CHUA') throw loi('KD_KQ_SAI', 'Chọn kết quả kiểm định · 请选择检定结果');
+  var ck = Math.round(Number(p.chuKy));
+  if (!(ck >= 1 && ck <= 120)) ck = x.chuKy;
+  var dv = catChu(p.donViKD, 150), sg = catChu(p.soGiayKD, 80);
+  if (!dv) throw loi('KD_THIEU_DV', 'Chưa nhập đơn vị kiểm định · 请填写检定单位');
+  var hh = s(p.ngayHetHan) ? ngayStr(p.ngayHetHan) : kdHetHan(ngay, ck);
+  if (hh && !hopLeNgay(hh)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  if (hh && hh < ngay) throw loi('NGAY_SAI', 'Hạn kiểm định phải sau ngày kiểm định · 有效期须晚于检定日期');
+  var bay = thoiGianStr();
+  capNhatTieuDe('KiemDinh');
+  var gcD = songNgu(catNhieuDong(p.ghiChu, 300).trim());
+  x.lichSu = (x.lichSu || []).concat([{ ngay: ngay, hetHan: kq === 'DAT' ? hh : '', donVi: dv, soGiay: sg, ketQua: kq,
+    nguoi: u.ten, luc: bay, gc: gcD[0], gcDich: gcD[1] }]);
+  x.lichSu.sort(function (a, b) { return a.ngay < b.ngay ? 1 : a.ngay > b.ngay ? -1 : 0; });
+  if (x.lichSu.length > KD_LICH_SU_TOI_DA) x.lichSu = x.lichSu.slice(0, KD_LICH_SU_TOI_DA);
+  x.ngayKD = ngay; x.donViKD = dv; x.soGiayKD = sg; x.ketQua = kq; x.chuKy = ck;
+  x.ngayHetHan = kq === 'DAT' ? hh : '';          // không đạt thì không có hạn, phải kiểm định lại
+  x.capNhat = bay;
+  suaDong('KiemDinh', x._r, kdThanhDong(x));
+  ghiNhatKy(u, 'GHI_KIEM_DINH', 'KiemDinh', x.id, '', x.ten + ' · ' + ngay + ' · ' + kq, '');
+  return { kiemDinh: sachKD(x) };
+}
+function xoaKiemDinh(u, p) {
+  var x = docKiemDinh().filter(function (r) { return r.id === s(p.id); })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  if (!x.hoatDong) return { kiemDinh: sachKD(x) };
+  capNhatTieuDe('KiemDinh');
+  x.hoatDong = false; x.capNhat = thoiGianStr();
+  suaDong('KiemDinh', x._r, kdThanhDong(x));
+  ghiNhatKy(u, 'XOA_KIEM_DINH', 'KiemDinh', x.id, x.ten, '', catChu(p.lyDo, 200));
+  return { kiemDinh: sachKD(x) };
+}
+// Thiết bị quá hạn / sắp hết hạn kiểm định — dùng cho trang chủ và tin nhắn nhắc hằng ngày
+function kdSapHet(homNay, truoc) {
+  var qua = [], sap = [], chua = [];
+  docKiemDinh().forEach(function (x) {
+    if (!x.hoatDong) return;
+    var o = { id: x.id, ten: x.ten, loai: x.loai, ma: x.ma, nghiemNgat: x.nghiemNgat, hetHan: x.ngayHetHan, ketQua: x.ketQua };
+    if (!x.ngayHetHan || x.ketQua !== 'DAT') { chua.push(o); return; }
+    var d = soNgay(x.ngayHetHan, homNay);
+    o.d = d;
+    if (d < 0) qua.push(o); else if (d <= truoc) sap.push(o);
+  });
+  var xep = function (a, b) { return (a.d || 0) - (b.d || 0); };
+  qua.sort(xep); sap.sort(xep);
+  return { qua: qua, sap: sap, chua: chua };
+}
+
+// ----- Ghi chú mã lỗi của nhà máy -----
+// Bảng tra lỗi biến tần / servo dựng sẵn nằm trong app. Đây là phần nhà máy tự ghi thêm:
+// mã lỗi chưa có trong bảng, hoặc cách xử lý thực tế đã làm ở xưởng. Chỉ Quản lý, Quản trị (quyền may).
+var ML_KHOA = ['id', 'hang', 'dong', 'ma', 'tenLoi', 'tenLoiDich', 'cachXuLy', 'cachXuLyDich', 'hoatDong',
+  'nguoiTao', 'uidTao', 'lucTao', 'capNhat'];
+var ML_HANG = ['BT', 'SV', 'KHAC'];
+function mlThanhDong(x) { return obThanhDong(ML_KHOA, x); }
+function docMaLoi() { return docTho('MaLoi').map(function (r, i) { return obTuDong(ML_KHOA, r, i); }).filter(function (x) { return x.id; }); }
+function sachML(x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; }); return o; }
+function luuMaLoi(u, p) {
+  var ds = docMaLoi(), id = s(p.id), x = id ? ds.filter(function (r) { return r.id === id; })[0] : null;
+  if (id && !x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  var ma = catChu(p.ma, 40).toUpperCase();
+  if (!ma) throw loi('ML_THIEU_MA', 'Chưa nhập mã lỗi · 请输入故障代码');
+  var xl = catNhieuDong(p.cachXuLy, 1000).trim();
+  if (!xl) throw loi('CAN_KET_QUA', 'Chưa ghi cách xử lý · 请填写处理方法');
+  var bay = thoiGianStr(), moi = !x;
+  capNhatTieuDe('MaLoi');
+  var ten = catChu(p.tenLoi, 150);
+  var tenD = x ? dichKhiSua(ten, x.tenLoi, x.tenLoiDich, p.tenLoiDich) : songNgu(ten, p.tenLoiDich);
+  var xlD = x ? dichKhiSua(xl, x.cachXuLy, x.cachXuLyDich, p.cachXuLyDich) : songNgu(xl, p.cachXuLyDich);
+  if (moi) x = { id: idMoi('ML', dsIdCo(ds)), nguoiTao: u.ten, uidTao: u.id, lucTao: bay };
+  x.hang = ML_HANG.indexOf(s(p.hang)) >= 0 ? s(p.hang) : 'KHAC';
+  x.dong = catChu(p.dong, 60); x.ma = ma;
+  x.tenLoi = tenD[0]; x.tenLoiDich = tenD[1];
+  x.cachXuLy = xlD[0]; x.cachXuLyDich = xlD[1];
+  x.hoatDong = p.hoatDong !== false; x.capNhat = bay;
+  if (moi) themDong('MaLoi', mlThanhDong(x)); else suaDong('MaLoi', x._r, mlThanhDong(x));
+  ghiNhatKy(u, moi ? 'THEM_MA_LOI' : 'SUA_MA_LOI', 'MaLoi', x.id, '', x.ma, '');
+  return { maLoi: sachML(x) };
+}
+function xoaMaLoi(u, p) {
+  var x = docMaLoi().filter(function (r) { return r.id === s(p.id); })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  if (!x.hoatDong) return { maLoi: sachML(x) };
+  capNhatTieuDe('MaLoi');
+  x.hoatDong = false; x.capNhat = thoiGianStr();
+  suaDong('MaLoi', x._r, mlThanhDong(x));
+  ghiNhatKy(u, 'XOA_MA_LOI', 'MaLoi', x.id, x.ma, '', '');
+  return { maLoi: sachML(x) };
 }
 
 // ===================== Danh mục máy =====================
@@ -3711,6 +3930,7 @@ function layCaiDatBaoTin() {
   return {
     nhacTruoc: c.nhacTruoc, gio: c.gio, tgBat: c.tgBat, tgCo: !!c.tgToken, tgDuoi: c.tgToken ? c.tgToken.slice(-4) : '',
     tgChat: c.tgChat, tgTen: c.tgTen, mailBat: c.mailBat, baoXong: c.baoXong, baoViec: c.baoViec, linkApp: c.linkApp, lichBat: lich,
+    wwBat: c.wwBat, wwCo: !!c.wwUrl, wwTen: c.wwTen, wwDuoi: c.wwUrl ? c.wwUrl.slice(-4) : '',
     loi: docLoiBaoTin(),
     nhanMail: dsNguoiDung().filter(function (x) { return x.hoatDong && x.email; }).map(function (x) { return x.ten + ' <' + x.email + '>'; })
   };
@@ -3727,12 +3947,19 @@ function luuCaiDatBaoTin(p) {
     if (!(g >= 0 && g <= 23)) throw loi('SO_SAI', 'Giờ 0–23');
     c.gio = g;
   }
-  ['tgBat', 'mailBat', 'baoXong', 'baoViec'].forEach(function (k) { if (p[k] !== undefined) c[k] = !!p[k]; });
+  ['tgBat', 'wwBat', 'mailBat', 'baoXong', 'baoViec'].forEach(function (k) { if (p[k] !== undefined) c[k] = !!p[k]; });
   if (p.xoaTg) { c.tgToken = ''; c.tgChat = ''; c.tgTen = ''; c.tgBat = false; }
   if (s(p.tgToken)) c.tgToken = s(p.tgToken);
   if (p.tgChat !== undefined) { c.tgChat = s(p.tgChat); c.tgTen = catChu(p.tgTen, 80); }
   if (s(p.linkApp)) c.linkApp = s(p.linkApp).slice(0, 300);
+  if (p.xoaWw) { c.wwUrl = ''; c.wwTen = ''; c.wwBat = false; }
+  if (s(p.wwUrl)) {
+    if (!wwHopLe(p.wwUrl)) throw loi('WW_URL_SAI', 'Địa chỉ webhook robot nhóm không đúng · 群机器人 Webhook 地址不正确');
+    c.wwUrl = s(p.wwUrl).slice(0, 300);
+  }
+  if (p.wwTen !== undefined) c.wwTen = catChu(p.wwTen, 80);
   if (c.tgBat && (!c.tgToken || !c.tgChat)) throw loi('TG_CHUA_DU', 'Chưa đủ mã bot và nhóm Telegram');
+  if (c.wwBat && !c.wwUrl) throw loi('WW_CHUA_DU', 'Chưa nhập địa chỉ webhook robot nhóm · 未填写群机器人 Webhook');
   ghiCaiDat(c);
   datLichNhac(c.gio);
   return layCaiDatBaoTin();
@@ -3774,6 +4001,41 @@ function guiTelegram(c, text) {
   }
   if (!o.ok) throw new Error('Telegram: ' + (o.description || 'lỗi gửi'));
 }
+// ----- WeChat Work · 企业微信: robot nhóm -----
+// Chỉ nhận đúng địa chỉ webhook của robot nhóm, không cho gửi dữ liệu nhà máy đi chỗ khác.
+var WW_TIEN = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send';
+function wwHopLe(u) { return s(u).slice(0, WW_TIEN.length) === WW_TIEN && /[?&]key=[A-Za-z0-9-]{10,}/.test(s(u)); }
+// Tin đang soạn theo kiểu Telegram (HTML). WeChat Work ăn Markdown nên đổi thẻ sang Markdown rồi trả chữ về như cũ.
+function mdTuHtml(t) {
+  return String(t)
+    .replace(/<a href="([^"]*)">([\s\S]*?)<\/a>/g, '[$2]($1)')
+    .replace(/<\/?b>/g, '**')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+}
+// WeChat Work giới hạn 4096 byte mỗi tin; chữ Việt và chữ Trung đều 3 byte nên cắt theo byte cho chắc.
+function catByte(t, toiDa) {
+  t = String(t);
+  var b = 0, i = 0;
+  for (; i < t.length; i++) {
+    var c = t.charCodeAt(i);
+    b += c < 128 ? 1 : c < 2048 ? 2 : 3;
+    if (b > toiDa) return t.slice(0, i - 1) + '…';
+  }
+  return t;
+}
+function guiWeCom(c, text) {
+  if (!wwHopLe(c.wwUrl)) throw new Error('WeChat Work: địa chỉ webhook không đúng');
+  var r = UrlFetchApp.fetch(c.wwUrl, {
+    method: 'post', contentType: 'application/json',
+    payload: JSON.stringify({ msgtype: 'markdown', markdown: { content: catByte(mdTuHtml(text), 3800) } }),
+    muteHttpExceptions: true
+  });
+  var o = {};
+  try { o = JSON.parse(r.getContentText()) || {}; } catch (e) { o = { errcode: -1, errmsg: 'HTTP ' + r.getResponseCode() }; }
+  if (o.errcode) throw new Error('WeChat Work ' + o.errcode + ': ' + (o.errmsg || 'lỗi gửi'));
+  return 'ok';
+}
 function guiEmail(tieuDe, text, html) {
   var ds = dsNguoiDung().filter(function (x) { return x.hoatDong && x.email; }).map(function (x) { return x.email; });
   if (!ds.length) throw new Error('Email: chưa có người nhận (nhập email ở màn Người dùng)');
@@ -3799,9 +4061,12 @@ function tomTat(homNay, nhacTruoc) {
     .sort(function (a, b) { return a.han < b.han ? -1 : 1; })
     .map(function (x) { return { so: x.so, ten: hai(x.tieuDe, x.tieuDeDich), nguoi: x.nguoiLam, han: x.han }; });
   t.cvCho = cv.filter(function (x) { return x.trangThai === 'CHO_GIAO'; }).length;
+  t.kd = kdSapHet(homNay, Math.max(nhacTruoc, KD_NHAC_TRUOC));   // kiểm định nhắc sớm hơn: xin lịch kiểm định mất thời gian
   return t;
 }
-function coNhac(t) { return !!(t.qua.length || t.nay.length || t.sap.length || t.dien || t.choDuyet || (t.cvQua && t.cvQua.length) || t.cvCho); }
+var KD_NHAC_TRUOC = 30;          // số ngày nhắc trước khi hết hạn kiểm định
+function coNhacKD(t) { return !!(t.kd && (t.kd.qua.length || t.kd.sap.length)); }
+function coNhac(t) { return !!(t.qua.length || t.nay.length || t.sap.length || t.dien || t.choDuyet || (t.cvQua && t.cvQua.length) || t.cvCho || coNhacKD(t)); }
 function noiDungNhac(t, homNay, c, thu) {
   var TOI_DA = 30;
   function dong(o, loai) {
@@ -3854,6 +4119,25 @@ function noiDungNhac(t, homNay, c, thu) {
     }
     html += '</ul>';
   }
+  if (coNhacKD(t)) {
+    coGi = true;
+    var kdTD = '🛡 Kiểm định thiết bị · 设备检定 — ' + t.kd.qua.length + ' quá hạn · 逾期, ' + t.kd.sap.length + ' sắp hết hạn · 即将到期';
+    tg += '\n<b>' + escH(kdTD) + '</b>\n'; text += '\n' + kdTD + '\n';
+    html += '<h3 style="margin:14px 0 4px;color:#C8372D">' + escH(kdTD) + '</h3><ul style="margin:0;padding-left:18px">';
+    var kdDong = function (o) {
+      return (o.nghiemNgat ? '⚠ ' : '') + o.ten + ' — ' +
+        (o.d < 0 ? 'quá hạn ' + (-o.d) + ' ngày · 逾期' + (-o.d) + '天' : 'còn ' + o.d + ' ngày · 还有' + o.d + '天') +
+        ' (' + ngayVN(o.hetHan) + ')';
+    };
+    t.kd.qua.concat(t.kd.sap).slice(0, 20).forEach(function (o) {
+      tg += '• ' + escH(kdDong(o)) + '\n'; text += '- ' + kdDong(o) + '\n'; html += '<li>' + escH(kdDong(o)) + '</li>';
+    });
+    if (t.kd.qua.length + t.kd.sap.length > 20) {
+      var kdCon = '… và ' + (t.kd.qua.length + t.kd.sap.length - 20) + ' thiết bị khác · 等' + (t.kd.qua.length + t.kd.sap.length - 20) + '台';
+      tg += escH(kdCon) + '\n'; text += kdCon + '\n'; html += '<li>' + escH(kdCon) + '</li>';
+    }
+    html += '</ul>';
+  }
   if (t.choDuyet) {
     coGi = true;
     var cd = '⚠ ' + t.choDuyet + ' số điện/nước ngoại lệ chờ Quản lý duyệt · ' + t.choDuyet + '条抄表异常待审核';
@@ -3889,20 +4173,22 @@ function nhacHangNgay() {
   try { guiTinCho(); } catch (e) { console.log('guiTinCho: ' + (e && e.message || e)); }   // báo tin giao việc của mẫu lặp lại
   try { dichBu(60, true); } catch (e) { console.log('dichBu: ' + (e && e.message || e)); }
   var c = docCaiDat();
-  if (!c.tgBat && !c.mailBat) return;
+  if (!c.tgBat && !c.wwBat && !c.mailBat) return;
   var homNay = homNayStr(), t = tomTat(homNay, c.nhacTruoc);
   if (!coNhac(t)) return;
   var nd = noiDungNhac(t, homNay, c, false), loiDs = [];
   if (c.tgBat) { try { guiTelegram(c, nd.tg); } catch (e) { loiDs.push(String(e.message || e)); } }
+  if (c.wwBat) { try { guiWeCom(c, nd.tg); } catch (e) { loiDs.push(String(e.message || e)); } }
   if (c.mailBat) { try { guiEmail(nd.tieuDe, nd.text, nd.html); } catch (e) { loiDs.push(String(e.message || e)); } }
   ghiLoiBaoTin(loiDs);
 }
 function guiThu() {
   var c = docCaiDat();
-  if (!c.tgBat && !c.mailBat) throw loi('CHUA_BAT', 'Chưa bật kênh báo tin nào');
+  if (!c.tgBat && !c.wwBat && !c.mailBat) throw loi('CHUA_BAT', 'Chưa bật kênh báo tin nào');
   var homNay = homNayStr(), nd = noiDungNhac(tomTat(homNay, c.nhacTruoc), homNay, c, true);
-  var kq = { tg: null, mail: null }, loiDs = [];
+  var kq = { tg: null, ww: null, mail: null }, loiDs = [];
   if (c.tgBat) { try { guiTelegram(c, nd.tg); kq.tg = 'ok'; } catch (e) { kq.tg = String(e.message || e); loiDs.push(kq.tg); } }
+  if (c.wwBat) { try { guiWeCom(c, nd.tg); kq.ww = 'ok'; } catch (e) { kq.ww = String(e.message || e); loiDs.push(kq.ww); } }
   if (c.mailBat) { try { kq.mail = guiEmail(nd.tieuDe, nd.text, nd.html); } catch (e) { kq.mail = String(e.message || e); loiDs.push(kq.mail); } }
   if (loiDs.length) ghiLoiBaoTin(loiDs); else PropertiesService.getScriptProperties().deleteProperty('BAO_TIN_LOI');
   return kq;
@@ -3929,7 +4215,8 @@ function guiTinCho() {
   var ds = TIN_CHO; TIN_CHO = [];
   var c;
   try { c = docCaiDat(); } catch (e) { return; }
-  if (!c.tgBat || !c.tgToken || !c.tgChat) return;
+  var coTg = c.tgBat && c.tgToken && c.tgChat, coWw = c.wwBat && c.wwUrl;
+  if (!coTg && !coWw) return;
   var loiDs = [];
   ds.forEach(function (tin) {
     var txt = '';
@@ -3943,7 +4230,8 @@ function guiTinCho() {
       txt = tinGiaoViec(tin, c);
     }
     if (!txt) return;
-    try { guiTelegram(c, txt); } catch (e) { loiDs.push(String(e.message || e)); }
+    if (coTg) { try { guiTelegram(c, txt); } catch (e) { loiDs.push(String(e.message || e)); } }
+    if (coWw) { try { guiWeCom(c, txt); } catch (e) { loiDs.push(String(e.message || e)); } }
   });
   ghiLoiBaoTin(loiDs);
 }

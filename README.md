@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.20.0
+# Credible Việt Nam CMMS · 设备管理 — v2.28.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.20.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.28.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.20.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.20.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.28.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.28.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.20.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.28.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò | Xem được |
 |---|---|---|---|
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.20.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.28.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.20.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.28.0.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -96,6 +96,202 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Việc chờ gửi chỉ được gửi khi app đang mở và có mạng. iOS không có gửi ngầm.
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
+
+## Điểm mới của v2.28.0: chỉ Quản lý ghi việc
+
+Trước đây kỹ thuật cũng **ghi việc** được (việc vào *Chờ giao*, hoặc tự nhận luôn bằng ô *tôi tự làm*). Nay **chỉ Quản lý và Quản trị ghi việc để giao cho nhân viên**.
+
+| | Quản lý · Quản trị | Kỹ thuật |
+|---|---|---|
+| Ghi việc mới, sửa việc | ✅ | ❌ |
+| Giao việc, giao nhiều việc một lúc | ✅ | ❌ |
+| Làm việc được giao (xong, tạm hoãn) | ✅ | ✅ |
+| **Ghi sửa chữa** (ghi lại việc mình đã sửa) | ✅ | ✅ |
+| Xác nhận bảo dưỡng, ghi số điện / nước, tăng ca | ✅ | ✅ |
+
+Quyền mới `ghiviec` (chỉ `admin`, `quanly`) gác hành động `saveTask`; **máy chủ chặn chứ không chỉ ẩn nút**, nên app bản cũ trên máy ai chưa tải lại cũng không ghi được.
+
+Trên app, tài khoản kỹ thuật mất: ô **Ghi việc** ở trang chủ, nút **Ghi việc** ở màn Công việc, nút **Ghi việc cho máy này** trong hồ sơ thiết bị, và link **Sửa việc**. Màn Ghi việc cũng không mở được kể cả gõ thẳng địa chỉ.
+
+### Kỹ thuật báo việc bằng gì
+
+Vẫn còn nguyên **Ghi sửa chữa** — ghi lại sự cố đã xử lý kèm nguyên nhân, kết quả, linh kiện đã thay và giờ dừng máy, **ghi được cả khi mất mạng**. Bản ghi này nằm ở **Lịch sử sửa chữa**, không lẫn vào danh sách Công việc.
+
+Lưu ý: sau thay đổi này, kỹ thuật **không còn đường tự báo một việc cần làm** trong app (trước đây ghi việc rồi để *Chờ giao*). Việc cần làm phải báo Quản lý để Quản lý ghi và giao.
+
+## Điểm mới của v2.27.0: gộp mục Tài liệu thiết bị
+
+**Tra lỗi** tách khỏi *Tính toán TB* và gộp cùng **Sơ đồ đấu** và **Tài liệu máy** thành một mục **Tài liệu thiết bị** — ba thứ cùng trả lời một câu hỏi: *máy này đấu sao, lỗi này là gì, manual đâu.*
+
+| Trước | Sau |
+|---|---|
+| Tính toán TB có 5 tab (4 bài tính + Tra lỗi) | Tính toán TB còn **4 bài tính** |
+| Sơ đồ đấu — một dòng menu riêng | **Tài liệu thiết bị**: Tra lỗi · Sơ đồ đấu · Tài liệu máy |
+| Tài liệu máy — một dòng menu riêng | |
+
+Nhóm *Tra cứu · Công cụ* còn **3 dòng**: Kiểm định thiết bị · Tài liệu thiết bị · Tính toán TB — đúng quy tắc đặt ở bản 2.25: *màn nào đã có tab bên trong thì chỉ một dòng ở menu.*
+
+Nút **Tài liệu của dòng này** trong tab Sơ đồ đấu giờ không nhảy sang màn khác nữa mà **chuyển thẳng sang tab Tài liệu máy** ngay trong màn, với từ khoá dòng máy đã lọc sẵn.
+
+Phần **nối thư mục Drive và quét tài liệu** vẫn ở *Cá nhân → Quản trị → Tài liệu* vì đó là việc cài đặt một lần, không phải tra cứu hằng ngày.
+
+## Điểm mới của v2.26.0: mã lỗi Inovance và màn Sơ đồ đấu
+
+Cả hai chỉ **Quản lý và Quản trị** dùng được, như phần Tính toán TB.
+
+### Thêm mã lỗi Inovance — bảng tra lên 142 mã
+
+| Hãng | Dòng | Số mã |
+|---|---|---|
+| Mitsubishi | Biến tần FR-E700/D700/A700/F700 · Servo MR-J4/MR-JE | 74 |
+| **Inovance** | **Biến tần MD200/MD280/MD290/MD310/MD380/MD500/MD520** · **Servo SV660/SV620/IS620** | **68** |
+
+Biến tần Inovance: `Err01`–`Err51` (bảo vệ khối nghịch lưu, quá dòng/quá áp theo từng giai đoạn, thấp áp, quá tải, mất pha, quá nhiệt, chạm đất, lỗi truyền thông, encoder, mất tải, vượt tốc…). Servo Inovance: `Er.101`–`Er.950` (quá dòng, chạm đất, sai thứ tự pha, quá áp/thấp áp, vượt tốc, quá tải, pin encoder, sai lệch vị trí…).
+
+Chip lọc đổi từ *Biến tần / Servo* sang **Mitsubishi / Inovance**; mỗi thẻ kết quả ghi rõ hãng, dòng máy và loại thiết bị. Tìm vẫn bỏ qua dấu chấm, gạch và khoảng trắng: `err 09` ra **Err09**, `er740` ra **Er.740**.
+
+### Màn Sơ đồ đấu
+
+Bốn dòng máy: **Mitsubishi FR**, **Mitsubishi MR-J4**, **Inovance MD**, **Inovance SV660/IS620**. Mỗi dòng có:
+
+- **Mạch động lực** — tên đầu cốt in trên máy và chức năng (R/S/T, U/V/W, P/+ – PR, (+) – PB, L11/L21, L1C/L2C, cầu nối điện trở hãm, cuộn kháng…).
+- **Mạch điều khiển** — tên chân điều khiển (STF/STR/SD/PC/10/2/5/4/AM, DI1–DI5/COM/+24V/OP/AI/AO/TA-TB-TC/485…).
+- **Giắc cắm** — CN1/CN2/CN3/CN8/CNP… dùng vào việc gì.
+- **Dễ sai chỗ này** — những lỗi đấu nối hay gặp: đấu nhầm nguồn vào U/V/W, quên tháo cầu nối khi lắp điện trở hãm hoặc cuộn kháng, quên bật AU khi dùng 4–20mA, quên tháo cầu nối +24V–OP khi dùng nguồn ngoài, thay pin encoder lúc mất nguồn…
+- Nút **Tài liệu của dòng này** → mở thẳng mục Tài liệu đã lọc sẵn theo dòng máy.
+
+Trên đầu màn có cảnh báo cố định: *cắt nguồn và chờ đèn CHARGE tắt hẳn mới được mở tủ hay chạm vào đầu cốt*.
+
+**App cố ý KHÔNG vẽ lại sơ đồ của hãng và KHÔNG ghi số chân của các giắc.** Số chân khác nhau theo từng đời máy, ghi sai là hỏng thiết bị hoặc gây tai nạn. Màn này là bảng tên đầu cốt để tra nhanh tại máy; sơ đồ thật thì tải trang manual của hãng lên mục **Tài liệu → nhóm Bản vẽ**, nút trên màn mở thẳng tới đó.
+
+## Điểm mới của v2.25.0: sắp xếp lại menu
+
+Menu cũ là **11 mục phẳng** ngang hàng nhau, và riêng mục *Thiết bị* gánh tới **20 màn con**. Hai mục thêm ở bản 2.23 (Kiểm định, Tính toán TB) bị nhét vào đó vì không còn chỗ — dấu hiệu cấu trúc đã quá tải.
+
+### Một quy tắc thay cho việc xếp hộp
+
+> **Màn nào đã có tab bên trong thì chỉ được MỘT dòng ở menu.**
+
+*Thiết bị · Bảo dưỡng · Lịch sử · Kho linh kiện* vốn là **bốn tab của cùng một màn**, nhưng menu cũ để chúng thành các mục riêng — bấm mục này lại thấy thanh tab của mục kia. Nay gộp về một dòng **Thiết bị**; vào trong đổi tab như cũ. Tương tự, *Nhắc hàng, Tồn kho an toàn, In tem QR, Phân ca trực, Tổng số ca* đều đã nằm trong màn của chúng nên bỏ khỏi menu.
+
+### Kết quả: 11 mục → 5 nhóm, 9 dòng
+
+| Nhóm | Dòng | Bên trong có sẵn |
+|---|---|---|
+| **Việc hằng ngày** | Công việc | Sửa chữa · Việc lặp lại · Báo cáo |
+| | Thiết bị | Danh sách · Bảo dưỡng · Lịch sử · Kho linh kiện |
+| **Điện · Nước** | Điện / Nước | Ghi số · Duyệt ngoại lệ · Tiền điện · Thông số |
+| **Nhân sự** | Tăng ca | Đơn in · Tổng hợp tháng · Ca làm việc |
+| | Lịch trực | Lịch tuần · Tổng số ca · Phân công ca trực |
+| **Tra cứu · Công cụ** | Kiểm định · Tính toán TB · Tài liệu máy | |
+| **Hệ thống** | Cá nhân | Quản trị · Người dùng · Báo tin · Sao lưu |
+
+**Tài liệu máy** kéo từ *Cá nhân → Quản trị* ra ngoài — thợ tra suốt mà đang bị chôn ba lớp. **Quét QR** bỏ khỏi menu vì nút tròn giữa thanh tab đã là nó.
+
+### Trên điện thoại và máy tính
+
+Thanh tab: **Trang chủ · Công việc · [Quét] · Thiết bị · Thêm**. Bấm **Thêm** ra đúng năm nhóm trên, không phải nhớ chức năng nằm ở đâu.
+
+Máy tính: sidebar vẫn thấy hết, có thêm tiêu đề phân nhóm. Đang xem *Bảo dưỡng*, *Lịch sử* hay *Kho* thì ô **Thiết bị** sáng, vì cùng một màn.
+
+**Tài khoản kỹ thuật** tự gọn còn 4 nhóm / 6 dòng (không Thiết bị, không Kho, không Kiểm định, không Tính toán, không Tài liệu); ô thứ tư của thanh tab là **Bảo dưỡng** thay cho Thiết bị.
+
+Giao diện (màu sắc, kiểu thẻ) **giữ nguyên** — bản này chỉ đổi cách sắp xếp.
+
+## Điểm mới của v2.24.0: tra lỗi biến tần và servo Mitsubishi
+
+Thêm tab **Tra lỗi** vào mục **Tính toán TB**. Gõ mã lỗi đang hiện trên màn hình thiết bị (hoặc từ khoá tiếng Việt như *quá dòng*, *quá nhiệt*) là ra ngay **tên lỗi song ngữ, nguyên nhân thường gặp và cách xử lý**.
+
+Bảng tra sẵn gồm **74 mã**:
+
+- **Biến tần Mitsubishi FR** (E700 · D700 · A700 · F700): E.OC1–OC3, E.OV1–OV3, E.THT, E.THM, E.FIN, E.IPF, E.UVT, E.ILF, E.LF, E.GF, E.OLT, E.OHT, E.PTC, E.BE, E.PE, E.PUE, E.RET, E.CPU, E.OPT, E.AIE, E.SAF, E.P24, E.CTE, và các cảnh báo OL, oL, TH, RB, FN, PS, Err, HOLD, LOCd.
+- **Servo / driver Mitsubishi MR-J4 · MR-JE**: AL.10, 12, 13, 15, 16, 17, 1A, 20, 24, 25, 30, 31, 32, 33, 34, 35, 37, 42, 45, 46, 47, 50, 51, 52, 56, 63, 8A, 8E, 888, và các cảnh báo AL.90, 91, 92, 9F, E0, E1, E6, E9, EC.
+
+Gõ gọn cũng ra: *al32* tìm được **AL.32**, *eoc1* tìm được **E.OC1** (app bỏ qua dấu chấm, gạch và khoảng trắng).
+
+### Ba thứ app ghép thêm vào mỗi mã lỗi
+
+1. **Ghi chú của nhà máy** — bấm *Thêm ghi chú* để ghi cách xử lý thực tế đã làm ở xưởng ("máy in phun VKY01: lần trước do quạt tủ hỏng, thay quạt là hết"). Ghi chú **tự dịch sang tiếng Trung**, lưu trên máy chủ (trang `MaLoi`), lần sau ai tra mã đó cũng thấy. Mã lỗi **chưa có trong bảng** cũng thêm được bằng đúng chỗ này.
+2. **Đã gặp ở nhà máy** — app dò trong sổ sửa chữa và công việc xem mã lỗi đó từng xuất hiện chưa, liệt kê tối đa 5 lần gần nhất, bấm vào là mở thẳng phiếu cũ.
+3. **Nhắc an toàn** cố định trên đầu màn: *cắt nguồn và chờ đèn CHARGE tắt hẳn mới được mở tủ hay chạm vào đầu cốt.*
+
+Bảng tra soạn theo tài liệu Mitsubishi cho các dòng kể trên; mỗi đời máy có thể khác nên màn hình ghi rõ phải **đối chiếu manual đúng đời trước khi thao tác**.
+
+## Điểm mới của v2.23.0: kiểm định thiết bị và tính toán TB
+
+Hai mục mới, mở từ màn **Thiết bị**, **chỉ Quản lý và Quản trị** dùng được (kỹ thuật không thấy, máy chủ cũng chặn).
+
+### Sổ kiểm định thiết bị · 设备检定
+
+Sổ **riêng**, không phải danh mục máy — vì xe nâng, nồi hơi, bình chịu áp lực thường không nằm trong danh mục máy sản xuất. Thiết bị nào đã có trong danh mục thì **chọn mã máy để nối vào**, bấm là mở sang hồ sơ máy.
+
+Mỗi thiết bị ghi: loại, số hiệu/serial, nhà sản xuất, năm sản xuất, thông số (tải trọng, áp suất, dung tích…), vị trí đặt, chu kỳ kiểm định, ngày khai báo sử dụng, ghi chú. Tên và ghi chú **tự dịch sang tiếng Trung**.
+
+**Thiết bị có yêu cầu nghiêm ngặt về an toàn lao động** được đánh dấu riêng và lọc riêng. Chọn loại là app tự tích sẵn và điền sẵn chu kỳ thường gặp (nồi hơi 24 tháng, bình chịu áp lực 36, xe nâng 24, thang máy 36…) — sửa lại được cho từng thiết bị. Danh mục loại gồm 17 nhóm: nồi hơi, bình chịu áp lực, đường ống hơi, hệ thống lạnh, chai chứa khí, cần trục, palăng, xe nâng, sàn nâng, thang máy, thang cuốn, thiết bị hàn hơi, máy nén khí, thiết bị điện và chống sét, PCCC, thiết bị đo lường, khác.
+
+**Ghi từng lần kiểm định**: ngày, đơn vị kiểm định, số giấy chứng nhận, kết quả. **Hạn kế tiếp tự tính** = ngày kiểm định + chu kỳ. Kết quả *Không đạt* thì không có hạn, phải kiểm định lại. Lần cũ vào **lịch sử**, giữ tối đa 30 lần — tra lại được cả quá trình.
+
+**Nhắc hạn**: quá hạn hiện đỏ ở **trang chủ** của Quản lý, sắp hết hạn (trong 30 ngày) hiện xanh; cả hai đi kèm **tin nhắn nhắc hằng ngày** (Telegram và WeChat Work). Xin lịch kiểm định mất thời gian nên app nhắc trước 30 ngày, không theo số ngày nhắc bảo dưỡng.
+
+**Xuất Excel** cả sổ để nộp hoặc lưu hồ sơ: 17 cột, có cột tình trạng và cột đánh dấu nhóm nghiêm ngặt.
+
+Trang mới `KiemDinh`, tự tạo khi nâng cấp.
+
+### Tính toán TB · 设备计算
+
+Bốn bài tính, không lưu gì, mở ra là dùng:
+
+| Bài | Nhập | Ra |
+|---|---|---|
+| **Động cơ** | kW, điện áp, số pha, cosφ, hiệu suất, bội số dòng khởi động, kiểu khởi động | Dòng định mức, dòng khởi động, **chọn CB**, **khởi động từ (AC-3)**, giá trị đặt **rơle nhiệt** |
+| **Dây dẫn** | Dòng (lấy được từ bài động cơ), chiều dài, đồng/nhôm, PVC/XLPE, cách đi dây, nhiệt độ, số mạch đi chung, sụt áp cho phép | Hệ số hiệu chỉnh k1/k2, tiết diện **theo dòng** và **theo sụt áp**, lấy cái lớn hơn, sụt áp thực tế, cỡ **dây PE** |
+| **Tụ bù** | kW, cosφ hiện tại, cosφ mong muốn | kVAr cần bù, gợi ý cỡ tụ lắp |
+| **Kiểm tra sụt áp** | Dòng, chiều dài, tiết diện đang dùng | Sụt áp (V và %), đạt hay không |
+
+**Về bảng dòng cho phép**: app có sẵn bảng tra theo IEC 60364-5-52 (cáp nhiều ruột, 3 ruột mang tải, 30 °C) cho đồng và nhôm, cách điện PVC và XLPE, ba cách đi dây. Phần sụt áp tính thẳng bằng công thức, không tra bảng. Nếu cáp nhà máy đang mua có dòng cho phép khác với bảng, nhập thẳng vào ô **Icp theo catalogue hãng** — app sẽ dùng số đó.
+
+Màn hình có ghi rõ: **kết quả chỉ để chọn sơ bộ, trước khi lắp đặt phải có thợ điện hoặc đơn vị thiết kế kiểm tra lại theo catalogue của hãng.**
+
+## Điểm mới của v2.22.0: tăng ca tuần cũ tự khoá, chú thích trên đơn in song ngữ
+
+### Nhân viên chỉ ghi và sửa trong hai tuần gần nhất
+
+Trước đây nhân viên sửa được tăng ca của bất kỳ ngày nào, kể cả tháng đã chốt lương, và ghi trước được cho ngày chưa tới.
+
+Nay khoảng ghi và sửa của nhân viên là **từ thứ Hai tuần trước đến hôm nay**:
+
+- **Mỗi thứ Hai, tuần cũ nhất tự khoá lại** — không phải bấm nút gì, cũng không ai quên. Hợp với lệ chốt lịch vào thứ Hai.
+- **Không ghi trước cho ngày chưa tới**: hôm nay không ghi được tăng ca của ngày mai.
+- Trong khoảng đó thì thoải mái: quên chưa ghi hôm thứ Bảy tuần trước vẫn ghi bù được, sửa và xoá được.
+
+Trên giao diện: dòng của tuần đã khoá hiện mờ và bấm không vào, tuần đó không có nút **Thêm**, ô chọn ngày không chọn được ngoài khoảng. Máy chủ cũng chặn lại, kể cả khi app gửi lên từ hàng chờ lúc mất mạng.
+
+**Quản lý và Quản trị không bị khoá** — vẫn ghi hộ, sửa và xoá được mọi tuần. Ai lỡ ghi sai tuần đã khoá thì báo Quản lý sửa hộ; mọi lần sửa đều đã ghi nhật ký như trước.
+
+### Cột Chú thích 备注 trên đơn in thành song ngữ
+
+Tờ **ĐƠN XIN TĂNG CA · 自愿加班申请单** trước đây in cột *Chú thích* chỉ bằng tiếng Việt. Nay in cả hai thứ tiếng: **ca làm việc** (Hành chính 行政班, Ca đêm 夜班 …) và **lý do tăng ca** kèm bản dịch tiếng Trung mà máy chủ đã dịch sẵn. Dịch sai thì sửa tay trong app, tờ đơn in theo bản đã sửa.
+
+## Điểm mới của v2.21.0: báo tin vào nhóm WeChat Work · 企业微信
+
+Ngoài Telegram và email, app gửi được tin vào **nhóm WeChat Work (企业微信)** bằng **robot nhóm** — thứ công nhân người Trung đằng nào cũng có sẵn trên điện thoại.
+
+Gửi đúng những tin như Telegram: nhắc máy đến hạn hằng ngày, báo khi giao việc, báo khi bảo dưỡng xong. Bật được cả ba kênh cùng lúc, kênh này lỗi không ảnh hưởng kênh kia.
+
+### Cài (một lần, khoảng 2 phút)
+
+1. Mở **企业微信** → vào nhóm chat muốn nhận tin.
+2. Bấm **⋯** góc trên bên phải → **群机器人** → **添加** → **新创建一个机器人** → đặt tên.
+3. Copy **Webhook地址**.
+4. Trong app: **Quản trị → Báo tin → WeChat Work 企业微信**, dán địa chỉ vào, đặt tên nhóm cho dễ nhớ, bật công tắc, **Lưu**, rồi bấm **Gửi thử**.
+
+Không phải xin quyền, không OAuth, không xác thực doanh nghiệp, **không mất phí**.
+
+### Phần an toàn
+
+App **chỉ nhận địa chỉ `qyapi.weixin.qq.com/cgi-bin/webhook/send?key=…`** — dán nhầm hay dán địa chỉ lạ thì báo lỗi ngay, không gửi dữ liệu nhà máy đi đâu khác. Địa chỉ đã lưu **không trả ngược về app** (chỉ hiện 4 ký tự cuối), ai mở màn Báo tin cũng không đọc trộm được. Chỉ **Quản trị** vào được màn này.
+
+Tin soạn sẵn theo kiểu Telegram (HTML) nên app tự đổi sang Markdown của 企业微信; tin dài quá 4096 byte thì cắt bớt cho đúng giới hạn của WeChat Work.
 
 ## Điểm mới của v2.20.0: bỏ bước xác nhận bắt đầu, ngày giao việc là ngày bắt đầu
 
@@ -214,7 +410,7 @@ Danh sách sắp theo **thiếu nhiều nhất lên trước**, và **xuất Exc
 
 Toàn bộ phần này nằm trong **Kho ngũ kim**, chỉ **Quản lý, Quản trị** xem và sửa. Trang chủ không còn ô cảnh báo linh kiện dưới mức tối thiểu, ô *Linh kiện* ở Tổng quan chỉ còn đếm số mã còn hàng.
 
-Dán `Code.gs-v2.20.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Không có trang mới.
+Dán `Code.gs-v2.28.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Không có trang mới.
 
 ## Điểm mới của v2.13.0: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng
 
@@ -248,7 +444,7 @@ Phiếu chi tiết mỗi linh kiện có thêm mục **Tồn qua các lần nh�
 
 Màn **Ca làm việc** (phần Tăng ca) khi lưu đang ghi đè cả khối cài đặt, làm mất **giá điện**, **sản lượng tháng**, ngưỡng cảnh báo điện và cả **token Telegram** đã nhập — những thứ đó âm thầm quay về mặc định. Nay sửa thành đọc rồi sửa, chỉ thay phần ca làm việc.
 
-Dán `Code.gs-v2.20.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Trang `NhapKho` và cột `TonCu` tự thêm, dữ liệu cũ giữ nguyên. Lịch sử tồn bắt đầu tính từ lần nhập file đầu tiên sau khi nâng cấp.
+Dán `Code.gs-v2.28.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Trang `NhapKho` và cột `TonCu` tự thêm, dữ liệu cũ giữ nguyên. Lịch sử tồn bắt đầu tính từ lần nhập file đầu tiên sau khi nâng cấp.
 
 ## Điểm mới của v2.12.0: lịch trực tuần và phân công ca trực
 
@@ -276,7 +472,7 @@ Dựng đúng bảng giấy của nhà máy: **ca ngày (7h30–19h30)** và **c
 
 **Phân quyền:** ai cũng **xem** được cả hai bảng (để biết ai trực, gọi số nào); chỉ **Quản lý, Quản trị** xếp lịch, nhập nội dung trực và sửa danh sách người trực ca.
 
-**Ba trang mới tự tạo khi nâng cấp:** `LichTruc` (mỗi ngày một dòng), `NguoiTruc` (danh sách người trực ca), `PhanCa` (bảng phân công từng tuần). Dán `Code.gs-v2.20.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới; dữ liệu cũ giữ nguyên.
+**Ba trang mới tự tạo khi nâng cấp:** `LichTruc` (mỗi ngày một dòng), `NguoiTruc` (danh sách người trực ca), `PhanCa` (bảng phân công từng tuần). Dán `Code.gs-v2.28.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới; dữ liệu cũ giữ nguyên.
 
 ## Điểm mới của v2.11.3: Ghi sửa chữa chọn linh kiện từ kho
 
@@ -298,7 +494,7 @@ Máy chủ vẫn nhận dạng chữ nhiều dòng của bản cũ, nên bản g
 
 ## Điểm mới của v2.11.2: xác nhận tiêu thụ bất thường, mã việc lặp lại không trùng
 
-Bản sửa lỗi, không thêm bảng dữ liệu nào. Dán `Code.gs-v2.20.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới là xong, dữ liệu cũ giữ nguyên.
+Bản sửa lỗi, không thêm bảng dữ liệu nào. Dán `Code.gs-v2.28.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới là xong, dữ liệu cũ giữ nguyên.
 
 ### Xác nhận tiêu thụ bất thường (chỉ Quản lý)
 
@@ -328,7 +524,7 @@ Nay mã **đánh số tăng dần** trong cùng một giây (`CV26102012340001`,
 
 ## Điểm mới của v2.11.1: chọn thiết bị cho mọi loại việc, mã bản ghi không trùng
 
-Bản này đã nằm trong v2.11.2 ở trên — dán `Code.gs-v2.20.0.txt` là có cả hai.
+Bản này đã nằm trong v2.11.2 ở trên — dán `Code.gs-v2.28.0.txt` là có cả hai.
 
 ### Mọi loại việc đều chọn được chuyền sản xuất hoặc máy của chuyền
 
@@ -389,7 +585,7 @@ Tài liệu đã để trên Google Drive thì **không cần tải lại**. App
 - **Bỏ khỏi danh mục:** tài liệu quét từ Drive chỉ bị gỡ khỏi danh mục của app, tệp gốc trên Drive không bị xoá và những lần quét sau cũng không thêm lại. Muốn nhận lại thì xoá dấu ở cột `Xoa` của dòng đó trên trang `TaiLieu`. Tệp do app tải lên thì vẫn vào thùng rác Drive như trước.
 - Trang `TaiLieu` có thêm 5 cột: `DuongDan` (đường dẫn thư mục trên Drive), `Nguon` (`APP` tải từ app · `DRIVE` tài liệu có sẵn), `ConTrenDrive`, `HienHanh`, `LucQuet`.
 
-- Nâng cấp: dán `Code.gs-v2.20.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
+- Nâng cấp: dán `Code.gs-v2.28.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
 
 ## Điểm mới của v2.10.0: phân quyền xem theo vai trò
 
@@ -732,6 +928,6 @@ Tài liệu đã để trên Google Drive thì **không cần tải lại**. App
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 51 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
-node tests/e2e.mjs                      # 18 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
+node --test tests/backend.test.mjs      # 56 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node tests/e2e.mjs                      # 20 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```

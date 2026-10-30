@@ -29,6 +29,11 @@ async function login(nv, pin) {
   await page.waitForSelector('#main', { timeout: 20000 });
   await wait(600);
 }
+// Mở một mục qua màn "Thêm" — đúng đường người dùng bấm trên điện thoại
+async function moThem(v) {
+  await page.click('.tabs .tab[data-v="them"]'); await wait(500);
+  await page.click(`#main .row[data-v="${v}"]`); await wait(700);
+}
 async function logout() {
   await page.click('#meBtn'); await wait();
   await page.click('[data-act="logout"]'); await wait();
@@ -115,7 +120,7 @@ assert.match(await text('#main'), /Không có ngoại lệ chờ duyệt/);
 ok('Quản lý thấy cảnh báo ở trang chủ, mở đúng danh sách, duyệt ngoại lệ');
 
 // 6. Khoá kỳ, kỹ thuật không sửa được kỳ đã khoá
-await page.click('.tabs .tab[data-v="dien"]'); await wait();
+await moThem('dien');
 await page.click('[data-act="lockSheet"]'); await wait();
 await shot('06-khoa-ky');
 await page.click('[data-act="doLock"]'); await wait(900);
@@ -130,8 +135,14 @@ ok('Khoá kỳ; kỹ thuật không sửa được số kỳ đã khoá');
 // 7. Phân quyền: kỹ thuật chỉ thấy Điện/Nước, Sửa chữa, Bảo dưỡng; cảnh báo trang chủ mở đúng nhóm máy
 await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.equal(await page.locator('.tabs .tab[data-v="list"]').count(), 0, 'kỹ thuật: không có tab Thiết bị');
-assert.match(await text('.tabs .tab[data-v="cal"]'), /Bảo dưỡng/);
+assert.match(await text('.tabs .tab[data-v="cal"]'), /Bảo dưỡng/, 'ô thứ tư của kỹ thuật là Bảo dưỡng');
 assert.match(await text('.tabs .tab[data-v="cv"]'), /Sửa chữa/);
+// Màn Thêm của kỹ thuật: không có Thiết bị, Kho, Kiểm định, Tính toán, Tài liệu
+await page.click('.tabs .tab[data-v="them"]'); await wait(600);
+const them7 = await page.locator('#main .row .nm').allTextContents();
+assert.deepEqual(them7, ['Công việc', 'Bảo dưỡng', 'Điện / Nước', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
+  'kỹ thuật chỉ thấy đúng sáu mục: ' + JSON.stringify(them7));
+await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.match(await text('.mtiles'), /Sửa chữa/);
 assert.doesNotMatch(await text('.mtiles'), /Linh kiện|Thiết bị|Công việc/, 'Tổng quan chỉ còn Sửa chữa, Bảo dưỡng, Điện, Nước');
 await shot('16-ky-thuat-trang-chu');
@@ -168,44 +179,44 @@ assert.match(await text('#main'), /HNJX-HD2000/);
 assert.equal(await page.locator('.gaph[data-k="lkch:VKY01"]').count(), 0, 'kỹ thuật không thấy linh kiện / ERP của chuyền');
 ok('Xác nhận bảo dưỡng từ hồ sơ thiết bị; Bảo dưỡng gọn (quá hạn bấm mới hiện), xem máy theo chuyền');
 
-// 9. Kỹ thuật thấy máy hỏng: tự ghi việc sửa chữa (mất mạng vẫn ghi được), ghi nguyên nhân + giờ dừng máy
+// 9. Kỹ thuật thấy máy hỏng: ghi sửa chữa (mất mạng vẫn ghi được), ghi nguyên nhân + giờ dừng máy.
+// Từ bản 2.28 kỹ thuật KHÔNG ghi việc được nữa — chỉ Quản lý ghi việc để giao.
+await page.click('.tabs .tab[data-v="cv"]'); await wait(700);
+assert.equal(await page.locator('[data-act="cvNew"]').count(), 0, 'kỹ thuật không có nút Ghi việc');
+assert.equal(await page.evaluate(() => xemDuoc('cvNew')), false, 'kỹ thuật không mở được màn Ghi việc');
 await page.click('.tabs .tab[data-v="home"]'); await wait();
+assert.equal(await page.locator('.cta2').count(), 0, 'trang chủ của kỹ thuật không còn ô Ghi việc');
 await page.click('#meBtn'); await wait();
 await page.check('#simOff'); await wait();
-await page.click('.tabs .tab[data-v="home"]'); await wait();
-await page.click('.cta2'); await wait();
-assert.match(await text('#barTitle'), /Ghi việc/);
-await page.fill('#cvTD', 'Máy hút bụi VKY03 không chạy');
-await page.check('#cvTuLam'); await wait();
-// Mọi loại việc chọn được cả chuyền, máy ngoài chuyền và máy thuộc chuyền
-assert.equal(await page.locator('#cvMa option[value="VKY03"]').count(), 1, 'chọn được chuyền sản xuất');
-assert.equal(await page.locator('#cvMa option[value="M038"]').count(), 1, 'chọn được máy ngoài chuyền');
-assert.equal(await page.locator('#cvMa option[value="M020"]').count(), 1, 'chọn được máy thuộc chuyền (máy hút bụi VKY03)');
-assert.equal(await page.locator('#cvMa optgroup[label*="Máy của chuyền VKY03"] option[value="M020"]').count(), 1,
+await page.click('.tabs .tab[data-v="cv"]'); await wait(700);
+await page.click('[data-v="scGhi"]'); await wait(700);
+assert.match(await text('#barTitle'), /sửa chữa/i);
+// Chọn được cả chuyền, máy ngoài chuyền và máy thuộc chuyền
+assert.equal(await page.locator('#scMa option[value="VKY03"]').count(), 1, 'chọn được chuyền sản xuất');
+assert.equal(await page.locator('#scMa option[value="M038"]').count(), 1, 'chọn được máy ngoài chuyền');
+assert.equal(await page.locator('#scMa optgroup[label*="Máy của chuyền VKY03"] option[value="M020"]').count(), 1,
   'máy thuộc chuyền gom đúng vào nhóm của chuyền đó');
-await page.selectOption('#cvMa', 'VKY03');
-await page.click('#cvOk'); await wait(900);
-assert.match(await text('.schead'), /Đã giao/);
-assert.match(await text('.scmayl'), /Chuyền VKY03/);
-await page.click('[data-act="cvXong"]'); await wait();
-await page.fill('#cxKQ', 'Thay chổi than motor');
-await page.click('[data-act="cxNNChon"][data-k="nn_mon"]');
-await page.fill('#cxGio', '1.5');
+await page.selectOption('#scMa', 'VKY03'); await wait(400);
+await page.fill('#scMT', 'Máy hút bụi VKY03 không chạy');
+await page.click('[data-act="scNNChon"][data-k="nn_mon"]'); await wait(300);
+await page.fill('#scKQ', 'Thay chổi than motor');
+await page.fill('#scGio', '1.5');
 await shot('08-sua-chua-tu-ghi');
-await page.click('#cxOk'); await wait(900);
-assert.match(await text('.schead'), /Chờ kiểm tra/);
+await page.click('#scOk'); await wait(900);
 assert.match(await text('#syncBtn'), /Chờ mạng|Chờ gửi/);
 await page.click('#meBtn'); await wait();
 await page.uncheck('#simOff'); await wait(1800);
 assert.match(await text('#syncBtn'), /Đã đồng bộ/);
-// Có mạng lại: máy chủ đã tự dịch tên việc, kết quả, nguyên nhân sang tiếng Trung
-await page.click('.tabs .tab[data-v="cv"]'); await wait();
-await page.click('.chip[data-act="cvLoc"][data-v="all"]'); await wait();
+// Có mạng lại: máy chủ đã tự dịch mô tả, kết quả, nguyên nhân sang tiếng Trung.
+// Bản ghi sửa chữa nằm ở Lịch sử sửa chữa, không lẫn vào danh sách Công việc.
+await page.click('.tabs .tab[data-v="cv"]'); await wait(700);
+assert.equal((await text('#main')).includes('Máy hút bụi VKY03'), false, 'bản ghi sửa chữa không lẫn vào danh sách Công việc');
+await page.click('[data-v="scDS"]'); await wait(900);
 await page.click('.scrow:has-text("Máy hút bụi VKY03")'); await wait();
 assert.match(await text('.schead'), /吸尘器VKY03不运转/);
 assert.match(await text('.scres'), /更换电机碳刷/);
 assert.match(await text('.scres'), /自然磨损/);
-ok('Kỹ thuật tự ghi việc sửa chữa khi mất mạng, ghi nguyên nhân và giờ dừng máy, có mạng tự gửi và tự dịch sang tiếng Trung');
+ok('Kỹ thuật không ghi việc được nữa, chỉ ghi sửa chữa; mất mạng vẫn ghi, có mạng tự gửi và tự dịch sang tiếng Trung');
 
 // 10. Công việc: Quản lý ghi việc và giao luôn; giao nhiều việc một lần; nhân viên thấy ở "Việc của tôi", làm xong; Quản lý kiểm tra
 await logout();
@@ -338,8 +349,11 @@ assert.match(await text('.pager'), /kết quả/);
 await shot('07-desktop-list');
 await page.click('.side .nav[data-v="dien"]'); await wait(600);
 assert.ok(await page.isVisible('table.dt'), 'bảng công tơ trên máy tính');
-await page.click('.side .nav[data-v="cal"]'); await wait(600);
+await page.click('.side .nav[data-v="list"]'); await wait(600);
+await page.locator('#main .seg button').nth(1).click(); await wait(600);   // tab Bảo dưỡng trong màn Thiết bị
 assert.match(await text('#barTitle'), /Bảo dưỡng/);
+assert.ok(await page.evaluate(() => $('.side .nav[data-v="list"]').classList.contains('on')),
+  'đang ở Bảo dưỡng thì ô Thiết bị sáng, vì cùng một màn');
 assert.ok(await page.isVisible('.kstrip'), 'trang Bảo dưỡng có ô tóm tắt');
 await page.click('.side .nav[data-v="cv"]'); await wait(600);
 await page.click('[data-act="cvXem"][data-v="nguoi"]'); await wait();
@@ -385,6 +399,9 @@ assert.match(await text('#barTitle'), /Đăng ký tăng ca/);
 assert.match(await text('#main'), /V25066/, 'mã số thẻ tự điền từ tài khoản');
 const tcTruoc = await page.locator('.tcrow').count();
 await page.click('[data-act="tcThem"]'); await wait(500);
+// Chỉ ghi được từ thứ Hai tuần trước đến hôm nay
+assert.deepEqual(await page.evaluate(() => [$('#tcNgay').min, $('#tcNgay').max]),
+  await page.evaluate(() => [addD(tcThuHai(TODAY()), -7), TODAY()]), 'ô ngày chặn tuần đã khoá và ngày chưa tới');
 await page.click('.chip[data-act="tcCaChon"][data-k="DEM"]'); await wait(400);
 assert.equal(await page.inputValue('#tcTu'), '06:00', 'chọn ca thì giờ điền sẵn theo ca');
 await page.fill('#tcTu', '22:00'); await page.dispatchEvent('#tcTu', 'change'); await wait(250);
@@ -399,6 +416,8 @@ await page.evaluate(() => go('tcXem')); await wait(500);
 const don = await text('.tcsheet');
 assert.match(don, /ĐƠN XIN TĂNG CA/); assert.match(don, /自愿加班申请单/);
 assert.match(don, /Trực sự cố máy nén khí/, 'lý do in ở cột Chú thích');
+assert.match(don, /Sửa máy in phun VKY01 维修喷印机VKY01/, 'cột Chú thích in kèm bản dịch tiếng Trung của lý do');
+assert.match(don, /Ca đêm\s*夜班/, 'cột Chú thích in ca làm việc song ngữ');
 assert.match(don, /Kỹ thuật 技术员/, 'họ tên in kèm tên tiếng Trung');
 assert.match(don, /TỔNG CỘNG/); assert.match(don, /Hành chính nhân sự/);
 assert.equal(await page.locator('.tcsheet .ot tr').count(), 8, 'bảng 6 dòng + tiêu đề + tổng cộng');
@@ -416,7 +435,25 @@ await shot('19-tang-ca-thang');
 assert.ok(await page.evaluate(() => tcThangWorkbook(tcThangHT()).size) > 2000, 'xuất được Excel tổng hợp tháng');
 await page.evaluate(() => go('tcCfg')); await wait(500);
 assert.equal(await page.locator('[data-cf$=":ten"]').count(), 4, 'bốn ca làm việc');
-ok('Bản 2.11: đăng ký tăng ca theo tuần, in đơn đúng mẫu công ty, tổng hợp tháng, Excel; kỹ thuật chỉ thấy của mình');
+// Quản lý ghi hộ được cho tuần đã khoá (3 tuần trước)
+const cu13 = await page.evaluate(async () => {
+  const uid = S.V.nv.find((n) => n.maNV === 'NV003').id, ngay = addD(tcThuHai(TODAY()), -21);
+  await api('saveOT', { uid, ngay, ca: 'HC', tu: '17:30', den: '19:30', lyDo: 'Sửa quạt hút tuần cũ' });
+  return ngay;
+});
+// Nhân viên: tuần đó đã khoá, không sửa và không thêm được
+await logout(); await login('NV003', '333333');
+await page.evaluate((d) => { tab('tc'); S.f.tcTuan = tcThuHai(d); }, cu13); await wait(300);
+await page.evaluate(() => render()); await wait(600);
+assert.equal(await page.locator('.tcrow[disabled]').count(), 1, 'dòng của tuần đã khoá không bấm sửa được');
+assert.equal(await page.locator('[data-act="tcThem"]').count(), 0, 'tuần đã khoá thì không thêm được');
+assert.match(await text('#main'), /đã khoá/, 'có dòng nhắc tuần đã khoá');
+await shot('32-tang-ca-tuan-da-khoa');
+// Quay lại tuần này thì ghi thêm bình thường
+await page.evaluate(() => { S.f.tcTuan = null; render(); }); await wait(600);
+assert.equal(await page.locator('[data-act="tcThem"]').count(), 1, 'tuần này vẫn thêm được');
+await logout(); await login('NV002', '222222');      // bước sau chạy tiếp với Quản lý
+ok('Bản 2.11 + 2.22: tăng ca theo tuần, đơn đúng mẫu công ty song ngữ, tổng hợp tháng, Excel; tuần cũ tự khoá với nhân viên');
 
 // 14. Bản 2.11: nối thư mục Drive của nhà máy, quét vào danh mục, sắp xếp, tra cứu; kỹ thuật không mở được tài liệu
 await page.evaluate(() => go('tlCfg')); await wait(600);
@@ -521,7 +558,13 @@ await page.evaluate(() => go('trucTong')); await wait(600);
 assert.match(await text('#barTitle'), /Tổng số ca/);
 const tong16 = await page.evaluate(() => trucTongDS(TODAY().slice(0, 7)));
 assert.ok(tong16.length >= 3, 'bảng tổng liệt kê từng người');
-assert.ok(tong16.reduce((a, x) => a + x.cn, 0) >= 1, 'đếm riêng số ngày Chủ nhật');
+// Chủ nhật của tuần đang xem có thể rơi sang tháng sau (vd thứ Hai 26/10 thì Chủ nhật là 1/11),
+// nên đếm ngày Chủ nhật theo đúng tháng chứa Chủ nhật đó.
+const cn16 = await page.evaluate(() => {
+  const cn = addD(tcThuHai(TODAY()), 6);
+  return trucTongDS(cn.slice(0, 7)).reduce((a, x) => a + x.cn, 0);
+});
+assert.ok(cn16 >= 1, 'đếm riêng số ngày Chủ nhật');
 await shot('25-truc-tong-so-ca');
 // Phân công ca trực: bảng giống bảng giấy, bấm luân phiên thì tiếp nối tuần trước
 await page.evaluate(() => { back(); go('phanCa'); }); await wait(700);
@@ -700,6 +743,154 @@ assert.equal(/dưới tối thiểu/i.test(await text('#main')), false, 'ô Linh
 await shot('30-nhac-hang-thieu');
 assert.ok(await page.evaluate(() => khoThieuBlob(khoNhacDS()).size > 2000), 'xuất được danh sách cần mua');
 ok('Bản 2.16: tồn an toàn từ file (quy cách, đơn vị, bỏ theo dõi), báo thiếu theo phần trăm, không báo ra trang chủ');
+
+// 19. Báo tin qua WeChat Work: nhập webhook robot nhóm, chặn địa chỉ lạ, gửi thử (chỉ Quản trị vào được)
+await logout();
+await login('NV001', '111111');
+await page.evaluate(() => go('notify', {})); await wait(1500);
+assert.match(await text('#main'), /企业微信/, 'có mục WeChat Work trong Báo tin');
+await page.fill('#nWwUrl', 'https://vidu.com/hook?key=abcdef123456');
+await page.check('#nWw');
+await page.click('#nSave'); await wait(1000);
+assert.match(await text('#nErr'), /Webhook/i, 'địa chỉ lạ bị chặn');
+await page.fill('#nWwUrl', 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abcdef123456');
+await page.fill('#nWwTen', 'Tổ bảo trì 维修组');
+await page.click('#nSave'); await wait(1200);
+const ww19 = await page.evaluate(() => { const c = topV().p.c; return { bat: c.wwBat, co: c.wwCo, ten: c.wwTen, url: c.wwUrl }; });
+assert.deepEqual(ww19, { bat: true, co: true, ten: 'Tổ bảo trì 维修组', url: undefined }, 'lưu được, không trả địa chỉ về app');
+await shot('31-baotin-wechat-work');
+await page.click('[data-act="tgTest"]'); await wait(1600);
+assert.ok(await page.evaluate(() => DemoBackend.net.log.some((l) => /qyapi\.weixin\.qq\.com/.test(l.url))), 'gửi thử có vào WeChat Work');
+// Xoá địa chỉ thì tắt kênh
+await page.click('[data-act="wwXoa"]'); await wait(600);
+await page.click('[data-act="wwXoaGo"]'); await wait(1200);
+assert.equal(await page.evaluate(() => topV().p.c.wwCo), false, 'xoá được địa chỉ webhook');
+ok('Bản 2.21: báo tin vào nhóm WeChat Work, chặn địa chỉ webhook lạ, gửi thử và xoá được');
+
+// 20. Kiểm định thiết bị và Tính toán TB — chỉ Quản lý dùng được
+await logout(); await login('NV003', '333333');
+assert.equal(await page.evaluate(() => xemDuoc('kd') || xemDuoc('tt')), false, 'kỹ thuật không vào được hai mục này');
+await page.click('.tabs .tab[data-v="them"]'); await wait(600);
+assert.equal(await page.locator('#main .row[data-v="kd"], #main .row[data-v="tt"], #main .row[data-v="tlTb"]').count(), 0, 'kỹ thuật: màn Thêm không có ba mục này');
+assert.equal(await page.evaluate(() => xemDuoc('tlTb')), false, 'kỹ thuật không xem được Tài liệu thiết bị');
+await logout(); await login('NV002', '222222');
+await moThem('kd');
+assert.match(await text('#barTitle'), /Kiểm định/);
+const kd20 = await page.evaluate(() => kdDem());
+assert.ok(kd20.qua >= 1 && kd20.sap >= 1, 'dữ liệu mẫu có cả quá hạn và sắp hết hạn: ' + JSON.stringify(kd20));
+assert.ok(await page.locator('.row[data-act="kdMo"]').count() >= 4, 'sổ kiểm định có thiết bị');
+await shot('33-kiem-dinh-so');
+// Thêm một thiết bị mới: chu kỳ và nhóm nghiêm ngặt tự điền theo loại
+await page.click('[data-act="kdNew"]'); await wait(600);
+await page.fill('#kdTen', 'Cầu trục dầm đơn 3 tấn');
+await page.selectOption('#kdLoai', 'CAN_TRUC'); await wait(500);
+assert.equal(await page.inputValue('#kdCk'), '36', 'chu kỳ điền sẵn theo loại');
+assert.equal(await page.isChecked('#kdNN'), true, 'cần trục thuộc nhóm nghiêm ngặt');
+await page.fill('#kdSo', 'CT-03'); await page.fill('#kdVt', 'Xưởng 3');
+await page.click('#kdOk'); await wait(1200);
+const moi20 = await page.evaluate(() => kdDS().find((x) => x.ten === 'Cầu trục dầm đơn 3 tấn'));
+assert.ok(moi20 && moi20.nghiemNgat && moi20.chuKy === 36, 'đã lưu hồ sơ thiết bị');
+assert.ok(moi20.tenZh, 'tên thiết bị được dịch sang tiếng Trung');
+// Ghi một lần kiểm định → có hạn kế tiếp
+await page.click(`.row[data-act="kdMo"]:has-text("Cầu trục dầm đơn 3 tấn")`); await wait(700);
+await page.click('[data-act="kdGhi1"]'); await wait(700);
+await page.fill('#kgDv', 'Trung tâm Kiểm định KTAT Khu vực I');
+await page.fill('#kgSo', 'KD-2026-0999');
+await page.click('#kgOk'); await wait(1400);
+const sau20 = await page.evaluate(() => kdDS().find((x) => x.ten === 'Cầu trục dầm đơn 3 tấn'));
+assert.equal(sau20.ketQua, 'DAT');
+assert.equal(await page.evaluate((d) => kdHanTu(d.ngayKD, d.chuKy), sau20), sau20.ngayHetHan, 'hạn tính đúng theo chu kỳ');
+assert.equal(sau20.lichSu.length, 1);
+assert.ok(await page.evaluate(() => kdXlsx(kdDS()).size) > 2000, 'xuất được Excel sổ kiểm định');
+await shot('34-kiem-dinh-ho-so');
+// Tính toán TB: động cơ → dây dẫn → tụ bù → sụt áp
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
+await moThem('tt');
+assert.match(await text('#barTitle'), /Tính toán/);
+const dc20 = await page.evaluate(() => ttDongCo({ kw: '7.5', u: '380', pha: '3', cos: '0.85', eta: '88', k: '6', kd: 'DOL' }));
+assert.ok(Math.abs(dc20.I - 15.24) < 0.1, 'dòng định mức 7,5 kW/380V ≈ 15,2 A, ra ' + dc20.I);
+assert.equal(dc20.cb, 20, 'chọn CB 20 A');
+assert.match(await text('#ttKQ'), /A/);
+await shot('35-tinh-toan-dong-co');
+await page.click('[data-act="ttSeg"][data-v="day"]'); await wait(600);
+await page.click('[data-act="ttLayDC"]'); await wait(600);
+assert.equal(await page.inputValue('#ttI'), '15.2', 'lấy được dòng từ bài động cơ');
+const day20 = await page.evaluate(() => ttDay({ i: '100', l: '120', u: '380', pha: '3', cos: '0.85', vl: 'CU', cd: 'PVC', di: 'C', nd: '35', mach: '1', du: '5', icp: '' }));
+assert.ok(day20.S >= day20.sDong && day20.S >= day20.sSutChon, 'lấy tiết diện lớn hơn trong hai điều kiện');
+assert.ok(day20.pct <= 5, 'tiết diện chọn xong thì sụt áp đạt: ' + day20.pct);
+assert.equal(day20.pe, day20.S <= 16 ? day20.S : day20.S <= 35 ? 16 : day20.pe, 'tính được dây PE');
+assert.equal(await page.evaluate(() => ttDay({ i: '2000', l: '10', u: '380', pha: '3', cos: '0.85', vl: 'CU', cd: 'PVC', di: 'B2', nd: '30', mach: '1', du: '5', icp: '' }).S), null, 'quá tải thì báo không đủ');
+await shot('36-tinh-toan-day');
+await page.click('[data-act="ttSeg"][data-v="tu"]'); await wait(600);
+const tu20 = await page.evaluate(() => ttTuBu({ kw: '100', cos1: '0.78', cos2: '0.95' }));
+assert.ok(Math.abs(tu20.Q - 47.4) < 0.6, 'bù từ 0,78 lên 0,95 cho 100 kW ≈ 47,4 kVAr, ra ' + tu20.Q);
+assert.equal(await page.evaluate(() => ttTuBu({ kw: '100', cos1: '0.95', cos2: '0.8' })), null, 'cosφ mong muốn thấp hơn thì không tính');
+await page.click('[data-act="ttSeg"][data-v="su"]'); await wait(600);
+const su20 = await page.evaluate(() => ttSutAp({ i: '50', l: '80', s: '25', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' }));
+assert.ok(su20.dat && su20.pct < 5, 'tuyến cáp mẫu đạt: ' + su20.pct);
+assert.equal(await page.evaluate(() => ttSutAp({ i: '50', l: '400', s: '6', u: '380', pha: '3', cos: '0.85', vl: 'CU', du: '5' }).dat), false, 'cáp nhỏ đi xa thì không đạt');
+// Tính toán TB không còn tab Tra lỗi
+assert.equal(await page.locator('[data-act="ttSeg"][data-v="loi"]').count(), 0, 'Tra lỗi đã tách khỏi Tính toán TB');
+assert.equal(await page.locator('[data-act="ttSeg"]').count(), 4, 'Tính toán TB còn bốn bài tính');
+// Mục Tài liệu thiết bị: tra lỗi · sơ đồ đấu · tài liệu máy
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
+await moThem('tlTb');
+assert.match(await text('#barTitle'), /Tài liệu thiết bị/);
+assert.deepEqual((await page.locator('#main [data-act="tlTbSeg"]').allTextContents()).map((s) => s.split(' ')[0]),
+  ['Tra', 'Sơ', 'Tài'], 'ba tab: Tra lỗi · Sơ đồ đấu · Tài liệu máy');
+await page.fill('#ttLoiQ', 'E.OC1'); await wait(500);
+let loi20 = await text('#ttLoiBody');
+assert.match(loi20, /Quá dòng khi tăng tốc/, 'tra được mã lỗi biến tần');
+assert.match(loi20, /加速中过电流/, 'tên lỗi có tiếng Trung');
+assert.match(loi20, /Pr\.7/, 'có cách xử lý cụ thể');
+// Gõ không dấu chấm vẫn ra, và tra được mã servo
+await page.fill('#ttLoiQ', 'al32'); await wait(500);
+assert.match(await text('#ttLoiBody'), /Quá dòng/, 'gõ gọn al32 vẫn ra AL.32');
+await page.fill('#ttLoiQ', 'quá nhiệt'); await wait(500);
+assert.ok((await page.locator('#ttLoiBody .card').count()) >= 2, 'tìm được theo từ khoá tiếng Việt');
+await shot('37-tra-loi-bien-tan');
+// Nhà máy thêm ghi chú cho một mã lỗi
+await page.fill('#ttLoiQ', ''); await wait(400);
+await page.fill('#ttLoiQ', 'E.FIN'); await wait(500);
+await page.click('#ttLoiBody [data-act="mlThem"]'); await wait(700);
+assert.equal(await page.inputValue('#mlMa'), 'E.FIN', 'mã lỗi điền sẵn');
+await page.fill('#mlDong', 'FR-E740');
+await page.fill('#mlXl', 'Máy in phun VKY01: lần trước do quạt tủ hỏng, thay quạt là hết');
+await page.click('#mlOk'); await wait(1400);
+const ml20 = await page.evaluate(() => mlDS().find((x) => x.ma === 'E.FIN'));
+assert.ok(ml20 && ml20.cachXuLyDich, 'ghi chú của nhà máy đã lưu và được dịch');
+await page.fill('#ttLoiQ', 'E.FIN'); await wait(500);
+loi20 = await text('#ttLoiBody');
+assert.match(loi20, /Ghi chú của nhà máy/);
+assert.match(loi20, /quạt tủ hỏng/, 'ghi chú hiện ngay dưới mã lỗi');
+await shot('38-tra-loi-ghi-chu-nha-may');
+// Mã lỗi Inovance và lọc theo hãng
+const loiHang = await page.evaluate(() => ({ tong: TT_LOI.length,
+  mit: TT_LOI.filter((x) => x.hsx === 'MIT').length, inv: TT_LOI.filter((x) => x.hsx === 'INV').length }));
+assert.ok(loiHang.mit > 60 && loiHang.inv > 60, 'có mã lỗi của cả hai hãng: ' + JSON.stringify(loiHang));
+await page.fill('#ttLoiQ', 'Err09'); await wait(600);
+assert.match(await text('#ttLoiBody'), /Inovance MD/, 'tra được mã biến tần Inovance');
+assert.match(await text('#ttLoiBody'), /Thấp áp/);
+await page.fill('#ttLoiQ', 'er740'); await wait(600);
+assert.match(await text('#ttLoiBody'), /Inovance SV660/, 'gõ gọn er740 vẫn ra Er.740 của servo Inovance');
+await page.fill('#ttLoiQ', ''); await wait(400);
+await page.click('[data-act="ttLoiLoc"][data-v="INV"]'); await wait(700);
+assert.equal(await page.evaluate(() => ttLoiTim('', 'INV').built.every((x) => x.hsx === 'INV')), true, 'lọc đúng hãng Inovance');
+assert.equal(await page.evaluate(() => ttLoiTim('', 'MIT').built.every((x) => x.hsx === 'MIT')), true, 'lọc đúng hãng Mitsubishi');
+// Sơ đồ đấu: bốn dòng máy, bảng chân đấu, nhảy sang tài liệu
+await page.click('[data-act="tlTbSeg"][data-v="sd"]'); await wait(700);
+assert.equal(await page.locator('[data-act="sdMo"]').count(), 4, 'bốn dòng máy: FR, MR-J4, MD, SV660');
+assert.match(await text('#main'), /CHARGE/, 'có cảnh báo an toàn ngay đầu màn');
+await page.click('[data-act="sdMo"][data-k="MD"]'); await wait(700);
+const sd20 = (await text('#main')).replace(/\s+/g, ' ');
+assert.ok(['R · S · T', 'U · V · W', 'DI1', 'TA · TB · TC', '485+'].every((k) => sd20.includes(k)), 'bảng chân đấu Inovance MD');
+assert.match(sd20, /Dễ sai chỗ này/);
+assert.doesNotMatch(sd20, /chân số \d|pin \d/i, 'cố ý không ghi số chân của giắc');
+await shot('39-so-do-dau');
+await page.click('[data-act="sdTL"]'); await wait(900);
+assert.equal(await page.inputValue('#tlDSQ'), 'MD', 'sang tab Tài liệu máy với từ khoá đã lọc sẵn');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
+ok('Bản 2.23: sổ kiểm định thiết bị (nghiêm ngặt, hạn theo chu kỳ, Excel) và tính toán động cơ / dây dẫn / tụ bù / sụt áp; tra lỗi Mitsubishi + Inovance kèm ghi chú nhà máy; mục Tài liệu thiết bị gộp tra lỗi, sơ đồ đấu và tài liệu máy; kỹ thuật không vào được');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

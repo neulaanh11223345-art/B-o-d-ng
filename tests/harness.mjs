@@ -14,7 +14,7 @@ export function loadBackend({ seed = 'empty', now = '2026-10-20T03:00:00Z' } = {
   ctx.__tz.off = 7 * 3600000;
   setNow(ctx, now);
   if (seed === 'demo') {
-    const extra = rd('src/demo/demo-extra.js').replace(/\n__tz\.off = [^\n]*/, '').replace(/\nreturn \{ call:[\s\S]*$/, '\n');
+    const extra = rd('src/demo/demo-extra.js').replace(/\n__tz\.off = [^\n]*/, '').replace(/\nreturn \{[\s\S]*$/, '\n');
     vm.runInContext(extra, ctx, { filename: 'demo-extra.js' });
   } else {
     vm.runInContext('caiDatBanDau();', ctx);

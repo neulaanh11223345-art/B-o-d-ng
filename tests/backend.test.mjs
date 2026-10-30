@@ -319,17 +319,20 @@ test('xác nhận bảo dưỡng vẫn gắn linh kiện vào máy và kho như 
 const viec = (b, tk, more, opId) => b.call('saveTask', Object.assign({ tieuDe: 'Thay đèn xưởng 2', loai: 'SUA' }, more || {}), tk, opId);
 const buocCV = (b, tk, id, bc, more, opId) => b.call('updateTask', Object.assign({ id, buoc: bc }, more || {}), tk, opId);
 
-test('công việc: kỹ thuật ghi → chờ giao; Quản lý giao nhiều việc; làm → xong → kiểm tra; quyền; gửi lại không trùng', () => {
+test('công việc: chỉ Quản lý ghi việc; giao nhiều việc; làm → xong → kiểm tra; quyền; gửi lại không trùng', () => {
   const b = setupSC();
   const nv = ok(b.call('data', {}, b.ql)).nhanVien;
   const kt = nv.find((n) => n.maNV === 'NV003'), ad = nv.find((n) => n.maNV === 'NV001');
-  const a = ok(viec(b, b.kt, { id: 'CVTEST0001', han: '2026-10-06' }, 'o1')).congViec;
-  assert.deepEqual([a.id, a.so, a.trangThai, a.canKiemTra, a.nguoiTao], ['CVTEST0001', 1, 'CHO_GIAO', true, 'Kỹ thuật']);
-  assert.equal(ok(viec(b, b.kt, { id: 'CVTEST0001' }, 'o1')).dup, true);
-  // Kỹ thuật ghi kèm người làm thì vẫn chờ Quản lý giao
-  const c = ok(viec(b, b.kt, { tieuDe: 'Vệ sinh khu máy nén', loai: 'VS', uidLam: kt.id })).congViec;
+  // Kỹ thuật không ghi việc được nữa, kể cả ghi cho chính mình
+  err(viec(b, b.kt, { tieuDe: 'Thử ghi việc' }), 'KHONG_QUYEN');
+  err(viec(b, b.kt, { tieuDe: 'Thử ghi việc', uidLam: kt.id }), 'KHONG_QUYEN');
+  // Quản lý ghi việc chưa chọn người làm thì vào Chờ giao
+  const a = ok(viec(b, b.ql, { id: 'CVTEST0001', han: '2026-10-06' }, 'o1')).congViec;
+  assert.deepEqual([a.id, a.so, a.trangThai, a.canKiemTra, a.nguoiTao], ['CVTEST0001', 1, 'CHO_GIAO', true, 'Quản lý']);
+  assert.equal(ok(viec(b, b.ql, { id: 'CVTEST0001' }, 'o1')).dup, true);
+  const c = ok(viec(b, b.ql, { tieuDe: 'Vệ sinh khu máy nén', loai: 'VS' })).congViec;
   assert.deepEqual([c.trangThai, c.canKiemTra], ['CHO_GIAO', false]);
-  err(viec(b, b.kt, { tieuDe: ' ' }), 'CAN_TIEU_DE');
+  err(viec(b, b.ql, { tieuDe: ' ' }), 'CAN_TIEU_DE');
   err(b.call('assignTasks', { ids: [a.id, c.id], uidLam: kt.id }, b.kt), 'KHONG_QUYEN');
   err(b.call('assignTasks', { ids: [a.id], uidLam: 'U999' }, b.ql), 'KHONG_CO_NV');
   const g = ok(b.call('assignTasks', { ids: [a.id, c.id], uidLam: kt.id, uidPhu: [ad.id, kt.id] }, b.ql, 'o2')).dsCongViec;
@@ -357,10 +360,11 @@ test('công việc: kỹ thuật ghi → chờ giao; Quản lý giao nhiều vi�
   assert.equal(e.trangThai, 'DA_GIAO');
   err(buocCV(b, b.ql, e.id, 'huy'), 'CAN_LY_DO');
   ok(buocCV(b, b.ql, e.id, 'huy', { ghiChu: 'Không cần nữa' }));
-  const f = ok(viec(b, b.kt, { tieuDe: 'Ghi nhầm' })).congViec;
-  ok(buocCV(b, b.kt, f.id, 'huy'));
-  // Sửa việc: kỹ thuật chỉ sửa việc mình ghi khi chưa giao
-  err(viec(b, b.kt, { id: e.id, tieuDe: 'x' }), 'SAI_TRANG_THAI');
+  const f = ok(viec(b, b.ql, { tieuDe: 'Ghi nhầm' })).congViec;
+  ok(buocCV(b, b.ql, f.id, 'huy'));
+  // Sửa việc cũng chỉ Quản lý
+  err(viec(b, b.kt, { id: e.id, tieuDe: 'x' }), 'KHONG_QUYEN');
+  err(viec(b, b.ql, { id: e.id, tieuDe: 'x' }), 'SAI_TRANG_THAI');
   const data = ok(b.call('data', {}, b.kt));
   assert.ok(data.congViec.some((v) => v.id === a.id && v.trangThai === 'DONG'));
 });
@@ -371,8 +375,8 @@ test('công việc: giao bảo dưỡng thì xác nhận bảo dưỡng đóng l
   const v = ok(viec(b, b.ql, { tieuDe: 'Bảo dưỡng M001', loai: 'BD', ma: 'M001', uidLam: kt.id, han: '2026-10-05' })).congViec;
   const r = ok(b.call('confirm', { ma: 'M001', ngay: '2026-10-05', nguoi: 'Quản lý' }, b.ql));
   assert.deepEqual(r.dsCongViec.map((x) => [x.id, x.trangThai]), [[v.id, 'DONG']]);
-  // Kỹ thuật thấy máy hỏng, tự ghi việc và sửa luôn
-  const s1 = ok(viec(b, b.kt, { tieuDe: 'Motor M002 không chạy', loai: 'SUA', ma: 'M002', tuLam: true })).congViec;
+  // Quản lý ghi việc sửa và giao thẳng cho kỹ thuật
+  const s1 = ok(viec(b, b.ql, { tieuDe: 'Motor M002 không chạy', loai: 'SUA', ma: 'M002', uidLam: kt.id })).congViec;
   assert.deepEqual([s1.trangThai, s1.uidLam], ['DA_GIAO', kt.id]);
   const x = ok(buocCV(b, b.kt, s1.id, 'xong', { ketQua: 'Thay contactor', nguyenNhan: 'Lỗi điện', gioDung: 1.5 })).congViec;
   assert.deepEqual([x.trangThai, x.nguyenNhan, x.phutDung], ['XONG', 'Lỗi điện', 90]);
@@ -424,7 +428,7 @@ test('tự dịch: dịch khi lưu (Việt → Trung, Trung → Việt), tách "
   const a = ok(viec(b, b.ql, { tieuDe: 'Thay đèn xưởng 2', moTa: 'Đèn xưởng 2 bị cháy', loai: 'SUA' })).congViec;
   assert.deepEqual([a.tieuDe, a.tieuDeDich, a.moTaDich], ['Thay đèn xưởng 2', '更换二车间灯', '二车间灯烧坏了']);
   // Người Trung gõ tiếng Trung → dịch sang tiếng Việt
-  const z = ok(viec(b, b.kt, { tieuDe: '更换水泵密封圈' })).congViec;
+  const z = ok(viec(b, b.ql, { tieuDe: '更换水泵密封圈' })).congViec;
   assert.deepEqual([z.tieuDe, z.tieuDeDich], ['更换水泵密封圈', 'Thay phớt máy bơm']);
   // Gõ sẵn hai thứ tiếng → tách đôi, không gọi Google
   let goi = b.ctx.__dich.goi;
@@ -463,6 +467,58 @@ test('tự dịch: dịch khi lưu (Việt → Trung, Trung → Việt), tách "
   b.ctx.__net.log.length = 0;
   ok(viec(b, b.ql, { tieuDe: 'Thay phớt máy bơm', uidLam: kt.id }));
   assert.match(String(b.ctx.__net.log.find((l) => /sendMessage/.test(l.url)).opt.payload), /Thay phớt máy bơm · 更换水泵密封圈/);
+});
+
+test('báo tin WeChat Work: chỉ nhận webhook robot nhóm, gửi Markdown, chạy song song với Telegram', () => {
+  const b = setupSC();
+  const WW = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abc123def456';
+  const kt = ok(b.call('data', {}, b.ql)).nhanVien.find((n) => n.maNV === 'NV003');
+
+  // Địa chỉ lạ thì không nhận (không cho gửi dữ liệu nhà máy đi chỗ khác)
+  err(b.call('notifySave', { wwUrl: 'https://vidu.com/hook?key=abc123def456' }, b.ad), 'WW_URL_SAI');
+  err(b.call('notifySave', { wwUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send' }, b.ad), 'WW_URL_SAI');
+  // Bật mà chưa có địa chỉ cũng không cho lưu
+  err(b.call('notifySave', { wwBat: true }, b.ad), 'WW_CHUA_DU');
+
+  const c = ok(b.call('notifySave', { wwUrl: WW, wwTen: 'Tổ bảo trì 维修组', wwBat: true }, b.ad));
+  assert.equal(c.wwBat, true);
+  assert.equal(c.wwCo, true);
+  assert.equal(c.wwTen, 'Tổ bảo trì 维修组');
+  assert.equal(c.wwUrl, undefined, 'không trả địa chỉ đầy đủ về app');
+
+  // Giao việc: tin vào nhóm WeChat Work, đổi thẻ HTML sang Markdown
+  b.ctx.__net.log.length = 0;
+  ok(viec(b, b.ql, { tieuDe: 'Thay phớt máy bơm', uidLam: kt.id }));
+  const g = b.ctx.__net.log.find((l) => /qyapi\.weixin\.qq\.com/.test(l.url));
+  assert.ok(g, 'có gửi vào WeChat Work');
+  const body = JSON.parse(g.opt.payload);
+  assert.equal(body.msgtype, 'markdown');
+  assert.match(body.markdown.content, /\*\*GIAO VIỆC · 派工\*\*/, 'thẻ <b> đổi thành Markdown');
+  assert.doesNotMatch(body.markdown.content, /<b>|<\/b>|&amp;/, 'không còn thẻ HTML');
+
+  // Bật cả hai kênh thì cả hai cùng nhận
+  ok(b.call('notifySave', { tgToken: '123:abc', tgChat: '-100123', tgBat: true }, b.ad));
+  b.ctx.__net.log.length = 0;
+  ok(viec(b, b.ql, { tieuDe: 'Tra dầu băng tải', uidLam: kt.id }));
+  assert.equal(b.ctx.__net.log.filter((l) => /sendMessage/.test(l.url)).length, 1);
+  assert.equal(b.ctx.__net.log.filter((l) => /qyapi\.weixin\.qq\.com/.test(l.url)).length, 1);
+
+  // Gửi thử báo trạng thái từng kênh
+  const thu = ok(b.call('notifyTest', {}, b.ad));
+  assert.equal(thu.ww, 'ok');
+  assert.equal(thu.tg, 'ok');
+
+  // WeChat Work báo lỗi thì ghi lại, không làm hỏng việc đang lưu
+  b.ctx.__net.reply = (url) => (/qyapi/.test(url) ? { code: 200, body: { errcode: 93000, errmsg: 'invalid webhook url' } } : null);
+  const v = ok(viec(b, b.ql, { tieuDe: 'Siết bu lông', uidLam: kt.id }));
+  assert.equal(v.congViec.uidLam, kt.id, 'việc vẫn lưu bình thường');
+  assert.match(ok(b.call('notifyGet', {}, b.ad)).loi.loi, /93000/);
+  b.ctx.__net.reply = null;
+
+  // Xoá địa chỉ thì tắt kênh
+  const c2 = ok(b.call('notifySave', { xoaWw: true }, b.ad));
+  assert.equal(c2.wwCo, false);
+  assert.equal(c2.wwBat, false);
 });
 
 test('tự dịch: Google lỗi / hết hạn mức thì việc vẫn lưu, 1 giờ sau tự dịch bù; việc lặp lại dịch một lần ở mẫu', () => {
@@ -910,8 +966,9 @@ test('phân quyền xem: Quản lý, Quản trị thấy hết; kỹ thuật ch�
   assert.ok(s.has(sua.id) && s.has(bd.id), 'kỹ thuật thấy mọi việc Sửa chữa, Bảo dưỡng (kể cả giao người khác, chưa giao)');
   assert.ok(s.has(ct.id), 'thấy việc giao cho mình');
   assert.ok(!s.has(vs.id) && !s.has(khac.id), 'không thấy việc loại khác của người khác');
-  // Việc mình tự ghi (loại khác) thì mình thấy, người khác không
-  const lap = ok(b.call('saveTask', { tieuDe: 'Lắp quạt thông gió', loai: 'LAP' }, kt)).congViec;
+  // Kỹ thuật không ghi việc được; việc loại khác giao cho mình thì mình thấy, người khác không
+  err(b.call('saveTask', { tieuDe: 'Lắp quạt thông gió', loai: 'LAP' }, kt), 'KHONG_QUYEN');
+  const lap = viec({ tieuDe: 'Lắp quạt thông gió', loai: 'LAP', uidLam: uid('NV003') });
   assert.ok(ids(kt).has(lap.id) && !ids(kt2).has(lap.id) && ids(ql).has(lap.id));
   // Thấy việc sửa chữa giao người khác nhưng không làm thay được
   err(b.call('updateTask', { id: sua.id, buoc: 'batdau' }, kt), 'KHONG_QUYEN');
@@ -943,7 +1000,7 @@ test('tăng ca: mỗi người ghi của mình, Quản lý ghi hộ và xem hế
   assert.deepEqual([x.uid, x.soGio, x.ca], [uid('NV003'), 2, 'HC']);
   assert.ok(x.lyDoDich, 'lý do được dịch sang tiếng Trung');
   // Qua 0 giờ: 22:00 → 02:00 là 4 tiếng
-  assert.equal(ok(b.call('saveOT', { ngay: '2026-10-15', ca: 'DEM', tu: '22:00', den: '02:00' }, kt)).tangCa.soGio, 4);
+  assert.equal(ok(b.call('saveOT', { ngay: '2026-10-13', ca: 'DEM', tu: '22:00', den: '02:00' }, kt)).tangCa.soGio, 4);
   // Sửa tay số giờ thì giữ nguyên số đã sửa
   const y = ok(b.call('saveOT', { id: x.id, ngay: x.ngay, ca: 'HC', tu: '17:30', den: '19:30', soGio: 1.5 }, kt)).tangCa;
   assert.deepEqual([y.id, y.soGio], [x.id, 1.5]);
@@ -984,7 +1041,7 @@ test('tăng ca: mỗi người ghi của mình, Quản lý ghi hộ và xem hế
   assert.deepEqual([cd.caTangCa.length, cd.caTangCa[0].tu, cd.gioTCThang, cd.gioTCNam], [2, '17:00', 36, 180]);
   err(b.call('saveOTCfg', { ca: [{ k: 'HC', ten: 'Hành chính', tu: '99:00', den: '19:00' }] }, ql), 'GIO_SAI');
   // Ca đã bỏ thì không ghi tăng ca theo ca đó nữa
-  err(b.call('saveOT', { ngay: '2026-10-16', ca: 'CN', tu: '08:00', den: '17:00' }, kt), 'CA_SAI');
+  err(b.call('saveOT', { ngay: '2026-10-11', ca: 'CN', tu: '08:00', den: '17:00' }, kt), 'CA_SAI');
 });
 
 test('lịch trực tuần: Quản lý xếp người và nội dung, tự dịch; sửa tay bản dịch thì không dịch đè; kỹ thuật chỉ xem', () => {
@@ -1429,6 +1486,160 @@ test('giao việc là bắt đầu luôn: không cần bấm Bắt đầu, xong 
   assert.equal(c.lucBatDau, '');
   const c2 = ok(b.call('updateTask', { id: c.id, buoc: 'giao', uidLam: a.id }, b.ql)).congViec;
   assert.equal(c2.lucBatDau, c2.lucGiao);
+});
+
+test('tăng ca: nhân viên chỉ ghi / sửa từ thứ Hai tuần trước đến hôm nay, không ghi trước cho ngày chưa tới', () => {
+  // 2026-10-14 là thứ Tư. Thứ Hai tuần này 12/10, thứ Hai tuần trước 05/10 → mở từ 05/10 đến 14/10.
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const ghi = (ngay, tk, id) => b.call('saveOT', { id: id || '', ngay, ca: 'HC', tu: '17:30', den: '19:30' }, tk);
+
+  // Trong khoảng: ghi được cả tuần trước lẫn tuần này
+  const tuanTruoc = ok(ghi('2026-10-05', kt)).tangCa;
+  const tuanNay = ok(ghi('2026-10-14', kt)).tangCa;
+  assert.equal(tuanTruoc.ngay, '2026-10-05');
+
+  // Ngày chưa tới: chặn
+  err(ghi('2026-10-15', kt), 'TC_TUONG_LAI');
+  // Tuần cũ hơn: đã khoá
+  err(ghi('2026-10-04', kt), 'TC_DA_KHOA');
+  err(ghi('2026-09-28', kt), 'TC_DA_KHOA');
+
+  // Sửa và xoá bản ghi còn trong khoảng thì được
+  assert.equal(ok(ghi('2026-10-06', kt, tuanTruoc.id)).tangCa.ngay, '2026-10-06');
+  ok(b.call('deleteOT', { id: tuanNay.id }, kt));
+
+  // Không được chuyển một bản ghi đang mở sang ngày đã khoá hay ngày chưa tới
+  err(ghi('2026-10-01', kt, tuanTruoc.id), 'TC_DA_KHOA');
+  err(ghi('2026-10-20', kt, tuanTruoc.id), 'TC_TUONG_LAI');
+
+  // Quản lý ghi hộ được cho mọi tuần, kể cả tuần đã khoá
+  const cu = ok(b.call('saveOT', { uid: tuanTruoc.uid, ngay: '2026-09-28', ca: 'HC', tu: '17:30', den: '19:30' }, ql)).tangCa;
+  assert.equal(cu.ngay, '2026-09-28');
+  // Nhân viên vẫn không sửa / xoá được bản ghi tuần đã khoá đó
+  err(ghi('2026-10-06', kt, cu.id), 'TC_DA_KHOA');
+  err(b.call('deleteOT', { id: cu.id }, kt), 'TC_DA_KHOA');
+  // Quản lý thì sửa và xoá được
+  assert.equal(ok(b.call('saveOT', { id: cu.id, uid: cu.uid, ngay: '2026-09-29', ca: 'HC', tu: '17:30', den: '19:30' }, ql)).tangCa.ngay, '2026-09-29');
+  ok(b.call('deleteOT', { id: cu.id }, ql));
+
+  // Sang thứ Hai tuần sau thì tuần 05/10 tự khoá, tuần 12/10 vẫn mở
+  b.setNow('2026-10-19T03:00:00Z');
+  err(ghi('2026-10-06', kt, tuanTruoc.id), 'TC_DA_KHOA');
+  assert.equal(ok(ghi('2026-10-13', kt)).tangCa.ngay, '2026-10-13');
+});
+
+test('kiểm định thiết bị: sổ riêng, ghi từng lần kiểm định, tính hạn theo chu kỳ, chỉ Quản lý dùng được', () => {
+  const b = setupSC();
+  // Kỹ thuật không vào được
+  err(b.call('saveInspect', { ten: 'Xe nâng', loai: 'XE_NANG' }, b.kt), 'KHONG_QUYEN');
+  assert.deepEqual(ok(b.call('data', {}, b.kt)).kiemDinh, [], 'kỹ thuật không nhận sổ kiểm định');
+
+  // Loại sai, máy lạ thì báo lỗi
+  err(b.call('saveInspect', { ten: 'Xe nâng', loai: 'KHONGCO' }, b.ql), 'KD_LOAI_SAI');
+  err(b.call('saveInspect', { ten: 'Xe nâng', loai: 'XE_NANG', ma: 'KHONGCO' }, b.ql), 'KHONG_CO_MAY');
+  err(b.call('saveInspect', { ten: '', loai: 'XE_NANG' }, b.ql), 'THIEU_TEN');
+  err(b.call('saveInspect', { ten: 'Xe nâng', loai: 'XE_NANG', namSX: 1800 }, b.ql), 'NAM_SX_SAI');
+
+  // Thêm thiết bị: chu kỳ và nhóm nghiêm ngặt lấy mặc định theo loại
+  const x = ok(b.call('saveInspect', { ten: 'Xe nâng hàng Komatsu', loai: 'XE_NANG', soHieu: 'FD25T', viTri: 'Kho' }, b.ql)).kiemDinh;
+  assert.equal(x.chuKy, 24, 'xe nâng mặc định 24 tháng');
+  assert.equal(x.nghiemNgat, true, 'xe nâng thuộc nhóm nghiêm ngặt');
+  assert.equal(x.ketQua, 'CHUA');
+  assert.equal(x.ngayHetHan, '');
+  assert.ok(x.tenZh, 'tên được dịch sang tiếng Trung');
+
+  // Nối với máy trong danh mục thì nhận
+  const y = ok(b.call('saveInspect', { ten: 'Bình tích áp', loai: 'BINH_AL', ma: 'M001', nghiemNgat: false }, b.ql)).kiemDinh;
+  assert.equal(y.ma, 'M001');
+  assert.equal(y.nghiemNgat, false, 'đánh dấu tay thì theo người nhập');
+
+  // Ghi một lần kiểm định: hạn = ngày kiểm định + chu kỳ, lùi một ngày
+  err(b.call('doInspect', { id: x.id, ngayKD: '2026-10-05', ketQua: 'DAT' }, b.ql), 'KD_THIEU_DV');
+  err(b.call('doInspect', { id: x.id, ngayKD: '2026-12-01', ketQua: 'DAT', donViKD: 'TT1' }, b.ql), 'NGAY_TUONG_LAI');
+  const x1 = ok(b.call('doInspect', { id: x.id, ngayKD: '2026-10-05', ketQua: 'DAT', donViKD: 'Trung tâm KĐ Khu vực I', soGiayKD: 'KD-01' }, b.ql)).kiemDinh;
+  assert.equal(x1.ngayHetHan, '2028-10-04');
+  assert.equal(x1.ketQua, 'DAT');
+  assert.equal(x1.lichSu.length, 1);
+
+  // Không đạt thì xoá hạn, phải kiểm định lại
+  const x2 = ok(b.call('doInspect', { id: x.id, ngayKD: '2026-10-05', ketQua: 'KHONG_DAT', donViKD: 'Trung tâm KĐ Khu vực I' }, b.ql)).kiemDinh;
+  assert.equal(x2.ngayHetHan, '');
+  assert.equal(x2.lichSu.length, 2, 'lần cũ vẫn giữ trong lịch sử');
+
+  // Kiểm định lại đạt, đổi chu kỳ 12 tháng
+  const x3 = ok(b.call('doInspect', { id: x.id, ngayKD: '2026-10-05', ketQua: 'DAT', chuKy: 12, donViKD: 'Trung tâm KĐ Khu vực I' }, b.ql)).kiemDinh;
+  assert.equal(x3.chuKy, 12);
+  assert.equal(x3.ngayHetHan, '2027-10-04');
+
+  // Sửa chu kỳ ở hồ sơ thì hạn tính lại theo lần kiểm định gần nhất
+  const x4 = ok(b.call('saveInspect', { id: x.id, ten: x.ten, loai: 'XE_NANG', chuKy: 24 }, b.ql)).kiemDinh;
+  assert.equal(x4.ngayHetHan, '2028-10-04');
+
+  // Bỏ khỏi sổ thì thôi nhắc, dòng vẫn giữ
+  ok(b.call('deleteInspect', { id: y.id }, b.ql));
+  const ds = ok(b.call('data', {}, b.ql)).kiemDinh;
+  assert.equal(ds.length, 2, 'vẫn giữ dòng trên sheet');
+  assert.equal(ds.find((r) => r.id === y.id).hoatDong, false);
+});
+
+test('ghi chú mã lỗi của nhà máy: chỉ Quản lý ghi, mã lỗi và cách xử lý tự dịch sang tiếng Trung', () => {
+  const b = setupSC();
+  err(b.call('saveFault', { ma: 'E.OC1', cachXuLy: 'x' }, b.kt), 'KHONG_QUYEN');
+  assert.deepEqual(ok(b.call('data', {}, b.kt)).maLoi, [], 'kỹ thuật không nhận ghi chú mã lỗi');
+
+  err(b.call('saveFault', { ma: '', cachXuLy: 'Vệ sinh quạt' }, b.ql), 'ML_THIEU_MA');
+  err(b.call('saveFault', { ma: 'E.FIN', cachXuLy: '  ' }, b.ql), 'CAN_KET_QUA');
+
+  const x = ok(b.call('saveFault', { hang: 'BT', dong: 'FR-E740', ma: 'e.fin',
+    tenLoi: 'Quá nhiệt tản nhiệt', cachXuLy: 'Lần trước do quạt tủ hỏng, thay quạt là hết' }, b.ql)).maLoi;
+  assert.equal(x.ma, 'E.FIN', 'mã lỗi lưu chữ hoa');
+  assert.equal(x.hang, 'BT');
+  assert.ok(x.cachXuLyDich, 'cách xử lý được dịch sang tiếng Trung');
+  assert.ok(x.tenLoiDich);
+
+  // Hãng lạ thì về KHAC
+  const y = ok(b.call('saveFault', { hang: 'XX', ma: 'ER-9', cachXuLy: 'Khởi động lại máy' }, b.ql)).maLoi;
+  assert.equal(y.hang, 'KHAC');
+
+  // Sửa tay bản dịch rồi thì không dịch đè
+  const z = ok(b.call('saveFault', { id: x.id, hang: 'BT', ma: 'E.FIN', tenLoi: x.tenLoi,
+    cachXuLy: x.cachXuLy, cachXuLyDich: '上次是柜内风扇坏，换风扇即可' }, b.ql)).maLoi;
+  assert.equal(z.cachXuLyDich, '上次是柜内风扇坏，换风扇即可');
+
+  // Xoá thì thôi hiện, dòng vẫn giữ
+  ok(b.call('deleteFault', { id: y.id }, b.ql));
+  const ds = ok(b.call('data', {}, b.ql)).maLoi;
+  assert.equal(ds.length, 2);
+  assert.equal(ds.find((r) => r.id === y.id).hoatDong, false);
+});
+
+test('kiểm định: thiết bị quá hạn và sắp hết hạn đi vào tin nhắn nhắc hằng ngày', () => {
+  const b = setupSC();                                       // hôm nay 2026-10-05
+  const them = (ten, loai, ngay, ck) => {
+    const x = ok(b.call('saveInspect', { ten, loai }, b.ql)).kiemDinh;
+    if (ngay) ok(b.call('doInspect', { id: x.id, ngayKD: ngay, chuKy: ck, ketQua: 'DAT', donViKD: 'TT KĐ' }, b.ql));
+    return x;
+  };
+  them('Nồi hơi quá hạn', 'NOI_HOI', '2024-09-01', 12);      // hết hạn 2025-08-31 → quá hạn
+  them('Palăng sắp hết hạn', 'PA_LANG', '2025-10-20', 12);   // hết hạn 2026-10-19 → còn 14 ngày
+  them('Thang máy còn hạn', 'THANG_MAY', '2026-09-01', 36);
+  them('Bình khí chưa kiểm định', 'CHAI_KHI', '', 0);
+
+  const kd = JSON.parse(JSON.stringify(b.ctx.kdSapHet('2026-10-05', 30)));
+  assert.deepEqual(kd.qua.map((o) => o.ten), ['Nồi hơi quá hạn']);
+  assert.deepEqual(kd.sap.map((o) => o.ten), ['Palăng sắp hết hạn']);
+  assert.equal(kd.chua.length, 1);
+
+  // Tin nhắn hằng ngày có mục kiểm định
+  ok(b.call('notifySave', { tgToken: '123:abc', tgChat: '-100123', tgBat: true }, b.ad));
+  b.ctx.__net.log.length = 0;
+  b.ctx.nhacHangNgay();
+  const tin = String((b.ctx.__net.log.find((l) => /sendMessage/.test(l.url)) || { opt: { payload: '' } }).opt.payload);
+  assert.match(tin, /Kiểm định thiết bị/);
+  assert.match(tin, /Nồi hơi quá hạn/);
+  assert.match(tin, /Palăng sắp hết hạn/);
+  assert.doesNotMatch(tin, /Thang máy còn hạn/, 'còn hạn thì không nhắc');
 });
 
 test('việc lặp lại: một người check sheet nhiều máy, mỗi máy một việc', () => {
