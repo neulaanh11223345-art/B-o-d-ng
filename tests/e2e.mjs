@@ -179,44 +179,44 @@ assert.match(await text('#main'), /HNJX-HD2000/);
 assert.equal(await page.locator('.gaph[data-k="lkch:VKY01"]').count(), 0, 'kỹ thuật không thấy linh kiện / ERP của chuyền');
 ok('Xác nhận bảo dưỡng từ hồ sơ thiết bị; Bảo dưỡng gọn (quá hạn bấm mới hiện), xem máy theo chuyền');
 
-// 9. Kỹ thuật thấy máy hỏng: tự ghi việc sửa chữa (mất mạng vẫn ghi được), ghi nguyên nhân + giờ dừng máy
+// 9. Kỹ thuật thấy máy hỏng: ghi sửa chữa (mất mạng vẫn ghi được), ghi nguyên nhân + giờ dừng máy.
+// Từ bản 2.28 kỹ thuật KHÔNG ghi việc được nữa — chỉ Quản lý ghi việc để giao.
+await page.click('.tabs .tab[data-v="cv"]'); await wait(700);
+assert.equal(await page.locator('[data-act="cvNew"]').count(), 0, 'kỹ thuật không có nút Ghi việc');
+assert.equal(await page.evaluate(() => xemDuoc('cvNew')), false, 'kỹ thuật không mở được màn Ghi việc');
 await page.click('.tabs .tab[data-v="home"]'); await wait();
+assert.equal(await page.locator('.cta2').count(), 0, 'trang chủ của kỹ thuật không còn ô Ghi việc');
 await page.click('#meBtn'); await wait();
 await page.check('#simOff'); await wait();
-await page.click('.tabs .tab[data-v="home"]'); await wait();
-await page.click('.cta2'); await wait();
-assert.match(await text('#barTitle'), /Ghi việc/);
-await page.fill('#cvTD', 'Máy hút bụi VKY03 không chạy');
-await page.check('#cvTuLam'); await wait();
-// Mọi loại việc chọn được cả chuyền, máy ngoài chuyền và máy thuộc chuyền
-assert.equal(await page.locator('#cvMa option[value="VKY03"]').count(), 1, 'chọn được chuyền sản xuất');
-assert.equal(await page.locator('#cvMa option[value="M038"]').count(), 1, 'chọn được máy ngoài chuyền');
-assert.equal(await page.locator('#cvMa option[value="M020"]').count(), 1, 'chọn được máy thuộc chuyền (máy hút bụi VKY03)');
-assert.equal(await page.locator('#cvMa optgroup[label*="Máy của chuyền VKY03"] option[value="M020"]').count(), 1,
+await page.click('.tabs .tab[data-v="cv"]'); await wait(700);
+await page.click('[data-v="scGhi"]'); await wait(700);
+assert.match(await text('#barTitle'), /sửa chữa/i);
+// Chọn được cả chuyền, máy ngoài chuyền và máy thuộc chuyền
+assert.equal(await page.locator('#scMa option[value="VKY03"]').count(), 1, 'chọn được chuyền sản xuất');
+assert.equal(await page.locator('#scMa option[value="M038"]').count(), 1, 'chọn được máy ngoài chuyền');
+assert.equal(await page.locator('#scMa optgroup[label*="Máy của chuyền VKY03"] option[value="M020"]').count(), 1,
   'máy thuộc chuyền gom đúng vào nhóm của chuyền đó');
-await page.selectOption('#cvMa', 'VKY03');
-await page.click('#cvOk'); await wait(900);
-assert.match(await text('.schead'), /Đã giao/);
-assert.match(await text('.scmayl'), /Chuyền VKY03/);
-await page.click('[data-act="cvXong"]'); await wait();
-await page.fill('#cxKQ', 'Thay chổi than motor');
-await page.click('[data-act="cxNNChon"][data-k="nn_mon"]');
-await page.fill('#cxGio', '1.5');
+await page.selectOption('#scMa', 'VKY03'); await wait(400);
+await page.fill('#scMT', 'Máy hút bụi VKY03 không chạy');
+await page.click('[data-act="scNNChon"][data-k="nn_mon"]'); await wait(300);
+await page.fill('#scKQ', 'Thay chổi than motor');
+await page.fill('#scGio', '1.5');
 await shot('08-sua-chua-tu-ghi');
-await page.click('#cxOk'); await wait(900);
-assert.match(await text('.schead'), /Chờ kiểm tra/);
+await page.click('#scOk'); await wait(900);
 assert.match(await text('#syncBtn'), /Chờ mạng|Chờ gửi/);
 await page.click('#meBtn'); await wait();
 await page.uncheck('#simOff'); await wait(1800);
 assert.match(await text('#syncBtn'), /Đã đồng bộ/);
-// Có mạng lại: máy chủ đã tự dịch tên việc, kết quả, nguyên nhân sang tiếng Trung
-await page.click('.tabs .tab[data-v="cv"]'); await wait();
-await page.click('.chip[data-act="cvLoc"][data-v="all"]'); await wait();
+// Có mạng lại: máy chủ đã tự dịch mô tả, kết quả, nguyên nhân sang tiếng Trung.
+// Bản ghi sửa chữa nằm ở Lịch sử sửa chữa, không lẫn vào danh sách Công việc.
+await page.click('.tabs .tab[data-v="cv"]'); await wait(700);
+assert.equal((await text('#main')).includes('Máy hút bụi VKY03'), false, 'bản ghi sửa chữa không lẫn vào danh sách Công việc');
+await page.click('[data-v="scDS"]'); await wait(900);
 await page.click('.scrow:has-text("Máy hút bụi VKY03")'); await wait();
 assert.match(await text('.schead'), /吸尘器VKY03不运转/);
 assert.match(await text('.scres'), /更换电机碳刷/);
 assert.match(await text('.scres'), /自然磨损/);
-ok('Kỹ thuật tự ghi việc sửa chữa khi mất mạng, ghi nguyên nhân và giờ dừng máy, có mạng tự gửi và tự dịch sang tiếng Trung');
+ok('Kỹ thuật không ghi việc được nữa, chỉ ghi sửa chữa; mất mạng vẫn ghi, có mạng tự gửi và tự dịch sang tiếng Trung');
 
 // 10. Công việc: Quản lý ghi việc và giao luôn; giao nhiều việc một lần; nhân viên thấy ở "Việc của tôi", làm xong; Quản lý kiểm tra
 await logout();

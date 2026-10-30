@@ -319,17 +319,20 @@ test('xác nhận bảo dưỡng vẫn gắn linh kiện vào máy và kho như 
 const viec = (b, tk, more, opId) => b.call('saveTask', Object.assign({ tieuDe: 'Thay đèn xưởng 2', loai: 'SUA' }, more || {}), tk, opId);
 const buocCV = (b, tk, id, bc, more, opId) => b.call('updateTask', Object.assign({ id, buoc: bc }, more || {}), tk, opId);
 
-test('công việc: kỹ thuật ghi → chờ giao; Quản lý giao nhiều việc; làm → xong → kiểm tra; quyền; gửi lại không trùng', () => {
+test('công việc: chỉ Quản lý ghi việc; giao nhiều việc; làm → xong → kiểm tra; quyền; gửi lại không trùng', () => {
   const b = setupSC();
   const nv = ok(b.call('data', {}, b.ql)).nhanVien;
   const kt = nv.find((n) => n.maNV === 'NV003'), ad = nv.find((n) => n.maNV === 'NV001');
-  const a = ok(viec(b, b.kt, { id: 'CVTEST0001', han: '2026-10-06' }, 'o1')).congViec;
-  assert.deepEqual([a.id, a.so, a.trangThai, a.canKiemTra, a.nguoiTao], ['CVTEST0001', 1, 'CHO_GIAO', true, 'Kỹ thuật']);
-  assert.equal(ok(viec(b, b.kt, { id: 'CVTEST0001' }, 'o1')).dup, true);
-  // Kỹ thuật ghi kèm người làm thì vẫn chờ Quản lý giao
-  const c = ok(viec(b, b.kt, { tieuDe: 'Vệ sinh khu máy nén', loai: 'VS', uidLam: kt.id })).congViec;
+  // Kỹ thuật không ghi việc được nữa, kể cả ghi cho chính mình
+  err(viec(b, b.kt, { tieuDe: 'Thử ghi việc' }), 'KHONG_QUYEN');
+  err(viec(b, b.kt, { tieuDe: 'Thử ghi việc', uidLam: kt.id }), 'KHONG_QUYEN');
+  // Quản lý ghi việc chưa chọn người làm thì vào Chờ giao
+  const a = ok(viec(b, b.ql, { id: 'CVTEST0001', han: '2026-10-06' }, 'o1')).congViec;
+  assert.deepEqual([a.id, a.so, a.trangThai, a.canKiemTra, a.nguoiTao], ['CVTEST0001', 1, 'CHO_GIAO', true, 'Quản lý']);
+  assert.equal(ok(viec(b, b.ql, { id: 'CVTEST0001' }, 'o1')).dup, true);
+  const c = ok(viec(b, b.ql, { tieuDe: 'Vệ sinh khu máy nén', loai: 'VS' })).congViec;
   assert.deepEqual([c.trangThai, c.canKiemTra], ['CHO_GIAO', false]);
-  err(viec(b, b.kt, { tieuDe: ' ' }), 'CAN_TIEU_DE');
+  err(viec(b, b.ql, { tieuDe: ' ' }), 'CAN_TIEU_DE');
   err(b.call('assignTasks', { ids: [a.id, c.id], uidLam: kt.id }, b.kt), 'KHONG_QUYEN');
   err(b.call('assignTasks', { ids: [a.id], uidLam: 'U999' }, b.ql), 'KHONG_CO_NV');
   const g = ok(b.call('assignTasks', { ids: [a.id, c.id], uidLam: kt.id, uidPhu: [ad.id, kt.id] }, b.ql, 'o2')).dsCongViec;
@@ -357,10 +360,11 @@ test('công việc: kỹ thuật ghi → chờ giao; Quản lý giao nhiều vi�
   assert.equal(e.trangThai, 'DA_GIAO');
   err(buocCV(b, b.ql, e.id, 'huy'), 'CAN_LY_DO');
   ok(buocCV(b, b.ql, e.id, 'huy', { ghiChu: 'Không cần nữa' }));
-  const f = ok(viec(b, b.kt, { tieuDe: 'Ghi nhầm' })).congViec;
-  ok(buocCV(b, b.kt, f.id, 'huy'));
-  // Sửa việc: kỹ thuật chỉ sửa việc mình ghi khi chưa giao
-  err(viec(b, b.kt, { id: e.id, tieuDe: 'x' }), 'SAI_TRANG_THAI');
+  const f = ok(viec(b, b.ql, { tieuDe: 'Ghi nhầm' })).congViec;
+  ok(buocCV(b, b.ql, f.id, 'huy'));
+  // Sửa việc cũng chỉ Quản lý
+  err(viec(b, b.kt, { id: e.id, tieuDe: 'x' }), 'KHONG_QUYEN');
+  err(viec(b, b.ql, { id: e.id, tieuDe: 'x' }), 'SAI_TRANG_THAI');
   const data = ok(b.call('data', {}, b.kt));
   assert.ok(data.congViec.some((v) => v.id === a.id && v.trangThai === 'DONG'));
 });
@@ -371,8 +375,8 @@ test('công việc: giao bảo dưỡng thì xác nhận bảo dưỡng đóng l
   const v = ok(viec(b, b.ql, { tieuDe: 'Bảo dưỡng M001', loai: 'BD', ma: 'M001', uidLam: kt.id, han: '2026-10-05' })).congViec;
   const r = ok(b.call('confirm', { ma: 'M001', ngay: '2026-10-05', nguoi: 'Quản lý' }, b.ql));
   assert.deepEqual(r.dsCongViec.map((x) => [x.id, x.trangThai]), [[v.id, 'DONG']]);
-  // Kỹ thuật thấy máy hỏng, tự ghi việc và sửa luôn
-  const s1 = ok(viec(b, b.kt, { tieuDe: 'Motor M002 không chạy', loai: 'SUA', ma: 'M002', tuLam: true })).congViec;
+  // Quản lý ghi việc sửa và giao thẳng cho kỹ thuật
+  const s1 = ok(viec(b, b.ql, { tieuDe: 'Motor M002 không chạy', loai: 'SUA', ma: 'M002', uidLam: kt.id })).congViec;
   assert.deepEqual([s1.trangThai, s1.uidLam], ['DA_GIAO', kt.id]);
   const x = ok(buocCV(b, b.kt, s1.id, 'xong', { ketQua: 'Thay contactor', nguyenNhan: 'Lỗi điện', gioDung: 1.5 })).congViec;
   assert.deepEqual([x.trangThai, x.nguyenNhan, x.phutDung], ['XONG', 'Lỗi điện', 90]);
@@ -424,7 +428,7 @@ test('tự dịch: dịch khi lưu (Việt → Trung, Trung → Việt), tách "
   const a = ok(viec(b, b.ql, { tieuDe: 'Thay đèn xưởng 2', moTa: 'Đèn xưởng 2 bị cháy', loai: 'SUA' })).congViec;
   assert.deepEqual([a.tieuDe, a.tieuDeDich, a.moTaDich], ['Thay đèn xưởng 2', '更换二车间灯', '二车间灯烧坏了']);
   // Người Trung gõ tiếng Trung → dịch sang tiếng Việt
-  const z = ok(viec(b, b.kt, { tieuDe: '更换水泵密封圈' })).congViec;
+  const z = ok(viec(b, b.ql, { tieuDe: '更换水泵密封圈' })).congViec;
   assert.deepEqual([z.tieuDe, z.tieuDeDich], ['更换水泵密封圈', 'Thay phớt máy bơm']);
   // Gõ sẵn hai thứ tiếng → tách đôi, không gọi Google
   let goi = b.ctx.__dich.goi;
@@ -962,8 +966,9 @@ test('phân quyền xem: Quản lý, Quản trị thấy hết; kỹ thuật ch�
   assert.ok(s.has(sua.id) && s.has(bd.id), 'kỹ thuật thấy mọi việc Sửa chữa, Bảo dưỡng (kể cả giao người khác, chưa giao)');
   assert.ok(s.has(ct.id), 'thấy việc giao cho mình');
   assert.ok(!s.has(vs.id) && !s.has(khac.id), 'không thấy việc loại khác của người khác');
-  // Việc mình tự ghi (loại khác) thì mình thấy, người khác không
-  const lap = ok(b.call('saveTask', { tieuDe: 'Lắp quạt thông gió', loai: 'LAP' }, kt)).congViec;
+  // Kỹ thuật không ghi việc được; việc loại khác giao cho mình thì mình thấy, người khác không
+  err(b.call('saveTask', { tieuDe: 'Lắp quạt thông gió', loai: 'LAP' }, kt), 'KHONG_QUYEN');
+  const lap = viec({ tieuDe: 'Lắp quạt thông gió', loai: 'LAP', uidLam: uid('NV003') });
   assert.ok(ids(kt).has(lap.id) && !ids(kt2).has(lap.id) && ids(ql).has(lap.id));
   // Thấy việc sửa chữa giao người khác nhưng không làm thay được
   err(b.call('updateTask', { id: sua.id, buoc: 'batdau' }, kt), 'KHONG_QUYEN');

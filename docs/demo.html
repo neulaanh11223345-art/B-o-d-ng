@@ -1337,7 +1337,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.27.0";
+const APP_VER = "2.28.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1736,7 +1736,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.27.0';
+var PHIEN_BAN = '2.28.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1841,6 +1841,7 @@ var THONG_SO_MAC_DINH = [
 var VAI_TRO = { admin: 'Quản trị · 管理员', quanly: 'Quản lý · 主管', kythuat: 'Kỹ thuật · 技术员' };
 var QUYEN = {
   xacnhan: ['admin', 'quanly', 'kythuat'],
+  ghiviec: ['admin', 'quanly'],     // ghi việc mới: chỉ Quản lý, Quản trị. Kỹ thuật làm việc được giao và ghi sửa chữa.
   may: ['admin', 'quanly'],
   huy: ['admin', 'quanly'],
   nguoidung: ['admin'],
@@ -2055,7 +2056,7 @@ function dieuHuong(a, p, req) {
     case 'saveFault': canQuyen(u, 'may'); return luuMaLoi(u, p);
     case 'deleteFault': canQuyen(u, 'may'); return xoaMaLoi(u, p);
     case 'importMin': canQuyen(u, 'may'); return nhapTonMin(u, p);
-    case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
+    case 'saveTask': canQuyen(u, 'ghiviec'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
     case 'saveOT': return luuTangCa(u, p, s(req.opId));
     case 'deleteOT': return xoaTangCa(u, p);
@@ -7034,7 +7035,8 @@ let DEV = store.get('bd_dev', '');
 if (!DEV) { DEV = 'd' + uid(); store.set('bd_dev', DEV); }
 
 function apiUrl() { return (typeof API_URL === 'string' && API_URL) || store.get('bd_api', ''); }
-const ROLE_OK = { confirm: ['admin', 'quanly', 'kythuat'], may: ['admin', 'quanly'], huy: ['admin', 'quanly'], admin: ['admin'], giaoviec: ['admin', 'quanly'], xemhet: ['admin', 'quanly'], tailieu: ['admin', 'quanly'] };
+const ROLE_OK = { confirm: ['admin', 'quanly', 'kythuat'], may: ['admin', 'quanly'], huy: ['admin', 'quanly'], admin: ['admin'], giaoviec: ['admin', 'quanly'], xemhet: ['admin', 'quanly'], tailieu: ['admin', 'quanly'],
+  ghiviec: ['admin', 'quanly'] };   // ghi việc mới: chỉ Quản lý, Quản trị
 const can = (q) => !!(S.me && ROLE_OK[q].indexOf(S.me.vaiTro) >= 0);
 function errMsg(e) {
   const c = (e && e.code) || 'LOI';
@@ -7313,7 +7315,7 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 // Quản lý, Quản trị: xem hết. Tài khoản khác (kỹ thuật): chỉ Điện/Nước, Sửa chữa, Bảo dưỡng
 // (kèm hồ sơ máy / chuyền mở từ các mục đó, quét QR, trang cá nhân).
 const xemHet = () => can('xemhet');
-const HAN_CHE = new Set(['list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
+const HAN_CHE = new Set(['cvNew', 'list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
   'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
   'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit', 'tlTb']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
@@ -7637,7 +7639,7 @@ VIEWS.home = {
     if (!isWide()) left += tq;
     left += viecToiO();
     if (can('confirm')) {
-      left += `<button class="cta2 blue" data-act="cvNew"><span class="ic">${IC.plus}</span><span>${tv(can('giaoviec') ? 'ctaGiao' : 'ctaGhi')}<span class="zi">${tz(can('giaoviec') ? 'ctaGiao' : 'ctaGhi')}</span></span>${IC.chev}</button>`;
+      if (can('ghiviec')) left += `<button class="cta2 blue" data-act="cvNew"><span class="ic">${IC.plus}</span><span>${tv('ctaGiao')}<span class="zi">${tz('ctaGiao')}</span></span>${IC.chev}</button>`;
     }
     if (can('may')) left += srvWarn();
     left += `<div class="sec"><h2>${t('viecCanLam')}</h2></div>` + (al.length ? `<div class="alerts">${al.map(alertRow).join('')}</div>` : `<div class="card empty">${t('khongCoViec')}</div>`);
@@ -7954,7 +7956,7 @@ VIEWS.may = {
     const cvM = cvDs.filter(cvMo);
     if (cvM.length) o += `<div class="alerts" style="margin-top:10px">${cvM.map(cvAlert).join('')}</div>`;
     if (can('confirm') && m.hoatDong) {
-      o += `<div class="btn2"><button class="btn ghost bigbtn" data-act="cvNew" data-ma="${esc(m.ma)}">${IC.plus}<span class="stk">${tv('cvChoMay')}<span class="zi">${tz('cvChoMay')}</span></span></button>
+      o += `<div class="btn2">${can('ghiviec') ? `<button class="btn ghost bigbtn" data-act="cvNew" data-ma="${esc(m.ma)}">${IC.plus}<span class="stk">${tv('cvChoMay')}<span class="zi">${tz('cvChoMay')}</span></span></button>` : ''}
         <button class="btn g bigbtn" data-act="xn" data-ma="${esc(m.ma)}">${IC.check}<span class="stk">${tv('confirmBD')}<span class="zi">${tz('confirmBD')}</span></span></button></div>`;
     }
     const tabs = [['tt', 'tabTT', ''], ['sc', 'tabSC', scCuaMay(m.ma).length || ''], ['tl', 'tabTL', tlCua(m.ma).length + (m.chuyen ? tlCua(m.chuyen).length : 0) || ''], ['lk', 'tabLK', lkOf(m).length || ''], ['bd', 'tabBD', hmOf(m).length || ''],
@@ -13666,7 +13668,7 @@ VIEWS.cv = {
     let o = ql ? srvWarn('cv') : '';
     o += `<div class="kstrip">${kstHtml('k-orange', 'cvKCho', null, nCho, 'data-act="cvLoc" data-v="cho"')}${kstHtml('k-blue', 'cvKMo', null, all.filter((x) => cvLocOf(x, 'mo')).length, 'data-act="cvLoc" data-v="mo"')}
       ${kstHtml('k-red', 'cvKQua', null, all.filter(cvQua).length, 'data-act="cvLoc" data-v="qua"')}${kstHtml('k-green', 'cvKKT', null, all.filter((x) => x.trangThai === 'XONG').length, 'data-act="cvLoc" data-v="kt"')}</div>`;
-    o += `<div class="btns cvbtns">${can('confirm') ? `<button class="btn" data-act="cvNew">${IC.plus} ${t('cvGhi')}</button><button class="btn ghost" data-act="go" data-v="scGhi">${IC.wrench || IC.edit} ${t('scGhiBtn')}</button>` : ''}<button class="btn ghost" data-act="go" data-v="scDS">${IC.hist} ${t('scDSBtn')}</button>
+    o += `<div class="btns cvbtns">${can('ghiviec') ? `<button class="btn" data-act="cvNew">${IC.plus} ${t('cvGhi')}</button>` : ''}${can('confirm') ? `<button class="btn${can('ghiviec') ? ' ghost' : ''}" data-act="go" data-v="scGhi">${IC.wrench || IC.edit} ${t('scGhiBtn')}</button>` : ''}<button class="btn ghost" data-act="go" data-v="scDS">${IC.hist} ${t('scDSBtn')}</button>
       ${ql && nCho ? `<button class="btn y" data-act="go" data-v="cvGiao">${IC.user} ${t('cvGiaoN', { n: nCho })}</button>` : ''}
       ${ql ? `<button class="btn ghost" data-act="go" data-v="cvLap">${IC.refresh} ${t('cvLapBtn')}</button><button class="btn ghost" data-act="go" data-v="cvBC">${IC.dl} ${t('cvBCBtn')}</button><button class="btn ghost" data-act="xlsGiao">${IC.dl} ${t('xlsGiaoBtn')}</button>` : ''}</div>`;
     const bang = isWide() && ql;
@@ -13866,7 +13868,7 @@ function cvActions(x) {
   if (st === 'XONG' && !ql) o += `<div class="note" style="margin-top:12px">${t('cvChoKT')}</div>`;
   const lnk = [];
   if (ql && CV_LAM.indexOf(st) >= 0) lnk.push(`<button class="lnkbtn" data-act="cvGiao1" data-id="${esc(x.id)}">${IC.user} ${t('cvGiaoLai')}</button>`);
-  if ((ql && (cvMo(x) || st === 'XONG')) || (x.uidTao === me.id && st === 'CHO_GIAO')) lnk.push(`<button class="lnkbtn" data-act="cvEdit" data-id="${esc(x.id)}">${IC.edit} ${t('cvSua')}</button>`);
+  if (can('ghiviec') && (cvMo(x) || st === 'XONG')) lnk.push(`<button class="lnkbtn" data-act="cvEdit" data-id="${esc(x.id)}">${IC.edit} ${t('cvSua')}</button>`);
   if ((ql && (cvMo(x) || st === 'XONG')) || (x.uidTao === me.id && st === 'CHO_GIAO')) lnk.push(`<button class="lnkbtn red" data-act="cvB" data-id="${esc(x.id)}" data-b="huy">${IC.out} ${t('cvHuy')}</button>`);
   if (laSC(x) && st !== 'HUY' && !srvOld('scxoa') && (ql || x.uidTao === me.id)) lnk.push(`<button class="lnkbtn red" data-act="scXoa" data-id="${esc(x.id)}">${IC.out} ${t('scXoa')}</button>`);
   if (lnk.length) o += `<div class="scact2">${lnk.join('')}</div>`;

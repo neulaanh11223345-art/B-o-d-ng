@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.27.0';
+var PHIEN_BAN = '2.28.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -122,6 +122,7 @@ var THONG_SO_MAC_DINH = [
 var VAI_TRO = { admin: 'Quản trị · 管理员', quanly: 'Quản lý · 主管', kythuat: 'Kỹ thuật · 技术员' };
 var QUYEN = {
   xacnhan: ['admin', 'quanly', 'kythuat'],
+  ghiviec: ['admin', 'quanly'],     // ghi việc mới: chỉ Quản lý, Quản trị. Kỹ thuật làm việc được giao và ghi sửa chữa.
   may: ['admin', 'quanly'],
   huy: ['admin', 'quanly'],
   nguoidung: ['admin'],
@@ -336,7 +337,7 @@ function dieuHuong(a, p, req) {
     case 'saveFault': canQuyen(u, 'may'); return luuMaLoi(u, p);
     case 'deleteFault': canQuyen(u, 'may'); return xoaMaLoi(u, p);
     case 'importMin': canQuyen(u, 'may'); return nhapTonMin(u, p);
-    case 'saveTask': canQuyen(u, 'xacnhan'); return luuCongViec(u, p, s(req.opId));
+    case 'saveTask': canQuyen(u, 'ghiviec'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
     case 'saveOT': return luuTangCa(u, p, s(req.opId));
     case 'deleteOT': return xoaTangCa(u, p);
