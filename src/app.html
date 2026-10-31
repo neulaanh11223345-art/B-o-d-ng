@@ -1583,8 +1583,9 @@ const esc = (s) => String(s === null || s === undefined ? '' : s).replace(/&/g, 
 const fill = (s, v) => v ? s.replace(/\{(\w+)\}/g, (_, k) => (v[k] !== undefined ? v[k] : '')) : s;
 function t(k, v) { const e = TX[k] || ERR[k]; if (!e) return esc(k); return esc(fill(e[0], v)) + '<span class="zi" lang="zh-CN">' + esc(fill(e[1], v)) + '</span>'; }
 function tp(k, v) { const e = TX[k] || ERR[k]; return e ? fill(e[0], v) + ' · ' + fill(e[1], v) : k; }
-function tv(k, v) { return fill(TX[k][0], v); }
-function tz(k, v) { return fill(TX[k][1], v); }
+// Thiếu khoá thì trả lại chính khoá, không để vỡ cả màn hình
+function tv(k, v) { const e = TX[k] || ERR[k]; return e ? fill(e[0], v) : String(k); }
+function tz(k, v) { const e = TX[k] || ERR[k]; return e ? fill(e[1], v) : ''; }
 const pad2 = (n) => String(n).padStart(2, '0');
 function localToday() { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
 function nowStr() { const d = new Date(); return localToday() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()); }
@@ -2064,7 +2065,7 @@ const TITLES = { them: 't_them', khoNhac: 't_khoNhac', khoMin: 't_khoMin', dien:
   cv: 't_cv', cvNew: 't_cvNew', cvView: 't_cvView', cvGiao: 't_cvGiao', cvXong: 't_cvXong', cvLap: 't_cvLap', cvLapEdit: 't_cvLapEdit', cvBC: 't_cvBC', chuyen: 't_chuyen', chEdit: 't_chEdit', lkChuyen: 't_lkChuyen', lkNhap: 't_lkNhap', scGhi: 't_scGhi', scDS: 't_scDS', saoLuu: 't_saoLuu',
   tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
   tlCfg: 't_tlCfg', tlGan: 't_tlGan', tlDS: 't_tlDS',
-  truc: 't_truc', trucGhi: 't_trucGhi', trucTong: 't_trucTong', phanCa: 't_phanCa', trucNguoi: 't_trucNguoi',
+  truc: 't_truc', trucGhi: 't_trucGhi', trucTong: 't_trucTong', phanCa: 't_phanCa', phanCaTuan: 't_phanCaTuan', trucNguoi: 't_trucNguoi',
   kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit', tlTb: 't_tlTb', ngt: 't_ngt', ngtGhi: 't_ngtGhi', ngtXem: 't_ngtGhi' };
 const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg', 'tlTb', 'ngt'];
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
