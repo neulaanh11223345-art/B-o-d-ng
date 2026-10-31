@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.28.0';
+var PHIEN_BAN = '2.29.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -98,11 +98,17 @@ var BANG = {
   // Ghi chú mã lỗi của riêng nhà máy (bảng tra lỗi dựng sẵn nằm trong app, không lưu ở đây).
   // Hang: BT (biến tần) · SV (servo / driver) · KHAC
   MaLoi: ['ID', 'Hang', 'Dong', 'Ma', 'TenLoi', 'TenLoiDich', 'CachXuLy', 'CachXuLyDich', 'HoatDong',
-    'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat']
+    'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat'],
+  // Biên bản nghiệm thu động cơ / quạt gió gửi đơn vị ngoài sửa chữa.
+  // Một dòng giữ CẢ HAI phần của một lần gửi sửa: Truoc (trước khi sửa) và Sau (nghiệm thu sau sửa), chung một số biên bản.
+  // So: BBNT + năm.tháng.ngày / số thứ tự trong ngày, vd BBNT2026.10.08/3 — máy chủ tự đánh số, không trùng.
+  // Truoc / Sau (JSON): { chung: {...}, muc: { mã mục: {so, A, B, C, gc, dg} }, vanBan, vanBanDich, ky: {...}, ketLuan }
+  NghiemThu: ['ID', 'SoBB', 'NgayNT', 'STT', 'Ma', 'TenTB', 'DonVi', 'CvId', 'Truoc', 'Sau', 'KetLuan',
+    'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'Xoa']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
-  NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'], KiemDinh: ['NamSX', 'ChuKy', 'NghiemNgat', 'HoatDong'], MaLoi: ['HoatDong'],
+  NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'], KiemDinh: ['NamSX', 'ChuKy', 'NghiemNgat', 'HoatDong'], MaLoi: ['HoatDong'], NghiemThu: ['STT', 'Xoa'],
   NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' } };
@@ -139,7 +145,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg', 'importMin',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
-  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'saveFault', 'deleteFault',
+  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'saveFault', 'deleteFault', 'saveAccept', 'deleteAccept',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy'];
 
 var CAI_DAT_MAC_DINH = {
@@ -336,6 +342,8 @@ function dieuHuong(a, p, req) {
     case 'deleteInspect': canQuyen(u, 'may'); return xoaKiemDinh(u, p);
     case 'saveFault': canQuyen(u, 'may'); return luuMaLoi(u, p);
     case 'deleteFault': canQuyen(u, 'may'); return xoaMaLoi(u, p);
+    case 'saveAccept': canQuyen(u, 'xacnhan'); return luuNghiemThu(u, p);
+    case 'deleteAccept': canQuyen(u, 'xacnhan'); return xoaNghiemThu(u, p);
     case 'importMin': canQuyen(u, 'may'); return nhapTonMin(u, p);
     case 'saveTask': canQuyen(u, 'ghiviec'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
@@ -778,6 +786,7 @@ function layDuLieu(u) {
     kho: coQuyen(u, 'xemhet') ? khoTomTat() : null,
     kiemDinh: coQuyen(u, 'may') ? docKiemDinh().map(sachKD) : [],
     maLoi: coQuyen(u, 'may') ? docMaLoi().map(sachML) : [],
+    nghiemThu: docNghiemThu().filter(function (x) { return !x.xoa && x.ngayNT >= tu; }).map(sachNGT),
     me: congKhai(u),
     phienBan: PHIEN_BAN
   };
@@ -1976,6 +1985,112 @@ function xoaMaLoi(u, p) {
   suaDong('MaLoi', x._r, mlThanhDong(x));
   ghiNhatKy(u, 'XOA_MA_LOI', 'MaLoi', x.id, x.ma, '', '');
   return { maLoi: sachML(x) };
+}
+
+// ===================== Nghiệm thu sửa chữa ngoài · 外修验收 =====================
+// Một dòng giữ cả hai phần của một lần gửi sửa: TRƯỚC khi sửa và SAU khi sửa, chung một số biên bản.
+// Số biên bản do máy chủ đánh: BBNT + năm.tháng.ngày / số thứ tự trong ngày.
+var NGT_KHOA = ['id', 'soBB', 'ngayNT', 'stt', 'ma', 'tenTB', 'donVi', 'cvId', 'truoc', 'sau', 'ketLuan',
+  'nguoiTao', 'uidTao', 'lucTao', 'capNhat', 'xoa'];
+var NGT_KL = ['DAT', 'CHUA'];
+var NGT_CHU_TOI_DA = 2000;         // mỗi ô chữ trong biên bản
+// Truoc / Sau là object (không phải mảng) nên obThanhDong dùng chung không ghi được — đọc ghi riêng ở đây.
+function ngtThanhDong(x) {
+  return NGT_KHOA.map(function (k) {
+    if (k === 'truoc' || k === 'sau') return x[k] ? JSON.stringify(x[k]) : '';
+    if (k === 'xoa') return x[k] ? 1 : 0;
+    var v = x[k];
+    if (v === undefined || v === null) return '';
+    return typeof v === 'string' ? anToan(v) : v;
+  });
+}
+function ngtTuDong(r, i) {
+  var o = { _r: i + 2 };
+  NGT_KHOA.forEach(function (k, j) {
+    var v = r[j];
+    if (k === 'truoc' || k === 'sau') o[k] = s(v) ? docJson(v, null) : null;
+    else if (k === 'xoa') o[k] = s(v) !== '' && hd(v);
+    else if (k === 'ngayNT') o[k] = ngayStr(v);
+    else if (k === 'stt') o[k] = Math.round(Number(v)) || 0;
+    else o[k] = s(v);
+  });
+  return o;
+}
+function docNghiemThu() { return docTho('NghiemThu').map(ngtTuDong).filter(function (x) { return x.id; }); }
+function sachNGT(x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; }); return o; }
+function ngtSoBB(ngay, stt) {
+  return 'BBNT' + ngay.slice(0, 4) + '.' + ngay.slice(5, 7) + '.' + ngay.slice(8, 10) + '/' + stt;
+}
+// Số thứ tự trong ngày: lấy số lớn nhất đã có của ngày đó rồi cộng một, kể cả biên bản đã xoá
+function ngtSttMoi(ds, ngay) {
+  var m = 0;
+  ds.forEach(function (x) { var v = Math.round(Number(x.stt)) || 0; if (x.ngayNT === ngay && v > m) m = v; });
+  return m + 1;
+}
+// Làm sạch một phần biên bản: chỉ giữ đúng những khoá app gửi lên, cắt chữ cho khỏi phình sheet
+function ngtSachPhan(v) {
+  if (!v || typeof v !== 'object') return null;
+  var chung = {}, muc = {}, ky = {};
+  var cat = function (t) { return catNhieuDong(t, NGT_CHU_TOI_DA).trim(); };
+  Object.keys(v.chung || {}).slice(0, 40).forEach(function (k) { chung[s(k).slice(0, 30)] = cat(v.chung[k]); });
+  Object.keys(v.muc || {}).slice(0, 60).forEach(function (k) {
+    var o = v.muc[k] || {}, r = {};
+    ['so', 'A', 'B', 'C'].forEach(function (f) { if (s(o[f]) !== '') r[f] = catChu(o[f], 30); });
+    if (s(o.gc) !== '') r.gc = catChu(o.gc, 300);
+    if (o.dg === 'D' || o.dg === 'K') r.dg = o.dg;
+    muc[s(k).slice(0, 30)] = r;
+  });
+  Object.keys(v.ky || {}).slice(0, 10).forEach(function (k) { ky[s(k).slice(0, 30)] = catChu(v.ky[k], 120); });
+  var vb = cat(v.vanBan), vbD = s(v.vanBanDich);
+  var kl = NGT_KL.indexOf(s(v.ketLuan)) >= 0 ? s(v.ketLuan) : '';
+  // Tab chưa ai ghi gì thì coi như chưa có phần đó, đừng tạo phần rỗng
+  var coGi = vb || kl ||
+    Object.keys(chung).some(function (k) { return chung[k] !== ''; }) ||
+    Object.keys(ky).some(function (k) { return ky[k] !== ''; }) ||
+    Object.keys(muc).some(function (k) { return Object.keys(muc[k]).length > 0; });
+  if (!coGi) return null;
+  return { chung: chung, muc: muc, ky: ky, vanBan: vb, vanBanDich: vbD, ketLuan: kl };
+}
+function luuNghiemThu(u, p) {
+  var ds = docNghiemThu(), id = s(p.id), x = id ? ds.filter(function (r) { return r.id === id; })[0] : null;
+  if (id && !x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  if (x && x.uidTao !== u.id && !coQuyen(u, 'giaoviec')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  var ma = s(p.ma).toUpperCase();
+  if (ma && !timMay(ma) && !dsChuyen().some(function (c) { return c.ma === ma; })) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
+  var ten = catChu(p.tenTB, 150);
+  if (!ten) throw loi('THIEU_TEN', 'Chưa nhập tên thiết bị · 请输入设备名称');
+  var ngay = s(p.ngayNT) ? ngayStr(p.ngayNT) : (x ? x.ngayNT : homNayStr());
+  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  var bay = thoiGianStr(), moi = !x;
+  capNhatTieuDe('NghiemThu');
+  if (moi) {
+    var stt = ngtSttMoi(ds, ngay);
+    x = { id: idMoi('NT', dsIdCo(ds)), ngayNT: ngay, stt: stt, soBB: ngtSoBB(ngay, stt),
+      nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false, truoc: null, sau: null };
+  } else if (ngay !== x.ngayNT) {
+    // Đổi ngày thì đánh lại số cho đúng ngày mới
+    x.ngayNT = ngay; x.stt = ngtSttMoi(ds.filter(function (r) { return r.id !== x.id; }), ngay); x.soBB = ngtSoBB(ngay, x.stt);
+  }
+  x.ma = ma; x.tenTB = ten; x.donVi = catChu(p.donVi, 150); x.cvId = s(p.cvId).toUpperCase();
+  // Chỉ ghi đè phần nào app gửi lên, để hai người ghi hai phần không đạp lên nhau
+  if (p.truoc !== undefined) x.truoc = ngtSachPhan(p.truoc);
+  if (p.sau !== undefined) x.sau = ngtSachPhan(p.sau);
+  x.ketLuan = (x.sau && x.sau.ketLuan) || '';
+  x.capNhat = bay;
+  if (moi) themDong('NghiemThu', ngtThanhDong(x)); else suaDong('NghiemThu', x._r, ngtThanhDong(x));
+  ghiNhatKy(u, moi ? 'THEM_NGHIEM_THU' : 'SUA_NGHIEM_THU', 'NghiemThu', x.id, '', x.soBB + ' · ' + x.tenTB, '');
+  return { nghiemThu: sachNGT(x) };
+}
+function xoaNghiemThu(u, p) {
+  var x = docNghiemThu().filter(function (r) { return r.id === s(p.id); })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
+  if (x.uidTao !== u.id && !coQuyen(u, 'giaoviec')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
+  if (x.xoa) return { nghiemThu: sachNGT(x) };
+  capNhatTieuDe('NghiemThu');
+  x.xoa = true; x.capNhat = thoiGianStr();
+  suaDong('NghiemThu', x._r, ngtThanhDong(x));
+  ghiNhatKy(u, 'XOA_NGHIEM_THU', 'NghiemThu', x.id, x.soBB, '', catChu(p.lyDo, 200));
+  return { nghiemThu: sachNGT(x) };
 }
 
 // ===================== Danh mục máy =====================
