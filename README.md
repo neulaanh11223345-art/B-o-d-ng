@@ -97,7 +97,7 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
-## Điểm mới của v2.31.0: lịch trực tháng điểm màu, xuất Excel cả tháng
+## Điểm mới của v2.31.0: lịch trực và phân ca xem theo tháng, điểm màu theo người
 
 ### Lịch trực giờ là lịch tháng, mỗi người một màu
 
@@ -111,6 +111,14 @@ Màu lấy theo thứ tự trong danh sách nhân viên nên **tháng nào cũng
 
 **Chép lịch sang tuần sau** vẫn còn, nay chọn **tuần nguồn** trong tháng đang xem rồi chọn số tuần muốn chép.
 
+### Phân công ca trực cũng xem theo tháng
+
+Màn **Phân công ca trực** trước mở ra là bảng giấy của một tuần. Nay mở ra là **bảng cả tháng**: mỗi tuần một dòng, bốn cột *Sản xuất ca ngày – ca đêm* và *Kho ngũ kim ca ngày – ca đêm*, mỗi ô **tô màu theo người** kèm tên gọi và số điện thoại. Tuần hiện tại có viền xanh. Dưới bảng là chú thích màu: ai giữ mấy tuần ca ngày, mấy tuần ca đêm trong tháng.
+
+Người trực ca là **danh sách riêng** (trang `NguoiTruc`), không phải tài khoản app, nên màu lấy theo thứ tự trong danh sách đó — độc lập với màu của lịch trực.
+
+Bấm vào **ô tuần** mở **bảng một tuần** đúng mẫu giấy như cũ, vẫn **In bảng**, **Xếp luân phiên** và xem **thứ tự luân phiên theo cặp**. Bấm thẳng vào **một ô ca** ngay trên bảng tháng thì đổi được người của tuần đó.
+
 ### Xuất Excel cả tháng
 
 Nút **Xuất Excel cả tháng** ở màn **Lịch trực** và màn **Tổng số ca**. File `Lich-truc_2026-10.xlsx` gồm ba sheet:
@@ -118,8 +126,8 @@ Nút **Xuất Excel cả tháng** ở màn **Lịch trực** và màn **Tổng s
 | Sheet | Nội dung |
 |---|---|
 | **Lich truc** | Lịch tháng bảy cột thứ Hai → Chủ nhật, ô ngày tô đúng màu người trực kèm tên Việt – Trung. Dưới là dòng *Số ngày đã xếp* và bảng chú thích màu. |
-| **Phan ca truc** | Mỗi tuần một dòng: tuần (từ – đến), Sản xuất ca ngày / ca đêm, Kho ngũ kim ca ngày / ca đêm, kèm tên tiếng Trung và số điện thoại. Tuần gối tháng vẫn lấy vào. |
-| **Tong hop** | Mỗi người một dòng: số ngày trực, trong đó bao nhiêu ngày Chủ nhật, có dòng *Cộng*. Bên dưới là bảng người trực ca: giữ ca ngày / ca đêm bao nhiêu tuần trong tháng. |
+| **Phan ca truc** | Mỗi tuần một dòng, ô **tô đúng màu người trực** như trên app, kèm tên tiếng Trung và số điện thoại. Tuần gối tháng vẫn lấy vào. |
+| **Tong hop** | Mỗi người một dòng: số ngày trực, trong đó bao nhiêu ngày Chủ nhật, có dòng *Cộng*. Bên dưới là bảng người trực ca tô màu: giữ ca ngày / ca đêm bao nhiêu tuần trong tháng. |
 
 Tiêu đề song ngữ Việt – Trung, kẻ khung, khoá dòng tiêu đề, in vừa một trang ngang A4. Mở màn Lịch trực ở tháng nào thì xuất đúng tháng đó.
 

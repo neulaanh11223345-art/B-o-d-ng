@@ -648,14 +648,29 @@ assert.match(xlTruc.ca, /0389978042|0946367665/, 'sheet phân ca mang số đi�
 assert.match(xlTruc.tong, /Cộng/, 'sheet tổng hợp có dòng cộng');
 assert.ok(xlTruc.size > 3000, 'file Excel có nội dung: ' + xlTruc.size);
 await page.click('[data-act="trucXuat"]'); await wait(900);
-// Phân công ca trực: bảng giống bảng giấy, bấm luân phiên thì tiếp nối tuần trước
+// Phân ca cả tháng: mỗi tuần một dòng, ô tô màu theo người, bấm tuần mở bảng giấy
 await page.evaluate(() => { back(); go('phanCa'); }); await wait(700);
 assert.match(await text('#barTitle'), /Phân công ca trực/);
 assert.match(await text('#main'), /KHO NGŨ KIM/);
 assert.match(await text('#main'), /0389978042|0946367665/, 'ô phân ca hiện số điện thoại của người trực');
-await shot('26-phan-cong-ca-truc');
+const pcT = await page.evaluate(() => {
+  const ym = TODAY().slice(0, 7);
+  return { tuan: pcThangDS(ym).length, nguoi: pcTongDS(ym).length, cot: document.querySelectorAll('.pcthang thead th').length };
+});
+assert.equal(pcT.cot, 5, 'bảng tháng có cột tuần và bốn ô ca');
+assert.ok(pcT.tuan >= 4 && pcT.tuan <= 6, 'mỗi tuần trong tháng một dòng: ' + pcT.tuan);
+assert.equal(await page.locator('.pcthang tbody tr').count(), pcT.tuan);
+assert.ok(await page.evaluate(() => Array.from(document.querySelectorAll('.pcthang td')).filter((e) => e.style.background).length) >= 4,
+  'ô đã xếp được tô màu theo người');
+assert.match(await text('.trleg'), /tuần ca ngày|tuần ca đêm/, 'chú thích màu đếm số tuần ca ngày / ca đêm');
+await shot('26-phan-ca-thang');
+// Mở bảng một tuần: đúng mẫu giấy, bấm luân phiên thì tiếp nối tuần trước
 const pcTruoc = await page.evaluate(() => { const tu = tcThuHai(TODAY()); const x = pcO(tu, 'SX', 'NGAY'); return x ? x.ten : ''; });
 assert.ok(pcTruoc, 'tuần này đã có người trực ca ngày');
+await page.click(`[data-act="pcMoTuan"][data-tu="${await page.evaluate(() => tcThuHai(TODAY()))}"]`); await wait(700);
+assert.match(await text('#barTitle'), /Phân ca một tuần/);
+assert.match(await text('#main'), /BẢNG PHÂN CÔNG CA TRỰC/, 'bảng tuần đúng mẫu giấy');
+await shot('27-phan-ca-tuan');
 await page.click('[data-act="pcLP"]'); await wait(400);
 await page.click('[data-act="pcLPOk"]'); await wait(1200);
 const pcSau = await page.evaluate(() => {
@@ -701,7 +716,7 @@ assert.deepEqual(chep16.t1, chep16.goc, 'chép sang tuần sau');
 assert.deepEqual(chep16.t2, chep16.goc, 'chép sang tuần thứ hai');
 assert.equal(chep16.t3, null, 'không chép quá số tuần đã chọn');
 // Cặp trực: sản xuất xếp theo cặp, hiện trong thứ tự luân phiên
-await page.evaluate(() => go('phanCa')); await wait(700);
+await page.evaluate(() => go('phanCaTuan')); await wait(700);
 assert.match(await text('#main'), /Cặp 1/, 'panel thứ tự luân phiên hiện theo cặp');
 const cap16 = await page.evaluate(() => {
   const ng = ntDS('SX'), caps = pcCapDS(ng);
@@ -718,6 +733,8 @@ assert.match(await text('.trleg'), /Bạn trực/, 'chú thích màu đánh dấ
 assert.equal(await page.locator('[data-act="trucXep"]').count(), 0, 'kỹ thuật không bấm xếp lịch được');
 assert.equal(await page.locator('.trcal button.d').count(), 0, 'ô ngày với kỹ thuật không phải nút bấm');
 await page.evaluate(() => go('phanCa')); await wait(600);
+assert.equal(await page.locator('.pcthang [data-act="pcChon"]').count(), 0, 'kỹ thuật không đổi được người trong bảng tháng');
+await page.evaluate(() => go('phanCaTuan')); await wait(600);
 assert.equal(await page.locator('[data-act="pcLP"]').count(), 0, 'kỹ thuật không có nút luân phiên');
 await page.evaluate(() => go('trucNguoi')); await wait(500);
 assert.match(await text('#barTitle'), /Chỉ Quản lý/);
