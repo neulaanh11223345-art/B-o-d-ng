@@ -597,6 +597,20 @@ const oMau = await page.evaluate(() => {
 });
 assert.ok(oMau && oMau.bg, 'ngày đã xếp được tô màu');
 assert.match(await text('.trleg'), /黎明进|杜文红|阮俊/, 'chú thích màu hiện tên tiếng Trung');
+// Hai người không bao giờ trùng màu trong cùng một lịch
+const mauTruc = await page.evaluate(() => {
+  const m = trucMauThang(TODAY().slice(0, 7)), v = Object.values(m).map((x) => x[0]);
+  return { n: v.length, rieng: new Set(v).size };
+});
+assert.equal(mauTruc.rieng, mauTruc.n, 'mỗi người một màu riêng: ' + JSON.stringify(mauTruc));
+const mauDon = await page.evaluate(() => {
+  // Giả lập 14 người cùng trực một tháng để chắc chắn không ai trùng màu
+  const ids = Array.from({ length: 14 }, (_, i) => 'U' + i);
+  const m = trMauMap(ids, (id) => +id.slice(1));
+  return new Set(Object.values(m).map((x) => x[0])).size;
+});
+assert.equal(mauDon, 10, 'quá 10 người thì dùng hết 10 màu, không bỏ màu nào');
+assert.match(await text('.caltools'), /Còn \d+ ngày chưa xếp|Đã xếp đủ tháng/, 'chỉ đếm ngày chưa xếp từ hôm nay trở đi');
 assert.doesNotMatch(await text('#main'), /Trực điện xưởng 1|1号车间电工值班/, 'lịch trực không còn hiện nội dung trực');
 await shot('24-lich-truc-thang');
 // Ngày chưa xếp: chỉ chọn người, không còn ô nội dung
@@ -654,16 +668,36 @@ assert.match(await text('#barTitle'), /Phân công ca trực/);
 assert.match(await text('#main'), /KHO NGŨ KIM/);
 assert.match(await text('#main'), /0389978042|0946367665/, 'ô phân ca hiện số điện thoại của người trực');
 const pcT = await page.evaluate(() => {
-  const ym = TODAY().slice(0, 7);
-  return { tuan: pcThangDS(ym).length, nguoi: pcTongDS(ym).length, cot: document.querySelectorAll('.pcthang thead th').length };
+  const ym = TODAY().slice(0, 7), bang = Array.from(document.querySelectorAll('.pcthang'));
+  return { tuan: pcThangDS(ym).length, nguoi: pcTongDS(ym).length, bang: bang.length,
+    cot: bang.map((t) => t.querySelectorAll('thead th').length),
+    tran: bang.filter((t) => t.scrollWidth > t.parentElement.clientWidth).length };
 });
-assert.equal(pcT.cot, 5, 'bảng tháng có cột tuần và bốn ô ca');
+assert.equal(pcT.bang, 2, 'hai bảng xếp dọc: Sản xuất và Kho ngũ kim');
+assert.deepEqual(pcT.cot, [3, 3], 'mỗi bảng ba cột: tuần, ca ngày, ca đêm');
+assert.equal(pcT.tran, 0, 'bảng vừa bề ngang điện thoại, không phải kéo ngang');
 assert.ok(pcT.tuan >= 4 && pcT.tuan <= 6, 'mỗi tuần trong tháng một dòng: ' + pcT.tuan);
-assert.equal(await page.locator('.pcthang tbody tr').count(), pcT.tuan);
+assert.equal(await page.locator('.pcthang tbody tr').count(), pcT.tuan * 2);
 assert.ok(await page.evaluate(() => Array.from(document.querySelectorAll('.pcthang td')).filter((e) => e.style.background).length) >= 4,
   'ô đã xếp được tô màu theo người');
 assert.match(await text('.trleg'), /tuần ca ngày|tuần ca đêm/, 'chú thích màu đếm số tuần ca ngày / ca đêm');
 await shot('26-phan-ca-thang');
+// Tờ A4 để in hoặc lưu thành PDF: lịch tháng và bảng phân ca tháng
+const toIn = await page.evaluate(() => {
+  const ym = TODAY().slice(0, 7), a = trucInHtml(ym), b = pcThangInHtml(ym);
+  const d = document.createElement('div');
+  d.innerHTML = a; const oA = d.querySelectorAll('table tr').length;
+  d.innerHTML = b; const oB = d.querySelectorAll('table').length;
+  return { a, b, dongA: oA, bangB: oB };
+});
+assert.match(toIn.a, /LỊCH TRỰC THÁNG|值班表/, 'tờ in lịch tháng có tiêu đề song ngữ');
+assert.match(toIn.a, /Màu theo người trực/, 'tờ in có chú thích màu');
+assert.match(toIn.a, /background:#[0-9A-F]{6}/i, 'ô ngày trên tờ in được tô màu');
+assert.match(toIn.a, /Người lập|制表人/, 'tờ in có chỗ ký');
+assert.ok(toIn.dongA >= 6, 'tờ in có dòng tiêu đề thứ và các dòng tuần: ' + toIn.dongA);
+assert.equal(toIn.bangB, 2, 'tờ in phân ca có hai bảng: Sản xuất và Kho ngũ kim');
+assert.match(toIn.b, /五金仓库/, 'tờ in phân ca song ngữ');
+assert.equal(await page.locator('[data-act="trucPdf"], [data-act="pcPdf"]').count() > 0, true, 'có nút xuất PDF');
 // Mở bảng một tuần: đúng mẫu giấy, bấm luân phiên thì tiếp nối tuần trước
 const pcTruoc = await page.evaluate(() => { const tu = tcThuHai(TODAY()); const x = pcO(tu, 'SX', 'NGAY'); return x ? x.ten : ''; });
 assert.ok(pcTruoc, 'tuần này đã có người trực ca ngày');

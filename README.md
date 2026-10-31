@@ -111,6 +111,10 @@ Màu lấy theo thứ tự trong danh sách nhân viên nên **tháng nào cũng
 
 **Chép lịch sang tuần sau** vẫn còn, nay chọn **tuần nguồn** trong tháng đang xem rồi chọn số tuần muốn chép.
 
+Pill đếm ngày chưa xếp chỉ tính **từ hôm nay trở đi** (*Còn 5 ngày chưa xếp*), không kêu vì những ngày đã trôi qua. Xem lại tháng cũ thì đếm cả tháng.
+
+Bảng màu có **mười màu**. Nếu trong một tháng hai người rơi vào cùng một màu thì app tự đẩy người sau sang màu còn trống, nên trong cùng một lịch không bao giờ có hai ô giống hệt nhau.
+
 ### Phân công ca trực cũng xem theo tháng
 
 Màn **Phân công ca trực** trước mở ra là bảng giấy của một tuần. Nay mở ra là **bảng cả tháng**: mỗi tuần một dòng, bốn cột *Sản xuất ca ngày – ca đêm* và *Kho ngũ kim ca ngày – ca đêm*, mỗi ô **tô màu theo người** kèm tên gọi và số điện thoại. Tuần hiện tại có viền xanh. Dưới bảng là chú thích màu: ai giữ mấy tuần ca ngày, mấy tuần ca đêm trong tháng.
@@ -118,6 +122,10 @@ Màn **Phân công ca trực** trước mở ra là bảng giấy của một tu
 Người trực ca là **danh sách riêng** (trang `NguoiTruc`), không phải tài khoản app, nên màu lấy theo thứ tự trong danh sách đó — độc lập với màu của lịch trực.
 
 Bấm vào **ô tuần** mở **bảng một tuần** đúng mẫu giấy như cũ, vẫn **In bảng**, **Xếp luân phiên** và xem **thứ tự luân phiên theo cặp**. Bấm thẳng vào **một ô ca** ngay trên bảng tháng thì đổi được người của tuần đó.
+
+### Xuất PDF để dán bảng tin
+
+Nút **Xuất PDF lịch tháng** (và **Xuất PDF bảng tháng** ở phân ca) mở hộp thoại in; chọn *Lưu thành PDF* (iPhone: Chia sẻ → Lưu vào Tệp) là có một tờ **A4 một trang** đúng màu như trên app, song ngữ, có chỗ ký *Người lập* và *Quản lý bộ phận*. Tháng nào có 6 dòng tuần vẫn gọn một trang.
 
 ### Xuất Excel cả tháng
 
