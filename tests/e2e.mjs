@@ -615,6 +615,26 @@ const cn16 = await page.evaluate(() => {
 });
 assert.ok(cn16 >= 1, 'đếm riêng số ngày Chủ nhật');
 await shot('25-truc-tong-so-ca');
+// Xuất Excel cả tháng: ba sheet (lịch từng ngày, phân công ca, tổng hợp)
+const xlTruc = await page.evaluate(async () => {
+  const ym = TODAY().slice(0, 7), blob = trucXlsx(ym);
+  const sh = await readXlsx(await blob.arrayBuffer());
+  const r = await Promise.all(sh.map((x) => x.rows()));
+  const cuoi = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7), 0)).getUTCDate();
+  const txt = (rows) => rows.map((x) => x.join('|')).join('\n');
+  return { ten: sh.map((x) => x.name), size: blob.size, cuoi, ngay: txt(r[0]), ca: txt(r[1]), tong: txt(r[2]),
+    dongNgay: r[0].length, dongCa: r[1].length };
+});
+assert.deepEqual(xlTruc.ten, ['Lich truc', 'Phan ca truc', 'Tong hop'], 'đủ ba sheet: ' + xlTruc.ten);
+assert.equal(xlTruc.dongNgay, xlTruc.cuoi + 4, 'sheet lịch trực có đủ mỗi ngày trong tháng một dòng');
+assert.ok(xlTruc.dongCa >= 7 && xlTruc.dongCa <= 9, 'sheet phân ca có mỗi tuần một dòng: ' + xlTruc.dongCa);
+assert.match(xlTruc.ngay, /Chủ nhật/, 'cột thứ ghi rõ Chủ nhật');
+assert.match(xlTruc.ngay, /星期日/, 'cột thứ song ngữ');
+assert.match(xlTruc.ca, /Kho ngũ kim/, 'sheet phân ca có nhóm kho ngũ kim');
+assert.match(xlTruc.ca, /0389978042|0946367665/, 'sheet phân ca mang số điện thoại');
+assert.match(xlTruc.tong, /Cộng/, 'sheet tổng hợp có dòng cộng');
+assert.ok(xlTruc.size > 3000, 'file Excel có nội dung: ' + xlTruc.size);
+await page.click('[data-act="trucXuat"]'); await wait(900);
 // Phân công ca trực: bảng giống bảng giấy, bấm luân phiên thì tiếp nối tuần trước
 await page.evaluate(() => { back(); go('phanCa'); }); await wait(700);
 assert.match(await text('#barTitle'), /Phân công ca trực/);
