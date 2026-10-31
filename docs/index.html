@@ -11605,8 +11605,15 @@ function trMau(uid) {
   for (let k = 0; k < String(uid).length; k++) h = (h * 31 + String(uid).charCodeAt(k)) % 997;
   return TR_MAU[h % TR_MAU.length];
 }
-// Tên gọi ngắn để vừa ô lịch: từ cuối của tên tiếng Việt
-const trTenNgan = (ten) => { const w = String(ten || '').trim().split(/\s+/); return w[w.length - 1] || ''; };
+// Tên gọi ngắn để vừa ô lịch: từ cuối của tên tiếng Việt.
+// Hai người trùng tên gọi (hai anh "Tiến") thì lấy thêm một từ phía trước cho khỏi lẫn.
+const trTu = (ten) => String(ten || '').trim().split(/\s+/).filter(Boolean);
+function trTenNganMap(tens) {
+  const dem = {}, m = {};
+  tens.forEach((t) => { const a = trTu(t), k = a[a.length - 1] || t; dem[k] = (dem[k] || 0) + 1; });
+  tens.forEach((t) => { const a = trTu(t), k = a[a.length - 1] || t; m[t] = dem[k] > 1 ? a.slice(-2).join(' ') : k; });
+  return m;
+}
 // Các ngày của tháng, kèm số ô trống đầu tuần (lịch bắt đầu từ thứ Hai)
 function trucThangDS(ym) {
   const [y, mo] = ym.split('-').map(Number), nd = dim(y, mo), o = [];
@@ -11737,6 +11744,7 @@ VIEWS.truc = {
   html() {
     const ym = trucThangHT(), [y, mo] = ym.split('-').map(Number), today = TODAY();
     const { ds, truoc } = trucThangDS(ym), me = (S.me || {}).id, sua = trucSua();
+    const tg = trucTongDS(ym), ngan = trTenNganMap(tg.map((n) => n.ten));
     const thieu = ds.filter((o) => !trucCoNguoi(o)).length;
     let o = srvOld('truc') ? srvWarn('truc') : '';
     o += `<div class="caltools"><div class="stepper">
@@ -11754,14 +11762,13 @@ VIEWS.truc = {
       const m = co ? trMau(x.uid) : null;
       const cls = ['d', cn ? 'cn' : '', d.ngay === today ? 'nay' : '', co && x.uid === me ? 'toi' : ''].filter(Boolean).join(' ');
       const st = m ? ` style="background:${m[0]};color:${m[1]};border-color:${m[0]}"` : '';
-      const nd = co ? `<span class="nm">${esc(trTenNgan(x.ten))}</span>` : '';
+      const nd = co ? `<span class="nm">${esc(ngan[x.ten] || x.ten)}</span>` : '';
       const ttl = co ? ` title="${esc(fmtD(d.ngay) + ' · ' + x.ten)}"` : '';
       o += sua
         ? `<button class="${cls}"${st}${ttl} data-act="trucXep" data-d="${esc(d.ngay)}"><span class="n">${+d.ngay.slice(8, 10)}</span>${nd}${x.cho ? '<span class="nm">•</span>' : ''}</button>`
         : `<div class="${cls}"${st}${ttl}><span class="n">${+d.ngay.slice(8, 10)}</span>${nd}</div>`;
     });
     o += '</div>';
-    const tg = trucTongDS(ym);
     if (tg.length) {
       o += `<div class="help" style="margin-top:12px"><b>${t('trucChuThich')}</b></div><div class="trleg">${tg.map((n) => {
         const m = trMau(n.uid), nv = (S.V.nvById || {})[n.uid] || {};

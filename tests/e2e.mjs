@@ -713,13 +713,15 @@ assert.deepEqual(cap16.ten[0], ['Nguyễn Hữu Ninh', 'Đỗ Văn Quân']);
 // Kỹ thuật: xem được lịch trực và bảng phân ca, không xếp được
 await logout(); await login('NV003', '333333');
 await page.evaluate(() => tab('truc')); await wait(600);
-assert.match(await text('#main'), /Trực điện xưởng 1/, 'kỹ thuật xem được nội dung trực');
+assert.ok(await page.locator('.trcal .d').count() >= 28, 'kỹ thuật xem được lịch trực tháng');
+assert.match(await text('.trleg'), /Bạn trực/, 'chú thích màu đánh dấu ngày của chính mình');
 assert.equal(await page.locator('[data-act="trucXep"]').count(), 0, 'kỹ thuật không bấm xếp lịch được');
+assert.equal(await page.locator('.trcal button.d').count(), 0, 'ô ngày với kỹ thuật không phải nút bấm');
 await page.evaluate(() => go('phanCa')); await wait(600);
 assert.equal(await page.locator('[data-act="pcLP"]').count(), 0, 'kỹ thuật không có nút luân phiên');
 await page.evaluate(() => go('trucNguoi')); await wait(500);
 assert.match(await text('#barTitle'), /Chỉ Quản lý/);
-ok('Bản 2.17: lịch trực song ngữ, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
+ok('Bản 2.17 + 2.31: lịch trực tháng điểm màu, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
 
 // 17. Bản 2.13: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng và gần hết hàng
 await logout(); await login('NV002', '222222');
