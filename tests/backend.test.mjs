@@ -1667,6 +1667,51 @@ test('ghi chú mã lỗi của nhà máy: chỉ Quản lý ghi, mã lỗi và c�
   assert.equal(ds.find((r) => r.id === y.id).hoatDong, false);
 });
 
+test('kiểm định: nhập danh sách từ file, ghép theo số hiệu, nhập lại không nhân đôi', () => {
+  const b = setupSC();
+  const binh = (gcn, serial, dt) => ({ ten: 'Bình chứa khí nén AIR TANK ' + dt + 'M3', loai: 'BINH_AL', soHieu: serial,
+    nhaSX: 'Trung Quốc', namSX: '2025', thongSo: 'Dung tích ' + dt + ' m³ · 8,4 bar · 110 °C',
+    nghiemNgat: true, chuKy: '36', donViKD: 'PV TSR', soGiayKD: gcn, ngayKD: '2025-08-11', ketQua: 'DAT' });
+  const ds = [binh('17568/HCHQ4/GCN-2025', 'Y25267-1', 4), binh('17567/HCHQ4/GCN-2025', 'Y25267-2', 4),
+    binh('17564/HCHQ4/GCN-2025', 'Y25265', 5)];
+
+  err(b.call('importInspect', { ds }, b.kt), 'KHONG_QUYEN');
+  err(b.call('importInspect', { ds: [] }, b.ql), 'KHONG_CO_DONG');
+
+  const r = ok(b.call('importInspect', { ds }, b.ql));
+  assert.deepEqual([r.nhapKD.them, r.nhapKD.sua, r.nhapKD.lanKD], [3, 0, 3]);
+  const x = r.dsKiemDinh.find((v) => v.soHieu === 'Y25267-1');
+  assert.equal(x.loai, 'BINH_AL');
+  assert.equal(x.nghiemNgat, true);
+  assert.equal(x.chuKy, 36);
+  assert.equal(x.ketQua, 'DAT');
+  assert.equal(x.ngayKD, '2025-08-11');
+  assert.equal(x.ngayHetHan, '2028-08-10', 'hạn = ngày kiểm định + 36 tháng, lùi một ngày');
+  assert.equal(x.lichSu.length, 1);
+  assert.equal(x.lichSu[0].soGiay, '17568/HCHQ4/GCN-2025');
+
+  // Nhập lại đúng file đó: cập nhật chứ không thêm mới, lần kiểm định không ghi trùng
+  const r2 = ok(b.call('importInspect', { ds }, b.ql));
+  assert.deepEqual([r2.nhapKD.them, r2.nhapKD.sua, r2.nhapKD.lanKD], [0, 3, 0]);
+  assert.equal(ok(b.call('data', {}, b.ql)).kiemDinh.filter((v) => v.loai === 'BINH_AL').length, 3);
+  assert.equal(r2.dsKiemDinh.find((v) => v.soHieu === 'Y25267-1').lichSu.length, 1, 'không ghi trùng lần kiểm định');
+
+  // Giấy mới hơn của cùng thiết bị thì thay giấy đang hiệu lực, giấy cũ vào lịch sử
+  const r3 = ok(b.call('importInspect', { ds: [Object.assign(binh('KD-2026-001', 'Y25267-1', 4),
+    { ngayKD: '2026-09-20' })] }, b.ql));
+  const y = r3.dsKiemDinh[0];
+  assert.equal(y.soGiayKD, 'KD-2026-001');
+  assert.equal(y.ngayKD, '2026-09-20');
+  assert.equal(y.lichSu.length, 2, 'giấy cũ vẫn còn trong lịch sử');
+
+  // Dòng thiếu tên hoặc loại lạ thì bỏ qua, không làm hỏng cả file
+  const r4 = ok(b.call('importInspect', { ds: [{ ten: '', loai: 'BINH_AL' }, { ten: 'X', loai: 'KHONGCO' },
+    { ten: 'Nồi hơi 1 tấn', loai: 'NOI_HOI' }] }, b.ql));
+  assert.equal(r4.nhapKD.boQua, 2);
+  assert.equal(r4.nhapKD.them, 1);
+  assert.equal(r4.dsKiemDinh[0].chuKy, 24, 'nồi hơi lấy chu kỳ mặc định 24 tháng');
+});
+
 test('kiểm định: thiết bị quá hạn và sắp hết hạn đi vào tin nhắn nhắc hằng ngày', () => {
   const b = setupSC();                                       // hôm nay 2026-10-05
   const them = (ten, loai, ngay, ck) => {

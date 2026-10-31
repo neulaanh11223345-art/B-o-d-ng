@@ -1495,6 +1495,8 @@ const ERR = {
   KHOA_HT: ['Hệ thống tạm khoá đăng nhập 10 phút.', '系统暂时锁定登录10分钟。'],
   KHONG_QUYEN: ['Bạn không có quyền làm việc này.', '您没有此操作权限。'],
   KHONG_CO_MAY: ['Không tìm thấy máy này.', '找不到该设备。'],
+  KD_KHONG_COT: ['Không tìm thấy cột Tên thiết bị và Loại trong file. Tải file mẫu rồi điền theo đúng tiêu đề cột.', '文件中未找到“设备名称”和“类别”列。请下载模板并按列标题填写。'],
+  KHONG_CO_DONG: ['File không có dòng nào đọc được.', '文件中没有可读取的行。'],
   TC_TUONG_LAI: ['Chưa ghi trước tăng ca cho ngày chưa tới được.', '不能提前登记未来日期的加班。'],
   TC_DA_KHOA: ['Tuần này đã khoá. Chỉ ghi và sửa được từ thứ Hai tuần trước đến hôm nay; cần sửa tuần cũ thì báo Quản lý.', '该周已锁定。只能登记和修改上周一至今天的记录；需修改往周请联系管理人员。'],
   WW_URL_SAI: ['Địa chỉ Webhook không đúng. Phải là địa chỉ qyapi.weixin.qq.com/cgi-bin/webhook/send?key=… copy từ 群机器人 trong 企业微信.', 'Webhook 地址不正确。必须是从企业微信群机器人复制的 qyapi.weixin.qq.com/cgi-bin/webhook/send?key=… 地址。'],
@@ -10401,6 +10403,9 @@ Object.assign(TX, {
   kdChuaCo: ['Chưa kiểm định lần nào', '尚未检定'],
   kdLichSu: ['Các lần đã kiểm định', '历次检定'], kdLichSuTrong: ['Chưa có lần nào', '暂无记录'],
   kdXuat: ['Xuất Excel sổ kiểm định', '导出检定台账'],
+  kdDangDoc: ['Đang đọc file…', '正在读取文件…'], kdMauTai: ['Tải file mẫu', '下载模板'], kdNhap: ['Nhập từ Excel', '从Excel导入'],
+  kdNhapXong: ['Đã thêm {a} thiết bị, cập nhật {b}, ghi {c} lần kiểm định{d}', '新增{a}台，更新{b}台，登记{c}次检定{d}'],
+  kdNhapBoQua: [', bỏ qua {n} dòng không đọc được', '，跳过{n}行'],
   kdTongN: ['{n} thiết bị', '{n}台设备'],
   kdCanhBao: ['{n} thiết bị quá hạn kiểm định', '{n}台设备检定逾期'],
   kdCanhBaoSap: ['{n} thiết bị sắp hết hạn kiểm định', '{n}台设备检定即将到期'],
@@ -10457,6 +10462,102 @@ function kdDem() {
   return d;
 }
 const KD_PILL = { qua: 'p-qua', sap: 'p-sap', ok: 'p-ok', chua: 'p-cho' };
+// ----- Nhập sổ kiểm định từ Excel -----
+const KD_COT = {
+  ten: ['ten thiet bi', 'ten tb', 'ten', 'thiet bi', 'name', 'equipment'],
+  loai: ['loai thiet bi', 'loai', 'nhom', 'type'],
+  soHieu: ['so hieu', 'so hieu serial', 'serial', 'so che tao', 'so seri', 'ma hieu'],
+  nhaSX: ['nha san xuat', 'nha che tao', 'nha sx', 'hang', 'manufacturer'],
+  namSX: ['nam san xuat', 'nam che tao', 'nam sx', 'nam', 'year'],
+  thongSo: ['thong so', 'dac tinh ky thuat', 'dac tinh', 'thong so ky thuat', 'spec'],
+  viTri: ['vi tri', 'vi tri dat', 'vi tri lap dat', 'noi dat'],
+  ma: ['ma may', 'ma thiet bi trong danh muc', 'ma danh muc'],
+  nghiemNgat: ['nghiem ngat', 'yeu cau nghiem ngat', 'atvsld'],
+  chuKy: ['chu ky', 'chu ky kiem dinh', 'chu ky thang'],
+  donViKD: ['don vi kiem dinh', 'don vi chung nhan', 'to chuc kiem dinh', 'don vi'],
+  soGiayKD: ['so giay chung nhan', 'so giay', 'so chung nhan', 'so gcn', 'so bien ban'],
+  ngayKD: ['ngay kiem dinh', 'ngay cap', 'ngay chung nhan', 'ngay'],
+  ngayHetHan: ['han kiem dinh', 'ngay het han', 'hieu luc den', 'han'],
+  ketQua: ['ket qua', 'ket qua kiem dinh'],
+  ghiChu: ['ghi chu', 'note', 'remark']
+};
+const KD_COT_N = (() => { const o = {}; Object.keys(KD_COT).forEach((k) => { o[k] = KD_COT[k].map(hNorm); }); return o; })();
+const KD_LOAI_N = (() => { const o = {}; KD_LOAI.forEach((l) => { o[hNorm(l.vi)] = l.k; o[hNorm(l.k)] = l.k; o[hNorm(l.zh)] = l.k; }); return o; })();
+function timCotKD(rows) {
+  for (let r = 0; r < Math.min(rows.length, 20); r++) {
+    const h = (rows[r] || []).map((v) => hNorm(v)), cot = {};
+    Object.keys(KD_COT_N).forEach((k) => {
+      for (const a of KD_COT_N[k]) { const i = h.indexOf(a); if (i >= 0 && !Object.values(cot).includes(i)) { cot[k] = i; break; } }
+    });
+    if (cot.ten !== undefined && cot.loai !== undefined) return { r, cot, ten: (rows[r] || []).map((v) => String(v === undefined ? '' : v).trim()) };
+  }
+  return null;
+}
+// Ngày trong file có thể là số serial của Excel hoặc chữ dd/mm/yyyy
+function kdNgayTxt(v) {
+  if (v === undefined || v === null || v === '') return '';
+  if (v instanceof Date && !isNaN(v)) return v.toISOString().slice(0, 10);
+  const n = Number(v);
+  if (isFinite(n) && n > 20000 && n < 80000) return new Date(Date.UTC(1899, 11, 30) + n * 86400000).toISOString().slice(0, 10);
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${String(+m[2]).padStart(2, '0')}-${String(+m[3]).padStart(2, '0')}`;
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);
+  if (m) return `${m[3]}-${String(+m[2]).padStart(2, '0')}-${String(+m[1]).padStart(2, '0')}`;
+  return '';
+}
+async function docFileKD(file) {
+  const nm = String(file.name || '');
+  if (/\.xls$/i.test(nm)) throw { code: 'FILE_XLS' };
+  let sheets;
+  if (/\.csv$|\.txt$/i.test(nm) || /csv|text\/plain/.test(file.type || '')) sheets = await readCsv(file);
+  else {
+    const buf = await file.arrayBuffer();
+    try { sheets = await readXlsx(buf); } catch (e) { if (e && e.code) throw e; throw { code: 'FILE_SAI' }; }
+  }
+  let coCot = false;
+  for (const sh of sheets) {
+    const rows = await sh.rows(), h = timCotKD(rows);
+    if (!h) continue;
+    coCot = true;
+    const c = h.cot, ds = [];
+    let boQua = 0;
+    const lay = (row, k, n) => (c[k] === undefined ? '' : clTxt(row[c[k]], n || 160));
+    for (let i = h.r + 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      if (!row.some((v) => String(v === undefined ? '' : v).trim() !== '')) continue;
+      const ten = lay(row, 'ten', 120), loai = KD_LOAI_N[hNorm(lay(row, 'loai', 60))];
+      if (!ten || !loai) { boQua++; continue; }
+      ds.push({ ten, loai, soHieu: lay(row, 'soHieu', 80), nhaSX: lay(row, 'nhaSX', 120),
+        namSX: c.namSX === undefined ? '' : String(row[c.namSX] || '').replace(/\D/g, ''),
+        thongSo: lay(row, 'thongSo', 200), viTri: lay(row, 'viTri', 120), ma: lay(row, 'ma', 20).toUpperCase(),
+        nghiemNgat: c.nghiemNgat === undefined ? '' : laDanhDau(row[c.nghiemNgat]),
+        chuKy: c.chuKy === undefined ? '' : String(row[c.chuKy] || '').replace(/\D/g, ''),
+        donViKD: lay(row, 'donViKD', 150), soGiayKD: lay(row, 'soGiayKD', 80),
+        ngayKD: c.ngayKD === undefined ? '' : kdNgayTxt(row[c.ngayKD]),
+        ngayHetHan: c.ngayHetHan === undefined ? '' : kdNgayTxt(row[c.ngayHetHan]),
+        ketQua: hNorm(lay(row, 'ketQua', 20)).indexOf('khong') >= 0 ? 'KHONG_DAT' : 'DAT',
+        ghiChu: lay(row, 'ghiChu', 500) });
+    }
+    if (!ds.length) continue;
+    return { file: nm, sheet: sh.name, cot: Object.keys(c).map((k) => h.ten[c[k]]).filter(Boolean), ds, boQua };
+  }
+  // Có đúng cột nhưng chưa điền dòng nào thì báo cho rõ, đừng bảo là thiếu cột
+  throw { code: coCot ? 'KHONG_CO_DONG' : 'KD_KHONG_COT' };
+}
+// File mẫu để điền rồi tải lên
+function kdMauXlsx() {
+  const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const c = (v, x) => ({ v: v === undefined ? '' : v, s: Object.assign({ border: true, valign: 'top', wrap: 1 }, x || {}) });
+  const ks = ['Tên thiết bị', 'Loại', 'Số hiệu', 'Nhà sản xuất', 'Năm sản xuất', 'Thông số', 'Vị trí', 'Mã máy',
+    'Nghiêm ngặt', 'Chu kỳ', 'Đơn vị kiểm định', 'Số giấy chứng nhận', 'Ngày kiểm định', 'Hạn kiểm định', 'Kết quả', 'Ghi chú'];
+  const rows = [[{ v: 'SỔ KIỂM ĐỊNH THIẾT BỊ — FILE MẪU ĐỂ NHẬP · 设备检定台账导入模板', s: { b: 1, sz: 14 } }],
+    [{ v: 'Điền từ dòng 4. Cột Loại gõ đúng tên loại trong app (vd: Bình chịu áp lực). Nghiêm ngặt: gõ x. Chu kỳ tính bằng tháng.', s: { i: 1, color: '#55625F' } }],
+    ks.map((k) => ({ v: k, s: H }))];
+  KD_LOAI.slice(0, 3).forEach((l) => rows.push([c(''), c(l.vi), c(''), c(''), c(''), c(''), c(''), c(''), c(''), c(l.ck, { align: 'center' }), c(''), c(''), c(''), c(''), c(''), c('')]));
+  return XW.build([{ name: 'Kiem dinh', rows, cols: [30, 24, 16, 20, 11, 28, 18, 11, 11, 9, 26, 18, 14, 14, 11, 24],
+    merges: ['A1:P1', 'A2:P2'], freeze: { r: 3, c: 0 } }]);
+}
 function kdPill(x) {
   const m = kdMuc(x), d = kdConLai(x);
   const tx = m === 'chua' ? t('kq_' + (x.ketQua === 'KHONG_DAT' ? 'KHONG_DAT' : 'CHUA'))
@@ -10488,10 +10589,31 @@ VIEWS.kd = {
       return `<button class="chip${loc === v ? ' on' : ''}" data-act="kdLoc" data-v="${v}">${t(k)}${n ? ' (' + n + ')' : ''}</button>`;
     }).join('')}</div>
       <div class="btns" style="margin:12px 0"><button class="btn sm" data-act="kdNew">${IC.plus} ${t('kdThem')}</button>
-        <button class="btn ghost sm" data-act="kdXuat">${IC.dl} ${t('kdXuat')}</button></div>
+        <button class="btn ghost sm" data-act="kdXuat">${IC.dl} ${t('kdXuat')}</button>
+        <button class="btn ghost sm" data-act="kdMauTai">${IC.dl} ${t('kdMauTai')}</button>
+        <button class="btn ghost sm" data-act="kdNhapFile">${IC.plus} ${t('kdNhap')}</button></div>
+      <input type="file" id="kdFile" accept=".xlsx,.csv,.txt" hidden>
       ${sec('kdMo', tv('kdTongN', { n: ds.length }))}
       <div class="list">${ds.length ? ds.map(kdRow).join('') : `<div class="card empty">${t('kdTrong')}</div>`}</div>`;
   }
+};
+VIEWS.kd.after = function () {
+  const f = $('#kdFile'); if (!f) return;
+  f.addEventListener('change', async () => {
+    const file = f.files && f.files[0]; f.value = '';
+    if (!file) return;
+    toast(t('kdDangDoc')); await sleep(30);
+    let d;
+    try { d = await docFileKD(file); } catch (e) { toast(errMsg(e), true); return; }
+    try {
+      const r = await api('importInspect', { ds: d.ds }, { timeout: 120 });
+      (r.dsKiemDinh || []).forEach((x) => kdApDung({ kiemDinh: x }));
+      const n = r.nhapKD || {};
+      toast(t('kdNhapXong', { a: n.them || 0, b: n.sua || 0, c: n.lanKD || 0,
+        d: (d.boQua || n.boQua) ? tv('kdNhapBoQua', { n: (d.boQua || 0) + (n.boQua || 0) }) : '' }));
+      render();
+    } catch (e) { toast(errMsg(e), true); }
+  });
 };
 VIEWS.kdEdit = {
   html(p) {
@@ -10621,6 +10743,13 @@ Object.assign(ACT, {
     }
     catch (e) { el.disabled = false; const fe = $('#kdxErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
   },
+  kdMauTai: async () => {
+    toast(t('exporting')); await sleep(30);
+    const blob = kdMauXlsx();
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'So-kiem-dinh_mau.xlsx');
+  },
+  kdNhapFile: () => { const f = $('#kdFile'); if (f) f.click(); },
   kdXuat: async () => {
     const ds = kdDS();
     if (!ds.length) { toast(t('kdTrong'), true); return; }
