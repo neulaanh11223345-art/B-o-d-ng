@@ -224,9 +224,9 @@ textarea.inp{min-height:76px;resize:vertical}
 .mhead{padding:16px}
 .mhead h1{margin:6px 0 2px;font-size:21px;line-height:1.25;text-wrap:balance;overflow-wrap:anywhere}
 .mhead .p2{color:var(--ink2);font-family:var(--f-zh)}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:14px;margin:0}
-.kv dt{color:var(--ink2)}
-.kv dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.kv{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:8px 14px;font-size:14px;margin:0}
+.kv dt{color:var(--ink2);min-width:0;overflow-wrap:anywhere}
+.kv dd{margin:0;font-weight:600;overflow-wrap:anywhere;min-width:0}
 .kv dd .zi{font-weight:400}
 .due{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-top:1px solid var(--line)}
 .due .big{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -878,7 +878,7 @@ img.anhloi{background:var(--soft)}
 .ptabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
 .ptabs button.on .n{background:rgba(255,255,255,.22)}
 @media (min-width:1024px){.ptabs{top:64px}}
-.kvwide{grid-template-columns:minmax(110px,auto) 1fr;gap:10px 16px}
+.kvwide{grid-template-columns:minmax(110px,fit-content(42%)) minmax(0,1fr);gap:10px 16px}
 .kvwide dd .zi{display:block;margin:0}
 .lkrow{align-items:flex-start}
 .lkimg2{width:48px;height:48px;border-radius:10px;object-fit:cover;flex:none;background:var(--soft);display:grid;place-items:center;color:var(--ink3)}
