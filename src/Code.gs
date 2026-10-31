@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.29.0';
+var PHIEN_BAN = '2.30.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -145,7 +145,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg', 'importMin',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
-  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'saveFault', 'deleteFault', 'saveAccept', 'deleteAccept',
+  'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'importInspect', 'saveFault', 'deleteFault', 'saveAccept', 'deleteAccept',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy'];
 
 var CAI_DAT_MAC_DINH = {
@@ -340,6 +340,7 @@ function dieuHuong(a, p, req) {
     case 'saveInspect': canQuyen(u, 'may'); return luuKiemDinh(u, p);
     case 'doInspect': canQuyen(u, 'may'); return ghiKiemDinh(u, p);
     case 'deleteInspect': canQuyen(u, 'may'); return xoaKiemDinh(u, p);
+    case 'importInspect': canQuyen(u, 'may'); return nhapKiemDinh(u, p);
     case 'saveFault': canQuyen(u, 'may'); return luuMaLoi(u, p);
     case 'deleteFault': canQuyen(u, 'may'); return xoaMaLoi(u, p);
     case 'saveAccept': canQuyen(u, 'xacnhan'); return luuNghiemThu(u, p);
@@ -1929,6 +1930,70 @@ function xoaKiemDinh(u, p) {
   ghiNhatKy(u, 'XOA_KIEM_DINH', 'KiemDinh', x.id, x.ten, '', catChu(p.lyDo, 200));
   return { kiemDinh: sachKD(x) };
 }
+// Nhập danh sách thiết bị kiểm định từ file Excel.
+// Ghép theo Số hiệu (serial) trong cùng một loại: đã có thì cập nhật, chưa có thì thêm.
+// Dòng nào có Ngày kiểm định và Đơn vị kiểm định thì ghi luôn một lần kiểm định.
+function nhapKiemDinh(u, p) {
+  var rows = Array.isArray(p.ds) ? p.ds.slice(0, 300) : [];
+  if (!rows.length) throw loi('KHONG_CO_DONG', 'File không có dòng nào đọc được · 文件中没有可读取的行');
+  var ds = docKiemDinh(), bay = thoiGianStr(), homNay = homNayStr();
+  capNhatTieuDe('KiemDinh');
+  var them = 0, sua = 0, boQua = 0, kdMoi = 0, ra = [], idCo = dsIdCo(ds);
+  rows.forEach(function (r) {
+    var ten = catChu(r && r.ten, 120), lo = kdLoaiOf(r && r.loai);
+    if (!ten || !lo) { boQua++; return; }
+    var soHieu = catChu(r.soHieu, 80);
+    // Ghép theo số hiệu; không có số hiệu thì ghép theo tên trong cùng loại
+    var x = ds.filter(function (v) {
+      return v.loai === lo.k && (soHieu ? v.soHieu === soHieu : v.ten === ten && !v.soHieu);
+    })[0];
+    var moi = !x;
+    if (moi) {
+      x = { id: idMoi('KD', idCo), ten: ten, tenZh: '', loai: lo.k, ma: '', soHieu: '', nhaSX: '', namSX: '',
+        thongSo: '', viTri: '', nghiemNgat: !!lo.nn, donViKD: '', soGiayKD: '', ngayKD: '', ngayHetHan: '',
+        chuKy: lo.ck, ketQua: 'CHUA', ngayKhaiBao: '', ghiChu: '', ghiChuDich: '', hoatDong: true,
+        lichSu: [], nguoiTao: u.ten, uidTao: u.id, lucTao: bay };
+      idCo[x.id] = 1; ds.push(x);
+    }
+    x.ten = ten; x.loai = lo.k;
+    if (soHieu) x.soHieu = soHieu;
+    if (s(r.nhaSX)) x.nhaSX = catChu(r.nhaSX, 120);
+    if (s(r.thongSo)) x.thongSo = catChu(r.thongSo, 200);
+    if (s(r.viTri)) x.viTri = catChu(r.viTri, 120);
+    if (s(r.ghiChu)) { var gc = songNgu(catNhieuDong(r.ghiChu, 500).trim()); x.ghiChu = gc[0]; x.ghiChuDich = gc[1]; }
+    var nam = Math.round(Number(r.namSX));
+    if (nam >= 1950 && nam <= 2100) x.namSX = nam;
+    var ck = Math.round(Number(r.chuKy));
+    if (ck >= 1 && ck <= 120) x.chuKy = ck;
+    if (r.nghiemNgat !== undefined && r.nghiemNgat !== '') x.nghiemNgat = !!r.nghiemNgat;
+    var ma = s(r.ma).toUpperCase();
+    if (ma && (timMay(ma) || dsChuyen().some(function (c) { return c.ma === ma; }))) x.ma = ma;
+    // Một lần kiểm định kèm theo dòng
+    var ngay = s(r.ngayKD) ? ngayStr(r.ngayKD) : '';
+    var dv = catChu(r.donViKD, 150), sg = catChu(r.soGiayKD, 80);
+    if (ngay && hopLeNgay(ngay) && ngay <= homNay && dv) {
+      var kq = KD_KQ.indexOf(s(r.ketQua).toUpperCase()) >= 0 ? s(r.ketQua).toUpperCase() : 'DAT';
+      if (kq === 'CHUA') kq = 'DAT';
+      var trung = (x.lichSu || []).some(function (h) { return h.ngay === ngay && h.soGiay === sg; });
+      if (!trung) {
+        var hh = kq === 'DAT' ? (s(r.ngayHetHan) ? ngayStr(r.ngayHetHan) : kdHetHan(ngay, x.chuKy)) : '';
+        x.lichSu = (x.lichSu || []).concat([{ ngay: ngay, hetHan: hh, donVi: dv, soGiay: sg, ketQua: kq,
+          nguoi: u.ten, luc: bay, gc: 'Nhập từ file · 文件导入', gcDich: '' }]);
+        x.lichSu.sort(function (a, b) { return a.ngay < b.ngay ? 1 : a.ngay > b.ngay ? -1 : 0; });
+        if (x.lichSu.length > KD_LICH_SU_TOI_DA) x.lichSu = x.lichSu.slice(0, KD_LICH_SU_TOI_DA);
+        kdMoi++;
+        // Chỉ nhận làm giấy đang hiệu lực nếu mới hơn lần đang ghi
+        if (!x.ngayKD || ngay >= x.ngayKD) { x.ngayKD = ngay; x.donViKD = dv; x.soGiayKD = sg; x.ketQua = kq; x.ngayHetHan = hh; }
+      }
+    }
+    x.hoatDong = true; x.capNhat = bay;
+    if (moi) { themDong('KiemDinh', kdThanhDong(x)); them++; } else { suaDong('KiemDinh', x._r, kdThanhDong(x)); sua++; }
+    ra.push(sachKD(x));
+  });
+  ghiNhatKy(u, 'NHAP_KIEM_DINH', 'KiemDinh', '', '', 'Thêm ' + them + ', sửa ' + sua + ', bỏ qua ' + boQua, '');
+  return { dsKiemDinh: ra, nhapKD: { them: them, sua: sua, boQua: boQua, lanKD: kdMoi } };
+}
+
 // Thiết bị quá hạn / sắp hết hạn kiểm định — dùng cho trang chủ và tin nhắn nhắc hằng ngày
 function kdSapHet(homNay, truoc) {
   var qua = [], sap = [], chua = [];

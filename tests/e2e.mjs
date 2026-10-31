@@ -851,6 +851,49 @@ assert.equal(sau20.ketQua, 'DAT');
 assert.equal(await page.evaluate((d) => kdHanTu(d.ngayKD, d.chuKy), sau20), sau20.ngayHetHan, 'hạn tính đúng theo chu kỳ');
 assert.equal(sau20.lichSu.length, 1);
 assert.ok(await page.evaluate(() => kdXlsx(kdDS()).size) > 2000, 'xuất được Excel sổ kiểm định');
+// Nhập sổ kiểm định từ Excel: file mẫu đọc lại được, ghép theo số hiệu, nhập lại không nhân đôi
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
+await moThem('kd');
+assert.ok(await page.evaluate(() => kdMauXlsx().size) > 2000, 'tải được file mẫu');
+const mauKD = await page.evaluate(async () => {
+  const rows = await (await readXlsx(await new File([kdMauXlsx()], 'mau.xlsx').arrayBuffer()))[0].rows();
+  const h = timCotKD(rows);
+  let loi = '';
+  try { await docFileKD(new File([kdMauXlsx()], 'mau.xlsx')); } catch (e) { loi = e.code; }
+  return { cot: h ? Object.keys(h.cot).length : 0, loi };
+});
+assert.ok(mauKD.cot >= 14, 'file mẫu đọc lại nhận đủ cột: ' + JSON.stringify(mauKD));
+assert.equal(mauKD.loi, 'KHONG_CO_DONG', 'file mẫu chưa điền dòng nào thì báo đúng lý do');
+const truocKD = await page.evaluate(() => kdDS().length);
+const fileKD = await page.evaluate(async () => {
+  const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center' };
+  const c = (v) => ({ v, s: { border: true, wrap: 1 } });
+  const ks = ['Tên thiết bị', 'Loại', 'Số hiệu', 'Nhà sản xuất', 'Năm sản xuất', 'Thông số',
+    'Nghiêm ngặt', 'Chu kỳ', 'Đơn vị kiểm định', 'Số giấy chứng nhận', 'Ngày kiểm định', 'Kết quả'];
+  const rows = [ks.map((k) => ({ v: k, s: H }))];
+  [['4M3', 'TEST-1'], ['4M3', 'TEST-2'], ['4M3', 'TEST-3'], ['4M3', 'TEST-4'], ['4M3', 'TEST-5'],
+    ['2M3', 'TEST-6'], ['2M3', 'TEST-7'], ['5M3', 'TEST-8'], ['5M3', 'TEST-9']].forEach(([m, sr], i) => {
+    rows.push([c('Bình chứa khí nén AIR TANK ' + m), c('Bình chịu áp lực'), c(sr), c('Trung Quốc'), c(2025),
+      c('Dung tích ' + m + ' · 8,4 bar · 110 °C'), c('x'), c(36), c('PV TSR'), c('GCN-' + (i + 1)),
+      c('11/08/2025'), c('Đạt')]);
+  });
+  const blob = XW.build([{ name: 'KD', rows }]);
+  return Array.from(new Uint8Array(await blob.arrayBuffer()));
+});
+const napKD = { name: 'kiem-dinh.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(fileKD) };
+await page.setInputFiles('#kdFile', napKD); await wait(2500);
+const binh = await page.evaluate(() => kdDS().filter((x) => /AIR TANK/.test(x.ten)));
+assert.equal(binh.length, 9, 'nhập đủ chín bình chứa khí nén');
+assert.equal(await page.evaluate(() => kdDS().length), truocKD + 9);
+assert.ok(binh.every((x) => x.loai === 'BINH_AL' && x.nghiemNgat && x.chuKy === 36 && x.ketQua === 'DAT'),
+  'đúng loại, nhóm nghiêm ngặt, chu kỳ 36 tháng, kết quả Đạt');
+assert.ok(binh.every((x) => x.ngayKD === '2025-08-11' && x.ngayHetHan === '2028-08-10'), 'hạn tính đúng theo chu kỳ');
+assert.deepEqual(binh.map((x) => x.soHieu).sort(),
+  ['TEST-1', 'TEST-2', 'TEST-3', 'TEST-4', 'TEST-5', 'TEST-6', 'TEST-7', 'TEST-8', 'TEST-9']);
+await page.setInputFiles('#kdFile', napKD); await wait(2500);
+assert.equal(await page.evaluate(() => kdDS().filter((x) => /AIR TANK/.test(x.ten)).length), 9, 'nhập lại không nhân đôi');
+assert.equal(await page.evaluate(() => kdDS().find((x) => /AIR TANK/.test(x.ten)).lichSu.length), 1, 'không ghi trùng lần kiểm định');
+await shot('42-kiem-dinh-nhap-file');
 await shot('34-kiem-dinh-ho-so');
 // Tính toán TB: động cơ → dây dẫn → tụ bù → sụt áp
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
