@@ -97,19 +97,33 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
-## Điểm mới của v2.31.0: xuất Excel lịch trực cả tháng
+## Điểm mới của v2.31.0: lịch trực tháng điểm màu, xuất Excel cả tháng
 
-Màn **Lịch trực** (và màn **Tổng số ca**) thêm nút **Xuất Excel cả tháng**. File `Lich-truc_2026-10.xlsx` gồm ba sheet:
+### Lịch trực giờ là lịch tháng, mỗi người một màu
+
+Màn **Lịch trực** trước là danh sách bảy ngày của một tuần kèm nội dung trực. Nay là **lịch tháng** đúng kiểu lịch treo tường: bảy cột từ thứ Hai đến Chủ nhật, mỗi ngày một ô, ngày nào đã xếp thì tô **màu riêng của người trực** và ghi tên gọi. Dưới lịch là **chú thích màu**: ô màu – tên Việt – tên Trung – số ngày trong tháng. Ngày hôm nay có viền xanh, ngày của chính mình có viền xanh lá nét đứt.
+
+Mục đích là mở ra thấy ngay **ai trực ngày nào**, nên **bỏ hẳn phần nội dung trực**. Ô xếp người trực chỉ còn một việc: chọn người (hoặc bỏ trống). Không còn ô nội dung tiếng Việt, ô nội dung tiếng Trung và phần tự dịch.
+
+Màu lấy theo thứ tự trong danh sách nhân viên nên **tháng nào cũng giữ nguyên một màu cho một người**. Mười màu nền nhạt, chữ đậm cùng tông, đọc được cả chế độ sáng và tối.
+
+> Nội dung trực đã nhập trước đây vẫn còn nguyên trong trang `LichTruc` của Google Sheet, chỉ là app không hiện nữa. Không mất dữ liệu.
+
+**Chép lịch sang tuần sau** vẫn còn, nay chọn **tuần nguồn** trong tháng đang xem rồi chọn số tuần muốn chép.
+
+### Xuất Excel cả tháng
+
+Nút **Xuất Excel cả tháng** ở màn **Lịch trực** và màn **Tổng số ca**. File `Lich-truc_2026-10.xlsx` gồm ba sheet:
 
 | Sheet | Nội dung |
 |---|---|
-| **Lich truc** | Mỗi ngày trong tháng một dòng: ngày, thứ (song ngữ), người trực, nội dung trực. Chủ nhật tô nền đỏ nhạt. Dòng cuối: số ngày đã xếp / tổng số ngày. |
-| **Phan ca truc** | Mỗi tuần một dòng: tuần (từ – đến), Sản xuất ca ngày / ca đêm, Kho ngũ kim ca ngày / ca đêm, kèm tên tiếng Trung và số điện thoại. |
+| **Lich truc** | Lịch tháng bảy cột thứ Hai → Chủ nhật, ô ngày tô đúng màu người trực kèm tên Việt – Trung. Dưới là dòng *Số ngày đã xếp* và bảng chú thích màu. |
+| **Phan ca truc** | Mỗi tuần một dòng: tuần (từ – đến), Sản xuất ca ngày / ca đêm, Kho ngũ kim ca ngày / ca đêm, kèm tên tiếng Trung và số điện thoại. Tuần gối tháng vẫn lấy vào. |
 | **Tong hop** | Mỗi người một dòng: số ngày trực, trong đó bao nhiêu ngày Chủ nhật, có dòng *Cộng*. Bên dưới là bảng người trực ca: giữ ca ngày / ca đêm bao nhiêu tuần trong tháng. |
 
-Tiêu đề cột song ngữ Việt – Trung, kẻ khung, khoá dòng tiêu đề, cột ngày đúng định dạng ngày của Excel nên lọc và sắp xếp được. Mở màn Lịch trực ở tuần nào thì xuất đúng tháng của tuần đó; mở màn Tổng số ca thì xuất đúng tháng đang xem.
+Tiêu đề song ngữ Việt – Trung, kẻ khung, khoá dòng tiêu đề, in vừa một trang ngang A4. Mở màn Lịch trực ở tháng nào thì xuất đúng tháng đó.
 
-Chỉ là xuất file, không đổi gì ở máy chủ — dán `Code.gs-v2.31.0.txt` chỉ để số phiên bản khớp.
+Không đổi gì ở máy chủ — dán `Code.gs-v2.31.0.txt` chỉ để số phiên bản khớp.
 
 ## Sửa lỗi ở v2.30.1: vỡ bố cục khi nhãn dài
 
@@ -511,6 +525,8 @@ Màn **Ca làm việc** (phần Tăng ca) khi lưu đang ghi đè cả khối c�
 Dán `Code.gs-v2.31.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Trang `NhapKho` và cột `TonCu` tự thêm, dữ liệu cũ giữ nguyên. Lịch sử tồn bắt đầu tính từ lần nhập file đầu tiên sau khi nâng cấp.
 
 ## Điểm mới của v2.12.0: lịch trực tuần và phân công ca trực
+
+> Từ **v2.31.0** phần *Lịch trực tuần* đã thành **lịch tháng điểm màu** và **bỏ nội dung trực**. Mục dưới đây giữ lại để biết trang dữ liệu nào được tạo ở bản nào.
 
 Thêm mục **Lịch trực** (thanh bên và ô ở Tổng quan). Trong đó có hai phần tách riêng nhau, vì là hai việc khác nhau:
 

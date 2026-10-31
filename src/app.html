@@ -1206,6 +1206,25 @@ h1.cvh .zh2{font-size:.8em;margin-top:4px}
 .atx .zh2{font-size:12.5px}
 .fld .help{display:block;font-weight:400}
 .dichfld>span{color:var(--ink2)}
+/* Lịch trực tháng: mỗi người một màu, ô trống là chưa xếp */
+.trcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.trcal .wd{text-align:center;font-size:11px;font-weight:800;color:var(--ink2);padding:2px 0;line-height:1.2}
+.trcal .wd small{display:block;font-size:9.5px;font-weight:700;opacity:.75}
+.trcal .wd.cn{color:var(--red)}
+.trcal .d{min-height:56px;border-radius:9px;border:1px solid var(--line);background:var(--card);padding:4px 2px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;overflow:hidden;font:inherit;color:var(--ink)}
+.trcal button.d{cursor:pointer}
+.trcal .d.out{visibility:hidden}
+.trcal .d .n{font-size:12px;font-weight:800;line-height:1}
+.trcal .d .nm{font-size:10px;font-weight:700;line-height:1.15;overflow-wrap:anywhere;max-width:100%}
+.trcal .d.cn .n{color:var(--red)}
+.trcal .d.nay{box-shadow:0 0 0 2px var(--blue)}
+.trcal .d.toi{border:2px dashed var(--green)}
+.trleg{display:flex;flex-wrap:wrap;gap:7px 14px;font-size:12.5px;margin:12px 0 2px}
+.trleg span{display:inline-flex;align-items:center;gap:6px}
+.trleg i{width:14px;height:14px;border-radius:4px;flex:none;border:1px solid rgba(0,0,0,.12)}
+.trleg b{font-weight:700}
+.trleg em{font-style:normal;color:var(--ink2)}
 </style>
 </head>
 <body>
@@ -2281,8 +2300,8 @@ function modTiles() {
       mine.length ? t('mTCLan', { n: mine.length }) : t('mTCChua'), 'data-act="tab" data-v="tc"');
   }
   {
-    const tu = tcThuHai(today), ds = trucTuanDS(tu), co = ds.filter(trucCoNguoi).length, nay = trucNgay(today);
-    h += tile('mt-teal', 'users', 'mTruc', null, `${co}<small>/7</small>`,
+    const { ds } = trucThangDS(today.slice(0, 7)), co = ds.filter(trucCoNguoi).length, nay = trucNgay(today);
+    h += tile('mt-teal', 'users', 'mTruc', null, `${co}<small>/${ds.length}</small>`,
       nay && nay.uid ? esc(tv('mTrucNay')) + ': ' + esc(nay.ten) : t('mTrucChua'), 'data-act="tab" data-v="truc"');
   }
   if (S.kho.ds.length && xemHet()) {
@@ -11503,18 +11522,15 @@ Object.assign(ACT, { mlSet: (el) => { topV().p[el.dataset.k] = el.dataset.v; ren
 // và PHÂN CÔNG CA TRỰC (值班排班表 — ca ngày / ca đêm × SẢN XUẤT · KHO NGŨ KIM, danh sách người riêng).
 // Ai cũng xem được; chỉ Quản lý, Quản trị mới xếp lịch, nhập nội dung và sửa danh sách.
 Object.assign(TX, {
-  navTruc: ['Lịch trực', '值班表'], t_truc: ['Lịch trực tuần', '每周值班表'], t_trucGhi: ['Xếp người trực', '安排值班人'],
-  mTruc: ['Lịch trực tuần', '每周值班表'], mTrucNay: ['Hôm nay', '今天'], mTrucChua: ['Hôm nay chưa xếp ai trực', '今天未安排值班'],
+  navTruc: ['Lịch trực', '值班表'], t_truc: ['Lịch trực tháng', '月度值班表'], t_trucGhi: ['Xếp người trực', '安排值班人'],
+  mTruc: ['Lịch trực', '值班表'], mTrucNay: ['Hôm nay', '今天'], mTrucChua: ['Hôm nay chưa xếp ai trực', '今天未安排值班'],
   t_trucTong: ['Tổng số ca', '班次合计'], t_phanCa: ['Phân công ca trực', '值班排班表'], t_trucNguoi: ['Danh sách người trực ca', '值班人名单'],
-  trucGio: ['Giờ trực', '值班时间'], trucTuanN: ['Tuần {a} – {b}', '{a} – {b} 周'], trucBang: ['Bảng lịch trực', '值班表'],
-  trucChuaXep: ['Chưa xếp', '未安排'], trucChuaND: ['Chưa có nội dung trực', '暂无值班内容'],
+  trucGio: ['Giờ trực', '值班时间'], trucTuanN: ['Tuần {a} – {b}', '{a} – {b} 周'],
+  trucChuaXep: ['Chưa xếp', '未安排'],
   trucHomNay: ['Hôm nay', '今天'], trucBanTruc: ['Bạn trực', '您值班'], trucThieuN: ['{n} ngày chưa xếp', '{n}天未安排'],
-  trucDuNgay: ['Đã xếp đủ tuần', '本周已排满'], trucNguoiTruc: ['Người trực', '值班人'], trucNoiDung: ['Nội dung trực', '值班内容'],
-  trucNDHelp: ['Nội dung do Quản lý nhập, mỗi người mỗi ngày một nội dung riêng. Gõ tiếng Việt, app tự dịch sang tiếng Trung.',
-    '值班内容由主管填写，每人每天各自不同。用越南语填写，应用自动翻译成中文。'],
-  trucNDZ: ['Nội dung tiếng Trung', '值班内容（中文）'],
-  trucNDZHelp: ['Để trống là app tự dịch. Dịch chưa đúng thì sửa ở đây, app sẽ không dịch đè nữa.',
-    '留空则自动翻译。翻译不准时在此修改，应用不再覆盖。'],
+  trucDuNgay: ['Đã xếp đủ tháng', '本月已排满'], trucNguoiTruc: ['Người trực', '值班人'],
+  trucChuThich: ['Màu theo người trực', '颜色对应值班人'], trucNgayN: ['{n} ngày', '{n}天'],
+  trucBamNgay: ['Bấm vào ngày để xếp người trực.', '点击日期安排值班人。'],
   trucChon: ['Chọn người trực', '选择值班人'], trucBoTrong: ['Bỏ trống ngày này', '清空此日'],
   trucLuu: ['Lưu', '保存'], trucDaLuu: ['Đã xếp lịch trực', '已安排值班'], trucDaBo: ['Đã bỏ trống ngày này', '已清空此日'],
   trucMoTong: ['Tổng số ca', '班次合计'], trucMoTongSub: ['Số ngày trực và số ngày Chủ nhật của từng người', '各人值班天数及周日天数'],
@@ -11522,8 +11538,7 @@ Object.assign(TX, {
   trucThangN: ['Tháng {m}/{y}', '{y}年{m}月'], trucSoNgay: ['Ngày', '天数'], trucCN: ['Chủ nhật', '周日'],
   trucTongCong: ['Cộng', '合计'], trucChuaAi: ['Tháng này chưa xếp ai trực', '本月尚未安排值班'],
   trucXuat: ['Xuất Excel cả tháng', '导出整月Excel'],
-  xlTrNgay: ['Ngày', '日期'], xlTrThu: ['Thứ', '星期'], xlTrNguoi: ['Người trực', '值班人'],
-  xlTrNoiDung: ['Nội dung trực', '值班内容'], xlTrDaXep: ['Số ngày đã xếp', '已排班天数'],
+  xlTrNguoi: ['Người trực', '值班人'], xlTrDaXep: ['Số ngày đã xếp', '已排班天数'],
   xlTrTuan: ['Tuần', '周'], xlTrSxNgay: ['Sản xuất — ca ngày', '生产 日班'], xlTrSxDem: ['Sản xuất — ca đêm', '生产 夜班'],
   xlTrKhoNgay: ['Kho ngũ kim — ca ngày', '五金仓库 日班'], xlTrKhoDem: ['Kho ngũ kim — ca đêm', '五金仓库 夜班'],
   xlTrSoNgay: ['Số ngày trực', '值班天数'], xlTrCN: ['Trong đó Chủ nhật', '其中周日'],
@@ -11547,9 +11562,10 @@ Object.assign(TX, {
     '同一组的两人连值两周：首周一人白班一人夜班，次周对调。两周结束才轮到下一组。未配对的人不参与自动排班，由主管手动选择。'],
   pcCapLe: ['Cặp {n} chưa đủ hai người nên chưa dùng để xếp tự động.', '第{n}组不足两人，暂不参与自动排班。'],
   trucChep: ['Chép lịch sang tuần sau', '复制到后面几周'],
-  trucChepHoi: ['Chép cả người trực và nội dung trực của tuần {a} – {b} sang mấy tuần kế tiếp.', '将{a}–{b}周的值班人与值班内容复制到后面几周。'],
-  trucChepTuan: ['{n} tuần', '{n}周'],
-  trucChepGiu: ['Ngày nào tuần này để trống thì tuần sau cũng để trống.', '本周留空的日期，后面几周也留空。'],
+  trucChepHoi: ['Chép người trực của một tuần sang mấy tuần kế tiếp. Chọn tuần nguồn rồi chọn số tuần.',
+    '将某一周的值班人复制到后面几周。先选源周，再选周数。'],
+  trucChepTu: ['Chép từ tuần', '源周'], trucChepTuan: ['{n} tuần', '{n}周'],
+  trucChepGiu: ['Ngày nào tuần nguồn để trống thì tuần sau cũng để trống.', '源周留空的日期，后面几周也留空。'],
   trucChepGiuBtn: ['Giữ ngày đã xếp', '保留已排日期'], trucChepDeBtn: ['Ghi đè tất cả', '全部覆盖'],
   trucChepOk: ['Đã chép sang {n} ngày', '已复制{n}天'],
   pcDSHelp: ['Danh sách này riêng của phần ca trực, không phải tài khoản dùng app. Bỏ ai khỏi danh sách thì app ghi là đã nghỉ, bảng các tuần cũ vẫn còn tên.',
@@ -11568,8 +11584,32 @@ const trucThangHT = () => S.f.trucThang || TODAY().slice(0, 7);
 const trucSua = () => can('giaoviec');
 const trucDS = () => (S.V && S.V.truc) || [];
 const trucNgay = (d) => trucDS().filter((x) => x.ngay === d)[0] || null;
-const trucTuanDS = (tu) => [0, 1, 2, 3, 4, 5, 6].map((i) => { const d = addD(tu, i); return { ngay: d, x: trucNgay(d) }; });
 const trucCoNguoi = (o) => !!(o.x && o.x.uid);
+// Các tuần (thứ Hai) có ngày rơi vào tháng đó
+function trucTuanTrongThang(ym) {
+  const [y, mo] = ym.split('-').map(Number), d1 = ym + '-01', dN = ym + '-' + pad2(dim(y, mo)), o = [];
+  for (let d = tcThuHai(d1); d <= dN; d = addD(d, 7)) if (addD(d, 6) >= d1) o.push(d);
+  return o;
+}
+// Mỗi người một màu, lấy theo thứ tự trong danh sách nhân viên nên tháng nào cũng giữ nguyên màu
+const TR_MAU = [['#DCEBFF', '#17447E'], ['#DDF3E4', '#19603A'], ['#FFE7D1', '#8A4A12'], ['#F0E2FB', '#5B2A86'],
+  ['#FFE1E6', '#8E2438'], ['#D9F2F4', '#13595F'], ['#FBF0CC', '#7A5B10'], ['#E3E6F5', '#343A75'],
+  ['#E7F0D4', '#4A6118'], ['#F6DFF0', '#7A2060']];
+function trMau(uid) {
+  const ds = nvDS(), i = ds.findIndex((n) => n.id === uid);
+  if (i >= 0) return TR_MAU[i % TR_MAU.length];
+  let h = 0;
+  for (let k = 0; k < String(uid).length; k++) h = (h * 31 + String(uid).charCodeAt(k)) % 997;
+  return TR_MAU[h % TR_MAU.length];
+}
+// Tên gọi ngắn để vừa ô lịch: từ cuối của tên tiếng Việt
+const trTenNgan = (ten) => { const w = String(ten || '').trim().split(/\s+/); return w[w.length - 1] || ''; };
+// Các ngày của tháng, kèm số ô trống đầu tuần (lịch bắt đầu từ thứ Hai)
+function trucThangDS(ym) {
+  const [y, mo] = ym.split('-').map(Number), nd = dim(y, mo), o = [];
+  for (let i = 1; i <= nd; i++) { const d = ym + '-' + pad2(i); o.push({ ngay: d, x: trucNgay(d) }); }
+  return { ds: o, truoc: (wday(ym + '-01') + 6) % 7 };
+}
 const TR_NHOM = [['SX', 'pcSX'], ['KHO', 'pcKHO']];
 const TR_CA = [['NGAY', 'pcCaNgay', '7h30–19h30'], ['DEM', 'pcCaDem', '19h30–7h30']];
 const pcDS = () => (S.V && S.V.pc) || [];
@@ -11689,33 +11729,47 @@ function rebuildTruc() {
   S.V.truc = lt; S.V.pc = pc; S.V.nt = nt;
 }
 
-// ---------- Lịch trực tuần ----------
+// ---------- Lịch trực tháng: mỗi người một màu ----------
 VIEWS.truc = {
   html() {
-    const tu = trucTuanHT(), den = addD(tu, 6), ds = trucTuanDS(tu), today = TODAY();
-    const thieu = ds.filter((o) => !trucCoNguoi(o)).length, me = (S.me || {}).id;
+    const ym = trucThangHT(), [y, mo] = ym.split('-').map(Number), today = TODAY();
+    const { ds, truoc } = trucThangDS(ym), me = (S.me || {}).id, sua = trucSua();
+    const thieu = ds.filter((o) => !trucCoNguoi(o)).length;
     let o = srvOld('truc') ? srvWarn('truc') : '';
     o += `<div class="caltools"><div class="stepper">
-      <button data-act="trucTuan" data-d="-1" aria-label="-">${IC.left}</button>
-      <b>${tv('trucTuanN', { a: fmtDM(tu), b: fmtDM(den) })}</b>
-      <button data-act="trucTuan" data-d="1" aria-label="+">${IC.right}</button></div>
+      <button data-act="trucThang" data-d="-1" aria-label="-">${IC.left}</button>
+      <b>${tv('trucThangN', { m: mo, y })}</b>
+      <button data-act="trucThang" data-d="1" aria-label="+">${IC.right}</button></div>
       <span class="pill ${thieu ? 'p-qua' : 'p-ok'}">${thieu ? t('trucThieuN', { n: thieu }) : t('trucDuNgay')}</span></div>`;
-    o += `<div class="help" style="margin:10px 0 0">${esc(tv('trucGio'))}: <b class="mono">17:00 – 19:30</b>
+    o += `<div class="help" style="margin:0 0 10px">${esc(tv('trucGio'))}: <b class="mono">17:00 – 19:30</b>
       <span class="zi" lang="zh-CN">${esc(tz('trucGio'))}: 17:00 – 19:30</span></div>`;
-    o += sec('trucBang') + `<div class="list">${ds.map((d) => {
-      const x = d.x || {}, w = wday(d.ngay), nay = d.ngay === today, co = trucCoNguoi(d);
-      const sub = co ? (x.noiDung ? svH(x.noiDung, x.noiDungDich) : `<span style="color:var(--ink3)">${t('trucChuaND')}</span>`) : '';
-      return `<${trucSua() ? 'button' : 'div'} class="tcrow${nay ? ' on' : ''}"${trucSua() ? ` data-act="trucXep" data-d="${esc(d.ngay)}"` : ' style="cursor:default"'}>
-        <div class="h"><b>${WD_VI_F[w]}</b><span class="mono" style="color:var(--ink3)">${fmtDM(d.ngay)}</span>
-          ${nay ? `<span class="pill p-nay">${t('trucHomNay')}</span>` : ''}
-          ${co ? `<span style="margin-left:auto;text-align:right">${trucTen(x)}${x.uid === me ? ` <span class="pill p-ok">${t('trucBanTruc')}</span>` : ''}</span>`
-    : `<span style="margin-left:auto;color:var(--red);font-weight:700">${t('trucChuaXep')}</span>`}
-          ${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}</div>
-        ${sub ? `<div class="sub">${sub}</div>` : ''}</${trucSua() ? 'button' : 'div'}>`;
-    }).join('')}</div>`;
-    if (trucSua()) o += `<div class="help" style="margin-top:8px">${t('trucNDHelp')}</div>
+    o += '<div class="trcal">';
+    for (let i = 0; i < 7; i++) o += `<div class="wd${i === 6 ? ' cn' : ''}">${WD_VI[(i + 1) % 7]}<small>${WD_ZH[(i + 1) % 7]}</small></div>`;
+    for (let i = 0; i < truoc; i++) o += '<div class="d out"></div>';
+    ds.forEach((d) => {
+      const x = d.x || {}, co = !!x.uid, cn = wday(d.ngay) === 0;
+      const m = co ? trMau(x.uid) : null;
+      const cls = ['d', cn ? 'cn' : '', d.ngay === today ? 'nay' : '', co && x.uid === me ? 'toi' : ''].filter(Boolean).join(' ');
+      const st = m ? ` style="background:${m[0]};color:${m[1]};border-color:${m[0]}"` : '';
+      const nd = co ? `<span class="nm">${esc(trTenNgan(x.ten))}</span>` : '';
+      const ttl = co ? ` title="${esc(fmtD(d.ngay) + ' · ' + x.ten)}"` : '';
+      o += sua
+        ? `<button class="${cls}"${st}${ttl} data-act="trucXep" data-d="${esc(d.ngay)}"><span class="n">${+d.ngay.slice(8, 10)}</span>${nd}${x.cho ? '<span class="nm">•</span>' : ''}</button>`
+        : `<div class="${cls}"${st}${ttl}><span class="n">${+d.ngay.slice(8, 10)}</span>${nd}</div>`;
+    });
+    o += '</div>';
+    const tg = trucTongDS(ym);
+    if (tg.length) {
+      o += `<div class="help" style="margin-top:12px"><b>${t('trucChuThich')}</b></div><div class="trleg">${tg.map((n) => {
+        const m = trMau(n.uid), nv = (S.V.nvById || {})[n.uid] || {};
+        const zh = nv.tenZh && nv.tenZh !== n.ten ? ` <span class="zi" lang="zh-CN">${esc(nv.tenZh)}</span>` : '';
+        return `<span><i style="background:${m[0]}"></i><b>${esc(n.ten)}</b>${zh}<em>${esc(tv('trucNgayN', { n: n.n }))}${n.uid === me ? ' · ' + esc(tv('trucBanTruc')) : ''}</em></span>`;
+      }).join('')}</div>`;
+    }
+    if (sua) o += `<div class="help" style="margin-top:8px">${t('trucBamNgay')}</div>
       <div class="btns" style="margin-top:12px">${srvOld('cap') ? '' : `<button class="btn ghost" data-act="trucChep">${IC.share} ${t('trucChep')}</button>`}
-        <button class="btn ghost" data-act="trucXuat" data-m="${tu.slice(0, 7)}">${IC.dl} ${t('trucXuat')}</button></div>`;
+        <button class="btn ghost" data-act="trucXuat" data-m="${ym}">${IC.dl} ${t('trucXuat')}</button></div>`;
+    else o += `<div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="trucXuat" data-m="${ym}">${IC.dl} ${t('trucXuat')}</button></div>`;
     o += `<button class="cta2 blue" style="margin-top:14px" data-act="go" data-v="trucTong"><span class="ic">${IC.hist}</span>
       <span>${tv('trucMoTong')}<span class="zi">${tz('trucMoTong')}</span><em style="display:block;font-style:normal;font-size:12px;opacity:.8">${esc(tp('trucMoTongSub'))}</em></span>${IC.chev}</button>`;
     o += `<button class="cta2" data-act="go" data-v="phanCa"><span class="ic">${IC.users}</span>
@@ -11727,35 +11781,31 @@ VIEWS.truc = {
 // ---------- Xếp một ngày ----------
 VIEWS.trucGhi = {
   html(p) {
-    const x = trucNgay(p.d) || { uid: '', noiDung: '', noiDungDich: '' };
-    if (!p.init) Object.assign(p, { init: 1, uid: x.uid || '', nd: x.noiDung || '', ndz: x.noiDungDich || '', zSua: 0 });
-    const w = wday(p.d);
+    const x = trucNgay(p.d) || { uid: '' };
+    if (!p.init) Object.assign(p, { init: 1, uid: x.uid || '' });
+    const w = wday(p.d), m = p.uid ? trMau(p.uid) : null;
     return `<form id="trF" class="card pad" autocomplete="off">
       <div class="help" style="margin-bottom:12px"><b>${WD_VI_F[w]}, ${fmtD(p.d)}</b> <span class="zi" lang="zh-CN">${WD_ZH_F[w]}</span> · 17:00 – 19:30</div>
       <div class="fld"><span>${t('trucNguoiTruc')}</span>
         <select class="inp" id="trNg"><option value=""${!p.uid ? ' selected' : ''}>— ${esc(tp('trucChuaXep'))} —</option>
           ${nvDS().map((n) => `<option value="${esc(n.id)}"${n.id === p.uid ? ' selected' : ''}>${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ' ' + esc(n.tenZh) : ''}${n.maNV ? ' · ' + esc(n.maNV) : ''}</option>`).join('')}</select></div>
-      <label class="fld" style="margin-top:12px"><span>${t('trucNoiDung')}</span>
-        <textarea class="inp" id="trND" rows="3" maxlength="500">${esc(p.nd)}</textarea></label>
-      <div class="help" style="margin-top:6px">${t('trucNDHelp')}</div>
-      <label class="fld" style="margin-top:12px"><span>${t('trucNDZ')}</span>
-        <textarea class="inp" id="trNDZ" rows="2" maxlength="500" style="font-family:var(--f-zh)">${esc(p.ndz)}</textarea></label>
-      <div class="help" style="margin-top:6px">${t('trucNDZHelp')}</div>
+      <div class="trleg" id="trMau" style="margin:10px 0 0"${m ? '' : ' hidden'}><span><i style="background:${m ? m[0] : 'transparent'}"></i><em>${esc(tp('trucChuThich'))}</em></span></div>
       <div id="trErr" class="err" hidden></div>
       <div class="btns" style="margin-top:16px"><button type="button" class="btn pri" id="trOk">${IC.check} ${t('trucLuu')}</button>
-        ${x.uid || p.nd ? `<button type="button" class="btn ghost" data-act="trucBo" data-d="${esc(p.d)}">${t('trucBoTrong')}</button>` : ''}</div>
+        ${x.uid ? `<button type="button" class="btn ghost" data-act="trucBo" data-d="${esc(p.d)}">${t('trucBoTrong')}</button>` : ''}</div>
     </form>`;
   },
   after(p) {
-    $('#trNg').addEventListener('change', (e) => { p.uid = e.target.value; });
-    $('#trND').addEventListener('input', (e) => { p.nd = e.target.value; });
-    $('#trNDZ').addEventListener('input', (e) => { p.ndz = e.target.value; p.zSua = 1; });
+    $('#trNg').addEventListener('change', (e) => {
+      p.uid = e.target.value;
+      const box = $('#trMau');
+      box.hidden = !p.uid;
+      if (p.uid) box.querySelector('i').style.background = trMau(p.uid)[0];
+    });
     $('#trOk').addEventListener('click', async () => {
       const e = $('#trErr'), b = $('#trOk');
       e.hidden = true; b.disabled = true;
-      const pl = { ngay: p.d, uid: p.uid, noiDung: p.nd };
-      if (p.zSua) pl.noiDungDich = p.ndz;
-      const r = await send('dutySet', pl);
+      const r = await send('dutySet', { ngay: p.d, uid: p.uid });
       b.disabled = false;
       if (r.err) { e.hidden = false; e.textContent = errMsg(r.err); return; }
       toast(r.queued ? t('savedLocal') : t('trucDaLuu'));
@@ -11885,35 +11935,40 @@ function pcInHtml(tu) {
 // ----- Xuất Excel cả tháng: lịch trực từng ngày, phân công ca trực từng tuần, tổng hợp -----
 function trucXlsx(ym) {
   const [y, mo] = ym.split('-').map(Number);
-  const cuoi = new Date(Date.UTC(y, mo, 0)).getUTCDate();
-  const d1 = `${ym}-01`, dN = `${ym}-${String(cuoi).padStart(2, '0')}`;
   const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
   const hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
   const tenNV = (uid, ten) => { const n = (S.V.nvById || {})[uid] || {}; const zh = n.tenZh && n.tenZh !== (ten || n.ten) ? n.tenZh : ''; return (ten || n.ten || '') + (zh ? '\n' + zh : ''); };
   const thang = tv('trucThangN', { m: mo, y });
 
-  // 1) Lịch trực tuần: mỗi ngày một dòng
+  // 1) Lịch trực: lịch tháng, mỗi người một màu, dưới là chú thích màu
   const r1 = [[{ v: 'LỊCH TRỰC · 值班表 — ' + thang, s: { b: 1, sz: 14 } }], [],
-    hd(['xlTrNgay', 'xlTrThu', 'xlTrNguoi', 'xlTrNoiDung'])];
-  let soNgay = 0;
-  for (let i = 1; i <= cuoi; i++) {
-    const d = `${ym}-${String(i).padStart(2, '0')}`, w = wday(d), x = trucNgay(d), cn = w === 0;
-    const nen = cn ? { fill: '#FDECEA' } : {};
-    if (x && x.uid) soNgay++;
-    r1.push([c(excelSerial(d), Object.assign({ fmt: 'dd/mm/yyyy', align: 'center' }, nen)),
-      c(WD_VI_F[w] + '\n' + WD_ZH_F[w], Object.assign({ align: 'center' }, nen, cn ? { b: 1, color: '#C8372D' } : {})),
-      c(x && x.uid ? tenNV(x.uid, x.ten) : '—', nen),
-      c(x && x.noiDung ? x.noiDung + (x.noiDungDich && x.noiDungDich !== x.noiDung ? '\n' + x.noiDungDich : '') : '', nen)]);
-  }
-  r1.push([c(tp('xlTrDaXep'), { b: 1 }), c(soNgay + '/' + cuoi, { b: 1, align: 'center' }), c(''), c('')]);
+    [0, 1, 2, 3, 4, 5, 6].map((i) => ({ v: WD_VI_F[(i + 1) % 7] + '\n' + WD_ZH_F[(i + 1) % 7],
+      s: Object.assign({}, H, i === 6 ? { fill: '#8E2438' } : {}) }))];
+  const { ds: ngayDS, truoc } = trucThangDS(ym);
+  let soNgay = 0, hang = new Array(truoc).fill(c(''));
+  const cao = {};
+  ngayDS.forEach((d) => {
+    const x = d.x || {}, co = !!x.uid, m = co ? trMau(x.uid) : null;
+    if (co) soNgay++;
+    hang.push(c(+d.ngay.slice(8, 10) + (co ? '\n' + tenNV(x.uid, x.ten) : ''),
+      Object.assign({ align: 'center', valign: 'center', b: 1 }, m ? { fill: m[0], color: m[1] } : {})));
+    if (hang.length === 7) { r1.push(hang); cao[r1.length] = 44; hang = []; }
+  });
+  if (hang.length) { while (hang.length < 7) hang.push(c('')); r1.push(hang); cao[r1.length] = 44; }
+  r1.push([], [{ v: tp('xlTrDaXep') + ': ' + soNgay + '/' + ngayDS.length, s: { b: 1 } }],
+    [{ v: tp('trucChuThich'), s: { b: 1, sz: 12 } }]);
+  trucTongDS(ym).forEach((n) => {
+    const m = trMau(n.uid);
+    r1.push([{ v: '', s: Object.assign({ fill: m[0] }, B) }, c(tenNV(n.uid, n.ten)),
+      c(tv('trucNgayN', { n: n.n }), { align: 'center' })]);
+  });
 
   // 2) Phân công ca trực: mỗi tuần một dòng
   const r2 = [[{ v: 'PHÂN CÔNG CA TRỰC · 值班排班表 — ' + thang, s: { b: 1, sz: 14 } }], [],
     hd(['xlTrTuan', 'xlTrSxNgay', 'xlTrSxDem', 'xlTrKhoNgay', 'xlTrKhoDem'])];
   const o = (tu, nhom, ca) => { const x = pcO(tu, nhom, ca); return x && x.nguoiId ? x.ten + (x.tenZh ? '\n' + x.tenZh : '') + (x.dienThoai ? '\n' + x.dienThoai : '') : ''; };
-  const tuan = [];
-  for (let d = tcThuHai(d1); d <= dN; d = addD(d, 7)) if (addD(d, 6) >= d1) tuan.push(d);
+  const tuan = trucTuanTrongThang(ym);
   tuan.forEach((tu) => {
     r2.push([c(fmtD(tu) + ' – ' + fmtD(addD(tu, 6)), { align: 'center' }),
       c(o(tu, 'SX', 'NGAY')), c(o(tu, 'SX', 'DEM')), c(o(tu, 'KHO', 'NGAY')), c(o(tu, 'KHO', 'DEM'))]);
@@ -11942,7 +11997,7 @@ function trucXlsx(ym) {
   }
 
   return XW.build([
-    { name: 'Lich truc', rows: r1, cols: [13, 14, 26, 52], merges: ['A1:D1'], freeze: { r: 3, c: 0 } },
+    { name: 'Lich truc', rows: r1, cols: [17, 17, 17, 17, 17, 17, 17], merges: ['A1:G1'], freeze: { r: 3, c: 0 }, heights: cao },
     { name: 'Phan ca truc', rows: r2, cols: [22, 24, 24, 24, 24], merges: ['A1:E1'], freeze: { r: 3, c: 0 } },
     { name: 'Tong hop', rows: r3, cols: [26, 13, 13, 13], merges: ['A1:C1'], freeze: { r: 3, c: 0 } }
   ]);
@@ -12010,13 +12065,20 @@ Object.assign(ACT, {
   trucThang: (el) => {
     let [y, m] = trucThangHT().split('-').map(Number);
     m += +el.dataset.d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
-    S.f.trucThang = y + '-' + String(m).padStart(2, '0'); render();
+    S.f.trucThang = y + '-' + String(m).padStart(2, '0'); render(); window.scrollTo(0, 0);
   },
   trucXep: (el) => go('trucGhi', { d: el.dataset.d }),
   trucChep: () => {
-    const tu = trucTuanHT();
+    const tuDS = trucTuanTrongThang(trucThangHT());
+    if (S.f.trucChepTu === undefined || tuDS.indexOf(S.f.trucChepTu) < 0) {
+      const nay = tcThuHai(TODAY());
+      S.f.trucChepTu = tuDS.indexOf(nay) >= 0 ? nay : tuDS[0];
+    }
+    const tu = S.f.trucChepTu;
     openSheet(`<div class="grab"></div><h3>${tv('trucChep')}<span class="zi">${tz('trucChep')}</span></h3>
-      <p class="help">${t('trucChepHoi', { a: fmtDM(tu), b: fmtDM(addD(tu, 6)) })}</p>
+      <p class="help">${t('trucChepHoi')}</p>
+      <div class="help" style="margin-top:10px"><b>${t('trucChepTu')}</b></div>
+      <div class="chips" style="margin:6px 0 10px">${tuDS.map((d) => `<button class="chip${d === tu ? ' on' : ''}" data-act="trucChepTu" data-d="${esc(d)}">${esc(fmtDM(d))} – ${esc(fmtDM(addD(d, 6)))}</button>`).join('')}</div>
       <div class="chips" style="margin:10px 0">${[1, 2, 4, 8].map((n) => `<button class="chip${n === (S.f.trucChepN || 1) ? ' on' : ''}" data-act="trucChepN" data-n="${n}">${esc(tv('trucChepTuan', { n }))}</button>`).join('')}</div>
       <p class="help">${t('trucChepGiu')}</p>
       <div class="btns"><button class="btn pri" data-act="trucChepOk" data-de="0">${t('trucChepGiuBtn')}</button>
@@ -12024,10 +12086,11 @@ Object.assign(ACT, {
         <button class="btn ghost" data-act="closeSheet">${t('cancel')}</button></div>`);
   },
   trucChepN: (el) => { S.f.trucChepN = +el.dataset.n; ACT.trucChep(); },
+  trucChepTu: (el) => { S.f.trucChepTu = el.dataset.d; ACT.trucChep(); },
   trucChepOk: async (el) => {
     const de = el.dataset.de === '1', n = S.f.trucChepN || 1;
     closeSheet();
-    const r = await send('dutyCopy', { tuNgay: trucTuanHT(), soTuan: n, ghiDe: de });
+    const r = await send('dutyCopy', { tuNgay: S.f.trucChepTu || tcThuHai(TODAY()), soTuan: n, ghiDe: de });
     if (r.err) { toast(errMsg(r.err), true); return; }
     toast(r.queued ? t('savedLocal') : t('trucChepOk', { n: (r.data && r.data.n) || 0 }));
     render();

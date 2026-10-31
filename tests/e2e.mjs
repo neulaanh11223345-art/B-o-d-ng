@@ -577,31 +577,41 @@ assert.ok(!/data-act="btXacNhan/.test(ktBt), 'kỹ thuật không có nút xác 
 assert.match(ktBt, /Chỉ Quản lý/);
 ok('Bản 2.11.2: Quản lý xác nhận tiêu thụ bất thường, cảnh báo thôi hiện; kỹ thuật không xác nhận được');
 
-// 16. Bản 2.12: lịch trực tuần (nội dung trực của từng người) và phân công ca trực
+// 16. Bản 2.12 + 2.31: lịch trực tháng điểm màu theo người và phân công ca trực
 await logout(); await login('NV002', '222222');
 await page.evaluate(() => tab('truc')); await wait(600);
-assert.match(await text('#barTitle'), /Lịch trực tuần/);
-assert.match(await text('#main'), /Trực điện xưởng 1/, 'bảng lịch trực hiện nội dung trực của từng người');
-assert.match(await text('#main'), /1号车间电工值班/, 'nội dung trực hiện cả tiếng Trung');
-assert.equal(await page.locator('[data-act="trucXep"]').count(), 7, 'bảy ngày, Quản lý bấm được từng ngày');
-await shot('24-lich-truc-tuan');
-// Ngày chưa xếp: chọn người và nhập nội dung trực
-const trong16 = await page.evaluate(() => {
-  const tu = tcThuHai(TODAY());
-  return trucTuanDS(tu).filter((o) => !trucCoNguoi(o)).map((o) => o.ngay)[0];
+assert.match(await text('#barTitle'), /Lịch trực tháng/);
+const lich16 = await page.evaluate(() => {
+  const ym = TODAY().slice(0, 7), { ds } = trucThangDS(ym);
+  const co = ds.filter(trucCoNguoi);
+  return { n: ds.length, co: co.length, ten: co.length ? co[0].x.ten : '', trong: ds.filter((o) => !trucCoNguoi(o)).map((o) => o.ngay)[0] };
 });
-assert.ok(trong16, 'tuần mẫu có một ngày chưa xếp');
-await page.click(`[data-act="trucXep"][data-d="${trong16}"]`); await wait(500);
+assert.equal(await page.locator('.trcal [data-act="trucXep"]').count(), lich16.n, 'lịch tháng có đủ mỗi ngày một ô, Quản lý bấm được: ' + lich16.n);
+assert.equal(await page.locator('.trcal .wd').count(), 7, 'bảy cột thứ, lịch bắt đầu từ thứ Hai');
+assert.match(await text('.trcal .wd:nth-child(7)'), /CN|日/, 'cột cuối là Chủ nhật');
+assert.ok(lich16.co >= 3, 'tháng mẫu đã xếp vài ngày: ' + lich16.co);
+// Ô ngày đã xếp mang màu riêng của người đó, chỉ hiện tên gọi cho vừa ô
+const oMau = await page.evaluate(() => {
+  const o = Array.from(document.querySelectorAll('.trcal .d')).filter((e) => e.style.background)[0];
+  return o ? { bg: o.style.background, txt: o.textContent } : null;
+});
+assert.ok(oMau && oMau.bg, 'ngày đã xếp được tô màu');
+assert.match(await text('.trleg'), /黎明进|杜文红|阮俊/, 'chú thích màu hiện tên tiếng Trung');
+assert.doesNotMatch(await text('#main'), /Trực điện xưởng 1|1号车间电工值班/, 'lịch trực không còn hiện nội dung trực');
+await shot('24-lich-truc-thang');
+// Ngày chưa xếp: chỉ chọn người, không còn ô nội dung
+assert.ok(lich16.trong, 'tháng mẫu có một ngày chưa xếp');
+await page.click(`[data-act="trucXep"][data-d="${lich16.trong}"]`); await wait(500);
 assert.match(await text('#barTitle'), /Xếp người trực/);
+assert.equal(await page.locator('#trND, #trNDZ').count(), 0, 'ô xếp người trực không còn phần nội dung trực');
 const u16 = await page.evaluate(() => S.V.nv.find((n) => n.maNV === 'NV005').id);
-await page.selectOption('#trNg', u16);
-await page.fill('#trND', 'Kiểm tra bơm nước khu xử lý nước thải'); await wait();
+await page.selectOption('#trNg', u16); await wait();
+assert.equal(await page.locator('#trMau:visible').count(), 1, 'chọn người thì hiện màu của người đó');
 await page.click('#trOk'); await wait(1200);
-const d16 = await page.evaluate((d) => { const x = trucNgay(d); return { uid: x.uid, ten: x.ten, nd: x.noiDung, dich: !!x.noiDungDich }; }, trong16);
+const d16 = await page.evaluate((d) => { const x = trucNgay(d); return { uid: x.uid, ten: x.ten }; }, lich16.trong);
 assert.equal(d16.uid, u16);
-assert.equal(d16.nd, 'Kiểm tra bơm nước khu xử lý nước thải');
-assert.equal(d16.dich, true, 'máy chủ tự dịch nội dung trực sang tiếng Trung');
-assert.equal(await page.locator('[data-act="trucXep"] >> text=Chưa xếp').count(), 0, 'tuần đã xếp đủ bảy ngày');
+const sau16 = await page.evaluate(() => trucThangDS(TODAY().slice(0, 7)).ds.filter(trucCoNguoi).length);
+assert.equal(sau16, lich16.co + 1, 'xếp thêm một ngày thì lịch tháng đếm thêm một');
 // Tổng số ca: số ngày trực và số ngày Chủ nhật
 await page.evaluate(() => go('trucTong')); await wait(600);
 assert.match(await text('#barTitle'), /Tổng số ca/);
@@ -623,13 +633,16 @@ const xlTruc = await page.evaluate(async () => {
   const cuoi = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7), 0)).getUTCDate();
   const txt = (rows) => rows.map((x) => x.join('|')).join('\n');
   return { ten: sh.map((x) => x.name), size: blob.size, cuoi, ngay: txt(r[0]), ca: txt(r[1]), tong: txt(r[2]),
-    dongNgay: r[0].length, dongCa: r[1].length };
+    dongCa: r[1].length };
 });
 assert.deepEqual(xlTruc.ten, ['Lich truc', 'Phan ca truc', 'Tong hop'], 'đủ ba sheet: ' + xlTruc.ten);
-assert.equal(xlTruc.dongNgay, xlTruc.cuoi + 4, 'sheet lịch trực có đủ mỗi ngày trong tháng một dòng');
 assert.ok(xlTruc.dongCa >= 7 && xlTruc.dongCa <= 9, 'sheet phân ca có mỗi tuần một dòng: ' + xlTruc.dongCa);
-assert.match(xlTruc.ngay, /Chủ nhật/, 'cột thứ ghi rõ Chủ nhật');
+assert.match(xlTruc.ngay, /Thứ Hai.*Chủ nhật/s, 'sheet lịch trực là lịch tháng, bảy cột thứ Hai → Chủ nhật');
 assert.match(xlTruc.ngay, /星期日/, 'cột thứ song ngữ');
+assert.match(xlTruc.ngay, /Số ngày đã xếp/, 'sheet lịch trực đếm số ngày đã xếp');
+assert.match(xlTruc.ngay, /Màu theo người trực/, 'sheet lịch trực có chú thích màu');
+assert.doesNotMatch(xlTruc.ngay, /Nội dung trực/, 'sheet lịch trực không còn cột nội dung');
+assert.equal((xlTruc.ngay.match(/\n/g) || []).length >= 8, true, 'lịch tháng có các dòng tuần');
 assert.match(xlTruc.ca, /Kho ngũ kim/, 'sheet phân ca có nhóm kho ngũ kim');
 assert.match(xlTruc.ca, /0389978042|0946367665/, 'sheet phân ca mang số điện thoại');
 assert.match(xlTruc.tong, /Cộng/, 'sheet tổng hợp có dòng cộng');
@@ -673,14 +686,14 @@ assert.equal(ntSau.length, 10, 'thêm được người mới vào danh sách');
 assert.equal(ntSau[0].dt, '0912345678', 'sửa được số điện thoại');
 const moi16 = ntSau.find((x) => x.ten === 'Phạm Văn Mới');
 assert.equal(moi16.nhom, 'KHO');
-// Chép cả tuần sang hai tuần sau
+// Chép người trực của một tuần sang hai tuần sau
 await page.evaluate(() => { back(); tab('truc'); }); await wait(700);
 const tuan16 = await page.evaluate(() => tcThuHai(TODAY()));
 await page.click('[data-act="trucChep"]'); await wait(400);
 await page.click('[data-act="trucChepN"][data-n="2"]'); await wait(400);
 await page.click('[data-act="trucChepOk"][data-de="1"]'); await wait(1500);
 const chep16 = await page.evaluate((tu) => {
-  const g = (d) => { const x = trucNgay(d); return x ? { uid: x.uid, nd: x.noiDung } : null; };
+  const g = (d) => { const x = trucNgay(d); return x ? { uid: x.uid } : null; };
   return { goc: g(tu), t1: g(addD(tu, 7)), t2: g(addD(tu, 14)), t3: g(addD(tu, 21)) };
 }, tuan16);
 assert.ok(chep16.goc && chep16.goc.uid, 'tuần nguồn có người trực');
