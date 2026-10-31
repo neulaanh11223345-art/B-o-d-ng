@@ -438,6 +438,50 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .tcrow{width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);color:var(--ink);display:flex;flex-direction:column;gap:8px;cursor:pointer;font:inherit}
 .navnhom{padding:14px 12px 5px;font:700 11px/1.3 var(--f);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .navnhom .zi{font-weight:600;letter-spacing:0}
+/* ----- Nghiệm thu sửa chữa ngoài ----- */
+.ngtnhom{padding:10px 2px 6px;font:700 12.5px/1.3 var(--f-ui);letter-spacing:.05em;text-transform:uppercase;color:var(--brand)}
+.ngtnhom .zi{text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink3)}
+.ngtmuc{display:grid;grid-template-columns:26px 1fr;gap:3px 9px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.ngtmuc:last-child{border-bottom:0}
+.ngtmuc .stt{font:700 12.5px/1.5 var(--f-mono);color:var(--ink3)}
+.ngtmuc .ten{font-weight:600;line-height:1.35}
+.ngtmuc .ten .zi{display:block;font-size:12.5px;font-weight:400;color:var(--ink2)}
+.ngtmuc .tc{grid-column:2;font-size:12px;color:var(--ink3);line-height:1.4}
+.ngtmuc .doc{grid-column:2;display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-top:7px}
+.ngtmuc .doc .so{position:relative;display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink2)}
+.ngtmuc .doc .so .inp{width:92px;text-align:right;padding-right:38px;font-variant-numeric:tabular-nums}
+.ngtmuc .doc .so i{position:absolute;right:9px;font-style:normal;font-size:11.5px;font-weight:600;color:var(--ink3);pointer-events:none}
+.ngtmuc .doc .ghi{flex:1 1 170px;min-width:120px}
+.ngtmuc .dg{grid-column:2;display:flex;gap:7px;margin-top:8px}
+.ngtmuc .dg .chip.dat{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.ngtmuc .dg .chip.khong{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+.codv{position:relative;display:block}
+.codv .inp{padding-right:46px}
+.codv i{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-style:normal;font-size:12px;font-weight:600;color:var(--ink3);pointer-events:none}
+.ngtwrap .ngtsheet{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 16px;margin-bottom:14px;overflow-x:auto}
+.ngtsheet{font-size:12px;line-height:1.45;color:var(--ink)}
+.ngthd{text-align:center;margin-bottom:12px}
+.ngthd .co{font-weight:700;font-size:11.5px}
+.ngthd .tt{font-weight:700;font-size:14px;margin-top:7px;line-height:1.3}
+.ngthd .tt .zh{display:block;font-size:12px;font-weight:500;color:var(--ink2);font-family:var(--f-zh)}
+.ngthd .so{margin-top:6px;color:var(--ink2)}
+.ngtsheet h4{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;margin:14px 0 6px;color:var(--brand)}
+table.ngtb{width:100%;border-collapse:collapse;table-layout:fixed}
+table.ngtb th,table.ngtb td{border:1px solid var(--line);padding:4px 6px;vertical-align:top;word-wrap:break-word}
+table.ngtb th{background:var(--soft);font-size:11px;font-weight:700;text-align:left}
+table.ngtb .zh{display:block;font-weight:400;color:var(--ink2);font-size:10.5px;font-family:var(--f-zh)}
+table.ngtb td.nh{background:var(--soft);font-weight:600;width:24%}
+table.ngtb td.ctr{text-align:center}
+table.ngtb tr.grp td{background:var(--soft);font-weight:700;text-transform:uppercase;font-size:11px}
+table.ngtb tr.grp td .zh{display:inline;text-transform:none}
+.ngtvb{border:1px solid var(--line);padding:7px;min-height:40px;white-space:pre-wrap}
+table.ngtky{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}
+table.ngtky td{border:1px solid var(--line);padding:6px;text-align:center;vertical-align:top;font-size:11px}
+table.ngtky .vai{font-weight:700}
+table.ngtky .vai .zh{display:block;font-weight:400;color:var(--ink2);font-family:var(--f-zh)}
+table.ngtky .cho{height:44px}
+table.ngtky .ten{font-weight:600}
+@media print{ .ngtsheet{page-break-after:always;font-size:11px} .ngtsheet:last-child{page-break-after:auto} }
 .tcrow:hover{border-color:var(--brand)}
 .tcrow[disabled]{cursor:default;opacity:.72;background:var(--bg)}
 .tcrow[disabled]:hover{border-color:var(--line)}
@@ -1949,7 +1993,7 @@ const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thiết bị / Bảo dưỡng / Lịch sử / Kho vốn là bốn tab của cùng một màn → một dòng "Thiết bị".
 // Nhắc hàng, tồn an toàn, tem QR, phân ca, tổng số ca… đều đã nằm trong màn của chúng → không đưa ra menu.
 const NHOM = [
-  ['nhomViec', [['cv', 'navCV', 'list'], ['list', 'navMay', 'gear']]],
+  ['nhomViec', [['cv', 'navCV', 'list'], ['ngt', 't_ngt', 'check'], ['list', 'navMay', 'gear']]],
   ['nhomDien', [['dien', 'navDien', 'bolt']]],
   ['nhomNS', [['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users']]],
   ['nhomCC', [['kd', 't_kd', 'check'], ['tlTb', 't_tlTb', 'img'], ['tt', 't_tt', 'wrench']]],
@@ -1998,13 +2042,13 @@ const TITLES = { them: 't_them', khoNhac: 't_khoNhac', khoMin: 't_khoMin', dien:
   tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
   tlCfg: 't_tlCfg', tlGan: 't_tlGan', tlDS: 't_tlDS',
   truc: 't_truc', trucGhi: 't_trucGhi', trucTong: 't_trucTong', phanCa: 't_phanCa', trucNguoi: 't_trucNguoi',
-  kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit', tlTb: 't_tlTb' };
-const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg', 'tlTb'];
+  kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit', tlTb: 't_tlTb', ngt: 't_ngt', ngtGhi: 't_ngtGhi', ngtXem: 't_ngtGhi' };
+const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg', 'tlTb', 'ngt'];
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
   tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me',
   trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc', khoNhac: 'list', khoMin: 'list',
-  kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list', ttLoiEdit: 'list', tlTb: 'list' };
+  kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list', ttLoiEdit: 'list', tlTb: 'list', ngt: 'cv', ngtGhi: 'cv', ngtXem: 'cv' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
 function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w.length > 1 ? w[w.length - 1][0] : w[0].slice(0, 2)).toUpperCase(); }
@@ -4807,7 +4851,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -8290,7 +8334,7 @@ VIEWS.cv = {
     let o = ql ? srvWarn('cv') : '';
     o += `<div class="kstrip">${kstHtml('k-orange', 'cvKCho', null, nCho, 'data-act="cvLoc" data-v="cho"')}${kstHtml('k-blue', 'cvKMo', null, all.filter((x) => cvLocOf(x, 'mo')).length, 'data-act="cvLoc" data-v="mo"')}
       ${kstHtml('k-red', 'cvKQua', null, all.filter(cvQua).length, 'data-act="cvLoc" data-v="qua"')}${kstHtml('k-green', 'cvKKT', null, all.filter((x) => x.trangThai === 'XONG').length, 'data-act="cvLoc" data-v="kt"')}</div>`;
-    o += `<div class="btns cvbtns">${can('ghiviec') ? `<button class="btn" data-act="cvNew">${IC.plus} ${t('cvGhi')}</button>` : ''}${can('confirm') ? `<button class="btn${can('ghiviec') ? ' ghost' : ''}" data-act="go" data-v="scGhi">${IC.wrench || IC.edit} ${t('scGhiBtn')}</button>` : ''}<button class="btn ghost" data-act="go" data-v="scDS">${IC.hist} ${t('scDSBtn')}</button>
+    o += `<div class="btns cvbtns">${can('ghiviec') ? `<button class="btn" data-act="cvNew">${IC.plus} ${t('cvGhi')}</button>` : ''}${can('confirm') ? `<button class="btn${can('ghiviec') ? ' ghost' : ''}" data-act="go" data-v="scGhi">${IC.wrench || IC.edit} ${t('scGhiBtn')}</button>` : ''}<button class="btn ghost" data-act="go" data-v="scDS">${IC.hist} ${t('scDSBtn')}</button>${srvOld('ngt') ? '' : `<button class="btn ghost" data-act="tab" data-v="ngt">${IC.check} ${t('ngtMo')}</button>`}
       ${ql && nCho ? `<button class="btn y" data-act="go" data-v="cvGiao">${IC.user} ${t('cvGiaoN', { n: nCho })}</button>` : ''}
       ${ql ? `<button class="btn ghost" data-act="go" data-v="cvLap">${IC.refresh} ${t('cvLapBtn')}</button><button class="btn ghost" data-act="go" data-v="cvBC">${IC.dl} ${t('cvBCBtn')}</button><button class="btn ghost" data-act="xlsGiao">${IC.dl} ${t('xlsGiaoBtn')}</button>` : ''}</div>`;
     const bang = isWide() && ql;
@@ -10008,6 +10052,328 @@ VIEWS.them = {
       <div class="sub zi" lang="zh-CN">${esc(tz(lb))}</div></div>${IC.chev}</button>`).join('')}</div>`).join('');
   }
 };
+// ===================== Nghiệm thu sửa chữa ngoài · 外修验收 =====================
+// Hai biên bản của cùng một lần gửi sửa: TRƯỚC khi đưa đi sửa và SAU khi nhận về.
+// Thợ tích và ghi số đo trên điện thoại; in ra đúng mẫu giấy rồi lưu PDF từ hộp thoại in.
+Object.assign(TX, {
+  t_ngt: ['Nghiệm thu sửa chữa', '外修验收'], t_ngtGhi: ['Biên bản nghiệm thu', '验收单'],
+  ngtMo: ['Nghiệm thu sửa chữa', '外修验收'], ngtThem: ['Lập biên bản mới', '新建验收单'],
+  ngtTruoc: ['Trước khi sửa chữa', '维修前'], ngtSau: ['Sau khi sửa chữa', '维修后'],
+  ngtTdTruoc: ['Biên bản kiểm tra tình trạng trước khi sửa chữa', '设备维修前状况检查确认单'],
+  ngtTdSau: ['Biên bản nghiệm thu sau sửa chữa', '设备维修后验收确认单'],
+  ngtSo: ['Số biên bản', '编号'], ngtNgay: ['Ngày lập', '日期'],
+  ngtMay: ['Thiết bị trong danh mục', '设备目录'], ngtKhongMay: ['— Không chọn, gõ tay tên thiết bị —', '— 不选，手动输入 —'],
+  ngtTenTB: ['Tên thiết bị', '设备名称'], ngtDonVi: ['Đơn vị nhận sửa', '承接维修单位'],
+  ngtChung: ['Thông tin chung', '基本信息'], ngtKetQua: ['Kết quả kiểm tra', '检查结果'],
+  ngtKetLuan: ['Kết luận nghiệm thu', '验收结论'], ngtKy: ['Ký xác nhận', '签字确认'],
+  ngtDat: ['Đạt', '合格'], ngtKhong: ['Không đạt', '不合格'],
+  ngtKlDat: ['Đạt yêu cầu — nghiệm thu thông qua, đưa vào hoạt động', '验收合格 — 投入使用'],
+  ngtKlChua: ['Chưa đạt — yêu cầu xử lý bổ sung', '验收不合格 — 需要重新处理'],
+  ngtTieuChuan: ['Tiêu chuẩn', '标准要求'], ngtThucTe: ['Kết quả thực tế / ghi chú', '实际结果'],
+  ngtChuaCham: ['Chưa chấm', '未评定'],
+  ngtLuu: ['Lưu biên bản', '保存验收单'], ngtIn: ['In / Lưu PDF', '打印 / 存PDF'],
+  ngtInTruoc: ['In biên bản trước sửa', '打印维修前单'], ngtInSau: ['In biên bản sau sửa', '打印维修后单'],
+  ngtXoa: ['Xoá biên bản', '删除验收单'], ngtXoaHoi: ['Biên bản sẽ không còn trong danh sách. Dòng vẫn giữ trên sheet để tra lại.', '验收单将从列表移除，表格中仍保留记录。'],
+  ngtTrong: ['Chưa có biên bản nghiệm thu nào', '暂无验收单'],
+  ngtLoc_all: ['Tất cả', '全部'], ngtLoc_dang: ['Đang sửa', '维修中'], ngtLoc_dat: ['Đã đạt', '已合格'], ngtLoc_chua: ['Chưa đạt', '不合格'],
+  ngtDangSua: ['Đang sửa — chưa nghiệm thu', '维修中 — 未验收'],
+  ngtChuaGhiSau: ['Chưa ghi phần sau sửa chữa', '未填写维修后部分'],
+  ngtGhiSau: ['Ghi nghiệm thu sau sửa', '填写维修后验收'],
+  ngtTuCv: ['Lập biên bản nghiệm thu', '新建验收单'],
+  ngtInHelp: ['Bấm In rồi chọn "Lưu dưới dạng PDF" trong hộp thoại in của máy.', '点击打印后在打印对话框选择“存储为PDF”。'],
+  srvMissNGT: ['Nghiệm thu sửa chữa ngoài', '外修验收']
+});
+Object.assign(ERR, { THIEU_TEN_TB: ['Chưa nhập tên thiết bị.', '未填写设备名称。'] });
+// [mã, tên VI, tên ZH, tiêu chuẩn VI, tiêu chuẩn ZH, đơn vị đo ('' = chỉ ghi chú, 'A/B/C' = ba pha)]
+const NGT_MAU = {
+  truoc: {
+    td: 'ngtTdTruoc',
+    chung: [['tenTB', 'Tên thiết bị', '设备名称', ''], ['maTB', 'Mã thiết bị', '设备编号', ''],
+      ['viTri', 'Vị trí lắp đặt', '安装位置', ''], ['congSuat', 'Công suất', '功率', 'kW'],
+      ['lucSuCo', 'Thời điểm xảy ra sự cố', '故障发生时间', ''], ['moTaSuCo', 'Mô tả sự cố', '故障现象', ''],
+      ['lucGui', 'Thời gian kiểm tra & gửi sửa', '检查及送修时间', ''], ['donVi', 'Đơn vị nhận sửa', '承接维修单位', ''],
+      ['dienAp', 'Điện áp định mức', '额定电压', 'V'], ['dongDM', 'Dòng định mức', '额定电流', 'A']],
+    nhom: [
+      { ten: 'Động cơ', zh: '电机', muc: [
+        ['a1', 'Điện trở cách điện cuộn dây', '绕组绝缘电阻', '≥ 1 MΩ', '≥1兆欧', 'MΩ'],
+        ['a2', 'Vỏ máy, nắp đầu trục', '机壳、端盖外观', 'Không nứt, không biến dạng', '无裂纹、不变形', ''],
+        ['a3', 'Ổ lăn (vòng bi)', '轴承', 'Không kêu, không lỏng', '无异响、无松动', ''],
+        ['a4', 'Trục động cơ', '电机轴', 'Không cong, không mòn', '无弯曲、无磨损', ''],
+        ['a5', 'Hộp cọc, đầu nối dây', '接线盒、接线柱', 'Không oxy hoá, chặt chẽ', '无氧化、紧固', ''],
+        ['a6', 'Quạt làm mát động cơ', '电机冷却风扇', 'Không nứt, quay tự do', '无裂纹、转动灵活', '']] },
+      { ten: 'Quạt gió', zh: '风机', muc: [
+        ['b1', 'Vỏ lồng quạt', '风机外壳', 'Không nứt, lắp chắc', '无破损、安装牢固', ''],
+        ['b2', 'Cánh quạt', '风叶', 'Không nứt, không lệch trục', '无裂纹、无偏心', ''],
+        ['b3', 'Khe hở cánh quạt – vỏ', '风叶与机壳间隙', 'Đều, không cọ xát', '均匀、无摩擦', ''],
+        ['b4', 'Đế chân đỡ, bu lông', '底座、支架、螺栓', 'Không nứt, bu lông chặt', '无裂纹、螺栓紧固', '']] }],
+    vb: ['Mô tả chi tiết tình trạng hư hỏng', '故障详细描述'],
+    ky: [['kyKT', 'Người kiểm tra', '检查人'], ['kyTBP', 'Trưởng bộ phận', '部门负责人'], ['kyDV', 'Đại diện đơn vị sửa', '维修单位代表']]
+  },
+  sau: {
+    td: 'ngtTdSau', ketLuan: true,
+    chung: [['tenTB', 'Tên thiết bị', '设备名称', ''], ['maTB', 'Mã thiết bị', '设备编号', ''],
+      ['lucXong', 'Thời gian hoàn thành sửa', '维修完成时间', ''], ['lucNT', 'Thời gian nghiệm thu', '验收时间', ''],
+      ['donVi', 'Đơn vị thực hiện sửa', '维修单位', ''], ['nguoiSua', 'Người sửa chữa', '维修人员', ''],
+      ['noiDung', 'Nội dung sửa chữa', '维修内容', ''], ['linhKien', 'Linh kiện đã thay', '更换配件', '']],
+    nhom: [
+      { ten: 'Động cơ', zh: '电机', muc: [
+        ['a1', 'Điện trở cách điện cuộn dây', '绕组绝缘电阻', '≥ 5 MΩ (theo nhà sản xuất)', '≥5兆欧', 'MΩ'],
+        ['a2', 'Dòng điện không tải', '空载电流', '≤ dòng định mức', '≤额定值', 'A/B/C'],
+        ['a3', 'Nhiệt độ vỏ máy khi chạy', '运行温度', '≤ 80 °C', '≤80度', '°C'],
+        ['a4', 'Độ rung', '振动', 'Trong giới hạn cho phép', '在允许范围内', 'mm/s'],
+        ['a5', 'Tiếng ồn & hoạt động', '噪音及运行', 'Không bất thường, chạy đều', '无异响、运转平稳', ''],
+        ['a6', 'Ổ lăn sau chạy thử', '试运转后轴承', 'Không quá nóng, không kêu', '不过热、无异响', ''],
+        ['a7', 'Ngoại quan & lắp ráp', '外观及装配', 'Gọn gàng, bu lông chặt', '整洁、螺栓紧固', '']] },
+      { ten: 'Quạt gió', zh: '风机', muc: [
+        ['b1', 'Vỏ lồng quạt', '风机外壳', 'Lắp chắc, không hư hỏng', '安装牢固、完好', ''],
+        ['b2', 'Cánh quạt chạy thử', '风叶试运转', 'Quay đều, không rung, không cọ xát', '运转平稳、无摩擦', ''],
+        ['b3', 'Lưu lượng gió', '风量', 'Đạt yêu cầu công việc', '满足生产要求', 'm³/h'],
+        ['b4', 'Áp suất gió', '风压', 'Đạt yêu cầu công việc', '满足生产要求', 'Pa'],
+        ['b5', 'Bu lông & khớp nối', '螺栓及连接部位', 'Chặt chẽ, không lỏng', '紧固无松动', ''],
+        ['b6', 'Chạy thử liên tục', '连续试运行', '≥ 30 phút, ổn định', '≥30分钟、稳定', 'phút']] }],
+    vb: ['Ghi chú', '备注'],
+    ky: [['kyNS', 'Người sửa chữa', '维修人员'], ['kyNT', 'Người nghiệm thu', '验收人'],
+      ['kyBPSD', 'Đại diện bộ phận sử dụng', '使用部门代表'], ['kyTBP', 'Trưởng bộ phận', '部门负责人']]
+  }
+};
+const ngtDS = () => (S.base.nghiemThu || []).filter((x) => !x.xoa);
+const ngtGet = (id) => (S.base.nghiemThu || []).find((x) => x.id === id);
+// Kèm đơn vị khi in; đã gõ sẵn đơn vị rồi thì không thêm lần nữa
+function ngtDV(v, dv) {
+  v = String(v == null ? '' : v).trim();
+  if (!v || !dv) return v;
+  return new RegExp(dv.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i').test(v) ? v : v + ' ' + dv;
+}
+const ngtTT = (x) => (x.ketLuan === 'DAT' ? 'dat' : x.ketLuan === 'CHUA' ? 'chua' : 'dang');
+const NGT_PILL = { dat: 'p-ok', chua: 'p-qua', dang: 'p-cho' };
+function ngtRow(x) {
+  const tt = ngtTT(x), m = S.V.byMa[x.ma] || S.V.chByMa[x.ma];
+  return `<button class="row" data-act="ngtMoBB" data-id="${esc(x.id)}">
+    <div class="main"><div class="nm mono">${esc(x.soBB)}</div>
+      <div class="sub">${esc(x.tenTB)}${m ? ' · ' + esc(mh(x.ma)) : ''}${x.donVi ? ' · ' + esc(x.donVi) : ''}</div>
+      <div class="sub">${fmtD(x.ngayNT)}${x.sau ? '' : ' · ' + t('ngtChuaGhiSau')}</div></div>
+    <div class="end"><span class="pill ${NGT_PILL[tt]}">${t(tt === 'dat' ? 'ngtDat' : tt === 'chua' ? 'ngtKhong' : 'ngtDangSua')}</span>${IC.chev}</div></button>`;
+}
+const NGT_LOC = [['all', 'ngtLoc_all'], ['dang', 'ngtLoc_dang'], ['dat', 'ngtLoc_dat'], ['chua', 'ngtLoc_chua']];
+VIEWS.ngt = {
+  html() {
+    if (srvOld('ngt')) return srvWarn('ngt');
+    const loc = S.f.ngtLoc || 'all';
+    let ds = ngtDS();
+    if (loc !== 'all') ds = ds.filter((x) => ngtTT(x) === loc);
+    ds = ds.slice().sort((a, b) => String(b.ngayNT + b.soBB).localeCompare(String(a.ngayNT + a.soBB)));
+    const dem = { all: ngtDS().length, dang: 0, dat: 0, chua: 0 };
+    ngtDS().forEach((x) => { dem[ngtTT(x)]++; });
+    return `<div class="hscroll stchips">${NGT_LOC.map(([v, k]) => `<button class="chip${loc === v ? ' on' : ''}" data-act="ngtLoc" data-v="${v}">${t(k)}${dem[v] ? ' (' + dem[v] + ')' : ''}</button>`).join('')}</div>
+      <div class="btns" style="margin:12px 0"><button class="btn sm" data-act="ngtNew">${IC.plus} ${t('ngtThem')}</button></div>
+      <div class="list">${ds.length ? ds.map(ngtRow).join('') : `<div class="card empty">${t('ngtTrong')}</div>`}</div>`;
+  }
+};
+function ngtPhan(p) { return p.seg === 'sau' ? (p.sau = p.sau || { chung: {}, muc: {}, ky: {} }) : (p.truoc = p.truoc || { chung: {}, muc: {}, ky: {} }); }
+VIEWS.ngtGhi = {
+  html(p) {
+    if (!p.init) {
+      const x = p.id ? ngtGet(p.id) : null;
+      const r = (v) => Object.assign({ chung: {}, muc: {}, ky: {}, vanBan: '', vanBanDich: '', ketLuan: '' }, v || {});
+      Object.assign(p, { init: 1, seg: p.seg || 'truoc',
+        ngayNT: x ? x.ngayNT : TODAY(), soBB: x ? x.soBB : '', ma: x ? x.ma : (p.ma || ''),
+        tenTB: x ? x.tenTB : (p.ma && S.V.byMa[p.ma] ? S.V.byMa[p.ma].ten : ''),
+        donVi: x ? x.donVi : '', cvId: x ? x.cvId : (p.cvId || ''),
+        truoc: r(x && x.truoc), sau: r(x && x.sau), vbGoc: x && x.truoc ? x.truoc.vanBanDich || '' : null });
+    }
+    const m = NGT_MAU[p.seg], d = ngtPhan(p);
+    let o = `<div class="card pad" style="margin-bottom:12px">
+      <div class="mono" style="font-size:17px;font-weight:700">${esc(p.soBB || t('ngtSo') + ': tự đánh khi lưu')}</div>
+      <div class="help">${t('ngtInHelp')}</div></div>
+      <div class="seg" style="margin-bottom:12px">
+        ${[['truoc', 'ngtTruoc'], ['sau', 'ngtSau']].map(([k, lb]) => `<button type="button" class="${p.seg === k ? 'on' : ''}" data-act="ngtSeg" data-v="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div>
+      <form id="ngtF" autocomplete="off">
+      <div class="card pad" style="margin-bottom:12px"><div class="row2f">
+        <label class="fld"><span>${t('ngtNgay')}</span><input class="inp" id="ngtNgay" type="date" value="${esc(p.ngayNT)}"></label>
+        <label class="fld"><span>${t('ngtMay')}</span><select class="inp" id="ngtMa">${tbOptions(p.ma, 'ngtKhongMay')}</select></label></div>
+        <div class="row2f"><label class="fld"><span>${t('ngtTenTB')}</span><input class="inp" id="ngtTen" maxlength="150" value="${esc(p.tenTB)}"></label>
+        <label class="fld"><span>${t('ngtDonVi')}</span><input class="inp" id="ngtDV" maxlength="150" value="${esc(p.donVi)}"></label></div></div>`;
+
+    o += sec('ngtChung') + `<div class="card pad"><div class="row2f">`;
+    m.chung.forEach(([k, vi, zh, dv]) => {
+      o += `<label class="fld"><span>${esc(vi)} <span class="zi" lang="zh-CN">${esc(zh)}</span></span>
+        <span class="codv"><input class="inp" data-c="${k}" value="${esc(d.chung[k] || '')}"${dv ? ' inputmode="decimal"' : ''}>${dv ? `<i>${esc(dv)}</i>` : ''}</span></label>`;
+    });
+    o += `</div></div>`;
+
+    o += sec('ngtKetQua');
+    m.nhom.forEach((n, ni) => {
+      o += `<div class="ngtnhom">${String.fromCharCode(65 + ni)}. ${esc(n.ten)} <span class="zi" lang="zh-CN">${esc(n.zh)}</span></div><div class="card" style="margin-bottom:10px">`;
+      n.muc.forEach(([k, vi, zh, tcv, tcz, dv], i) => {
+        const q = d.muc[k] || {};
+        o += `<div class="ngtmuc"><div class="stt">${i + 1}</div>
+          <div class="ten">${esc(vi)}<span class="zi" lang="zh-CN">${esc(zh)}</span></div>
+          <div class="tc">${t('ngtTieuChuan')}: ${esc(tcv)} <span class="zi" lang="zh-CN">${esc(tcz)}</span></div>
+          <div class="doc">`;
+        if (dv === 'A/B/C') ['A', 'B', 'C'].forEach((ph) => {
+          o += `<span class="so">${ph}<input class="inp" inputmode="decimal" data-m="${k}" data-s="${ph}" value="${esc(q[ph] || '')}"><i>A</i></span>`;
+        });
+        else if (dv) o += `<span class="so"><input class="inp" inputmode="decimal" data-m="${k}" data-s="so" value="${esc(q.so || '')}"><i>${esc(dv)}</i></span>`;
+        o += `<input class="inp ghi" placeholder="${esc(tp('ngtThucTe'))}" data-m="${k}" data-s="gc" value="${esc(q.gc || '')}"></div>
+          <div class="dg">
+            <button type="button" class="chip${q.dg === 'D' ? ' dat' : ''}" data-act="ngtDg" data-k="${k}" data-v="D">${t('ngtDat')}</button>
+            <button type="button" class="chip${q.dg === 'K' ? ' khong' : ''}" data-act="ngtDg" data-k="${k}" data-v="K">${t('ngtKhong')}</button>
+          </div></div>`;
+      });
+      o += `</div>`;
+    });
+
+    if (m.ketLuan) {
+      o += sec('ngtKetLuan') + `<div class="card pad"><div class="btns" style="flex-direction:column;align-items:stretch">
+        ${[['DAT', 'ngtKlDat'], ['CHUA', 'ngtKlChua']].map(([k, lb]) => `<button type="button" class="btn ${d.ketLuan === k ? (k === 'DAT' ? 'g' : 'danger') : 'ghost'}" data-act="ngtKl" data-v="${k}" style="justify-content:flex-start">${d.ketLuan === k ? IC.check : ''} <span class="stk">${tv(lb)}<span class="zi">${tz(lb)}</span></span></button>`).join('')}
+      </div></div>`;
+    }
+    o += `<div class="sec"><h2>${esc(m.vb[0])} <span class="zi" lang="zh-CN">${esc(m.vb[1])}</span></h2></div>
+      <div class="card pad"><textarea class="inp" id="ngtVB" rows="3" maxlength="2000">${esc(d.vanBan || '')}</textarea></div>`;
+
+    o += sec('ngtKy') + `<div class="card pad"><div class="row2f">`;
+    m.ky.forEach(([k, vi, zh]) => {
+      o += `<label class="fld"><span>${esc(vi)} <span class="zi" lang="zh-CN">${esc(zh)}</span></span>
+        <input class="inp" data-k="${k}" value="${esc(d.ky[k] || '')}"></label>`;
+    });
+    o += `</div></div><div class="err" id="ngtErr" hidden></div>
+      <div class="btns" style="margin-top:16px"><button type="submit" class="btn bigbtn" id="ngtOk">${IC.check} ${t('ngtLuu')}</button>
+        <button type="button" class="btn ghost" data-act="ngtIn" data-v="${p.seg}">${IC.print} ${t('ngtIn')}</button>
+        ${p.id ? `<button type="button" class="btn ghost" data-act="ngtXoaHoi" data-id="${esc(p.id)}">${t('ngtXoa')}</button>` : ''}</div></form>`;
+    return o;
+  },
+  after(p) {
+    const f = $('#ngtF'); if (!f) return;
+    const sync = () => {
+      const d = ngtPhan(p);
+      p.ngayNT = $('#ngtNgay').value; p.ma = $('#ngtMa').value;
+      p.tenTB = $('#ngtTen').value; p.donVi = $('#ngtDV').value;
+      d.vanBan = $('#ngtVB').value;
+      $$('#ngtF [data-c]').forEach((el) => { d.chung[el.dataset.c] = el.value; });
+      $$('#ngtF [data-k]').forEach((el) => { d.ky[el.dataset.k] = el.value; });
+      $$('#ngtF [data-m]').forEach((el) => { (d.muc[el.dataset.m] = d.muc[el.dataset.m] || {})[el.dataset.s] = el.value; });
+    };
+    S.ngtSync = sync;
+    f.addEventListener('input', sync); f.addEventListener('change', sync);
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault(); sync();
+      const fe = $('#ngtErr'), b = $('#ngtOk'); fe.hidden = true; b.disabled = true;
+      try {
+        const d = await api('saveAccept', { id: p.id || '', ngayNT: p.ngayNT, ma: p.ma, tenTB: p.tenTB.trim(),
+          donVi: p.donVi.trim(), cvId: p.cvId || '', truoc: p.truoc, sau: p.sau });
+        ngtApDung(d); p.id = d.nghiemThu.id; p.soBB = d.nghiemThu.soBB;
+        toast(t('scDaLuu')); render();
+      } catch (er) { b.disabled = false; fe.innerHTML = er.code === 'MANG' ? t('needNet') : errMsg(er); fe.hidden = false; }
+    });
+  }
+};
+function ngtApDung(d) {
+  if (!d || !d.nghiemThu) return;
+  const L = S.base.nghiemThu = S.base.nghiemThu || [], i = L.findIndex((x) => x.id === d.nghiemThu.id);
+  if (i >= 0) L[i] = d.nghiemThu; else L.push(d.nghiemThu);
+  saveSnap();
+}
+// Tờ biên bản in ra, đúng mẫu giấy của nhà máy
+function ngtToHtml(x, seg) {
+  const m = NGT_MAU[seg], d = (seg === 'sau' ? x.sau : x.truoc) || { chung: {}, muc: {}, ky: {} };
+  const muc = d.muc || {}, ky = d.ky || {};
+  // Phần đầu biên bản đã ghi tên thiết bị, mã máy, đơn vị sửa — điền sẵn vào bảng nếu ô đó bỏ trống
+  const chung = Object.assign({}, d.chung || {});
+  if (!chung.tenTB) chung.tenTB = x.tenTB || '';
+  if (!chung.maTB && x.ma) chung.maTB = mh(x.ma);
+  if (!chung.donVi) chung.donVi = x.donVi || '';
+  let o = `<div class="ngtsheet"><div class="ngthd">
+    <div class="co">CÔNG TY TNHH CREDIBLE VIỆT NAM · 可悦（越南）有限公司</div>
+    <div class="tt">${esc(tv(m.td).toUpperCase())}<span class="zh">${esc(tz(m.td))}</span></div>
+    <div class="so">Số biên bản · 编号: <b>${esc(x.soBB)}</b> &nbsp;·&nbsp; Ngày · 日期: <b>${fmtD(x.ngayNT)}</b></div></div>`;
+  o += `<h4>1. Thông tin chung · 基本信息</h4><table class="ngtb"><tbody>`;
+  for (let i = 0; i < m.chung.length; i += 2) {
+    o += '<tr>';
+    [m.chung[i], m.chung[i + 1]].forEach((c) => {
+      if (!c) { o += '<td class="nh"></td><td></td>'; return; }
+      o += `<td class="nh">${esc(c[1])}<span class="zh">${esc(c[2])}</span></td><td>${esc(ngtDV(chung[c[0]], c[3]))}</td>`;
+    });
+    o += '</tr>';
+  }
+  o += `</tbody></table><h4>2. Kết quả kiểm tra · 检查结果</h4><table class="ngtb">
+    <thead><tr><th style="width:30px">STT<span class="zh">序号</span></th><th style="width:28%">Nội dung kiểm tra<span class="zh">检查项目</span></th>
+    <th style="width:25%">Tiêu chuẩn<span class="zh">标准要求</span></th><th>Kết quả thực tế<span class="zh">实际结果</span></th>
+    <th style="width:72px">Đánh giá<span class="zh">合格/不合格</span></th></tr></thead><tbody>`;
+  m.nhom.forEach((n, ni) => {
+    o += `<tr class="grp"><td class="ctr">${String.fromCharCode(65 + ni)}</td><td colspan="4">${esc(n.ten)} <span class="zh">${esc(n.zh)}</span></td></tr>`;
+    n.muc.forEach(([k, vi, zh, tcv, tcz, dv], i) => {
+      const q = muc[k] || {};
+      let tx = '';
+      if (dv === 'A/B/C') tx = ['A', 'B', 'C'].map((ph) => ph + ': ' + (q[ph] || '…')).join('  ') + ' A';
+      else if (dv) tx = (q.so ? q.so + ' ' + dv : '');
+      if (q.gc) tx = tx ? tx + ' — ' + q.gc : q.gc;
+      o += `<tr><td class="ctr">${i + 1}</td><td>${esc(vi)}<span class="zh">${esc(zh)}</span></td>
+        <td>${esc(tcv)}<span class="zh">${esc(tcz)}</span></td><td>${esc(tx)}</td>
+        <td class="ctr">${q.dg === 'D' ? '☑ Đạt' : q.dg === 'K' ? '☒ Không đạt' : '☐'}</td></tr>`;
+    });
+  });
+  o += `</tbody></table>`;
+  let n = 3;
+  if (m.ketLuan) {
+    o += `<h4>${n++}. Kết luận nghiệm thu · 验收结论</h4>
+      <div>${d.ketLuan === 'DAT' ? '☑' : '☐'} <b>Đạt yêu cầu</b> — nghiệm thu thông qua, đưa vào hoạt động · 验收合格，投入使用</div>
+      <div>${d.ketLuan === 'CHUA' ? '☑' : '☐'} <b>Chưa đạt</b> — yêu cầu xử lý bổ sung · 验收不合格，需要重新处理</div>`;
+  }
+  o += `<h4>${n++}. ${esc(m.vb[0])} · ${esc(m.vb[1])}</h4><div class="ngtvb">${esc(d.vanBan || '')}</div>`;
+  o += `<h4>${n}. Ký xác nhận · 签字确认</h4><table class="ngtky"><tbody><tr>`;
+  m.ky.forEach(([, vi, zh]) => { o += `<td class="vai">${esc(vi)}<span class="zh">${esc(zh)}</span></td>`; });
+  o += `</tr><tr>`; m.ky.forEach(() => { o += `<td class="cho"></td>`; });
+  o += `</tr><tr>`; m.ky.forEach(([k]) => { o += `<td class="ten">${esc(ky[k] || '')}</td>`; });
+  o += `</tr><tr>`; m.ky.forEach(() => { o += `<td>Ngày · 日期: ……/……/………</td>`; });
+  o += `</tr></tbody></table></div>`;
+  return o;
+}
+VIEWS.ngtXem = {
+  html(p) {
+    const x = ngtGet(p.id); if (!x) return `<div class="card empty">${t('notFound')}</div>`;
+    return `<div class="btns" style="margin-bottom:12px">
+      <button class="btn" data-act="ngtSua" data-id="${esc(x.id)}">${IC.edit} ${t('cvSua')}</button>
+      <button class="btn ghost" data-act="ngtIn" data-id="${esc(x.id)}" data-v="truoc">${IC.print} ${t('ngtInTruoc')}</button>
+      ${x.sau ? `<button class="btn ghost" data-act="ngtIn" data-id="${esc(x.id)}" data-v="sau">${IC.print} ${t('ngtInSau')}</button>`
+    : `<button class="btn g" data-act="ngtSua" data-id="${esc(x.id)}" data-seg="sau">${IC.plus} ${t('ngtGhiSau')}</button>`}</div>
+      <div class="help" style="margin-bottom:12px">${t('ngtInHelp')}</div>
+      <div class="ngtwrap">${ngtToHtml(x, 'truoc')}${x.sau ? ngtToHtml(x, 'sau') : ''}</div>`;
+  }
+};
+Object.assign(ACT, {
+  ngtLoc: (el) => { S.f.ngtLoc = el.dataset.v; render(); },
+  ngtNew: (el) => go('ngtGhi', el && el.dataset.ma ? { ma: el.dataset.ma, cvId: el.dataset.cv || '' } : {}),
+  ngtMoBB: (el) => go('ngtXem', { id: el.dataset.id }),
+  ngtSua: (el) => go('ngtGhi', { id: el.dataset.id, seg: el.dataset.seg || 'truoc' }),
+  ngtSeg: (el) => { const p = topV().p; if (S.ngtSync) S.ngtSync(); p.seg = el.dataset.v; render(); window.scrollTo(0, 0); },
+  ngtDg: (el) => {
+    const p = topV().p; if (S.ngtSync) S.ngtSync();
+    const d = ngtPhan(p), q = d.muc[el.dataset.k] = d.muc[el.dataset.k] || {};
+    q.dg = q.dg === el.dataset.v ? '' : el.dataset.v;
+    render();
+  },
+  ngtKl: (el) => { const p = topV().p; if (S.ngtSync) S.ngtSync(); const d = ngtPhan(p); d.ketLuan = d.ketLuan === el.dataset.v ? '' : el.dataset.v; render(); },
+  ngtIn: (el) => {
+    const p = topV().p, x = el.dataset.id ? ngtGet(el.dataset.id) : null;
+    let bb = x;
+    if (!bb) { if (S.ngtSync) S.ngtSync(); bb = { soBB: p.soBB || '(chưa lưu)', ngayNT: p.ngayNT, tenTB: p.tenTB, ma: p.ma, donVi: p.donVi, truoc: p.truoc, sau: p.sau }; }
+    $('#printArea').innerHTML = ngtToHtml(bb, el.dataset.v || 'truoc');
+    setTimeout(() => window.print(), 300);
+  },
+  ngtXoaHoi: (el) => openSheet(`<div class="grab"></div><h3>${tv('ngtXoa')}<span class="zi">${tz('ngtXoa')}</span></h3>
+    <p class="help">${t('ngtXoaHoi')}</p><div class="err" id="ngtxErr" hidden></div>
+    <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="ngtXoaGo" data-id="${esc(el.dataset.id)}">${t('ngtXoa')}</button></div>`),
+  ngtXoaGo: async (el) => {
+    el.disabled = true;
+    try {
+      const d = await api('deleteAccept', { id: el.dataset.id });
+      ngtApDung(d); closeSheet(); toast(t('scDaXoa'));
+      S.stack = S.stack.filter((v) => ['ngtGhi', 'ngtXem'].indexOf(v.v) < 0);
+      render();
+    } catch (e) { el.disabled = false; const fe = $('#ngtxErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  }
+});
+
 // ===================== Kiểm định thiết bị · 设备检定 =====================
 // Sổ riêng cho thiết bị phải kiểm định kỹ thuật an toàn định kỳ, trong đó có nhóm có yêu cầu
 // NGHIÊM NGẶT về an toàn, vệ sinh lao động. Chỉ Quản lý, Quản trị (quyền may) xem và sửa.

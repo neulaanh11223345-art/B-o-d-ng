@@ -140,8 +140,8 @@ assert.match(await text('.tabs .tab[data-v="cv"]'), /Sửa chữa/);
 // Màn Thêm của kỹ thuật: không có Thiết bị, Kho, Kiểm định, Tính toán, Tài liệu
 await page.click('.tabs .tab[data-v="them"]'); await wait(600);
 const them7 = await page.locator('#main .row .nm').allTextContents();
-assert.deepEqual(them7, ['Công việc', 'Bảo dưỡng', 'Điện / Nước', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
-  'kỹ thuật chỉ thấy đúng sáu mục: ' + JSON.stringify(them7));
+assert.deepEqual(them7, ['Công việc', 'Nghiệm thu sửa chữa', 'Bảo dưỡng', 'Điện / Nước', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
+  'kỹ thuật chỉ thấy đúng bảy mục: ' + JSON.stringify(them7));
 await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.match(await text('.mtiles'), /Sửa chữa/);
 assert.doesNotMatch(await text('.mtiles'), /Linh kiện|Thiết bị|Công việc/, 'Tổng quan chỉ còn Sửa chữa, Bảo dưỡng, Điện, Nước');
@@ -216,7 +216,56 @@ await page.click('.scrow:has-text("Máy hút bụi VKY03")'); await wait();
 assert.match(await text('.schead'), /吸尘器VKY03不运转/);
 assert.match(await text('.scres'), /更换电机碳刷/);
 assert.match(await text('.scres'), /自然磨损/);
-ok('Kỹ thuật không ghi việc được nữa, chỉ ghi sửa chữa; mất mạng vẫn ghi, có mạng tự gửi và tự dịch sang tiếng Trung');
+// Nghiệm thu sửa chữa ngoài: kỹ thuật lập biên bản trước khi gửi sửa, ghi nghiệm thu khi nhận về
+await page.click('.tabs .tab[data-v="cv"]'); await wait(700);
+await page.click('#main [data-act="tab"][data-v="ngt"]'); await wait(800);
+assert.match(await text('#barTitle'), /Nghiệm thu/);
+await page.click('[data-act="ngtNew"]'); await wait(800);
+await page.selectOption('#ngtMa', 'M001'); await wait(400);
+await page.fill('#ngtTen', 'Quạt hút bụi xưởng 2');
+await page.fill('#ngtDV', 'Cơ điện Minh Phát');
+await page.fill('[data-c="congSuat"]', '7,5');
+await page.fill('[data-c="dienAp"]', '380');
+await page.fill('[data-m="a1"][data-s="so"]', '0,4'); await wait(300);
+await page.click('[data-act="ngtDg"][data-k="a1"][data-v="K"]'); await wait(500);
+await page.fill('#ngtVB', 'Cuộn dây ẩm, cách điện thấp');
+await shot('40-nghiem-thu-truoc');
+await page.click('#ngtOk'); await wait(1600);
+const bb = await page.evaluate(() => ngtDS()[0]);
+assert.match(bb.soBB, /^BBNT\d{4}\.\d{2}\.\d{2}\/1$/, 'số biên bản tự đánh theo ngày: ' + bb.soBB);
+assert.equal(bb.truoc.muc.a1.dg, 'K');
+assert.equal(bb.sau, null, 'chưa ghi phần sau sửa chữa');
+// Phần sau sửa chữa
+await page.click('[data-act="ngtSeg"][data-v="sau"]'); await wait(800);
+await page.fill('[data-m="a2"][data-s="A"]', '4,1');
+await page.fill('[data-m="b3"][data-s="so"]', '3200');
+await page.fill('[data-m="b4"][data-s="so"]', '450');
+await page.click('[data-act="ngtDg"][data-k="a2"][data-v="D"]'); await wait(400);
+await page.click('[data-act="ngtKl"][data-v="DAT"]'); await wait(400);
+await page.click('#ngtOk'); await wait(1600);
+const bb2 = await page.evaluate(() => ngtDS()[0]);
+assert.equal(bb2.ketLuan, 'DAT');
+assert.deepEqual(bb2.truoc.muc.a1, { so: '0,4', dg: 'K' }, 'ghi phần sau không xoá phần trước');
+assert.equal(bb2.soBB, bb.soBB, 'hai phần dùng chung một số biên bản');
+// Tờ in: đúng mẫu giấy, thông số kèm đơn vị
+const inT = await page.evaluate(() => ngtToHtml(ngtDS()[0], 'truoc').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '));
+const inS = await page.evaluate(() => ngtToHtml(ngtDS()[0], 'sau').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '));
+assert.ok(inT.includes('7,5 kW') && inT.includes('380 V'), 'thông số in kèm đơn vị');
+assert.ok(inT.includes('Quạt hút bụi xưởng 2'), 'tên thiết bị điền sẵn vào bảng');
+assert.ok(inT.includes('☒ Không đạt'), 'ô đánh giá in ra đúng');
+assert.ok(inS.includes('3200 m³/h') && inS.includes('450 Pa'), 'lưu lượng và áp suất kèm đơn vị');
+assert.ok(inS.includes('☑ Đạt yêu cầu'), 'kết luận nghiệm thu');
+await shot('41-nghiem-thu-to-in');
+// Biên bản thứ hai cùng ngày tự nhận số kế tiếp
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
+await page.click('[data-act="ngtNew"]'); await wait(700);
+await page.fill('#ngtTen', 'Quạt mái xưởng 1');
+await page.click('#ngtOk'); await wait(1500);
+const hai = await page.evaluate(() => ngtDS().map((v) => v.soBB).sort());
+assert.equal(hai.length, 2);
+assert.match(hai[1], /\/2$/, 'biên bản thứ hai trong ngày: ' + hai.join(', '));
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Kỹ thuật không ghi việc được nữa, chỉ ghi sửa chữa; nghiệm thu sửa chữa ngoài hai phần trước/sau, số biên bản tự đánh, in kèm đơn vị');
 
 // 10. Công việc: Quản lý ghi việc và giao luôn; giao nhiều việc một lần; nhân viên thấy ở "Việc của tôi", làm xong; Quản lý kiểm tra
 await logout();

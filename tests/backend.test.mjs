@@ -1583,6 +1583,59 @@ test('kiểm định thiết bị: sổ riêng, ghi từng lần kiểm định,
   assert.equal(ds.find((r) => r.id === y.id).hoatDong, false);
 });
 
+test('nghiệm thu sửa chữa ngoài: số biên bản tự đánh theo ngày, hai phần trước và sau không đạp lên nhau', () => {
+  const b = setupSC();                                   // hôm nay 2026-10-05
+  err(b.call('saveAccept', { tenTB: '' }, b.ql), 'THIEU_TEN');
+  err(b.call('saveAccept', { tenTB: 'Quạt', ma: 'KHONGCO' }, b.ql), 'KHONG_CO_MAY');
+
+  // Kỹ thuật lập được biên bản, số do máy chủ đánh
+  const a = ok(b.call('saveAccept', { tenTB: 'Quạt hút bụi xưởng 2', ma: 'M001', donVi: 'Cơ điện Minh Phát',
+    truoc: { chung: { congSuat: '7,5', dienAp: '380' }, muc: { a1: { so: '0,4', dg: 'K' }, a3: { dg: 'D' } },
+      ky: { kyKT: 'Đỗ Văn Hồng' }, vanBan: 'Cuộn dây ẩm, cách điện thấp' } }, b.kt)).nghiemThu;
+  assert.equal(a.soBB, 'BBNT2026.10.05/1');
+  assert.equal(a.stt, 1);
+  assert.equal(a.ketLuan, '', 'chưa nghiệm thu thì chưa có kết luận');
+  assert.equal(a.truoc.muc.a1.dg, 'K');
+  assert.equal(a.sau, null, 'chưa ghi phần sau');
+
+  // Biên bản thứ hai cùng ngày tự nhận số 2
+  const c = ok(b.call('saveAccept', { tenTB: 'Quạt mái xưởng 1' }, b.kt)).nghiemThu;
+  assert.equal(c.soBB, 'BBNT2026.10.05/2');
+
+  // Ghi phần sau: phần trước giữ nguyên, kết luận lên dòng chính
+  const a2 = ok(b.call('saveAccept', { id: a.id, tenTB: a.tenTB, ma: a.ma,
+    sau: { chung: { nguoiSua: 'Anh Tuấn' }, muc: { a2: { A: '4,1', B: '4,0', C: '4,2', dg: 'D' }, b3: { so: '3200' }, b4: { so: '450' } },
+      ky: { kyNT: 'Bùi Văn Chung' }, ketLuan: 'DAT' } }, b.ql)).nghiemThu;
+  assert.equal(a2.soBB, 'BBNT2026.10.05/1', 'số biên bản không đổi');
+  assert.equal(a2.ketLuan, 'DAT');
+  assert.deepEqual(a2.truoc.muc.a1, { so: '0,4', dg: 'K' }, 'ghi phần sau không xoá phần trước');
+  assert.equal(a2.sau.muc.a2.A, '4,1');
+  assert.equal(a2.sau.muc.b4.so, '450');
+
+  // Đổi ngày thì đánh lại số theo ngày mới
+  const a3 = ok(b.call('saveAccept', { id: a.id, tenTB: a.tenTB, ngayNT: '2026-10-08' }, b.ql)).nghiemThu;
+  assert.equal(a3.soBB, 'BBNT2026.10.08/1');
+
+  // Quản lý sửa được biên bản của kỹ thuật
+  ok(b.call('saveAccept', { id: c.id, tenTB: 'Quạt mái xưởng 1' }, b.ql));
+
+  // Đánh giá lạ và kết luận lạ bị bỏ
+  const z = ok(b.call('saveAccept', { tenTB: 'Thử', truoc: { muc: { a1: { dg: 'X' } } },
+    sau: { ketLuan: 'LUNG_TUNG' } }, b.ql)).nghiemThu;
+  // Kỹ thuật không sửa được biên bản người khác lập
+  err(b.call('saveAccept', { id: z.id, tenTB: 'x' }, b.kt), 'KHONG_QUYEN');
+  err(b.call('deleteAccept', { id: z.id }, b.kt), 'KHONG_QUYEN');
+  assert.equal(z.truoc, null, 'đánh giá lạ bị bỏ nên phần đó coi như chưa ghi gì');
+  assert.equal(z.sau, null, 'kết luận lạ bị bỏ nên phần đó cũng trống');
+  assert.equal(z.ketLuan, '');
+
+  // Xoá thì thôi hiện, dòng vẫn giữ
+  ok(b.call('deleteAccept', { id: c.id }, b.ql));
+  const ds = ok(b.call('data', {}, b.ql)).nghiemThu;
+  assert.equal(ds.some((r) => r.id === c.id), false, 'biên bản đã xoá không gửi về app');
+  assert.equal(b.ctx.docNghiemThu().filter((r) => r.id === c.id)[0].xoa, true, 'dòng vẫn còn trên sheet');
+});
+
 test('ghi chú mã lỗi của nhà máy: chỉ Quản lý ghi, mã lỗi và cách xử lý tự dịch sang tiếng Trung', () => {
   const b = setupSC();
   err(b.call('saveFault', { ma: 'E.OC1', cachXuLy: 'x' }, b.kt), 'KHONG_QUYEN');
