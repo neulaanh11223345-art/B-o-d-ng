@@ -62,7 +62,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .zi{font-family:var(--f-zh);color:var(--ink2);font-weight:inherit;margin-left:.35em}
-.bl .zi,.stk .zi,.help .zi,.note .zi,.toast .zi,.tile .zi,.err .zi,.empty .zi,.fld>span .zi{display:block;margin-left:0}
+.bl .zi,.stk .zi,.help .zi,.note .zi,.toast .zi,.tile .zi,.err .zi,.empty .zi,.fld>span .zi,.kv dt .zi{display:block;margin-left:0}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .num{font-variant-numeric:tabular-nums}
 .muted{color:var(--ink2)}
@@ -1880,7 +1880,7 @@ var BANG = {
   // LichSu (JSON): các lần đã kiểm định [{ngay, hetHan, donVi, soGiay, ketQua, nguoi, luc, gc}]
   KiemDinh: ['ID', 'Ten', 'TenZh', 'Loai', 'Ma', 'SoHieu', 'NhaSX', 'NamSX', 'ThongSo', 'ViTri', 'NghiemNgat',
     'DonViKD', 'SoGiayKD', 'NgayKD', 'NgayHetHan', 'ChuKy', 'KetQua', 'NgayKhaiBao', 'GhiChu', 'GhiChuDich',
-    'HoatDong', 'LichSu', 'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat'],
+    'HoatDong', 'LichSu', 'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'SoTem', 'ThuocTB'],
   // Ghi chú mã lỗi của riêng nhà máy (bảng tra lỗi dựng sẵn nằm trong app, không lưu ở đây).
   // Hang: BT (biến tần) · SV (servo / driver) · KHAC
   MaLoi: ['ID', 'Hang', 'Dong', 'Ma', 'TenLoi', 'TenLoiDich', 'CachXuLy', 'CachXuLyDich', 'HoatDong',
@@ -3593,9 +3593,11 @@ function luuViecLap(u, p) {
 // NGHIÊM NGẶT về an toàn, vệ sinh lao động (xe nâng, nồi hơi, bình chịu áp lực, palăng, thang máy…).
 // Thiết bị nào đã có trong danh mục máy thì nối bằng cột Ma; thiết bị không có trong danh mục vẫn ghi được.
 // Chỉ Quản lý, Quản trị (quyền may) xem và sửa.
+// SoTem: số tem kiểm định dán trên thiết bị — thợ đọc trên tem là ra ngay hồ sơ.
+// ThuocTB: thiết bị mẹ (vd áp kế và van an toàn gắn trên bình chứa khí nén nào).
 var KD_KHOA = ['id', 'ten', 'tenZh', 'loai', 'ma', 'soHieu', 'nhaSX', 'namSX', 'thongSo', 'viTri', 'nghiemNgat',
   'donViKD', 'soGiayKD', 'ngayKD', 'ngayHetHan', 'chuKy', 'ketQua', 'ngayKhaiBao', 'ghiChu', 'ghiChuDich',
-  'hoatDong', 'lichSu', 'nguoiTao', 'uidTao', 'lucTao', 'capNhat'];
+  'hoatDong', 'lichSu', 'nguoiTao', 'uidTao', 'lucTao', 'capNhat', 'soTem', 'thuocTB'];
 var KD_KQ = ['DAT', 'KHONG_DAT', 'CHUA'];
 var KD_LICH_SU_TOI_DA = 30;
 // Nhóm thiết bị theo danh mục có yêu cầu nghiêm ngặt về an toàn, vệ sinh lao động của Bộ LĐ-TB&XH.
@@ -3617,6 +3619,9 @@ var KD_LOAI = [
   { k: 'DIEN', vi: 'Thiết bị điện, hệ thống chống sét', zh: '电气设备、防雷系统', nn: 0, ck: 12 },
   { k: 'PCCC', vi: 'Thiết bị phòng cháy chữa cháy', zh: '消防设备', nn: 0, ck: 12 },
   { k: 'DO_LUONG', vi: 'Thiết bị đo lường phải hiệu chuẩn', zh: '需校准的计量设备', nn: 0, ck: 12 },
+  { k: 'VAN_AT', vi: 'Van an toàn', zh: '安全阀', nn: 1, ck: 12 },
+  { k: 'AP_KE', vi: 'Áp kế', zh: '压力表', nn: 0, ck: 12 },
+  { k: 'DC_DIEN', vi: 'Dụng cụ an toàn điện', zh: '电气安全用具', nn: 0, ck: 6 },
   { k: 'KHAC', vi: 'Khác', zh: '其他', nn: 0, ck: 12 }
 ];
 function kdLoaiOf(k) {
@@ -3649,6 +3654,7 @@ function kdTruong(p) {
   if (nam !== '' && !(nam >= 1950 && nam <= 2100)) throw loi('NAM_SX_SAI', 'Năm sản xuất không hợp lệ · 出厂年份无效');
   return { ten: ten, loai: lo.k, ma: ma, soHieu: catChu(p.soHieu, 80), nhaSX: catChu(p.nhaSX, 120), namSX: nam,
     thongSo: catChu(p.thongSo, 200), viTri: catChu(p.viTri, 120), chuKy: ck,
+    soTem: catChu(p.soTem, 60), thuocTB: catChu(p.thuocTB, 80),
     nghiemNgat: p.nghiemNgat === undefined || p.nghiemNgat === null ? !!lo.nn : !!p.nghiemNgat };
 }
 function luuKiemDinh(u, p) {
@@ -3667,6 +3673,7 @@ function luuKiemDinh(u, p) {
   x.ten = f.ten; x.tenZh = tenZh[1] || ''; x.loai = f.loai; x.ma = f.ma; x.soHieu = f.soHieu;
   x.nhaSX = f.nhaSX; x.namSX = f.namSX; x.thongSo = f.thongSo; x.viTri = f.viTri;
   x.nghiemNgat = f.nghiemNgat; x.ngayKhaiBao = kb;
+  x.soTem = f.soTem; x.thuocTB = f.thuocTB;
   x.ghiChu = gc[0]; x.ghiChuDich = gc[1];
   x.hoatDong = p.hoatDong !== false;
   // Đổi chu kỳ thì hạn kế tiếp tính lại theo lần kiểm định gần nhất
@@ -3736,7 +3743,7 @@ function nhapKiemDinh(u, p) {
     var moi = !x;
     if (moi) {
       x = { id: idMoi('KD', idCo), ten: ten, tenZh: '', loai: lo.k, ma: '', soHieu: '', nhaSX: '', namSX: '',
-        thongSo: '', viTri: '', nghiemNgat: !!lo.nn, donViKD: '', soGiayKD: '', ngayKD: '', ngayHetHan: '',
+        thongSo: '', viTri: '', soTem: '', thuocTB: '', nghiemNgat: !!lo.nn, donViKD: '', soGiayKD: '', ngayKD: '', ngayHetHan: '',
         chuKy: lo.ck, ketQua: 'CHUA', ngayKhaiBao: '', ghiChu: '', ghiChuDich: '', hoatDong: true,
         lichSu: [], nguoiTao: u.ten, uidTao: u.id, lucTao: bay };
       idCo[x.id] = 1; ds.push(x);
@@ -3746,6 +3753,8 @@ function nhapKiemDinh(u, p) {
     if (s(r.nhaSX)) x.nhaSX = catChu(r.nhaSX, 120);
     if (s(r.thongSo)) x.thongSo = catChu(r.thongSo, 200);
     if (s(r.viTri)) x.viTri = catChu(r.viTri, 120);
+    if (s(r.soTem)) x.soTem = catChu(r.soTem, 60);
+    if (s(r.thuocTB)) x.thuocTB = catChu(r.thuocTB, 80);
     if (s(r.ghiChu)) { var gc = songNgu(catNhieuDong(r.ghiChu, 500).trim()); x.ghiChu = gc[0]; x.ghiChuDich = gc[1]; }
     var nam = Math.round(Number(r.namSX));
     if (nam >= 1950 && nam <= 2100) x.namSX = nam;
@@ -15992,11 +16001,15 @@ Object.assign(TX, {
   kdTongN: ['{n} thiết bị', '{n}台设备'],
   kdCanhBao: ['{n} thiết bị quá hạn kiểm định', '{n}台设备检定逾期'],
   kdCanhBaoSap: ['{n} thiết bị sắp hết hạn kiểm định', '{n}台设备检定即将到期'],
+  kdSoTem: ['Số tem kiểm định', '检定标签号'], kdThuoc: ['Thuộc thiết bị', '所属设备'],
+  kdThuocHelp: ['Số tem là số in trên tem dán ở thiết bị. Thuộc thiết bị: ghi số hiệu thiết bị mẹ — áp kế và van an toàn thì ghi số hiệu bình chứa khí nén.',
+    '检定标签号为贴在设备上标签的号码。所属设备：填写母设备编号 — 压力表与安全阀填储气罐编号。'],
   kdKhaiBaoHelp: ['Thiết bị nghiêm ngặt phải khai báo sử dụng với Sở LĐ-TB&XH sau khi kiểm định lần đầu.', '严格要求设备首次检定后须向劳动部门申报使用。'],
   srvMissKD: ['Sổ kiểm định thiết bị', '设备检定台账'],
   xlKDTen: ['Tên thiết bị · 设备名称'], xlKDLoai: ['Loại · 类别'], xlKDNN: ['Nghiêm ngặt · 严格'],
   xlKDMay: ['Mã máy · 设备编号'], xlKDSoHieu: ['Số hiệu · 编号'], xlKDNhaSX: ['Nhà sản xuất · 制造商'],
   xlKDNamSX: ['Năm SX · 出厂年'], xlKDThongSo: ['Thông số · 参数'], xlKDViTri: ['Vị trí · 位置'],
+  xlKDSoTem: ['Số tem', '检定标签号'], xlKDThuoc: ['Thuộc thiết bị', '所属设备'],
   xlKDDonVi: ['Đơn vị kiểm định · 检定单位'], xlKDSoGiay: ['Số giấy CN · 证书编号'],
   xlKDNgay: ['Ngày kiểm định · 检定日期'], xlKDHetHan: ['Hạn · 有效期至'], xlKDChuKy: ['Chu kỳ (tháng) · 周期'],
   xlKDKetQua: ['Kết quả · 结果'], xlKDTT: ['Tình trạng · 状态'], xlKDKhaiBao: ['Ngày khai báo · 申报日期']
@@ -16026,6 +16039,9 @@ const KD_LOAI = [
   ['DIEN', 'Thiết bị điện, hệ thống chống sét', '电气设备、防雷系统', 0, 12],
   ['PCCC', 'Thiết bị phòng cháy chữa cháy', '消防设备', 0, 12],
   ['DO_LUONG', 'Thiết bị đo lường phải hiệu chuẩn', '需校准的计量设备', 0, 12],
+  ['VAN_AT', 'Van an toàn', '安全阀', 1, 12],
+  ['AP_KE', 'Áp kế', '压力表', 0, 12],
+  ['DC_DIEN', 'Dụng cụ an toàn điện', '电气安全用具', 0, 6],
   ['KHAC', 'Khác', '其他', 0, 12]
 ].map(([k, vi, zh, nn, ck]) => ({ k, vi, zh, nn: !!nn, ck }));
 const kdLoaiOf = (k) => KD_LOAI.find((l) => l.k === k) || KD_LOAI[KD_LOAI.length - 1];
@@ -16062,6 +16078,8 @@ const KD_COT = {
   ngayKD: ['ngay kiem dinh', 'ngay cap', 'ngay chung nhan', 'ngay'],
   ngayHetHan: ['han kiem dinh', 'ngay het han', 'hieu luc den', 'han'],
   ketQua: ['ket qua', 'ket qua kiem dinh'],
+  soTem: ['so tem', 'tem kiem dinh', 'so tem kiem dinh', 'tem', 'stamp'],
+  thuocTB: ['thuoc thiet bi', 'gan tren', 'gan o', 'lap tren', 'thuoc binh', 'thiet bi me', 'noi su dung'],
   ghiChu: ['ghi chu', 'note', 'remark']
 };
 const KD_COT_N = (() => { const o = {}; Object.keys(KD_COT).forEach((k) => { o[k] = KD_COT[k].map(hNorm); }); return o; })();
@@ -16120,6 +16138,7 @@ async function docFileKD(file) {
         ngayKD: c.ngayKD === undefined ? '' : kdNgayTxt(row[c.ngayKD]),
         ngayHetHan: c.ngayHetHan === undefined ? '' : kdNgayTxt(row[c.ngayHetHan]),
         ketQua: hNorm(lay(row, 'ketQua', 20)).indexOf('khong') >= 0 ? 'KHONG_DAT' : 'DAT',
+        soTem: lay(row, 'soTem', 60), thuocTB: lay(row, 'thuocTB', 80),
         ghiChu: lay(row, 'ghiChu', 500) });
     }
     if (!ds.length) continue;
@@ -16133,13 +16152,16 @@ function kdMauXlsx() {
   const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
   const c = (v, x) => ({ v: v === undefined ? '' : v, s: Object.assign({ border: true, valign: 'top', wrap: 1 }, x || {}) });
   const ks = ['Tên thiết bị', 'Loại', 'Số hiệu', 'Nhà sản xuất', 'Năm sản xuất', 'Thông số', 'Vị trí', 'Mã máy',
-    'Nghiêm ngặt', 'Chu kỳ', 'Đơn vị kiểm định', 'Số giấy chứng nhận', 'Ngày kiểm định', 'Hạn kiểm định', 'Kết quả', 'Ghi chú'];
+    'Thuộc thiết bị', 'Nghiêm ngặt', 'Chu kỳ', 'Đơn vị kiểm định', 'Số giấy chứng nhận', 'Số tem',
+    'Ngày kiểm định', 'Hạn kiểm định', 'Kết quả', 'Ghi chú'];
   const rows = [[{ v: 'SỔ KIỂM ĐỊNH THIẾT BỊ — FILE MẪU ĐỂ NHẬP · 设备检定台账导入模板', s: { b: 1, sz: 14 } }],
-    [{ v: 'Điền từ dòng 4. Cột Loại gõ đúng tên loại trong app (vd: Bình chịu áp lực). Nghiêm ngặt: gõ x. Chu kỳ tính bằng tháng.', s: { i: 1, color: '#55625F' } }],
+    [{ v: 'Điền từ dòng 4. Cột Loại gõ đúng tên loại trong app (vd: Bình chịu áp lực). Nghiêm ngặt: gõ x. Chu kỳ tính bằng tháng. '
+      + 'Số tem là số trên tem dán ở thiết bị. Thuộc thiết bị: ghi số hiệu thiết bị mẹ (vd áp kế gắn trên bình nào).',
+    s: { i: 1, color: '#55625F' } }],
     ks.map((k) => ({ v: k, s: H }))];
-  KD_LOAI.slice(0, 3).forEach((l) => rows.push([c(''), c(l.vi), c(''), c(''), c(''), c(''), c(''), c(''), c(''), c(l.ck, { align: 'center' }), c(''), c(''), c(''), c(''), c(''), c('')]));
-  return XW.build([{ name: 'Kiem dinh', rows, cols: [30, 24, 16, 20, 11, 28, 18, 11, 11, 9, 26, 18, 14, 14, 11, 24],
-    merges: ['A1:P1', 'A2:P2'], freeze: { r: 3, c: 0 } }]);
+  KD_LOAI.slice(0, 3).forEach((l) => rows.push(ks.map((_, i) => (i === 1 ? c(l.vi) : i === 10 ? c(l.ck, { align: 'center' }) : c('')))));
+  return XW.build([{ name: 'Kiem dinh', rows, cols: [30, 24, 16, 20, 11, 28, 18, 11, 16, 11, 9, 26, 18, 14, 14, 14, 11, 24],
+    merges: ['A1:R1', 'A2:R2'], freeze: { r: 3, c: 0 } }]);
 }
 function kdPill(x) {
   const m = kdMuc(x), d = kdConLai(x);
@@ -16206,9 +16228,10 @@ VIEWS.kdEdit = {
       Object.assign(p, x
         ? { init: 1, ten: x.ten, zh: x.tenZh || '', zhGoc: x.tenZh || '', loai: x.loai, ma: x.ma || '', soHieu: x.soHieu || '',
           nhaSX: x.nhaSX || '', namSX: x.namSX === '' ? '' : String(x.namSX), thongSo: x.thongSo || '', viTri: x.viTri || '',
+          soTem: x.soTem || '', thuocTB: x.thuocTB || '',
           nn: !!x.nghiemNgat, ck: String(x.chuKy || lo.ck), kb: x.ngayKhaiBao || '', gc: x.ghiChu || '', gcD: x.ghiChuDich || '', gcGoc: x.ghiChuDich || '' }
         : { init: 1, ten: '', zh: '', zhGoc: null, loai: lo.k, ma: '', soHieu: '', nhaSX: '', namSX: '', thongSo: '', viTri: '',
-          nn: lo.nn, ck: String(lo.ck), kb: '', gc: '', gcD: '', gcGoc: null });
+          soTem: '', thuocTB: '', nn: lo.nn, ck: String(lo.ck), kb: '', gc: '', gcD: '', gcGoc: null });
     }
     return `<form id="kdF" autocomplete="off">
       <label class="fld"><span>${t('kdTen')}</span><input class="inp" id="kdTen" maxlength="120" value="${esc(p.ten)}">${p.zhGoc === null ? `<span class="help">${t('cvTuDich')}</span>` : ''}</label>
@@ -16217,6 +16240,9 @@ VIEWS.kdEdit = {
       <label class="checkrow" style="border:0;padding:4px 0"><input type="checkbox" id="kdNN"${p.nn ? ' checked' : ''}><span>${t('kdNghiemNgat')}<div class="help">${t('kdNghiemNgatHelp')}</div></span></label>
       <div class="row2f"><label class="fld"><span>${t('kdChuKy')}</span><input class="inp" id="kdCk" inputmode="numeric" maxlength="3" value="${esc(p.ck)}"></label>
         <label class="fld"><span>${t('kdSoHieu')}</span><input class="inp" id="kdSo" maxlength="80" value="${esc(p.soHieu)}"></label></div>
+      <div class="row2f"><label class="fld"><span>${t('kdSoTem')}</span><input class="inp" id="kdTem" maxlength="60" value="${esc(p.soTem)}"></label>
+        <label class="fld"><span>${t('kdThuoc')}</span><input class="inp" id="kdThuoc" maxlength="80" value="${esc(p.thuocTB)}"></label></div>
+      <div class="help" style="margin:-4px 0 10px">${t('kdThuocHelp')}</div>
       <label class="fld"><span>${t('kdMay')}</span><select class="inp" id="kdMa">${tbOptions(p.ma, 'kdKhongMay')}</select></label>
       <div class="row2f"><label class="fld"><span>${t('kdNhaSX')}</span><input class="inp" id="kdNsx" maxlength="120" value="${esc(p.nhaSX)}"></label>
         <label class="fld"><span>${t('kdNamSX')}</span><input class="inp" id="kdNam" inputmode="numeric" maxlength="4" value="${esc(p.namSX)}"></label></div>
@@ -16234,6 +16260,7 @@ VIEWS.kdEdit = {
     const sync = () => {
       p.ten = $('#kdTen').value; p.soHieu = $('#kdSo').value; p.nhaSX = $('#kdNsx').value; p.namSX = $('#kdNam').value;
       p.thongSo = $('#kdTs').value; p.viTri = $('#kdVt').value; p.ck = $('#kdCk').value; p.kb = $('#kdKb').value;
+      p.soTem = $('#kdTem').value; p.thuocTB = $('#kdThuoc').value;
       p.gc = $('#kdGc').value; p.ma = $('#kdMa').value; p.nn = $('#kdNN').checked;
       if ($('#kdZh')) p.zh = $('#kdZh').value;
       if ($('#kdGcD')) p.gcD = $('#kdGcD').value;
@@ -16248,7 +16275,7 @@ VIEWS.kdEdit = {
       const fe = $('#kdErr'), b = $('#kdOk'); fe.hidden = true; b.disabled = true;
       const pl = { id: p.id || '', ten: p.ten.trim(), loai: p.loai, ma: p.ma, soHieu: p.soHieu.trim(), nhaSX: p.nhaSX.trim(),
         namSX: p.namSX.trim(), thongSo: p.thongSo.trim(), viTri: p.viTri.trim(), nghiemNgat: p.nn, chuKy: +p.ck || 0,
-        ngayKhaiBao: p.kb, ghiChu: p.gc.trim() };
+        soTem: p.soTem.trim(), thuocTB: p.thuocTB.trim(), ngayKhaiBao: p.kb, ghiChu: p.gc.trim() };
       if (p.zhGoc !== null && p.zh !== p.zhGoc) pl.tenZh = p.zh.trim();
       if (p.gcGoc !== null && p.gcD !== p.gcGoc) pl.ghiChuDich = p.gcD.trim();
       try {
@@ -16352,6 +16379,8 @@ VIEWS.kdXem = {
       <dl class="kv kvwide" style="margin-top:10px">
         <dt>${t('kdLoai')}</dt><dd>${esc(lo.vi)} <span class="zi" lang="zh-CN">${esc(lo.zh)}</span></dd>
         ${x.soHieu ? `<dt>${t('kdSoHieu')}</dt><dd class="mono">${esc(x.soHieu)}</dd>` : ''}
+        ${x.soTem ? `<dt>${t('kdSoTem')}</dt><dd class="mono">${esc(x.soTem)}</dd>` : ''}
+        ${x.thuocTB ? `<dt>${t('kdThuoc')}</dt><dd class="mono">${esc(x.thuocTB)}</dd>` : ''}
         ${m ? `<dt>${t('kdMay')}</dt><dd><button class="lnkbtn" data-act="may" data-ma="${esc(x.ma)}">${esc(mh(x.ma))} · ${esc(m.ten || m.tenZh || '')}</button></dd>` : ''}
         ${x.nhaSX ? `<dt>${t('kdNhaSX')}</dt><dd>${esc(x.nhaSX)}</dd>` : ''}
         ${x.namSX !== '' && x.namSX ? `<dt>${t('kdNamSX')}</dt><dd>${esc(x.namSX)}</dd>` : ''}
@@ -16380,8 +16409,9 @@ VIEWS.kdXem = {
 function kdXlsx(ds) {
   const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
-  const ks = ['xlKDTen', 'xlKDLoai', 'xlKDNN', 'xlKDMay', 'xlKDSoHieu', 'xlKDNhaSX', 'xlKDNamSX', 'xlKDThongSo', 'xlKDViTri',
-    'xlKDDonVi', 'xlKDSoGiay', 'xlKDNgay', 'xlKDHetHan', 'xlKDChuKy', 'xlKDKetQua', 'xlKDTT', 'xlKDKhaiBao'];
+  const ks = ['xlKDTen', 'xlKDLoai', 'xlKDNN', 'xlKDMay', 'xlKDSoHieu', 'xlKDThuoc', 'xlKDNhaSX', 'xlKDNamSX',
+    'xlKDThongSo', 'xlKDViTri', 'xlKDDonVi', 'xlKDSoGiay', 'xlKDSoTem', 'xlKDNgay', 'xlKDHetHan', 'xlKDChuKy',
+    'xlKDKetQua', 'xlKDTT', 'xlKDKhaiBao'];
   const rows = [[{ v: 'SỔ KIỂM ĐỊNH THIẾT BỊ · 设备检定台账 — ' + fmtD(TODAY()), s: { b: 1, sz: 14 } }], [],
     ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }))];
   const ttTx = { qua: 'Quá hạn · 逾期', sap: 'Sắp hết hạn · 即将到期', ok: 'Còn hạn · 有效', chua: 'Chưa kiểm định · 未检定' };
@@ -16389,15 +16419,15 @@ function kdXlsx(ds) {
     const lo = kdLoaiOf(x.loai);
     rows.push([c(x.ten + (x.tenZh && x.tenZh !== x.ten ? '\n' + x.tenZh : '')), c(lo.vi + '\n' + lo.zh),
       c(x.nghiemNgat ? 'x' : '', { align: 'center' }), c(x.ma ? mh(x.ma) : '', { align: 'center' }), c(x.soHieu),
-      c(x.nhaSX), c(x.namSX === '' ? '' : +x.namSX, { align: 'center' }), c(x.thongSo), c(x.viTri),
-      c(x.donViKD), c(x.soGiayKD),
+      c(x.thuocTB), c(x.nhaSX), c(x.namSX === '' ? '' : +x.namSX, { align: 'center' }), c(x.thongSo), c(x.viTri),
+      c(x.donViKD), c(x.soGiayKD), c(x.soTem),
       c(x.ngayKD ? excelSerial(x.ngayKD) : '', { fmt: 'dd/mm/yyyy', align: 'center' }),
       c(x.ngayHetHan ? excelSerial(x.ngayHetHan) : '', { fmt: 'dd/mm/yyyy', align: 'center' }),
       c(x.chuKy, { align: 'center' }), c(tv('kq_' + (x.ketQua || 'CHUA'))), c(ttTx[kdMuc(x)]),
       c(x.ngayKhaiBao ? excelSerial(x.ngayKhaiBao) : '', { fmt: 'dd/mm/yyyy', align: 'center' })]);
   });
-  return XW.build([{ name: 'Kiem dinh', rows, cols: [30, 24, 9, 12, 16, 20, 9, 26, 18, 26, 16, 13, 13, 9, 12, 18, 13],
-    merges: ['A1:Q1'], freeze: { r: 3, c: 0 }, landscape: true }]);
+  return XW.build([{ name: 'Kiem dinh', rows, cols: [30, 24, 9, 12, 16, 16, 20, 9, 26, 18, 26, 16, 14, 13, 13, 9, 12, 18, 13],
+    merges: ['A1:S1'], freeze: { r: 3, c: 0 }, landscape: true }]);
 }
 
 // ===================== Tính toán thiết bị · 设备计算 =====================

@@ -97,6 +97,29 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
+## Điểm mới của v2.31.0: sổ kiểm định nhận thêm áp kế, van an toàn, dụng cụ an toàn điện
+
+Trước đây sổ kiểm định có 17 loại thiết bị, đủ cho nhóm nghiêm ngặt của Bộ LĐ-TB&XH nhưng thiếu đúng những thứ nhà máy phải kiểm định hằng năm. Nay thêm **ba loại**:
+
+| Loại | Chu kỳ thường gặp | Nghiêm ngặt |
+|---|---|---|
+| **Van an toàn** · 安全阀 | 12 tháng | có |
+| **Áp kế** · 压力表 | 12 tháng | không |
+| **Dụng cụ an toàn điện** · 电气安全用具 | **6 tháng** | không |
+
+*Dụng cụ an toàn điện* gộp chung găng tay cao su cách điện, ủng cách điện, thảm cách điện, sào tiếp địa và bút thử điện — mỗi thứ chu kỳ khác nhau nên chu kỳ sửa được cho từng cái.
+
+### Hai trường mới: Số tem và Thuộc thiết bị
+
+- **Số tem kiểm định** — số in trên tem dán ở thiết bị (`B06100`, `24B 09180`, `01A; 01B`). Thợ đọc tem ngoài xưởng là tra ra ngay hồ sơ, không phải nhớ số chế tạo.
+- **Thuộc thiết bị** — số hiệu thiết bị mẹ. Áp kế và van an toàn ghi rõ gắn trên bình chứa khí nén nào, nên tra ngược được *bình này có mấy van, cái nào hết hạn*.
+
+Cả hai có trong form, hồ sơ thiết bị, **file mẫu để nhập** và **file xuất Excel**. Trang `KiemDinh` tự thêm hai cột `SoTem`, `ThuocTB` khi nâng cấp; dữ liệu cũ giữ nguyên.
+
+### Sửa: nhãn song ngữ bị ngắt giữa chữ Hán
+
+Bảng nhãn – giá trị ở hồ sơ thiết bị để tên Việt và tên Trung cùng một dòng, nên nhãn dài bị cắt giữa chừng (*设备类 别*, *编 号/序列号*). Nay tên Trung xuống dòng riêng, như mọi chỗ khác trong app.
+
 ## Điểm mới của v2.31.0: lịch trực và phân ca xem theo tháng, điểm màu theo người
 
 ### Lịch trực giờ là lịch tháng, mỗi người một màu

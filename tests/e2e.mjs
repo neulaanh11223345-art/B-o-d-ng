@@ -948,27 +948,62 @@ const mauKD = await page.evaluate(async () => {
   try { await docFileKD(new File([kdMauXlsx()], 'mau.xlsx')); } catch (e) { loi = e.code; }
   return { cot: h ? Object.keys(h.cot).length : 0, loi };
 });
-assert.ok(mauKD.cot >= 14, 'file mẫu đọc lại nhận đủ cột: ' + JSON.stringify(mauKD));
+assert.ok(mauKD.cot >= 16, 'file mẫu đọc lại nhận đủ cột: ' + JSON.stringify(mauKD));
 assert.equal(mauKD.loi, 'KHONG_CO_DONG', 'file mẫu chưa điền dòng nào thì báo đúng lý do');
 const truocKD = await page.evaluate(() => kdDS().length);
 const fileKD = await page.evaluate(async () => {
   const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center' };
   const c = (v) => ({ v, s: { border: true, wrap: 1 } });
   const ks = ['Tên thiết bị', 'Loại', 'Số hiệu', 'Nhà sản xuất', 'Năm sản xuất', 'Thông số',
-    'Nghiêm ngặt', 'Chu kỳ', 'Đơn vị kiểm định', 'Số giấy chứng nhận', 'Ngày kiểm định', 'Kết quả'];
+    'Nghiêm ngặt', 'Chu kỳ', 'Đơn vị kiểm định', 'Số giấy chứng nhận', 'Số tem', 'Thuộc thiết bị',
+    'Ngày kiểm định', 'Kết quả'];
   const rows = [ks.map((k) => ({ v: k, s: H }))];
   [['4M3', 'TEST-1'], ['4M3', 'TEST-2'], ['4M3', 'TEST-3'], ['4M3', 'TEST-4'], ['4M3', 'TEST-5'],
     ['2M3', 'TEST-6'], ['2M3', 'TEST-7'], ['5M3', 'TEST-8'], ['5M3', 'TEST-9']].forEach(([m, sr], i) => {
     rows.push([c('Bình chứa khí nén AIR TANK ' + m), c('Bình chịu áp lực'), c(sr), c('Trung Quốc'), c(2025),
       c('Dung tích ' + m + ' · 8,4 bar · 110 °C'), c('x'), c(36), c('PV TSR'), c('GCN-' + (i + 1)),
-      c('11/08/2025'), c('Đạt')]);
+      c('TEM-' + (i + 1)), c(''), c('11/08/2025'), c('Đạt')]);
   });
+  // Áp kế và van an toàn: loại mới, gắn trên bình, có số tem riêng
+  rows.push([c('Áp kế bình chứa khí nén'), c('Áp kế'), c('AK-TEST-1'), c('Trung Quốc'), c(2025),
+    c('Lò xo ống · 0÷1,6 MPa'), c(''), c(12), c('PV TSR'), c('GCN-AK-1'), c('24B TEST1'), c('TEST-1'),
+    c('11/08/2025'), c('Đạt')]);
+  rows.push([c('Van an toàn bình chứa khí nén'), c('Van an toàn'), c('VAT-TEST-1'), c('Trung Quốc'), c(2024),
+    c('A28H-16 · 8,4 bar'), c('x'), c(12), c('PV TSR'), c('GCN-VAT-1'), c(''), c('TEST-1'),
+    c('09/08/2025'), c('Đạt')]);
+  rows.push([c('Găng tay cao su cách điện cấp 4'), c('Dụng cụ an toàn điện'), c('GT-TEST-1'), c('Shuang an'), c(2025),
+    c('35 kV · thử 40 kV/1 phút'), c(''), c(6), c('PV TSR'), c('GCN-GT-1'), c('01A; 01B'), c(''),
+    c('12/08/2025'), c('Đạt')]);
   const blob = XW.build([{ name: 'KD', rows }]);
   return Array.from(new Uint8Array(await blob.arrayBuffer()));
 });
 const napKD = { name: 'kiem-dinh.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(fileKD) };
 await page.setInputFiles('#kdFile', napKD); await wait(2500);
 const binh = await page.evaluate(() => kdDS().filter((x) => /AIR TANK/.test(x.ten)));
+// Ba loại thiết bị mới và hai trường Số tem / Thuộc thiết bị
+const kdMoi = await page.evaluate(() => {
+  const g = (lo) => kdDS().filter((x) => x.loai === lo)[0] || null;
+  return { ak: g('AP_KE'), van: g('VAN_AT'), gt: g('DC_DIEN'), binh1: kdDS().filter((x) => x.soHieu === 'TEST-1')[0] };
+});
+assert.ok(kdMoi.ak && kdMoi.van && kdMoi.gt, 'nhận đủ ba loại mới: áp kế, van an toàn, dụng cụ an toàn điện');
+assert.equal(kdMoi.ak.soTem, '24B TEST1', 'áp kế nhận số tem');
+assert.equal(kdMoi.ak.thuocTB, 'TEST-1', 'áp kế ghi rõ gắn trên bình nào');
+assert.equal(kdMoi.van.thuocTB, 'TEST-1', 'van an toàn ghi rõ gắn trên bình nào');
+assert.equal(kdMoi.van.nghiemNgat, true, 'van an toàn thuộc nhóm nghiêm ngặt');
+assert.equal(String(kdMoi.gt.chuKy), '6', 'dụng cụ an toàn điện chu kỳ sáu tháng');
+assert.equal(kdMoi.gt.ngayHetHan, '2026-02-11', 'chu kỳ sáu tháng tính đúng hạn: ' + kdMoi.gt.ngayHetHan);
+assert.equal(kdMoi.binh1.soTem, 'TEM-1', 'bình chứa khí nén nhận số tem');
+// Số tem và Thuộc thiết bị hiện ở hồ sơ và có trong file xuất ra
+await page.evaluate((i) => go('kdXem', { id: i }), kdMoi.ak.id); await wait(600);
+assert.match(await text('#main'), /24B TEST1/, 'hồ sơ hiện số tem');
+assert.match(await text('#main'), /Thuộc thiết bị/, 'hồ sơ hiện thiết bị mẹ');
+const xlKD = await page.evaluate(async () => {
+  const r = await (await readXlsx(await kdXlsx(kdDS()).arrayBuffer()))[0].rows();
+  return r.slice(0, 4).map((x) => x.join('|')).join('\n');
+});
+assert.match(xlKD, /Số tem/, 'file xuất có cột số tem');
+assert.match(xlKD, /Thuộc thiết bị/, 'file xuất có cột thuộc thiết bị');
+await page.evaluate(() => back()); await wait(500);
 assert.equal(binh.length, 9, 'nhập đủ chín bình chứa khí nén');
 assert.equal(await page.evaluate(() => kdDS().length), truocKD + 9);
 assert.ok(binh.every((x) => x.loai === 'BINH_AL' && x.nghiemNgat && x.chuKy === 36 && x.ketQua === 'DAT'),

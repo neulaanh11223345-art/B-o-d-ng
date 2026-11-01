@@ -94,7 +94,7 @@ var BANG = {
   // LichSu (JSON): các lần đã kiểm định [{ngay, hetHan, donVi, soGiay, ketQua, nguoi, luc, gc}]
   KiemDinh: ['ID', 'Ten', 'TenZh', 'Loai', 'Ma', 'SoHieu', 'NhaSX', 'NamSX', 'ThongSo', 'ViTri', 'NghiemNgat',
     'DonViKD', 'SoGiayKD', 'NgayKD', 'NgayHetHan', 'ChuKy', 'KetQua', 'NgayKhaiBao', 'GhiChu', 'GhiChuDich',
-    'HoatDong', 'LichSu', 'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat'],
+    'HoatDong', 'LichSu', 'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'SoTem', 'ThuocTB'],
   // Ghi chú mã lỗi của riêng nhà máy (bảng tra lỗi dựng sẵn nằm trong app, không lưu ở đây).
   // Hang: BT (biến tần) · SV (servo / driver) · KHAC
   MaLoi: ['ID', 'Hang', 'Dong', 'Ma', 'TenLoi', 'TenLoiDich', 'CachXuLy', 'CachXuLyDich', 'HoatDong',
@@ -1807,9 +1807,11 @@ function luuViecLap(u, p) {
 // NGHIÊM NGẶT về an toàn, vệ sinh lao động (xe nâng, nồi hơi, bình chịu áp lực, palăng, thang máy…).
 // Thiết bị nào đã có trong danh mục máy thì nối bằng cột Ma; thiết bị không có trong danh mục vẫn ghi được.
 // Chỉ Quản lý, Quản trị (quyền may) xem và sửa.
+// SoTem: số tem kiểm định dán trên thiết bị — thợ đọc trên tem là ra ngay hồ sơ.
+// ThuocTB: thiết bị mẹ (vd áp kế và van an toàn gắn trên bình chứa khí nén nào).
 var KD_KHOA = ['id', 'ten', 'tenZh', 'loai', 'ma', 'soHieu', 'nhaSX', 'namSX', 'thongSo', 'viTri', 'nghiemNgat',
   'donViKD', 'soGiayKD', 'ngayKD', 'ngayHetHan', 'chuKy', 'ketQua', 'ngayKhaiBao', 'ghiChu', 'ghiChuDich',
-  'hoatDong', 'lichSu', 'nguoiTao', 'uidTao', 'lucTao', 'capNhat'];
+  'hoatDong', 'lichSu', 'nguoiTao', 'uidTao', 'lucTao', 'capNhat', 'soTem', 'thuocTB'];
 var KD_KQ = ['DAT', 'KHONG_DAT', 'CHUA'];
 var KD_LICH_SU_TOI_DA = 30;
 // Nhóm thiết bị theo danh mục có yêu cầu nghiêm ngặt về an toàn, vệ sinh lao động của Bộ LĐ-TB&XH.
@@ -1831,6 +1833,9 @@ var KD_LOAI = [
   { k: 'DIEN', vi: 'Thiết bị điện, hệ thống chống sét', zh: '电气设备、防雷系统', nn: 0, ck: 12 },
   { k: 'PCCC', vi: 'Thiết bị phòng cháy chữa cháy', zh: '消防设备', nn: 0, ck: 12 },
   { k: 'DO_LUONG', vi: 'Thiết bị đo lường phải hiệu chuẩn', zh: '需校准的计量设备', nn: 0, ck: 12 },
+  { k: 'VAN_AT', vi: 'Van an toàn', zh: '安全阀', nn: 1, ck: 12 },
+  { k: 'AP_KE', vi: 'Áp kế', zh: '压力表', nn: 0, ck: 12 },
+  { k: 'DC_DIEN', vi: 'Dụng cụ an toàn điện', zh: '电气安全用具', nn: 0, ck: 6 },
   { k: 'KHAC', vi: 'Khác', zh: '其他', nn: 0, ck: 12 }
 ];
 function kdLoaiOf(k) {
@@ -1863,6 +1868,7 @@ function kdTruong(p) {
   if (nam !== '' && !(nam >= 1950 && nam <= 2100)) throw loi('NAM_SX_SAI', 'Năm sản xuất không hợp lệ · 出厂年份无效');
   return { ten: ten, loai: lo.k, ma: ma, soHieu: catChu(p.soHieu, 80), nhaSX: catChu(p.nhaSX, 120), namSX: nam,
     thongSo: catChu(p.thongSo, 200), viTri: catChu(p.viTri, 120), chuKy: ck,
+    soTem: catChu(p.soTem, 60), thuocTB: catChu(p.thuocTB, 80),
     nghiemNgat: p.nghiemNgat === undefined || p.nghiemNgat === null ? !!lo.nn : !!p.nghiemNgat };
 }
 function luuKiemDinh(u, p) {
@@ -1881,6 +1887,7 @@ function luuKiemDinh(u, p) {
   x.ten = f.ten; x.tenZh = tenZh[1] || ''; x.loai = f.loai; x.ma = f.ma; x.soHieu = f.soHieu;
   x.nhaSX = f.nhaSX; x.namSX = f.namSX; x.thongSo = f.thongSo; x.viTri = f.viTri;
   x.nghiemNgat = f.nghiemNgat; x.ngayKhaiBao = kb;
+  x.soTem = f.soTem; x.thuocTB = f.thuocTB;
   x.ghiChu = gc[0]; x.ghiChuDich = gc[1];
   x.hoatDong = p.hoatDong !== false;
   // Đổi chu kỳ thì hạn kế tiếp tính lại theo lần kiểm định gần nhất
@@ -1950,7 +1957,7 @@ function nhapKiemDinh(u, p) {
     var moi = !x;
     if (moi) {
       x = { id: idMoi('KD', idCo), ten: ten, tenZh: '', loai: lo.k, ma: '', soHieu: '', nhaSX: '', namSX: '',
-        thongSo: '', viTri: '', nghiemNgat: !!lo.nn, donViKD: '', soGiayKD: '', ngayKD: '', ngayHetHan: '',
+        thongSo: '', viTri: '', soTem: '', thuocTB: '', nghiemNgat: !!lo.nn, donViKD: '', soGiayKD: '', ngayKD: '', ngayHetHan: '',
         chuKy: lo.ck, ketQua: 'CHUA', ngayKhaiBao: '', ghiChu: '', ghiChuDich: '', hoatDong: true,
         lichSu: [], nguoiTao: u.ten, uidTao: u.id, lucTao: bay };
       idCo[x.id] = 1; ds.push(x);
@@ -1960,6 +1967,8 @@ function nhapKiemDinh(u, p) {
     if (s(r.nhaSX)) x.nhaSX = catChu(r.nhaSX, 120);
     if (s(r.thongSo)) x.thongSo = catChu(r.thongSo, 200);
     if (s(r.viTri)) x.viTri = catChu(r.viTri, 120);
+    if (s(r.soTem)) x.soTem = catChu(r.soTem, 60);
+    if (s(r.thuocTB)) x.thuocTB = catChu(r.thuocTB, 80);
     if (s(r.ghiChu)) { var gc = songNgu(catNhieuDong(r.ghiChu, 500).trim()); x.ghiChu = gc[0]; x.ghiChuDich = gc[1]; }
     var nam = Math.round(Number(r.namSX));
     if (nam >= 1950 && nam <= 2100) x.namSX = nam;
