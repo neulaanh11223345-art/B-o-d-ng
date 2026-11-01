@@ -449,6 +449,58 @@ mauLichTruc();
 mauPhanCa();
 mauTaiLieu();
 mauKiemDinh();
+mauMayNen();
+// Sáu máy nén khí: máy 3 và máy 6 chạy biến tần. Giờ chạy đọc trên đồng hồ của từng máy,
+// ghi mỗi tuần một lần nên tuần nào máy nghỉ thì giờ không tăng.
+function mauMayNen() {
+  if (docMayNen().length) return;
+  capNhatTieuDe('MayNen'); capNhatTieuDe('GioChay'); capNhatTieuDe('LichMNK');
+  var hn = homNayStr(), bay = thoiGianStr();
+  var w = new Date(hn + 'T00:00:00Z').getUTCDay(), t2 = congNgay(hn, -((w + 6) % 7));
+  var ct = {};
+  dsCongTo().forEach(function (c) {
+    var m = /Máy nén khí số (\d)/.exec(c.ten);
+    if (m) ct[m[1]] = c.ma;
+  });
+  // [số máy, biến tần, giờ trên đồng hồ hôm nay, giờ lúc bảo dưỡng gần nhất, giờ tăng thêm từng tuần (cũ → mới)]
+  var mau = [
+    [1, 0, 42180, 40100, [152, 0, 161, 156]],
+    [2, 0, 38640, 36700, [148, 157, 0, 150]],
+    [3, 1, 12450, 9600, [0, 143, 139, 0]],
+    [4, 0, 45020, 44900, [0, 0, 60, 60]],
+    [5, 0, 9870, 6800, [160, 0, 0, 155]],
+    [6, 1, 11230, 10500, [138, 0, 0, 141]]
+  ];
+  var mnk = [], gc = [], so = 0;
+  mau.forEach(function (r) {
+    so++;
+    var id = 'MNKMAU' + so;
+    mnk.push(mnkThanhDong({ id: id, ten: 'Máy nén khí số ' + r[0], tenZh: '空压机' + r[0] + '号',
+      ma: 'M038', maCT: ct[String(r[0])] || '', bienTan: !!r[1], chuKyGio: MNK_CK_GIO, gioBD: r[3],
+      mocGio: [{ ten: 'Thay dầu máy nén', tenZh: '更换空压机机油', ck: 3000, gio: r[3] },
+        { ten: 'Thay lọc khí', tenZh: '更换空气滤芯', ck: 2000, gio: r[3] },
+        { ten: 'Thay lọc tách dầu', tenZh: '更换油气分离器', ck: 6000, gio: Math.max(0, r[3] - 2400) }],
+      thuTu: so, hoatDong: true, ghiChu: r[1] ? 'Chạy biến tần · 变频运行' : '', nguoiTao: 'Quản lý', capNhat: bay }));
+    var tong = 0, j;
+    for (j = 0; j < r[4].length; j++) tong += r[4][j];
+    var g = r[2] - tong;
+    for (j = 0; j <= r[4].length; j++) {
+      // Lần ghi cuối để vào hôm nay, để bảng tổng hợp tháng của bản xem thử có số liệu
+      var ngay = j === r[4].length ? hn : congNgay(t2, -7 * (r[4].length - j));
+      if (j) g += r[4][j - 1];
+      gc.push(gcThanhDong({ id: 'GCMAU' + so + '-' + j, ngayGhi: ngay, mnkID: id, gio: Math.round(g * 10) / 10,
+        nguon: 'GHI', uid: 'U003', nguoi: 'Lê Minh Tiến', luc: ngay + ' 08:20:00', ghiChu: '', opId: '', capNhat: bay, xoa: '' }));
+    }
+  });
+  themNhieu('MayNen', mnk);
+  themNhieu('GioChay', gc);
+  themNhieu('LichMNK', [
+    lmnkThanhDong({ tuNgay: congNgay(t2, -7), dsChay: ['MNKMAU1', 'MNKMAU2', 'MNKMAU4', 'MNKMAU3'],
+      nguoi: 'Quản lý', uid: 'U002', ghiChu: '', capNhat: bay }),
+    lmnkThanhDong({ tuNgay: t2, dsChay: ['MNKMAU1', 'MNKMAU2', 'MNKMAU5', 'MNKMAU6'],
+      nguoi: 'Quản lý', uid: 'U002', ghiChu: '', capNhat: bay })
+  ]);
+}
 function mauKiemDinh() {
   if (docKiemDinh().length) return;
   capNhatTieuDe('KiemDinh');

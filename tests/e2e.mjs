@@ -140,8 +140,8 @@ assert.match(await text('.tabs .tab[data-v="cv"]'), /Sửa chữa/);
 // Màn Thêm của kỹ thuật: không có Thiết bị, Kho, Kiểm định, Tính toán, Tài liệu
 await page.click('.tabs .tab[data-v="them"]'); await wait(600);
 const them7 = await page.locator('#main .row .nm').allTextContents();
-assert.deepEqual(them7, ['Công việc', 'Nghiệm thu sửa chữa', 'Bảo dưỡng', 'Điện / Nước', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
-  'kỹ thuật chỉ thấy đúng bảy mục: ' + JSON.stringify(them7));
+assert.deepEqual(them7, ['Công việc', 'Nghiệm thu sửa chữa', 'Máy nén khí', 'Bảo dưỡng', 'Điện / Nước', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
+  'kỹ thuật chỉ thấy đúng tám mục: ' + JSON.stringify(them7));
 await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.match(await text('.mtiles'), /Sửa chữa/);
 assert.doesNotMatch(await text('.mtiles'), /Linh kiện|Thiết bị|Công việc/, 'Tổng quan chỉ còn Sửa chữa, Bảo dưỡng, Điện, Nước');
@@ -593,6 +593,17 @@ assert.equal(await page.evaluate(() => S.base.taiLieu.filter((x) => !x.ma).lengt
 await page.evaluate(() => go('tlDS')); await wait(500);
 await page.fill('#tlDSQ', 'kiem dinh'); await page.dispatchEvent('#tlDSQ', 'change'); await wait(500);
 assert.match(await text('#main'), /Kiem dinh/, 'tìm được tài liệu kiểm định trong toàn nhà máy');
+// Thêm tài liệu mới ngay từ màn tra cứu: chọn máy rồi chọn cách thêm
+assert.equal(await page.locator('[data-act="tlThemMoi"]').count(), 1, 'màn tra cứu có nút Thêm tài liệu mới');
+await page.click('[data-act="tlThemMoi"]'); await wait(500);
+await page.fill('#tlMayQ', 'M038'); await wait(400);
+await page.click('#tlMayDS [data-act="tlThemCach"]'); await wait(500);
+const cach14 = await text('#sheetBg');
+assert.match(cach14, /Tải tệp lên/);
+assert.match(cach14, /Chụp ảnh/);
+assert.match(cach14, /Thêm liên kết/);
+assert.equal(await page.locator('#sheetBg [data-act="tlChon"][data-ma="M038"]').count(), 2, 'tải tệp và chụp ảnh đều gắn đúng máy');
+await page.evaluate(() => closeSheet()); await wait(300);
 // Hồ sơ máy: thẻ Tài liệu có tài liệu quét từ Drive, kèm đường dẫn thư mục
 await page.evaluate(() => go('may', { ma: 'M001', tab: 'tl' })); await wait(600);
 assert.match(await text('#main'), /Huong dan su dung/, 'dòng tài liệu ghi đường dẫn thư mục trên Drive');
@@ -1282,6 +1293,107 @@ await page.click('[data-act="sdTL"]'); await wait(900);
 assert.equal(await page.inputValue('#tlDSQ'), 'MD', 'sang tab Tài liệu máy với từ khoá đã lọc sẵn');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
 ok('Bản 2.23: sổ kiểm định thiết bị (nghiêm ngặt, hạn theo chu kỳ, Excel) và tính toán động cơ / dây dẫn / tụ bù / sụt áp; tra lỗi Mitsubishi + Inovance kèm ghi chú nhà máy; mục Tài liệu thiết bị gộp tra lỗi, sơ đồ đấu và tài liệu máy; kỹ thuật không vào được');
+
+// 21. Máy nén khí: giờ chạy, mốc 3000 h, lịch luân phiên tuần
+await moThem('mnk');
+assert.match(await text('#barTitle'), /Máy nén khí/);
+const mnk21 = await page.evaluate(() => mnkDS().map((m) => ({ ten: m.ten, bt: m.bienTan, gio: m.gio, tuBD: m.tuBD, con: m.conLai })));
+assert.equal(mnk21.length, 6, 'sáu máy nén khí');
+assert.deepEqual(mnk21.filter((m) => m.bt).map((m) => m.ten), ['Máy nén khí số 3', 'Máy nén khí số 6'], 'máy 3 và máy 6 chạy biến tần');
+const qua21 = mnk21.filter((m) => m.con <= 0);
+assert.equal(qua21.length, 1, 'một máy đã quá 3000 h kể từ lần bảo dưỡng trước');
+assert.match(await text('#main'), /Quá hạn bảo dưỡng/, 'máy quá hạn báo đỏ ngay đầu danh sách');
+assert.match(await text('#main'), /Thay lọc tách dầu/, 'mốc phụ theo giờ hiện trong thẻ máy');
+await shot('40-may-nen-khi');
+// Ghi giờ: đồng hồ cộng dồn nên ghi lùi là chặn
+const idQua = await page.evaluate((ten) => mnkDS().find((m) => m.ten === ten).id, qua21[0].ten);
+await page.click(`[data-act="mnkGhiMay"][data-id="${idQua}"]`); await wait(700);
+assert.match(await text('#barTitle'), /Ghi giờ chạy/);
+await page.fill('#mnGio', '10'); await page.click('#mnOk'); await wait(900);
+assert.match(await text('#mnErr'), /không được giảm|不能减少/, 'ghi thấp hơn lần trước thì báo lỗi');
+await page.fill('#mnGio', String(Math.round(qua21[0].gio + 30)));
+await page.click('#mnOk'); await wait(1200);
+assert.match(await text('#barTitle'), /Máy nén khí/, 'ghi xong quay lại danh sách');
+assert.equal(await page.evaluate((id) => mnkDS().find((m) => m.id === id).gio, idQua), Math.round(qua21[0].gio + 30));
+// Bảo dưỡng xong: đặt lại mốc giờ, đếm lại từ 0
+await page.click(`[data-act="mnkGhiMay"][data-id="${idQua}"][data-bd="1"]`); await wait(700);
+assert.equal(await page.isChecked('#mnBD'), true, 'mở từ nút Bảo dưỡng xong thì tích sẵn');
+await page.fill('#mnGio', String(Math.round(qua21[0].gio + 40)));
+await page.click('.mnMocI[data-i="0"]');
+await page.click('#mnOk'); await wait(1200);
+const sauBD = await page.evaluate((id) => { const m = mnkDS().find((x) => x.id === id); return { tuBD: m.tuBD, con: m.conLai, moc0: m.mocGio[0].gio, moc1: m.mocGio[1].gio }; }, idQua);
+assert.equal(sauBD.tuBD, 0, 'bảo dưỡng xong thì giờ từ lần bảo dưỡng về 0');
+assert.equal(sauBD.con, 3000, 'đếm lại đủ 3000 h');
+assert.equal(sauBD.moc0, Math.round(qua21[0].gio + 40), 'mốc đã tích tính lại từ số giờ vừa ghi');
+assert.notEqual(sauBD.moc1, sauBD.moc0, 'mốc không tích thì giữ nguyên');
+await shot('41-may-nen-khi-bao-duong-xong');
+// Lịch tuần: 3 máy thường + 1 máy biến tần, chọn sai số lượng thì chặn
+await page.click('[data-act="mnkSeg"][data-m="tuan"]'); await wait(600);
+assert.match(await text('#main'), /Máy thường/);
+assert.match(await text('#main'), /Biến tần/);
+await page.click('[data-act="mnkDoi"]'); await wait(600);
+const hopBT = await page.locator('.mkI[data-bt="1"]').count();
+assert.equal(hopBT, 2, 'hai máy biến tần để chọn một');
+await page.evaluate(() => { document.querySelectorAll('.mkI').forEach((x) => { x.checked = false; }); });
+await page.click('#mkOk'); await wait(500);
+assert.match(await text('#mkErr'), /3 máy thường|3 台普通/, 'chọn thiếu máy thường thì chặn');
+await page.evaluate(() => {
+  const th = Array.from(document.querySelectorAll('.mkI[data-bt="0"]')).slice(0, 3);
+  th.forEach((x) => { x.checked = true; });
+  document.querySelector('.mkI[data-bt="1"]').checked = true;
+});
+await page.click('#mkOk'); await wait(1300);
+// Đổi máy xong thì app mời ghi luôn số giờ của đúng những máy vừa đổi vào / đổi ra
+const nhac21 = await text('#sheetBg');
+assert.match(nhac21, /Ghi số giờ lúc đổi/, 'đổi máy xong có mục ghi số giờ');
+assert.ok((await page.locator('#sheetBg [data-act="mnkGhiMay"][data-nguon="DOI"]').count()) >= 1, 'liệt kê máy vừa đổi để ghi giờ');
+assert.match(nhac21, /Đổi vào chạy|Đổi ra nghỉ/, 'nói rõ máy nào đổi vào, máy nào đổi ra');
+await page.click('#sheetBg [data-act="mnkNhacBo"]'); await wait(400);
+const tuan21 = await page.evaluate(() => (mnkLichTuan(tcThuHai(TODAY())) || {}).dsChay || []);
+assert.equal(tuan21.length, 4, 'tuần này xếp đúng 4 máy');
+assert.equal(await page.evaluate((ds) => ds.filter((id) => mnkOf(id).bienTan).length, tuan21), 1, 'đúng một máy biến tần');
+// Gợi ý xếp lịch: máy ít giờ kể từ lần bảo dưỡng trước được chạy trước
+await page.click('[data-act="mnkGoiY"]'); await wait(600);
+await page.click('#mgOk'); await wait(1400);
+const goiY21 = await page.evaluate(() => {
+  const ds = (mnkLichTuan(tcThuHai(TODAY())) || {}).dsChay || [];
+  const th = mnkHD().filter((m) => !m.bienTan).sort((a, b) => a.tuBD - b.tuBD);
+  return { chon: ds.length, bt: ds.filter((id) => mnkOf(id).bienTan).length, itNhat: th[0].id, co: ds.indexOf(th[0].id) >= 0 };
+});
+assert.equal(goiY21.chon, 4);
+assert.equal(goiY21.bt, 1);
+assert.equal(goiY21.co, true, 'máy ít giờ nhất được xếp chạy');
+await shot('42-may-nen-khi-lich-tuan');
+// Tổng hợp tháng + Excel hai sheet, máy quá hạn tô đỏ
+await page.click('[data-act="mnkSeg"][data-m="thang"]'); await wait(600);
+assert.match(await text('#main'), /Giờ chạy trong tháng/);
+const xlMNK = await page.evaluate(async () => {
+  const blob = mnkXlsx(TODAY().slice(0, 7));
+  const sh = await readXlsx(await blob.arrayBuffer());
+  const r = await Promise.all(sh.map((x) => x.rows()));
+  const raw = new TextDecoder('latin1').decode(await blob.arrayBuffer());
+  return { ten: sh.map((x) => x.name), tong: r[0].map((x) => x.join('|')).join('\n'),
+    log: r[1].map((x) => x.join('|')).join('\n'), cam: raw.indexOf('FFE7CF') >= 0,
+    sapHan: mnkDS().some((m) => m.conLai > 0 && m.conLai <= 200) };
+});
+assert.deepEqual(xlMNK.ten, ['Tong hop', 'Ghi gio'], 'hai sheet: tổng hợp và nhật ký ghi giờ');
+assert.match(xlMNK.tong, /空压机/, 'tiêu đề song ngữ');
+assert.match(xlMNK.tong, /Biến tần/, 'ghi rõ máy nào chạy biến tần');
+assert.match(xlMNK.log, /Bảo dưỡng xong/, 'nhật ký ghi rõ lần nào là bảo dưỡng');
+assert.equal(xlMNK.cam, xlMNK.sapHan, 'máy sắp đến hạn thì ô giờ tô cam trong Excel');
+// Kỹ thuật: ghi giờ và đổi máy được, nhưng không sửa danh sách máy
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+await logout();
+await login('NV003', '333333');
+await moThem('mnk');
+assert.match(await text('#barTitle'), /Máy nén khí/);
+await page.click('[data-act="mnkSeg"][data-m="may"]'); await wait(600);
+assert.equal(await page.locator('[data-act="go"][data-v="mnkDS"]').count(), 0, 'kỹ thuật không thấy nút sửa danh sách');
+assert.ok(await page.locator('[data-act="mnkGhiMay"]').count() >= 6, 'kỹ thuật vẫn ghi giờ chạy được');
+await page.click('[data-act="mnkSeg"][data-m="tuan"]'); await wait(600);
+assert.equal(await page.locator('[data-act="mnkDoi"]').count(), 1, 'kỹ thuật tự đổi máy chạy được');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Bản 2.32: máy nén khí — giờ chạy cộng dồn, mốc 3000 h và mốc phụ, lịch tuần 3 máy thường + 1 biến tần, gợi ý luân phiên, Excel tổng hợp');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
