@@ -15826,7 +15826,12 @@ function ngtThieu(p) {
   phan.forEach(([seg, d, pv, pz]) => {
     if (!ngtCoDL(d)) return;                       // phần chưa đụng tới thì bỏ qua
     const m = NGT_MAU[seg], nhan = (vi, zh) => [pv + ' › ' + vi, pz + ' › ' + zh];
-    m.chung.forEach(([k, vi, zh]) => { if (!String((d.chung || {})[k] || '').trim()) r.push(nhan(vi, zh)); });
+    // Ba ô này đã hỏi ở đầu phiếu rồi, điền trên đó là đủ, không bắt gõ lại trong bảng
+    const dauPhieu = { tenTB: p.tenTB, maTB: p.ma, donVi: p.donVi };
+    m.chung.forEach(([k, vi, zh]) => {
+      if (String((d.chung || {})[k] || '').trim() || String(dauPhieu[k] || '').trim()) return;
+      r.push(nhan(vi, zh));
+    });
     m.nhom.forEach((n) => n.muc.forEach(([k, vi, zh, , , dv]) => {
       const q = (d.muc || {})[k] || {};
       if (!q.dg) r.push(nhan(vi + ' — chưa chấm Đạt / Không đạt', zh + ' — 未评定'));

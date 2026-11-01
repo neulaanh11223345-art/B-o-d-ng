@@ -256,7 +256,8 @@ assert.equal(await page.evaluate(() => ngtDS().length), 0, 'chưa lưu biên b�
 // Điền nốt các mục còn lại rồi lưu
 const ngtDienNot = () => page.evaluate(() => {
   const p = topV().p, m = NGT_MAU[p.seg], d = ngtPhan(p);
-  m.chung.forEach(([k]) => { if (!String(d.chung[k] || '').trim()) d.chung[k] = '—'; });
+  // Ba ô đã hỏi ở đầu phiếu thì để nguyên, đừng ghi đè lên tên thiết bị thật
+  m.chung.forEach(([k]) => { if (['tenTB', 'maTB', 'donVi'].indexOf(k) < 0 && !String(d.chung[k] || '').trim()) d.chung[k] = '—'; });
   m.nhom.forEach((n) => n.muc.forEach(([k, , , , , dv]) => {
     const q = d.muc[k] = d.muc[k] || {};
     if (dv === 'A/B/C') ['A', 'B', 'C'].forEach((ph) => { if (!q[ph]) q[ph] = '1'; });
