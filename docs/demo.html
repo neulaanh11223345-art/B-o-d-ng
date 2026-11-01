@@ -16371,12 +16371,14 @@ function kdLichNam(x, y, today) {
     const d = soNgayTu(han, today);
     m.set(han, d < 0 ? 'qua' : d <= KD_NHAC_TRUOC ? 'nay' : 'kh');
   }
-  // Kỳ dự kiến: cộng dồn chu kỳ từ hạn hiện tại cho tới hết năm đang xem
-  if (x.chuKy > 0 && han < den) {
-    let k = han;
-    for (let i = 0; i < 60 && k && k < den; i++) {
-      k = kdHanTu(k, x.chuKy);
-      if (k && k >= tu && k <= den && !m.has(k)) m.set(k, 'du');
+  // Kỳ dự kiến: cộng bội số chu kỳ từ NGÀY KIỂM ĐỊNH gốc, không nối đuôi hạn này sang hạn kia.
+  // kdHanTu lùi một ngày ("đến hết ngày…"), nối đuôi sẽ trôi mất một ngày sau mỗi chu kỳ.
+  const goc = x.ngayKD || '';
+  if (x.chuKy > 0 && han < den && goc) {
+    for (let i = 2; i <= 120; i++) {
+      const k = kdHanTu(goc, x.chuKy * i);
+      if (!k || k > den) break;
+      if (k >= tu && !m.has(k)) m.set(k, 'du');
     }
   }
   return m;
