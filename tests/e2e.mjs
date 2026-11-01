@@ -1045,6 +1045,39 @@ assert.equal(xlKD.doQuaHan, true, 'ô quá hạn được tô đỏ trong file E
 assert.match(xlKD.ls, /Lần thứ/, 'sheet lịch sử có cột lần thứ');
 assert.match(xlKD.ls, /GCN-LAN2/, 'sheet lịch sử ghi cả lần mới nhất');
 assert.match(xlKD.ls, /GCN-1/, 'sheet lịch sử giữ cả lần cũ');
+// Lịch kiểm định cả năm, kiểu bảng bảo dưỡng: mỗi thiết bị một dòng, mười hai cột tháng
+await page.click('[data-act="kdChe"][data-m="lich"]'); await wait(700);
+const kdL = await page.evaluate(() => ({
+  cot: document.querySelectorAll('.cal.yr thead th').length,
+  dong: document.querySelectorAll('.cal.yr tbody tr:not(.grp)').length,
+  nhom: document.querySelectorAll('.cal.yr tr.grp').length,
+  o: document.querySelectorAll('.cal.yr .c').length,
+  xong: document.querySelectorAll('.c-xong').length,
+  qua: document.querySelectorAll('.c-qua').length,
+  du: document.querySelectorAll('.c-du').length,
+  nam: (document.querySelector('.caltools .stepper b') || {}).textContent
+}));
+assert.equal(kdL.cot, 13, 'cột tên thiết bị và mười hai tháng');
+assert.ok(kdL.dong >= 3, 'có dòng thiết bị trong lịch năm: ' + kdL.dong);
+assert.ok(kdL.nhom >= 1, 'thiết bị gom theo loại');
+assert.ok(kdL.o >= kdL.dong, 'mỗi dòng ít nhất một mốc: ' + JSON.stringify(kdL));
+assert.ok(kdL.xong >= 1, 'đánh dấu ngày đã kiểm định');
+assert.ok(kdL.qua >= 1, 'đánh dấu mốc quá hạn');
+assert.match(kdL.nam, /\d{4}/, 'có bộ chọn năm');
+// Mốc tính đúng: lần đã kiểm định, hạn kế tiếp, và kỳ dự kiến theo chu kỳ
+const kdMocTest = await page.evaluate(() => {
+  const x = { chuKy: 12, ngayHetHan: '2027-03-10', ketQua: 'DAT',
+    lichSu: [{ ngay: '2026-03-10', hetHan: '2027-03-10', ketQua: 'DAT' }] };
+  const m26 = kdLichNam(x, 2026, '2026-11-01'), m29 = kdLichNam(x, 2029, '2026-11-01');
+  return { n26: m26.size, k26: m26.get('2026-03-10'), n29: m29.size, k29: m29.get('2029-03-10') };
+});
+assert.deepEqual(kdMocTest, { n26: 1, k26: 'xong', n29: 1, k29: 'du' },
+  'năm cũ hiện lần đã kiểm định, năm sau hiện kỳ dự kiến theo chu kỳ: ' + JSON.stringify(kdMocTest));
+// Đổi năm thì bảng đổi theo
+await page.click('[data-act="kdNamB"][data-d="1"]'); await wait(600);
+assert.notEqual(await page.evaluate(() => document.querySelector('.caltools .stepper b').textContent), kdL.nam, 'bấm mũi tên đổi năm');
+await page.click('[data-act="kdChe"][data-m="ds"]'); await wait(600);
+assert.equal(await page.locator('.cal.yr').count(), 0, 'quay lại danh sách thì ẩn bảng lịch');
 assert.ok(xlKD.dongLS >= 13, 'sheet lịch sử một dòng cho mỗi lần kiểm định: ' + xlKD.dongLS);
 await page.evaluate(() => back()); await wait(500);
 assert.equal(binh.length, 9, 'nhập đủ chín bình chứa khí nén');
