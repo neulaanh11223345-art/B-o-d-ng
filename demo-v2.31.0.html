@@ -15826,10 +15826,11 @@ function ngtThieu(p) {
   phan.forEach(([seg, d, pv, pz]) => {
     if (!ngtCoDL(d)) return;                       // phần chưa đụng tới thì bỏ qua
     const m = NGT_MAU[seg], nhan = (vi, zh) => [pv + ' › ' + vi, pz + ' › ' + zh];
-    // Ba ô này đã hỏi ở đầu phiếu rồi, điền trên đó là đủ, không bắt gõ lại trong bảng
-    const dauPhieu = { tenTB: p.tenTB, maTB: p.ma, donVi: p.donVi };
+    // Ba ô này đã hỏi ở đầu phiếu rồi, điền trên đó là đủ, không bắt gõ lại trong bảng.
+    // Mã thiết bị để trống được: động cơ, quạt gửi đi sửa nhiều khi chưa có mã trong hệ thống.
+    const dauPhieu = { tenTB: p.tenTB, donVi: p.donVi }, boQua = { maTB: 1 };
     m.chung.forEach(([k, vi, zh]) => {
-      if (String((d.chung || {})[k] || '').trim() || String(dauPhieu[k] || '').trim()) return;
+      if (boQua[k] || String((d.chung || {})[k] || '').trim() || String(dauPhieu[k] || '').trim()) return;
       r.push(nhan(vi, zh));
     });
     m.nhom.forEach((n) => n.muc.forEach(([k, vi, zh, , , dv]) => {
@@ -17401,7 +17402,15 @@ Object.assign(TX, {
   mTruc: ['Lịch trực', '值班表'], mTrucNay: ['Hôm nay', '今天'], mTrucChua: ['Hôm nay chưa xếp ai trực', '今天未安排值班'],
   t_trucTong: ['Tổng số ca', '班次合计'], t_phanCa: ['Phân công ca trực', '值班排班表'], t_trucNguoi: ['Danh sách người trực ca', '值班人名单'],
   trucGio: ['Giờ trực', '值班时间'], trucTuanN: ['Tuần {a} – {b}', '{a} – {b} 周'],
-  trucChuaXep: ['Chưa xếp', '未安排'],
+  trucChuaXep: ['Chưa xếp', '未安排'], trucChuaND: ['Chưa có nội dung trực', '暂无值班内容'],
+  trucNoiDung: ['Nội dung trực', '值班内容'],
+  trucNDHelp: ['Nội dung do Quản lý nhập, mỗi người mỗi ngày một nội dung riêng. Gõ tiếng Việt, app tự dịch sang tiếng Trung.',
+    '值班内容由主管填写，每人每天各自不同。用越南语填写，应用自动翻译成中文。'],
+  trucNDZ: ['Nội dung tiếng Trung', '值班内容（中文）'],
+  trucNDZHelp: ['Để trống là app tự dịch. Dịch chưa đúng thì sửa ở đây, app sẽ không dịch đè nữa.',
+    '留空则自动翻译。翻译不准时在此修改，应用不再覆盖。'],
+  trucBang: ['Bảng lịch trực', '值班表'],
+  trucCheThang: ['Lịch tháng', '月历'], trucCheTuan: ['Chi tiết tuần', '周明细'],
   trucHomNay: ['Hôm nay', '今天'], trucBanTruc: ['Bạn trực', '您值班'], trucThieuN: ['{n} ngày chưa xếp', '{n}天未安排'], trucConThieuN: ['Còn {n} ngày chưa xếp', '还有{n}天未安排'],
   trucDuNgay: ['Đã xếp đủ tháng', '本月已排满'], trucNguoiTruc: ['Người trực', '值班人'],
   trucChuThich: ['Màu theo người trực', '颜色对应值班人'], trucNgayN: ['{n} ngày', '{n}天'],
@@ -17466,6 +17475,7 @@ const trucThangHT = () => S.f.trucThang || TODAY().slice(0, 7);
 const trucSua = () => can('giaoviec');
 const trucDS = () => (S.V && S.V.truc) || [];
 const trucNgay = (d) => trucDS().filter((x) => x.ngay === d)[0] || null;
+const trucTuanDS = (tu) => [0, 1, 2, 3, 4, 5, 6].map((i) => { const d = addD(tu, i); return { ngay: d, x: trucNgay(d) }; });
 const trucCoNguoi = (o) => !!(o.x && o.x.uid);
 // Các tuần (thứ Hai) có ngày rơi vào tháng đó
 function trucTuanTrongThang(ym) {
@@ -17657,9 +17667,48 @@ function rebuildTruc() {
   S.V.truc = lt; S.V.pc = pc; S.V.nt = nt;
 }
 
+const trucSegHtml = (che) => `<div class="seg" style="margin-bottom:12px">${[['thang', 'trucCheThang'], ['tuan', 'trucCheTuan']].map(([k, lb]) =>
+  `<button class="${che === k ? 'on' : ''}" data-act="trucChe" data-m="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div>`;
+// Bảng chi tiết một tuần: mỗi ngày một dòng, kèm nội dung trực song ngữ
+function trucTuanHtml() {
+  const tu = trucTuanHT(), den = addD(tu, 6), ds = trucTuanDS(tu), today = TODAY();
+  const thieu = ds.filter((o) => !trucCoNguoi(o)).length, me = (S.me || {}).id, mau = trucMauThang(tu.slice(0, 7));
+  let o = srvOld('truc') ? srvWarn('truc') : '';
+  o += trucSegHtml('tuan') + `<div class="caltools"><div class="stepper">
+    <button data-act="trucTuan" data-d="-1" aria-label="-">${IC.left}</button>
+    <b>${tv('trucTuanN', { a: fmtDM(tu), b: fmtDM(den) })}</b>
+    <button data-act="trucTuan" data-d="1" aria-label="+">${IC.right}</button></div>
+    <span class="pill ${thieu ? 'p-qua' : 'p-ok'}">${thieu ? t('trucThieuN', { n: thieu }) : t('trucDuNgay')}</span></div>`;
+  o += `<div class="help" style="margin:0 0 10px">${esc(tv('trucGio'))}: <b class="mono">17:00 – 19:30</b>
+    <span class="zi" lang="zh-CN">${esc(tz('trucGio'))}: 17:00 – 19:30</span></div>`;
+  o += sec('trucBang') + `<div class="list">${ds.map((d) => {
+    const x = d.x || {}, w = wday(d.ngay), nay = d.ngay === today, co = trucCoNguoi(d);
+    const m = co ? mau[x.uid] : null;
+    const sub = co ? (x.noiDung ? svH(x.noiDung, x.noiDungDich) : `<span style="color:var(--ink3)">${t('trucChuaND')}</span>`) : '';
+    return `<${trucSua() ? 'button' : 'div'} class="tcrow${nay ? ' on' : ''}"${trucSua() ? ` data-act="trucXep" data-d="${esc(d.ngay)}"` : ' style="cursor:default"'}>
+      <div class="h">${m ? `<i style="width:12px;height:12px;border-radius:4px;flex:none;background:${m[0]}"></i>` : ''}<b>${WD_VI_F[w]}</b>
+        <span class="mono" style="color:var(--ink3)">${fmtDM(d.ngay)}</span>
+        ${nay ? `<span class="pill p-nay">${t('trucHomNay')}</span>` : ''}
+        ${co ? `<span style="margin-left:auto;text-align:right">${trucTen(x)}${x.uid === me ? ` <span class="pill p-ok">${t('trucBanTruc')}</span>` : ''}</span>`
+    : `<span style="margin-left:auto;color:var(--red);font-weight:700">${t('trucChuaXep')}</span>`}
+        ${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}</div>
+      ${sub ? `<div class="sub">${sub}</div>` : ''}</${trucSua() ? 'button' : 'div'}>`;
+  }).join('')}</div>`;
+  if (trucSua()) o += `<div class="help" style="margin-top:8px">${t('trucNDHelp')}</div>
+    <div class="btns" style="margin-top:12px">${srvOld('cap') ? '' : `<button class="btn ghost" data-act="trucChep">${IC.share} ${t('trucChep')}</button>`}
+      <button class="btn ghost" data-act="trucPdf" data-m="${tu.slice(0, 7)}">${IC.print} ${t('trucPdf')}</button>
+      <button class="btn ghost" data-act="trucXuat" data-m="${tu.slice(0, 7)}">${IC.dl} ${t('trucXuat')}</button></div>`;
+  o += `<button class="cta2 blue" style="margin-top:14px" data-act="go" data-v="trucTong"><span class="ic">${IC.hist}</span>
+    <span>${tv('trucMoTong')}<span class="zi">${tz('trucMoTong')}</span></span>${IC.chev}</button>`;
+  o += `<button class="cta2" data-act="go" data-v="phanCa"><span class="ic">${IC.users}</span>
+    <span>${tv('trucMoPC')}<span class="zi">${tz('trucMoPC')}</span></span>${IC.chev}</button>`;
+  return o;
+}
 // ---------- Lịch trực tháng: mỗi người một màu ----------
 VIEWS.truc = {
   html() {
+    const che = S.f.trucChe || 'thang';
+    if (che === 'tuan') return trucTuanHtml();
     const ym = trucThangHT(), [y, mo] = ym.split('-').map(Number), today = TODAY();
     const { ds, truoc } = trucThangDS(ym), me = (S.me || {}).id, sua = trucSua();
     const tg = trucTongDS(ym), ngan = trTenNganMap(tg.map((n) => n.ten)), mau = trucMauThang(ym);
@@ -17667,7 +17716,7 @@ VIEWS.truc = {
     const moc = ym < today.slice(0, 7) ? '' : today;
     const thieu = ds.filter((o) => !trucCoNguoi(o) && o.ngay >= moc).length;
     let o = srvOld('truc') ? srvWarn('truc') : '';
-    o += `<div class="caltools"><div class="stepper">
+    o += trucSegHtml(che) + `<div class="caltools"><div class="stepper">
       <button data-act="trucThang" data-d="-1" aria-label="-">${IC.left}</button>
       <b>${tv('trucThangN', { m: mo, y })}</b>
       <button data-act="trucThang" data-d="1" aria-label="+">${IC.right}</button></div>
@@ -17713,8 +17762,8 @@ VIEWS.truc = {
 // ---------- Xếp một ngày ----------
 VIEWS.trucGhi = {
   html(p) {
-    const x = trucNgay(p.d) || { uid: '' };
-    if (!p.init) Object.assign(p, { init: 1, uid: x.uid || '' });
+    const x = trucNgay(p.d) || { uid: '', noiDung: '', noiDungDich: '' };
+    if (!p.init) Object.assign(p, { init: 1, uid: x.uid || '', nd: x.noiDung || '', ndz: x.noiDungDich || '', zSua: 0 });
     const w = wday(p.d), m = p.uid ? trMau(p.uid, p.d) : null;
     return `<form id="trF" class="card pad" autocomplete="off">
       <div class="help" style="margin-bottom:12px"><b>${WD_VI_F[w]}, ${fmtD(p.d)}</b> <span class="zi" lang="zh-CN">${WD_ZH_F[w]}</span> · 17:00 – 19:30</div>
@@ -17722,9 +17771,15 @@ VIEWS.trucGhi = {
         <select class="inp" id="trNg"><option value=""${!p.uid ? ' selected' : ''}>— ${esc(tp('trucChuaXep'))} —</option>
           ${nvDS().map((n) => `<option value="${esc(n.id)}"${n.id === p.uid ? ' selected' : ''}>${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ' ' + esc(n.tenZh) : ''}${n.maNV ? ' · ' + esc(n.maNV) : ''}</option>`).join('')}</select></div>
       <div class="trleg" id="trMau" style="margin:10px 0 0"${m ? '' : ' hidden'}><span><i style="background:${m ? m[0] : 'transparent'}"></i><em>${esc(tp('trucChuThich'))}</em></span></div>
+      <label class="fld" style="margin-top:12px"><span>${t('trucNoiDung')}</span>
+        <textarea class="inp" id="trND" rows="3" maxlength="500">${esc(p.nd)}</textarea></label>
+      <div class="help" style="margin-top:6px">${t('trucNDHelp')}</div>
+      <label class="fld" style="margin-top:12px"><span>${t('trucNDZ')}</span>
+        <textarea class="inp" id="trNDZ" rows="2" maxlength="500" style="font-family:var(--f-zh)">${esc(p.ndz)}</textarea></label>
+      <div class="help" style="margin-top:6px">${t('trucNDZHelp')}</div>
       <div id="trErr" class="err" hidden></div>
       <div class="btns" style="margin-top:16px"><button type="button" class="btn pri" id="trOk">${IC.check} ${t('trucLuu')}</button>
-        ${x.uid ? `<button type="button" class="btn ghost" data-act="trucBo" data-d="${esc(p.d)}">${t('trucBoTrong')}</button>` : ''}</div>
+        ${x.uid || p.nd ? `<button type="button" class="btn ghost" data-act="trucBo" data-d="${esc(p.d)}">${t('trucBoTrong')}</button>` : ''}</div>
     </form>`;
   },
   after(p) {
@@ -17734,10 +17789,14 @@ VIEWS.trucGhi = {
       box.hidden = !p.uid;
       if (p.uid) box.querySelector('i').style.background = trMau(p.uid, p.d)[0];
     });
+    $('#trND').addEventListener('input', (e) => { p.nd = e.target.value; });
+    $('#trNDZ').addEventListener('input', (e) => { p.ndz = e.target.value; p.zSua = 1; });
     $('#trOk').addEventListener('click', async () => {
       const e = $('#trErr'), b = $('#trOk');
       e.hidden = true; b.disabled = true;
-      const r = await send('dutySet', { ngay: p.d, uid: p.uid });
+      const pl = { ngay: p.d, uid: p.uid, noiDung: p.nd };
+      if (p.zSua) pl.noiDungDich = p.ndz;
+      const r = await send('dutySet', pl);
       b.disabled = false;
       if (r.err) { e.hidden = false; e.textContent = errMsg(r.err); return; }
       toast(r.queued ? t('savedLocal') : t('trucDaLuu'));
@@ -17788,7 +17847,7 @@ VIEWS.phanCa = {
     const mocTu = ym < TODAY().slice(0, 7) ? '' : tuanNay;
     const trong = ds.filter((w) => w.tu >= mocTu).reduce((a, w) => a + w.o.filter((x) => !x || !x.nguoiId).length, 0);
     let o = srvOld('truc') ? srvWarn('truc') : '';
-    o += `<div class="caltools"><div class="stepper">
+    o += trucSegHtml(che) + `<div class="caltools"><div class="stepper">
       <button data-act="trucThang" data-d="-1" aria-label="-">${IC.left}</button>
       <b>${tv('trucThangN', { m: mo, y })}</b>
       <button data-act="trucThang" data-d="1" aria-label="+">${IC.right}</button></div>
@@ -18124,6 +18183,7 @@ Object.assign(ACT, {
     m += +el.dataset.d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
     S.f.trucThang = y + '-' + String(m).padStart(2, '0'); render(); window.scrollTo(0, 0);
   },
+  trucChe: (el) => { S.f.trucChe = el.dataset.m; render(); window.scrollTo(0, 0); },
   trucXep: (el) => go('trucGhi', { d: el.dataset.d }),
   trucChep: () => {
     const tuDS = trucTuanTrongThang(trucThangHT());

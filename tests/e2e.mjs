@@ -254,19 +254,33 @@ assert.match(thieuNT, /chưa chấm Đạt \/ Không đạt/, 'mục kiểm tra 
 assert.doesNotMatch(thieuNT, /Công suất/, 'mục đã điền thì không báo thiếu');
 assert.equal(await page.evaluate(() => ngtDS().length), 0, 'chưa lưu biên bản nào');
 // Điền nốt các mục còn lại rồi lưu
-const ngtDienNot = () => page.evaluate(() => {
-  const p = topV().p, m = NGT_MAU[p.seg], d = ngtPhan(p);
-  // Ba ô đã hỏi ở đầu phiếu thì để nguyên, đừng ghi đè lên tên thiết bị thật
-  m.chung.forEach(([k]) => { if (['tenTB', 'maTB', 'donVi'].indexOf(k) < 0 && !String(d.chung[k] || '').trim()) d.chung[k] = '—'; });
-  m.nhom.forEach((n) => n.muc.forEach(([k, , , , , dv]) => {
-    const q = d.muc[k] = d.muc[k] || {};
-    if (dv === 'A/B/C') ['A', 'B', 'C'].forEach((ph) => { if (!q[ph]) q[ph] = '1'; });
-    else if (dv && !String(q.so || '').trim()) q.so = '1';
-    if (!q.dg) q.dg = 'D';
-  }));
-  if (m.ketLuan && !d.ketLuan) d.ketLuan = 'DAT';
-  render();
-});
+// Điền nốt phần đang mở đúng như người dùng gõ: đặt giá trị rồi bắn sự kiện input
+// để app tự thu vào trạng thái, sau đó chấm Đạt cho từng mục còn trống.
+const ngtDienNot = async () => {
+  await page.evaluate(() => {
+    const dat = (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
+    // Ba ô này đã điền ở đầu phiếu; tờ in tự lấy xuống, đừng ghi đè bằng gạch ngang
+    const dauPhieu = ['tenTB', 'maTB', 'donVi'];
+    document.querySelectorAll('#ngtF [data-c]').forEach((el) => {
+      if (dauPhieu.indexOf(el.dataset.c) < 0 && !el.value.trim()) dat(el, '—');
+    });
+    document.querySelectorAll('#ngtF [data-m]').forEach((el) => { if (el.dataset.s !== 'gc' && !el.value.trim()) dat(el, '1'); });
+  });
+  await wait(200);
+  for (let i = 0; i < 40; i++) {
+    const k = await page.evaluate(() => {
+      const b = Array.from(document.querySelectorAll('#ngtF [data-act="ngtDg"][data-v="D"]'))
+        .find((x) => !document.querySelector(`#ngtF [data-act="ngtDg"][data-k="${x.dataset.k}"].dat, #ngtF [data-act="ngtDg"][data-k="${x.dataset.k}"].khong`));
+      return b ? b.dataset.k : '';
+    });
+    if (!k) break;
+    await page.click(`#ngtF [data-act="ngtDg"][data-k="${k}"][data-v="D"]`); await wait(120);
+  }
+  if (await page.locator('[data-act="ngtKl"]').count()) {
+    const xong = await page.evaluate(() => !!topV().p[topV().p.seg].ketLuan);
+    if (!xong) { await page.click('[data-act="ngtKl"][data-v="DAT"]'); await wait(300); }
+  }
+};
 await ngtDienNot(); await wait(500);
 await page.click('#ngtOk'); await wait(1600);
 const bb = await page.evaluate(() => ngtDS()[0]);
