@@ -1587,7 +1587,7 @@ const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 const esc = (s) => String(s === null || s === undefined ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const fill = (s, v) => v ? s.replace(/\{(\w+)\}/g, (_, k) => (v[k] !== undefined ? v[k] : '')) : s;
 function t(k, v) { const e = TX[k] || ERR[k]; if (!e) return esc(k); return esc(fill(e[0], v)) + '<span class="zi" lang="zh-CN">' + esc(fill(e[1], v)) + '</span>'; }
-function tp(k, v) { const e = TX[k] || ERR[k]; return e ? fill(e[0], v) + ' · ' + fill(e[1], v) : k; }
+function tp(k, v) { const e = TX[k] || ERR[k]; if (!e) return k; return e[1] ? fill(e[0], v) + ' · ' + fill(e[1], v) : fill(e[0], v); }
 // Thiếu khoá thì trả lại chính khoá, không để vỡ cả màn hình
 function tv(k, v) { const e = TX[k] || ERR[k]; return e ? fill(e[0], v) : String(k); }
 function tz(k, v) { const e = TX[k] || ERR[k]; return e ? fill(e[1], v) : ''; }
@@ -10442,13 +10442,23 @@ Object.assign(TX, {
     '检定标签号为贴在设备上标签的号码。所属设备：填写母设备编号 — 压力表与安全阀填储气罐编号。'],
   kdKhaiBaoHelp: ['Thiết bị nghiêm ngặt phải khai báo sử dụng với Sở LĐ-TB&XH sau khi kiểm định lần đầu.', '严格要求设备首次检定后须向劳动部门申报使用。'],
   srvMissKD: ['Sổ kiểm định thiết bị', '设备检定台账'],
-  xlKDTen: ['Tên thiết bị · 设备名称'], xlKDLoai: ['Loại · 类别'], xlKDNN: ['Nghiêm ngặt · 严格'],
-  xlKDMay: ['Mã máy · 设备编号'], xlKDSoHieu: ['Số hiệu · 编号'], xlKDNhaSX: ['Nhà sản xuất · 制造商'],
-  xlKDNamSX: ['Năm SX · 出厂年'], xlKDThongSo: ['Thông số · 参数'], xlKDViTri: ['Vị trí · 位置'],
+  xlKDTen: ['Tên thiết bị', '设备名称'], xlKDLoai: ['Loại', '类别'], xlKDNN: ['Nghiêm ngặt', '严格'],
+  xlKDMay: ['Mã máy', '设备编号'], xlKDSoHieu: ['Số hiệu', '编号'], xlKDNhaSX: ['Nhà sản xuất', '制造商'],
+  xlKDNamSX: ['Năm SX', '出厂年'], xlKDThongSo: ['Thông số', '参数'], xlKDViTri: ['Vị trí', '位置'],
   xlKDSoTem: ['Số tem', '检定标签号'], xlKDThuoc: ['Thuộc thiết bị', '所属设备'],
-  xlKDDonVi: ['Đơn vị kiểm định · 检定单位'], xlKDSoGiay: ['Số giấy CN · 证书编号'],
-  xlKDNgay: ['Ngày kiểm định · 检定日期'], xlKDHetHan: ['Hạn · 有效期至'], xlKDChuKy: ['Chu kỳ (tháng) · 周期'],
-  xlKDKetQua: ['Kết quả · 结果'], xlKDTT: ['Tình trạng · 状态'], xlKDKhaiBao: ['Ngày khai báo · 申报日期']
+  xlKDDonVi: ['Đơn vị kiểm định', '检定单位'], xlKDSoGiay: ['Số giấy CN', '证书编号'],
+  xlKDNgay: ['Ngày kiểm định', '检定日期'], xlKDHetHan: ['Hạn kiểm định', '有效期至'], xlKDChuKy: ['Chu kỳ (tháng)', '周期（月）'],
+  xlKDKetQua: ['Kết quả', '结果'], xlKDTT: ['Tình trạng', '状态'], xlKDKhaiBao: ['Ngày khai báo', '申报日期'],
+  // Lần kiểm định trước và kỳ kế tiếp
+  xlKDTrNgay: ['Lần trước: ngày', '上次检定日期'], xlKDTrDonVi: ['Lần trước: đơn vị', '上次检定单位'],
+  xlKDTrGiay: ['Lần trước: số giấy', '上次证书编号'], xlKDTrKQ: ['Lần trước: kết quả', '上次结果'],
+  xlKDConLai: ['Còn lại (ngày)', '剩余天数'], xlKDSoLan: ['Số lần đã kiểm định', '已检定次数'],
+  xlKDNhom1: ['HỒ SƠ THIẾT BỊ · 设备档案'], xlKDNhom2: ['LẦN KIỂM ĐỊNH TRƯỚC · 上次检定'],
+  xlKDNhom3: ['LẦN KIỂM ĐỊNH GẦN NHẤT · 最近检定'], xlKDNhom4: ['KỲ KIỂM ĐỊNH KẾ TIẾP · 下次检定'],
+  // Sheet lịch sử
+  xlLSLan: ['Lần thứ', '第几次'], xlLSGhiChu: ['Ghi chú', '备注'],
+  kdXuatHelp: ['File Excel có hai sheet: sổ kiểm định (kèm lần trước và kỳ kế tiếp, quá hạn tô đỏ) và lịch sử từng lần kiểm định.',
+    'Excel含两个工作表：检定台账（含上次检定与下次检定期限，逾期标红）与历次检定记录。']
 });
 Object.assign(ERR, {
   KD_LOAI_SAI: ['Loại thiết bị không hợp lệ.', '设备类别无效。'],
@@ -10730,7 +10740,7 @@ function kdApDung(d) {
 VIEWS.kdGhi = {
   html(p) {
     const x = kdGet(p.id); if (!x) return `<div class="card empty">${t('notFound')}</div>`;
-    if (!p.init) Object.assign(p, { init: 1, ngay: TODAY(), dv: x.donViKD || '', so: '', kq: 'DAT', ck: String(x.chuKy || 12), gc: '' });
+    if (!p.init) Object.assign(p, { init: 1, ngay: TODAY(), dv: x.donViKD || '', so: '', tem: '', kq: 'DAT', ck: String(x.chuKy || 12), gc: '' });
     const hh = kdHanTu(p.ngay, +p.ck || 0);
     return `<div class="card pad" style="margin-bottom:12px"><b>${esc(x.ten)}</b>
       <div class="help">${esc(kdLoaiOf(x.loai).vi)}${x.soHieu ? ' · ' + esc(x.soHieu) : ''}</div></div>
@@ -10739,7 +10749,8 @@ VIEWS.kdGhi = {
         <label class="fld"><span>${t('kdChuKy')}</span><input class="inp" id="kgCk" inputmode="numeric" maxlength="3" value="${esc(p.ck)}"></label></div>
       <div class="fld"><span>${t('kdKetQua')}</span><div class="seg">${['DAT', 'KHONG_DAT'].map((k) => `<button type="button" class="${p.kq === k ? 'on' : ''}" data-act="kgKq" data-v="${k}">${tv('kq_' + k)} ${tz('kq_' + k)}</button>`).join('')}</div></div>
       <label class="fld"><span>${t('kdDonVi')}</span><input class="inp" id="kgDv" maxlength="150" value="${esc(p.dv)}"></label>
-      <label class="fld"><span>${t('kdSoGiay')}</span><input class="inp" id="kgSo" maxlength="80" value="${esc(p.so)}"></label>
+      <div class="row2f"><label class="fld"><span>${t('kdSoGiay')}</span><input class="inp" id="kgSo" maxlength="80" value="${esc(p.so)}"></label>
+        <label class="fld"><span>${t('kdSoTem')}</span><input class="inp" id="kgTem" maxlength="60" value="${esc(p.tem)}"></label></div>
       ${p.kq === 'DAT' ? `<div class="note">${t('kdHetHan')}: <b>${hh ? fmtD(hh) : '—'}</b></div>` : ''}
       <label class="fld" style="margin-top:12px"><span>${t('kdGhiChu')}</span><textarea class="inp" id="kgGc" rows="2" maxlength="300">${esc(p.gc)}</textarea></label>
       <div class="err" id="kgErr" hidden></div>
@@ -10747,14 +10758,16 @@ VIEWS.kdGhi = {
   },
   after(p) {
     const f = $('#kgF'); if (!f) return;
-    const sync = () => { p.ngay = $('#kgNgay').value; p.ck = $('#kgCk').value; p.dv = $('#kgDv').value; p.so = $('#kgSo').value; p.gc = $('#kgGc').value; };
+    const sync = () => { p.ngay = $('#kgNgay').value; p.ck = $('#kgCk').value; p.dv = $('#kgDv').value;
+      p.so = $('#kgSo').value; p.tem = $('#kgTem').value; p.gc = $('#kgGc').value; };
     f.addEventListener('input', () => { sync(); const n = $('.note'); if (n && p.kq === 'DAT') n.innerHTML = `${t('kdHetHan')}: <b>${kdHanTu(p.ngay, +p.ck || 0) ? fmtD(kdHanTu(p.ngay, +p.ck || 0)) : '—'}</b>`; });
     f.addEventListener('change', sync);
     f.addEventListener('submit', async (e) => {
       e.preventDefault(); sync();
       const fe = $('#kgErr'), b = $('#kgOk'); fe.hidden = true; b.disabled = true;
       try {
-        const d = await api('doInspect', { id: p.id, ngayKD: p.ngay, chuKy: +p.ck || 0, ketQua: p.kq, donViKD: p.dv.trim(), soGiayKD: p.so.trim(), ghiChu: p.gc.trim() });
+        const d = await api('doInspect', { id: p.id, ngayKD: p.ngay, chuKy: +p.ck || 0, ketQua: p.kq,
+          donViKD: p.dv.trim(), soGiayKD: p.so.trim(), soTem: (p.tem || '').trim(), ghiChu: p.gc.trim() });
         kdApDung(d); toast(t('scDaLuu')); back();
       } catch (er) { b.disabled = false; fe.innerHTML = er.code === 'MANG' ? t('needNet') : errMsg(er); fe.hidden = false; }
     });
@@ -10836,34 +10849,84 @@ VIEWS.kdXem = {
     const ls = (x.lichSu || []);
     o += sec('kdLichSu', ls.length || '') + `<div class="card pad">${ls.length ? `<ol class="sctl">${ls.map((h) => `<li class="b-${h.ketQua === 'DAT' ? 'nghiemthu' : 'cholk'}"><i></i><div>
       <b>${fmtD(h.ngay)} — ${t('kq_' + h.ketQua)}</b>
-      <span class="muted">${esc(h.donVi || '')}${h.soGiay ? ' · ' + esc(h.soGiay) : ''}${h.hetHan ? ' · ' + t('kdHetHan') + ' ' + fmtD(h.hetHan) : ''}</span>
+      <span class="muted">${esc(h.donVi || '')}${h.soGiay ? ' · ' + esc(h.soGiay) : ''}${h.tem ? ' · ' + esc(tv('kdSoTem')) + ' ' + esc(h.tem) : ''}${h.hetHan ? ' · ' + t('kdHetHan') + ' ' + fmtD(h.hetHan) : ''}</span>
       ${h.gc ? `<div class="gc">${svH(h.gc, h.gcDich)}</div>` : ''}</div></li>`).join('')}</ol>` : `<div class="help">${t('kdLichSuTrong')}</div>`}</div>`;
     return o;
   }
 };
-// Sổ kiểm định xuất Excel để nộp / lưu hồ sơ
+// Sổ kiểm định xuất Excel để nộp / lưu hồ sơ.
+// Hai sheet: sổ kiểm định (kèm lần trước và kỳ kế tiếp, quá hạn tô đỏ) và lịch sử từng lần.
+const KD_MAU_TT = {
+  qua: { fill: '#FBDBD8', color: '#A32218', b: 1 },
+  sap: { fill: '#FDEBCF', color: '#8A5A00', b: 1 },
+  ok: { fill: '#E1F2E6', color: '#1C6B38' },
+  chua: { fill: '#ECEFF1', color: '#55625F' }
+};
 function kdXlsx(ds) {
+  const today = TODAY();
   const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const hd = (k) => ({ v: tp(k).replace(' · ', '\n'), s: H });
+  const ngay = (d, x) => c(d ? excelSerial(d) : '', Object.assign({ fmt: 'dd/mm/yyyy', align: 'center' }, x || {}));
+  const ttTx = { qua: 'Quá hạn\n逾期', sap: 'Sắp hết hạn\n即将到期', ok: 'Còn hạn\n有效', chua: 'Chưa kiểm định\n未检定' };
+
+  // ----- Sheet 1: sổ kiểm định -----
   const ks = ['xlKDTen', 'xlKDLoai', 'xlKDNN', 'xlKDMay', 'xlKDSoHieu', 'xlKDThuoc', 'xlKDNhaSX', 'xlKDNamSX',
-    'xlKDThongSo', 'xlKDViTri', 'xlKDDonVi', 'xlKDSoGiay', 'xlKDSoTem', 'xlKDNgay', 'xlKDHetHan', 'xlKDChuKy',
-    'xlKDKetQua', 'xlKDTT', 'xlKDKhaiBao'];
-  const rows = [[{ v: 'SỔ KIỂM ĐỊNH THIẾT BỊ · 设备检定台账 — ' + fmtD(TODAY()), s: { b: 1, sz: 14 } }], [],
-    ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }))];
-  const ttTx = { qua: 'Quá hạn · 逾期', sap: 'Sắp hết hạn · 即将到期', ok: 'Còn hạn · 有效', chua: 'Chưa kiểm định · 未检定' };
+    'xlKDThongSo', 'xlKDViTri', 'xlKDChuKy',
+    'xlKDTrNgay', 'xlKDTrDonVi', 'xlKDTrGiay', 'xlKDTrKQ',
+    'xlKDNgay', 'xlKDDonVi', 'xlKDSoGiay', 'xlKDSoTem', 'xlKDKetQua',
+    'xlKDHetHan', 'xlKDConLai', 'xlKDTT', 'xlKDSoLan', 'xlKDKhaiBao'];
+  // Dòng gộp nhóm phía trên hàng tiêu đề, để nhìn ra ba cụm: trước · gần nhất · kế tiếp
+  const nhomO = (k, n, mau) => [{ v: tp(k), s: { b: 1, fill: mau, color: '#FFFFFF', align: 'center', valign: 'center', border: '#5B6B8A' } }]
+    .concat(Array.from({ length: n - 1 }, () => ({ v: '', s: { fill: mau, border: '#5B6B8A' } })));
+  const nhom = nhomO('xlKDNhom1', 11, '#334E68').concat(nhomO('xlKDNhom2', 4, '#6B5B95'),
+    nhomO('xlKDNhom3', 5, '#1E3A6E'), nhomO('xlKDNhom4', 5, '#8A5A00'));
+  const rows = [[{ v: 'SỔ KIỂM ĐỊNH THIẾT BỊ · 设备检定台账 — ' + fmtD(today), s: { b: 1, sz: 14 } }], [],
+    nhom, ks.map(hd)];
   ds.forEach((x) => {
-    const lo = kdLoaiOf(x.loai);
+    const lo = kdLoaiOf(x.loai), muc = kdMuc(x, today), m = KD_MAU_TT[muc];
+    const ls = (x.lichSu || []).slice().sort((a, b) => (a.ngay < b.ngay ? 1 : a.ngay > b.ngay ? -1 : 0));
+    // Lần trước = lần liền kề trước lần đang có hiệu lực
+    const tr = (x.ngayKD ? ls.filter((h) => h.ngay < x.ngayKD) : ls)[0] || null;
+    const d = x.ngayHetHan ? soNgayTu(x.ngayHetHan, today) : null;
     rows.push([c(x.ten + (x.tenZh && x.tenZh !== x.ten ? '\n' + x.tenZh : '')), c(lo.vi + '\n' + lo.zh),
       c(x.nghiemNgat ? 'x' : '', { align: 'center' }), c(x.ma ? mh(x.ma) : '', { align: 'center' }), c(x.soHieu),
       c(x.thuocTB), c(x.nhaSX), c(x.namSX === '' ? '' : +x.namSX, { align: 'center' }), c(x.thongSo), c(x.viTri),
-      c(x.donViKD), c(x.soGiayKD), c(x.soTem),
-      c(x.ngayKD ? excelSerial(x.ngayKD) : '', { fmt: 'dd/mm/yyyy', align: 'center' }),
-      c(x.ngayHetHan ? excelSerial(x.ngayHetHan) : '', { fmt: 'dd/mm/yyyy', align: 'center' }),
-      c(x.chuKy, { align: 'center' }), c(tv('kq_' + (x.ketQua || 'CHUA'))), c(ttTx[kdMuc(x)]),
-      c(x.ngayKhaiBao ? excelSerial(x.ngayKhaiBao) : '', { fmt: 'dd/mm/yyyy', align: 'center' })]);
+      c(x.chuKy, { align: 'center' }),
+      ngay(tr && tr.ngay), c(tr ? tr.donVi : ''), c(tr ? tr.soGiay : ''), c(tr ? tv('kq_' + tr.ketQua) : '', { align: 'center' }),
+      ngay(x.ngayKD), c(x.donViKD), c(x.soGiayKD), c(x.soTem), c(tv('kq_' + (x.ketQua || 'CHUA')), { align: 'center' }),
+      ngay(x.ngayHetHan, m), c(d === null ? '' : d, Object.assign({ align: 'center' }, m)),
+      c(ttTx[muc], Object.assign({ align: 'center' }, m)),
+      c(ls.length, { align: 'center' }),
+      ngay(x.ngayKhaiBao)]);
   });
-  return XW.build([{ name: 'Kiem dinh', rows, cols: [30, 24, 9, 12, 16, 16, 20, 9, 26, 18, 26, 16, 14, 13, 13, 9, 12, 18, 13],
-    merges: ['A1:S1'], freeze: { r: 3, c: 0 }, landscape: true }]);
+
+  // ----- Sheet 2: lịch sử từng lần kiểm định -----
+  const ks2 = ['xlKDTen', 'xlKDLoai', 'xlKDSoHieu', 'xlKDThuoc', 'xlLSLan', 'xlKDNgay', 'xlKDHetHan',
+    'xlKDDonVi', 'xlKDSoGiay', 'xlKDKetQua', 'xlLSGhiChu'];
+  const r2 = [[{ v: 'LỊCH SỬ KIỂM ĐỊNH · 历次检定记录 — ' + fmtD(today), s: { b: 1, sz: 14 } }], [], ks2.map(hd)];
+  let soLan = 0;
+  ds.forEach((x) => {
+    const lo = kdLoaiOf(x.loai);
+    const ls = (x.lichSu || []).slice().sort((a, b) => (a.ngay < b.ngay ? 1 : a.ngay > b.ngay ? -1 : 0));
+    ls.forEach((h, i) => {
+      soLan++;
+      const het = h.hetHan && h.hetHan < today;
+      r2.push([c(x.ten + (x.tenZh && x.tenZh !== x.ten ? '\n' + x.tenZh : '')), c(lo.vi + '\n' + lo.zh),
+        c(x.soHieu), c(x.thuocTB), c(ls.length - i, { align: 'center' }),
+        ngay(h.ngay), ngay(h.hetHan, het ? KD_MAU_TT.qua : (i === 0 ? KD_MAU_TT.ok : null)),
+        c(h.donVi), c(h.soGiay), c(tv('kq_' + h.ketQua), { align: 'center' }), c(h.gc || '')]);
+    });
+  });
+  if (!soLan) r2.push([c('Chưa có lần kiểm định nào được ghi · 尚无检定记录')]);
+
+  return XW.build([
+    { name: 'Kiem dinh', rows,
+      cols: [30, 22, 9, 12, 16, 16, 20, 9, 26, 16, 9, 13, 24, 16, 11, 13, 24, 16, 14, 11, 13, 11, 14, 10, 13],
+      merges: ['A1:Y1', 'A3:K3', 'L3:O3', 'P3:T3', 'U3:Y3'], freeze: { r: 4, c: 1 }, landscape: true },
+    { name: 'Lich su', rows: r2, cols: [30, 22, 16, 16, 9, 13, 13, 26, 18, 11, 30],
+      merges: ['A1:K1'], freeze: { r: 3, c: 0 }, landscape: true }
+  ]);
 }
 
 // ===================== Tính toán thiết bị · 设备计算 =====================

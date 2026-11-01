@@ -116,6 +116,29 @@ Trước đây sổ kiểm định có 17 loại thiết bị, đủ cho nhóm n
 
 Cả hai có trong form, hồ sơ thiết bị, **file mẫu để nhập** và **file xuất Excel**. Trang `KiemDinh` tự thêm hai cột `SoTem`, `ThuocTB` khi nâng cấp; dữ liệu cũ giữ nguyên.
 
+### Xuất Excel: lần kiểm định trước, kỳ kế tiếp, quá hạn tô đỏ
+
+Nút **Xuất Excel sổ kiểm định** nay cho file **hai sheet**:
+
+**Sheet `Kiem dinh`** — mỗi thiết bị một dòng, cột gộp thành bốn cụm có màu tiêu đề riêng:
+
+| Cụm | Cột |
+|---|---|
+| **Hồ sơ thiết bị** | Tên · Loại · Nghiêm ngặt · Mã máy · Số hiệu · Thuộc thiết bị · Nhà SX · Năm SX · Thông số · Vị trí · Chu kỳ |
+| **Lần kiểm định trước** | Ngày · Đơn vị · Số giấy · Kết quả |
+| **Lần kiểm định gần nhất** | Ngày · Đơn vị · Số giấy · Số tem · Kết quả |
+| **Kỳ kiểm định kế tiếp** | Hạn · **Còn lại (ngày)** · Tình trạng |
+
+Ba ô của cụm cuối **tự tô màu**: đỏ khi *quá hạn*, cam khi *sắp hết hạn* (trong 30 ngày), xanh khi *còn hạn*, xám khi *chưa kiểm định*. Cột *Còn lại* là **số**, âm là đã quá hạn — lọc và sắp xếp được ngay trong Excel.
+
+**Sheet `Lich su`** — **mỗi lần kiểm định một dòng**: thiết bị, số hiệu, thuộc thiết bị, lần thứ mấy, ngày, hạn, đơn vị, số giấy, kết quả, ghi chú. Dùng để đối chiếu cả quá trình, không chỉ lần đang có hiệu lực.
+
+Ghi một lần kiểm định mới nay nhập được **số tem mới** — tem cũ nằm lại trong lịch sử, tem mới thành tem đang dán trên thiết bị.
+
+### Sửa: tiêu đề cột Excel dính chữ "undefined"
+
+Các khoá tiêu đề cột của sổ kiểm định viết gộp hai thứ tiếng vào một vế (`'Tên thiết bị · 设备名称'`) trong khi hàm ghép song ngữ chờ hai vế, nên mọi tiêu đề trong file xuất ra đều kết thúc bằng *" · undefined"*. Nay tách đúng hai vế, và hàm ghép cũng chịu được khoá chỉ có một vế.
+
 ### Sửa: nhãn song ngữ bị ngắt giữa chữ Hán
 
 Bảng nhãn – giá trị ở hồ sơ thiết bị để tên Việt và tên Trung cùng một dòng, nên nhãn dài bị cắt giữa chừng (*设备类 别*, *编 号/序列号*). Nay tên Trung xuống dòng riêng, như mọi chỗ khác trong app.

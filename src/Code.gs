@@ -1916,11 +1916,13 @@ function ghiKiemDinh(u, p) {
   var bay = thoiGianStr();
   capNhatTieuDe('KiemDinh');
   var gcD = songNgu(catNhieuDong(p.ghiChu, 300).trim());
+  var tem = catChu(p.soTem, 60);
   x.lichSu = (x.lichSu || []).concat([{ ngay: ngay, hetHan: kq === 'DAT' ? hh : '', donVi: dv, soGiay: sg, ketQua: kq,
-    nguoi: u.ten, luc: bay, gc: gcD[0], gcDich: gcD[1] }]);
+    tem: tem, nguoi: u.ten, luc: bay, gc: gcD[0], gcDich: gcD[1] }]);
   x.lichSu.sort(function (a, b) { return a.ngay < b.ngay ? 1 : a.ngay > b.ngay ? -1 : 0; });
   if (x.lichSu.length > KD_LICH_SU_TOI_DA) x.lichSu = x.lichSu.slice(0, KD_LICH_SU_TOI_DA);
   x.ngayKD = ngay; x.donViKD = dv; x.soGiayKD = sg; x.ketQua = kq; x.chuKy = ck;
+  if (tem) x.soTem = tem;                          // tem mới dán lên thiết bị sau mỗi lần kiểm định
   x.ngayHetHan = kq === 'DAT' ? hh : '';          // không đạt thì không có hạn, phải kiểm định lại
   x.capNhat = bay;
   suaDong('KiemDinh', x._r, kdThanhDong(x));

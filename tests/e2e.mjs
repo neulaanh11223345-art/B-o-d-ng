@@ -1013,12 +1013,39 @@ assert.equal(kdMoi.binh1.soTem, 'TEM-1', 'bình chứa khí nén nhận số tem
 await page.evaluate((i) => go('kdXem', { id: i }), kdMoi.ak.id); await wait(600);
 assert.match(await text('#main'), /24B TEST1/, 'hồ sơ hiện số tem');
 assert.match(await text('#main'), /Thuộc thiết bị/, 'hồ sơ hiện thiết bị mẹ');
+// Ghi thêm một lần kiểm định nữa để có "lần trước" mà đối chiếu
+const kdLan2 = await page.evaluate(async (i) => {
+  const d = await api('doInspect', { id: i, ngayKD: '2025-09-15', chuKy: 36, donViKD: 'PV TSR 2',
+    soGiayKD: 'GCN-LAN2', soTem: 'TEM-LAN2', ketQua: 'DAT' });
+  await refresh(true);
+  return (d.kiemDinh.lichSu || []).length;
+}, kdMoi.binh1.id);
+assert.equal(kdLan2, 2, 'ghi được lần kiểm định thứ hai');
 const xlKD = await page.evaluate(async () => {
-  const r = await (await readXlsx(await kdXlsx(kdDS()).arrayBuffer()))[0].rows();
-  return r.slice(0, 4).map((x) => x.join('|')).join('\n');
+  const blob = kdXlsx(kdDS());
+  const sh = await readXlsx(await blob.arrayBuffer());
+  const r = await Promise.all(sh.map((x) => x.rows()));
+  const txt = (rows) => rows.map((x) => x.join('|')).join('\n');
+  // XW lưu zip không nén nên dò thẳng mã màu trong tệp là biết ô quá hạn có được tô đỏ không
+  const byt = new Uint8Array(await blob.arrayBuffer());
+  let raw = ''; for (let i = 0; i < byt.length; i++) raw += String.fromCharCode(byt[i]);
+  return { ten: sh.map((x) => x.name), tieuDe: txt(r[0].slice(0, 4)), so: txt(r[0]), ls: txt(r[1]),
+    dongLS: r[1].length, doQuaHan: raw.indexOf('FFFBDBD8') >= 0, camSapHet: raw.indexOf('FFFDEBCF') >= 0 };
 });
-assert.match(xlKD, /Số tem/, 'file xuất có cột số tem');
-assert.match(xlKD, /Thuộc thiết bị/, 'file xuất có cột thuộc thiết bị');
+assert.deepEqual(xlKD.ten, ['Kiem dinh', 'Lich su'], 'hai sheet: sổ kiểm định và lịch sử');
+assert.match(xlKD.tieuDe, /Số tem/, 'file xuất có cột số tem');
+assert.match(xlKD.tieuDe, /Thuộc thiết bị/, 'file xuất có cột thuộc thiết bị');
+assert.match(xlKD.tieuDe, /LẦN KIỂM ĐỊNH TRƯỚC/, 'có cụm cột lần kiểm định trước');
+assert.match(xlKD.tieuDe, /KỲ KIỂM ĐỊNH KẾ TIẾP/, 'có cụm cột kỳ kiểm định kế tiếp');
+assert.match(xlKD.tieuDe, /Còn lại \(ngày\)/, 'có cột số ngày còn lại');
+assert.doesNotMatch(xlKD.tieuDe, /undefined/, 'tiêu đề cột không dính chữ undefined');
+assert.match(xlKD.so, /GCN-LAN2/, 'sổ hiện giấy của lần gần nhất');
+assert.match(xlKD.so, /Quá hạn/, 'sổ đánh dấu thiết bị quá hạn');
+assert.equal(xlKD.doQuaHan, true, 'ô quá hạn được tô đỏ trong file Excel');
+assert.match(xlKD.ls, /Lần thứ/, 'sheet lịch sử có cột lần thứ');
+assert.match(xlKD.ls, /GCN-LAN2/, 'sheet lịch sử ghi cả lần mới nhất');
+assert.match(xlKD.ls, /GCN-1/, 'sheet lịch sử giữ cả lần cũ');
+assert.ok(xlKD.dongLS >= 13, 'sheet lịch sử một dòng cho mỗi lần kiểm định: ' + xlKD.dongLS);
 await page.evaluate(() => back()); await wait(500);
 assert.equal(binh.length, 9, 'nhập đủ chín bình chứa khí nén');
 // Chín bình + áp kế + van an toàn + găng tay cách điện
