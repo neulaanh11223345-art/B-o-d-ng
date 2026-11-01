@@ -688,19 +688,31 @@ const dem16 = await page.evaluate((m) => {
 }, cur16);
 assert.ok(dem16.tuNay <= dem16.ca, 'đếm từ hôm nay không vượt quá đếm cả tháng: ' + JSON.stringify(dem16));
 await page.evaluate((m) => { S.f.trucThang = m; render(); }, ymMau); await wait(400);
-assert.doesNotMatch(await text('#main'), /Trực điện xưởng 1|1号车间电工值班/, 'lịch trực không còn hiện nội dung trực');
+assert.doesNotMatch(await text('.trcal'), /Trực điện xưởng 1/, 'lịch tháng chỉ điểm màu, không nhồi nội dung vào ô');
 await shot('24-lich-truc-thang');
-// Ngày chưa xếp: chỉ chọn người, không còn ô nội dung
+// Chi tiết tuần: bảng cũ, mỗi ngày một dòng kèm nội dung trực song ngữ
+await page.click('[data-act="trucChe"][data-m="tuan"]'); await wait(700);
+assert.equal(await page.locator('.trcal').count(), 0, 'chế độ tuần thì ẩn lịch tháng');
+assert.equal(await page.locator('[data-act="trucXep"]').count(), 7, 'bảy ngày trong tuần');
+assert.match(await text('#main'), /Trực điện xưởng 1/, 'bảng chi tiết hiện nội dung trực');
+assert.match(await text('#main'), /1号车间电工值班/, 'nội dung trực hiện cả tiếng Trung');
+await shot('24b-lich-truc-tuan');
+await page.click('[data-act="trucChe"][data-m="thang"]'); await wait(700);
+assert.equal(await page.locator('.trcal').count(), 1, 'quay lại lịch tháng');
+// Ngày chưa xếp: chọn người và nhập nội dung trực
 assert.ok(lich16.trong, 'tháng mẫu có một ngày chưa xếp');
 await page.click(`[data-act="trucXep"][data-d="${lich16.trong}"]`); await wait(500);
 assert.match(await text('#barTitle'), /Xếp người trực/);
-assert.equal(await page.locator('#trND, #trNDZ').count(), 0, 'ô xếp người trực không còn phần nội dung trực');
+assert.equal(await page.locator('#trND, #trNDZ').count(), 2, 'ô xếp người trực có lại phần nội dung trực song ngữ');
 const u16 = await page.evaluate(() => S.V.nv.find((n) => n.maNV === 'NV005').id);
 await page.selectOption('#trNg', u16); await wait();
 assert.equal(await page.locator('#trMau:visible').count(), 1, 'chọn người thì hiện màu của người đó');
-await page.click('#trOk'); await wait(1200);
-const d16 = await page.evaluate((d) => { const x = trucNgay(d); return { uid: x.uid, ten: x.ten }; }, lich16.trong);
+await page.fill('#trND', 'Kiểm tra bơm nước khu xử lý nước thải'); await wait();
+await page.click('#trOk'); await wait(1400);
+const d16 = await page.evaluate((d) => { const x = trucNgay(d); return { uid: x.uid, ten: x.ten, nd: x.noiDung, dich: !!x.noiDungDich }; }, lich16.trong);
 assert.equal(d16.uid, u16);
+assert.equal(d16.nd, 'Kiểm tra bơm nước khu xử lý nước thải');
+assert.equal(d16.dich, true, 'máy chủ vẫn tự dịch nội dung trực sang tiếng Trung');
 const sau16 = await page.evaluate((m) => trucThangDS(m).ds.filter(trucCoNguoi).length, ymMau);
 assert.equal(sau16, lich16.co + 1, 'xếp thêm một ngày thì lịch tháng đếm thêm một');
 // Tổng số ca: số ngày trực và số ngày Chủ nhật
