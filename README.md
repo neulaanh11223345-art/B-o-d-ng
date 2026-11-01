@@ -116,6 +116,24 @@ Trước đây sổ kiểm định có 17 loại thiết bị, đủ cho nhóm n
 
 Cả hai có trong form, hồ sơ thiết bị, **file mẫu để nhập** và **file xuất Excel**. Trang `KiemDinh` tự thêm hai cột `SoTem`, `ThuocTB` khi nâng cấp; dữ liệu cũ giữ nguyên.
 
+### Lịch kiểm định cả năm, kiểu bảng bảo dưỡng
+
+Màn **Kiểm định thiết bị** thêm hai chế độ: **Danh sách** (như cũ) và **Lịch năm**.
+
+Lịch năm dựng đúng kiểu bảng bảo dưỡng: mỗi thiết bị một dòng, **mười hai cột tháng**, thiết bị gom theo loại. Mỗi ô vuông là một ngày trong tháng đó, bấm vào là mở hồ sơ:
+
+| Màu ô | Nghĩa |
+|---|---|
+| 🟩 Xanh lá | **Đã kiểm định** — ngày thực tế lấy từ lịch sử |
+| 🟥 Đỏ | **Quá hạn** — hạn đã qua mà chưa kiểm định lại, hoặc lần đó không đạt |
+| 🟧 Cam | **Sắp đến hạn** — còn trong 30 ngày |
+| 🟦 Xanh dương nhạt | **Hạn kế tiếp** — còn xa |
+| ⬜ Viền trống | **Kỳ dự kiến** — app tự cộng chu kỳ để xếp lịch các năm sau, chưa phải lịch chốt |
+
+Cột tháng hiện tại tô nền vàng. Bấm mũi tên đổi năm: lùi lại xem các lần đã kiểm định, tiến lên xem kỳ phải làm — dùng để lên kế hoạch và dự trù chi phí cho năm sau.
+
+Chỉ hiện thiết bị **có mốc trong năm đang xem**, nên bảng không đầy ô trống. Chip lọc phía trên vẫn áp dụng: chọn *Quá hạn* rồi mở Lịch năm là ra đúng những thứ phải gọi đơn vị kiểm định.
+
 ### Xuất Excel: lần kiểm định trước, kỳ kế tiếp, quá hạn tô đỏ
 
 Nút **Xuất Excel sổ kiểm định** nay cho file **hai sheet**:
