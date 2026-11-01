@@ -472,16 +472,19 @@ assert.match(don, /TỔNG CỘNG/); assert.match(don, /Hành chính nhân sự/)
 assert.equal(await page.locator('.tcsheet .ot tr').count(), 8, 'bảng 6 dòng + tiêu đề + tổng cộng');
 await shot('18-tang-ca-don');
 assert.ok(await page.evaluate(() => XW.build([tcSheet(tcLoc(tcUid(), tcTuanHT(), addD(tcTuanHT(), 6)), 'x', 'y')]).size) > 2000, 'xuất được Excel tuần');
-// Kỹ thuật chỉ thấy tăng ca của mình
-await page.evaluate(() => go('tcThang')); await wait(600);
+// Kỹ thuật chỉ thấy tăng ca của mình.
+// Dữ liệu mẫu nằm ở tuần chứa hôm nay; tuần đó có thể vắt sang tháng trước (vd Chủ nhật 01/11 thì
+// thứ Hai là 26/10), nên mở đúng tháng chứa thứ Hai của tuần, đừng để mặc định là tháng hiện tại.
+const tcThangMau = await page.evaluate(() => tcThuHai(TODAY()).slice(0, 7));
+await page.evaluate((m) => { S.f.tcThang = m; go('tcThang'); }, tcThangMau); await wait(600);
 assert.equal(await page.locator('.tcrow[data-act="tcNguoiMo"]').count(), 1, 'kỹ thuật chỉ thấy dòng của mình');
 assert.equal(await page.locator('#tcNguoi').count(), 0, 'kỹ thuật không chọn được người khác');
 // Quản lý thấy cả nhà máy và sửa được ca làm việc
 await logout(); await login('NV002', '222222');
-await page.evaluate(() => go('tcThang')); await wait(600);
+await page.evaluate((m) => { S.f.tcThang = m; go('tcThang'); }, tcThangMau); await wait(600);
 assert.ok(await page.locator('.tcrow[data-act="tcNguoiMo"]').count() > 1, 'Quản lý thấy nhiều người');
 await shot('19-tang-ca-thang');
-assert.ok(await page.evaluate(() => tcThangWorkbook(tcThangHT()).size) > 2000, 'xuất được Excel tổng hợp tháng');
+assert.ok(await page.evaluate((m) => tcThangWorkbook(m).size, tcThangMau) > 2000, 'xuất được Excel tổng hợp tháng');
 await page.evaluate(() => go('tcCfg')); await wait(500);
 assert.equal(await page.locator('[data-cf$=":ten"]').count(), 4, 'bốn ca làm việc');
 // Quản lý ghi hộ được cho tuần đã khoá (3 tuần trước)
