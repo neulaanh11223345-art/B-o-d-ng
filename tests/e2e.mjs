@@ -1046,6 +1046,8 @@ assert.match(xlKD.ls, /Lần thứ/, 'sheet lịch sử có cột lần thứ');
 assert.match(xlKD.ls, /GCN-LAN2/, 'sheet lịch sử ghi cả lần mới nhất');
 assert.match(xlKD.ls, /GCN-1/, 'sheet lịch sử giữ cả lần cũ');
 // Lịch kiểm định cả năm, kiểu bảng bảo dưỡng: mỗi thiết bị một dòng, mười hai cột tháng
+await page.evaluate(() => back()); await wait(600);   // đang ở hồ sơ một áp kế, quay lại danh sách
+assert.match(await text('#barTitle'), /Kiểm định/);
 await page.click('[data-act="kdChe"][data-m="lich"]'); await wait(700);
 const kdL = await page.evaluate(() => ({
   cot: document.querySelectorAll('.cal.yr thead th').length,
