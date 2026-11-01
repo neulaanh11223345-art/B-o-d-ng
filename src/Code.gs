@@ -1947,7 +1947,11 @@ function nhapKiemDinh(u, p) {
   if (!rows.length) throw loi('KHONG_CO_DONG', 'File không có dòng nào đọc được · 文件中没有可读取的行');
   var ds = docKiemDinh(), bay = thoiGianStr(), homNay = homNayStr();
   capNhatTieuDe('KiemDinh');
-  var them = 0, sua = 0, boQua = 0, kdMoi = 0, ra = [], idCo = dsIdCo(ds);
+  var boQua = 0, kdMoi = 0, idCo = dsIdCo(ds);
+  // Một thiết bị có thể xuất hiện nhiều dòng (mỗi đợt kiểm định một dòng), nên gom sửa lại
+  // rồi mới ghi một lần. Trước đây ghi ngay từng dòng: thiết bị vừa thêm trong cùng lần nhập
+  // chưa có số dòng (_r), dòng sau của nó gọi suaDong với _r rỗng là hỏng cả lần nhập.
+  var moiDs = [], suaDs = [], daCham = {};
   rows.forEach(function (r) {
     var ten = catChu(r && r.ten, 120), lo = kdLoaiOf(r && r.loai);
     if (!ten || !lo) { boQua++; return; }
@@ -1962,8 +1966,8 @@ function nhapKiemDinh(u, p) {
         thongSo: '', viTri: '', soTem: '', thuocTB: '', nghiemNgat: !!lo.nn, donViKD: '', soGiayKD: '', ngayKD: '', ngayHetHan: '',
         chuKy: lo.ck, ketQua: 'CHUA', ngayKhaiBao: '', ghiChu: '', ghiChuDich: '', hoatDong: true,
         lichSu: [], nguoiTao: u.ten, uidTao: u.id, lucTao: bay };
-      idCo[x.id] = 1; ds.push(x);
-    }
+      idCo[x.id] = 1; ds.push(x); moiDs.push(x); daCham[x.id] = 'moi';
+    } else if (!daCham[x.id]) { suaDs.push(x); daCham[x.id] = 'sua'; }
     x.ten = ten; x.loai = lo.k;
     if (soHieu) x.soHieu = soHieu;
     if (s(r.nhaSX)) x.nhaSX = catChu(r.nhaSX, 120);
@@ -1998,9 +2002,12 @@ function nhapKiemDinh(u, p) {
       }
     }
     x.hoatDong = true; x.capNhat = bay;
-    if (moi) { themDong('KiemDinh', kdThanhDong(x)); them++; } else { suaDong('KiemDinh', x._r, kdThanhDong(x)); sua++; }
-    ra.push(sachKD(x));
   });
+  // Ghi một lần cho mỗi thiết bị, dù nó có bao nhiêu dòng trong file
+  if (moiDs.length) themNhieu('KiemDinh', moiDs.map(kdThanhDong));
+  suaDs.forEach(function (x) { suaDong('KiemDinh', x._r, kdThanhDong(x)); });
+  var them = moiDs.length, sua = suaDs.length;
+  var ra = moiDs.concat(suaDs).map(sachKD);
   ghiNhatKy(u, 'NHAP_KIEM_DINH', 'KiemDinh', '', '', 'Thêm ' + them + ', sửa ' + sua + ', bỏ qua ' + boQua, '');
   return { dsKiemDinh: ra, nhapKD: { them: them, sua: sua, boQua: boQua, lanKD: kdMoi } };
 }
