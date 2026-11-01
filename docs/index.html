@@ -273,6 +273,9 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .kdbar .b .c{width:100%;border-radius:4px 4px 0 0;background:var(--blue)}
 .kdbar .b .m{font-size:10px;color:var(--ink3);line-height:1.1;text-align:center}
 .kdbar .b .m i{display:block;font-style:normal;font-size:9px}
+.thieu ul{margin:6px 0 0;padding-left:18px}
+.thieu li{margin:2px 0;line-height:1.4}
+.thieu li .zi{display:inline;margin-left:.4em}
 .mg td{width:26px;min-width:26px;height:30px;text-align:center}
 .mg thead th.d{width:26px;min-width:26px;padding:3px 0;font-size:11px;line-height:1.15}
 .mg thead th.d b{display:block;font-family:var(--f-mono);font-size:12px;color:var(--ink)}
@@ -1411,7 +1414,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.31.0";
+const APP_VER = "2.32.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -1739,7 +1742,8 @@ if (!DEV) { DEV = 'd' + uid(); store.set('bd_dev', DEV); }
 function apiUrl() { return (typeof API_URL === 'string' && API_URL) || store.get('bd_api', ''); }
 const ROLE_OK = { confirm: ['admin', 'quanly', 'kythuat'], may: ['admin', 'quanly'], huy: ['admin', 'quanly'], admin: ['admin'], giaoviec: ['admin', 'quanly'], xemhet: ['admin', 'quanly'], tailieu: ['admin', 'quanly'],
   ghiviec: ['admin', 'quanly'] };   // ghi việc mới: chỉ Quản lý, Quản trị
-const can = (q) => !!(S.me && ROLE_OK[q].indexOf(S.me.vaiTro) >= 0);
+// Khoá quyền lạ thì coi như không có quyền, không để vỡ cả màn hình
+const can = (q) => !!(S.me && (ROLE_OK[q] || []).indexOf(S.me.vaiTro) >= 0);
 function errMsg(e) {
   const c = (e && e.code) || 'LOI';
   if (c === 'DA_XAC_NHAN' || c === 'TEN_TRUNG') return t(c, { m: e.message || '' });
@@ -1891,6 +1895,18 @@ function mergeResult(d) {
     if (i >= 0) L[i] = lt; else L.push(lt);
   });
   if (d.ntFull) S.base.nguoiTruc = d.nguoiTruc || [];
+  if (d.mayNen) S.base.mayNen = d.mayNen;
+  (d.gioChay || []).forEach((g) => {
+    const L = S.base.gioChay = S.base.gioChay || [];
+    const i = L.findIndex((x) => x.id === g.id);
+    if (i >= 0) L[i] = g; else L.push(g);
+  });
+  if (d.xoa) S.base.gioChay = (S.base.gioChay || []).filter((x) => x.id !== d.xoa);
+  (d.lichMNK || []).forEach((c) => {
+    const L = S.base.lichMNK = S.base.lichMNK || [];
+    const i = L.findIndex((x) => x.tuNgay === c.tuNgay);
+    if (i >= 0) L[i] = c; else L.push(c);
+  });
   (d.phanCa || []).forEach((c) => {
     const L = S.base.phanCa = S.base.phanCa || [];
     const i = L.findIndex((x) => x.tuNgay === c.tuNgay && x.nhom === c.nhom && x.ca === c.ca);
@@ -1937,6 +1953,7 @@ function rebuild() {
   rebuildDien();
   rebuildCV();
   rebuildTruc();
+  rebuildMNK();
 }
 const activeMay = () => S.V.may.filter((m) => m.hoatDong);
 const nhacTruoc = () => (S.base && S.base.caiDat && S.base.caiDat.nhacTruoc !== undefined ? S.base.caiDat.nhacTruoc : 3);
@@ -2019,7 +2036,7 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 const xemHet = () => can('xemhet');
 const HAN_CHE = new Set(['cvNew', 'list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
   'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
-  'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit', 'tlTb']);
+  'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit', 'tlTb', 'mnkDS']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
@@ -2029,7 +2046,7 @@ const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thiết bị / Bảo dưỡng / Lịch sử / Kho vốn là bốn tab của cùng một màn → một dòng "Thiết bị".
 // Nhắc hàng, tồn an toàn, tem QR, phân ca, tổng số ca… đều đã nằm trong màn của chúng → không đưa ra menu.
 const NHOM = [
-  ['nhomViec', [['cv', 'navCV', 'list'], ['ngt', 't_ngt', 'check'], ['list', 'navMay', 'gear']]],
+  ['nhomViec', [['cv', 'navCV', 'list'], ['ngt', 't_ngt', 'check'], ['mnk', 'navMNK', 'drop'], ['list', 'navMay', 'gear']]],
   ['nhomDien', [['dien', 'navDien', 'bolt']]],
   ['nhomNS', [['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users']]],
   ['nhomCC', [['kd', 't_kd', 'check'], ['tlTb', 't_tlTb', 'img'], ['tt', 't_tt', 'wrench']]],
@@ -2078,13 +2095,15 @@ const TITLES = { them: 't_them', khoNhac: 't_khoNhac', khoMin: 't_khoMin', dien:
   tc: 't_tc', tcGhi: 't_tcGhi', tcXem: 't_tcXem', tcThang: 't_tcThang', tcCfg: 't_tcCfg',
   tlCfg: 't_tlCfg', tlGan: 't_tlGan', tlDS: 't_tlDS',
   truc: 't_truc', trucGhi: 't_trucGhi', trucTong: 't_trucTong', phanCa: 't_phanCa', phanCaTuan: 't_phanCaTuan', trucNguoi: 't_trucNguoi',
-  kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit', tlTb: 't_tlTb', ngt: 't_ngt', ngtGhi: 't_ngtGhi', ngtXem: 't_ngtGhi' };
-const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg', 'tlTb', 'ngt'];
+  kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit', tlTb: 't_tlTb', ngt: 't_ngt', ngtGhi: 't_ngtGhi', ngtXem: 't_ngtGhi',
+  mnk: 't_mnk', mnkGhi: 't_mnkGhi', mnkDS: 't_mnkDS' };
+const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg', 'tlTb', 'ngt', 'mnk'];
 const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
   tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me',
   trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc', khoNhac: 'list', khoMin: 'list',
-  kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list', ttLoiEdit: 'list', tlTb: 'list', ngt: 'cv', ngtGhi: 'cv', ngtXem: 'cv' };
+  kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list', ttLoiEdit: 'list', tlTb: 'list', ngt: 'cv', ngtGhi: 'cv', ngtXem: 'cv',
+  mnkGhi: 'mnk', mnkDS: 'mnk' };
 const topV = () => S.stack[S.stack.length - 1];
 const isWide = () => window.matchMedia && window.matchMedia('(min-width:1024px)').matches;
 function initials(n) { const w = String(n || '?').trim().split(/\s+/); return (w.length > 1 ? w[w.length - 1][0] : w[0].slice(0, 2)).toUpperCase(); }
@@ -2592,6 +2611,15 @@ const maSuaChua = (ma) => { const m = ma && S.V.byMa[ma]; return m && m.chuyen &
 // Danh sách thiết bị dùng chung cho mọi loại việc (Ghi việc, Ghi sửa chữa, Việc lặp lại).
 // Ba nhóm: chuyền sản xuất · máy ngoài chuyền · máy của từng chuyền. Máy chủ nhận cả mã máy lẫn mã chuyền.
 // Chuyền để trên cùng vì việc sửa chữa thường ghi theo chuyền, nhưng máy nhánh vẫn chọn được.
+// Khối cảnh báo liệt kê đúng tên từng mục còn thiếu, song ngữ Việt – Trung.
+// ds: mảng [vi, zh]; nhom: tên phần (vd "Trước khi sửa chữa") nếu mục nằm ở tab khác.
+function thieuHtml(ds) {
+  if (!ds.length) return '';
+  return `<div class="thieu"><b>${tv('chuaDayDu')}<span class="zi" lang="zh-CN">${tz('chuaDayDu')}</span></b>
+    <ul>${ds.map(([vi, zh]) => `<li>${esc(vi)}<span class="zi" lang="zh-CN">${esc(zh)}</span></li>`).join('')}</ul></div>`;
+}
+// Danh sách máy / chuyền, bỏ lựa chọn "không gắn máy" khi mục này bắt buộc
+function tbOptionsBuoc(cur) { return tbOptions(cur, 'scChonMay').replace(/^<option value=""[^>]*>[^<]*<\/option>/, (m) => m.replace(' selected', '')); }
 function tbOptions(cur, khongChon) {
   if (srvOld('scch')) return mayOptions(cur);     // máy chủ cũ chưa nhận mã chuyền: giữ danh sách máy như trước
   cur = cur || '';
@@ -4483,7 +4511,8 @@ Object.assign(TX, {
   tabTL: ['Tài liệu', '资料'], tlSec: ['Tài liệu', '资料'], tlCuaCh: ['Tài liệu của chuyền {c}', '产线{c}的资料'],
   tlTaiTep: ['Tải tệp lên', '上传文件'], tlChupAnh: ['Chụp ảnh', '拍照'], tlThemLink: ['Thêm liên kết', '添加链接'], tlThem: ['Thêm tài liệu', '添加资料'],
   tlTrong: ['Chưa có tài liệu. Thêm sách hướng dẫn, bản vẽ, quy trình hoặc ảnh máy để xem ngay khi quét QR.', '暂无资料。可添加说明书、图纸、作业指导书或设备照片，扫码即可查看。'],
-  tl_HDSD: ['Hướng dẫn sử dụng', '使用说明书'], tl_BANVE: ['Bản vẽ', '图纸'], tl_QUYTRINH: ['Quy trình (SOP)', '作业指导书'], tl_ANH: ['Ảnh', '照片'], tl_KHAC: ['Khác', '其他'],
+  tl_HDSD: ['Hướng dẫn sử dụng', '使用说明书'], tl_BANVE: ['Bản vẽ', '图纸'], tl_QUYTRINH: ['Quy trình (SOP)', '作业指导书'],
+  tl_KIEMDINH: ['Kiểm định', '检定'], tl_ANH: ['Ảnh', '照片'], tl_KHAC: ['Khác', '其他'],
   tlDaiDien: ['Ảnh đại diện', '封面'], tlLamDaiDien: ['Đặt làm ảnh đại diện của máy', '设为设备封面'], tlTen: ['Tên tài liệu', '资料名称'], tlNhom: ['Nhóm', '类别'],
   tlLink: ['Liên kết', '链接'], tlLinkHelp: ['Tệp lớn hơn 10 MB: tải lên Google Drive, chia sẻ “Bất kỳ ai có đường liên kết”, rồi dán liên kết vào đây.', '超过10MB的文件：上传到Google Drive，设置“知道链接的任何人”可查看，再粘贴链接。'],
   tlLuuBtn: ['Tải lên', '上传'], tlDangDoc: ['Đang đọc tệp…', '正在读取文件…'], tlDangTai: ['Đang tải lên ({kb})…', '正在上传（{kb}）…'],
@@ -4664,7 +4693,10 @@ VIEWS.tlDS = {
     const k = (p.q || '').trim().toLowerCase();
     const ds = tlAll().filter((x) => (!p.nhom || x.nhom === p.nhom)
       && (!k || [x.ten, x.duongDan, x.ma, mh(x.ma), tlTenMa(x.ma)].some((v) => String(v || '').toLowerCase().includes(k))));
-    let o = `<label class="fld"><span>${t('search')}</span><input class="inp" id="tlDSQ" value="${esc(p.q)}" placeholder="${esc(tp('tlTimPH'))}"></label>
+    const themDuoc = can('tailieu') && !srvOld('saoluu');
+    let o = themDuoc ? `<div class="btns" style="margin-bottom:12px"><button class="btn pri" data-act="tlThemMoi">${IC.plus} ${t('tlThemMoi')}</button></div>
+      <p class="help" style="margin:-6px 0 12px">${t('tlThemMoiHelp')}</p>` : '';
+    o += `<label class="fld"><span>${t('search')}</span><input class="inp" id="tlDSQ" value="${esc(p.q)}" placeholder="${esc(tp('tlTimPH'))}"></label>
       <div class="chips" style="margin-top:10px"><button type="button" class="chip${p.nhom ? '' : ' on'}" data-act="tlDSNhom" data-g="">${t('tlLoc_tatCa')}</button>
       ${TL_NHOM.map((g) => `<button type="button" class="chip${p.nhom === g ? ' on' : ''}" data-act="tlDSNhom" data-g="${g}">${t('tl_' + g)}</button>`).join('')}</div>`;
     if (!ds.length) return o + `<div class="card empty">${t('tlKhongCoDong')}</div>`;
@@ -4686,7 +4718,36 @@ VIEWS.tlDS = {
     q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); render(); } });
   }
 };
+// Thêm tài liệu ngay từ màn tra cứu: chọn máy trước, rồi chọn cách thêm
+function tlChonMaySheet(tieuDe, act) {
+  const ds = (S.V.may || []).filter((m) => m.hoatDong).map((m) => ({ ma: m.ma, ten: m.ten }))
+    .concat((S.V.ch || []).map((c) => ({ ma: c.ma, ten: c.tenZh || c.ten || c.ma, ch: 1 })));
+  openSheet(`<div class="grab"></div><h3>${tv(tieuDe)}<span class="zi">${tz(tieuDe)}</span></h3>
+    <label class="fld" style="margin-top:8px"><input class="inp" id="tlMayQ" placeholder="${esc(tp('tlTimMayPH'))}"></label>
+    <div class="list" id="tlMayDS" style="margin-top:10px;max-height:46vh;overflow:auto"></div>`, () => {
+    const ve = (k) => {
+      const kk = (k || '').trim().toLowerCase();
+      const a = ds.filter((x) => !kk || [x.ma, mh(x.ma), x.ten].some((v) => String(v || '').toLowerCase().includes(kk))).slice(0, 60);
+      $('#tlMayDS').innerHTML = a.length
+        ? a.map((x) => `<button class="row" data-act="${act}" data-ma="${esc(x.ma)}"><div class="main"><div class="nm">${esc(x.ten)}</div>
+          <div class="sub"><span class="code">${esc(mh(x.ma))}</span>${x.ch ? ` · ${esc(tp('tlLaChuyen'))}` : ''} · ${esc(tv('tlCoN', { n: tlCua(x.ma).length }))}</div></div>${IC.chev}</button>`).join('')
+        : `<div class="card empty">${t('tlKhongCoDong')}</div>`;
+    };
+    ve('');
+    $('#tlMayQ').addEventListener('input', (e) => ve(e.target.value));
+  });
+}
 Object.assign(ACT, {
+  tlThemMoi: () => tlChonMaySheet('tlThemMoi', 'tlThemCach'),
+  tlThemCach: (el) => {
+    const ma = el.dataset.ma;
+    openSheet(`<div class="grab"></div><h3>${tv('tlThem')}<span class="zi">${tz('tlThem')}</span></h3>
+      <div class="who"><span class="code">${esc(mh(ma))}</span> ${esc(tlTenMa(ma))}</div>
+      <div class="list" style="margin-top:10px">
+        <button class="row" data-act="tlChon" data-ma="${esc(ma)}">${IC.plus}<div class="main"><div class="nm">${t('tlTaiTep')}</div></div>${IC.chev}</button>
+        <button class="row" data-act="tlChon" data-ma="${esc(ma)}" data-cam="1">${IC.cam}<div class="main"><div class="nm">${t('tlChupAnh')}</div></div>${IC.chev}</button>
+        <button class="row" data-act="tlLink" data-ma="${esc(ma)}">${IC.link}<div class="main"><div class="nm">${t('tlThemLink')}</div></div>${IC.chev}</button></div>`);
+  },
   tlLoc: (el) => { topV().p.loc = el.dataset.k; render(); },
   tlDSNhom: (el) => { topV().p.nhom = el.dataset.g; render(); },
   tlChonHet: () => { const p = topV().p; tlLocDS(p.loc, p.q).forEach((x) => { p.sel[x.id] = true; }); render(); },
@@ -4762,6 +4823,9 @@ Object.assign(TX, {
   tlGanMayBtn: ['Gán máy / chuyền', '指定设备/产线'], tlGanNhomBtn: ['Gán nhóm', '指定类别'], tlBoGanMay: ['Bỏ gán máy', '取消设备关联'],
   tlDaGan: ['Đã gán {n} tài liệu', '已设置{n}份资料'], tlChuaGan: ['Chưa gán máy', '未关联设备'], tlLaChuyen: ['Chuyền sản xuất', '产线'],
   tlTimPH: ['Tên tài liệu, thư mục, mã máy', '资料名称、文件夹、设备编号'], tlTimMayPH: ['Tìm máy hoặc chuyền', '查找设备或产线'],
+  tlThemMoi: ['Thêm tài liệu mới', '添加新资料'], tlCoN: ['{n} tài liệu', '{n}份资料'],
+  tlThemMoiHelp: ['Chọn máy trước, rồi tải tệp lên, chụp ảnh hoặc dán liên kết Drive. Tài liệu cũng thêm được ngay trong hồ sơ từng máy.',
+    '先选择设备，再上传文件、拍照或粘贴云端链接。也可在各设备档案中直接添加。'],
   tlKhongCoDong: ['Không có tài liệu nào khớp.', '没有符合的资料。'], tlDSDem: ['Tài liệu', '资料'],
   tlMat: ['Không còn trên Drive', '已不存在'], tlBanCu: ['Bản cũ', '旧版'], tlBanHienHanh: ['Bản hiện hành', '现行版'],
   tlDatHienHanh: ['Đặt làm bản hiện hành', '设为现行版'], tlNguonDrive: ['Tài liệu gốc trên Drive của nhà máy', '工厂云端硬盘上的原始文件'],
@@ -4888,7 +4952,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -8126,8 +8190,12 @@ Object.assign(TX, {
   scNhieuDong: ['Mỗi dòng một ý, app tự đánh số 1, 2, 3', '每行一项，自动编号'], scNgay: ['Ngày sửa', '维修日期'], scNguoi: ['Người xử lý (không bắt buộc)', '维修人（可选）'],
   scLKHelp: ['Chọn linh kiện của máy, hoặc chọn Khác rồi gõ tên — app gợi ý linh kiện có trong kho và hiện tồn. Thứ kho chưa có thì vẫn ghi được, chỉ không thêm vào danh sách linh kiện của máy.',
     '可选择该设备的零件，或选"其他"后输入名称 — 应用会提示库存零件并显示库存量。库存没有的也能记录，只是不加入该设备的零件清单。'],
-  scChuaChon: ['Không chọn', '不选'], scKhongMay: ['— Không gắn thiết bị —', '— 不关联设备 —'], scLK: ['Linh kiện thay (mỗi dòng một loại)', '更换零件（每行一种）'], scLKPh: ['Vd: Attomat 32A 3P', '如：32A 3P空开'],
+  scChuaChon: ['Không chọn', '不选'], scKhongMay: ['— Không gắn thiết bị —', '— 不关联设备 —'],
+  scChonMay: ['— Chọn thiết bị —', '— 请选择设备 —'],
+  chuaDayDu: ['Chưa điền đủ, các mục còn thiếu:', '填写不完整，缺少以下内容：'], scLK: ['Linh kiện thay (mỗi dòng một loại)', '更换零件（每行一种）'], scLKPh: ['Vd: Attomat 32A 3P', '如：32A 3P空开'],
   CAN_MO_TA: ['Cần ghi mô tả sự cố.', '请填写问题描述。'],
+  CAN_NGUYEN_NHAN: ['Cần ghi nguyên nhân.', '请填写原因。'], CAN_MAY: ['Cần chọn thiết bị.', '请选择设备。'],
+  CAN_NGUOI_LAM: ['Cần chọn người làm.', '请选择执行人。'],
   MA_HT_TRUNG: ['Mã hiển thị này đã dùng cho {m}.', '该显示编号已被{m}使用。'], MA_HT_SAI: ['Mã hiển thị có ký tự không hợp lệ.', '显示编号含无效字符。'],
   srvMissCV: ['Bản 2.4: công việc, giao việc, việc lặp lại, báo cáo tháng, tự dịch Việt ↔ Trung.', '2.4版：工作、派工、重复工作、月度报表、中越自动翻译。'],
   cvTuDich: ['Lưu xong app tự dịch sang tiếng Trung (gõ tiếng Trung thì dịch sang tiếng Việt).', '保存后自动翻译成越南语或中文。'],
@@ -8658,7 +8726,7 @@ VIEWS.scGhi = {
     const ta = (id, k, rows, ph) => `<label class="fld"><span>${t(k)}</span><textarea class="inp" id="${id}" rows="${rows}" maxlength="1000"${ph ? ` placeholder="${esc(tp(ph))}"` : ''}>${esc(p[id] || '')}</textarea></label>`;
     return `<form id="scF" class="card pad" autocomplete="off">
       <div class="help" style="margin-bottom:10px">${t('scGhiHelp')}</div>
-      <div class="row2f"><label class="fld"><span>${t('thMay')}</span><select class="inp" id="scMa">${tbOptions(p.scMa, 'scKhongMay')}</select>${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</label>
+      <div class="row2f"><label class="fld"><span>${t('thMay')}</span><select class="inp" id="scMa">${tbOptionsBuoc(p.scMa)}</select>${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</label>
         <label class="fld"><span>${t('scNgay')}</span><input class="inp" id="scNgay" type="date" max="${esc(TODAY())}" value="${esc(p.ngay)}"></label></div>
       ${ta('scMT', 'scMT', 2, '')}
       <div id="scGoiY">${gyHtml(scGoiY(p.scMa, p.scMT), 'sc', p.scMa)}</div>
@@ -8692,8 +8760,14 @@ VIEWS.scGhi = {
       e.preventDefault();
       const fe = $('#scErr'), err = (h) => { fe.innerHTML = h; fe.hidden = false; fe.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
       const v = (id) => ($('#' + id).value || '').trim();
-      if (!v('scMT')) return err(t('CAN_MO_TA'));
-      if (!v('scKQ')) return err(t('CAN_KET_QUA'));
+      // Liệt kê một lượt mọi mục còn thiếu, đừng bắt thợ sửa từng cái một
+      const thieu = [];
+      if (!$('#scMa').value) thieu.push(['Thiết bị / máy', '设备']);
+      if (!v('scMT')) thieu.push(['Mô tả sự cố', '故障描述']);
+      if (!v('scNN')) thieu.push(['Nguyên nhân', '原因']);
+      if (!v('scKQ')) thieu.push(['Kết quả / cách xử lý', '处理结果']);
+      if (!p.sel.lam) thieu.push(['Người làm', '执行人']);
+      if (thieu.length) return err(thieuHtml(thieu));
       const ngay = $('#scNgay').value || TODAY();
       if (!validD(ngay) || ngay > TODAY()) return err(t('NGAY_SAI'));
       const gio = parseSo(v('scGio'));
@@ -10206,6 +10280,42 @@ VIEWS.ngt = {
       <div class="list">${ds.length ? ds.map(ngtRow).join('') : `<div class="card empty">${t('ngtTrong')}</div>`}</div>`;
   }
 };
+// Phần nào đã động tới thì phải điền đủ phần đó. Phần chưa đụng vẫn để trống được,
+// vì biên bản trước và biên bản sau thường ghi cách nhau vài ngày.
+function ngtCoDL(d) {
+  if (!d) return false;
+  return Object.keys(d.chung || {}).some((k) => String(d.chung[k] || '').trim())
+    || Object.keys(d.muc || {}).some((k) => Object.keys(d.muc[k] || {}).some((j) => String(d.muc[k][j] || '').trim()))
+    || Object.keys(d.ky || {}).some((k) => String(d.ky[k] || '').trim())
+    || String(d.vanBan || '').trim() || d.ketLuan;
+}
+function ngtThieu(p) {
+  const r = [];
+  if (!String(p.tenTB || '').trim()) r.push(['Tên thiết bị', '设备名称']);
+  if (!String(p.donVi || '').trim()) r.push(['Đơn vị sửa chữa', '维修单位']);
+  const phan = [['truoc', p.truoc, 'Trước khi sửa chữa', '维修前'], ['sau', p.sau, 'Sau khi sửa chữa', '维修后']];
+  const coPhanNao = phan.some(([, d]) => ngtCoDL(d));
+  if (!coPhanNao) { r.push(['Chưa điền phần nào — mở tab Trước hoặc Sau rồi điền', '尚未填写任何部分']); return r; }
+  phan.forEach(([seg, d, pv, pz]) => {
+    if (!ngtCoDL(d)) return;                       // phần chưa đụng tới thì bỏ qua
+    const m = NGT_MAU[seg], nhan = (vi, zh) => [pv + ' › ' + vi, pz + ' › ' + zh];
+    // Ba ô này đã hỏi ở đầu phiếu rồi, điền trên đó là đủ, không bắt gõ lại trong bảng.
+    // Mã thiết bị để trống được: động cơ, quạt gửi đi sửa nhiều khi chưa có mã trong hệ thống.
+    const dauPhieu = { tenTB: p.tenTB, donVi: p.donVi }, boQua = { maTB: 1 };
+    m.chung.forEach(([k, vi, zh]) => {
+      if (boQua[k] || String((d.chung || {})[k] || '').trim() || String(dauPhieu[k] || '').trim()) return;
+      r.push(nhan(vi, zh));
+    });
+    m.nhom.forEach((n) => n.muc.forEach(([k, vi, zh, , , dv]) => {
+      const q = (d.muc || {})[k] || {};
+      if (!q.dg) r.push(nhan(vi + ' — chưa chấm Đạt / Không đạt', zh + ' — 未评定'));
+      else if (dv === 'A/B/C') { if (!['A', 'B', 'C'].every((ph) => String(q[ph] || '').trim())) r.push(nhan(vi + ' — thiếu số đo A/B/C', zh + ' — 缺A/B/C实测值')); }
+      else if (dv && !String(q.so || '').trim()) r.push(nhan(vi + ' — thiếu số đo (' + dv + ')', zh + ' — 缺实测值'));
+    }));
+    if (m.ketLuan && !d.ketLuan) r.push(nhan('Kết luận nghiệm thu', '验收结论'));
+  });
+  return r;
+}
 function ngtPhan(p) { return p.seg === 'sau' ? (p.sau = p.sau || { chung: {}, muc: {}, ky: {} }) : (p.truoc = p.truoc || { chung: {}, muc: {}, ky: {} }); }
 VIEWS.ngtGhi = {
   html(p) {
@@ -10294,7 +10404,10 @@ VIEWS.ngtGhi = {
     f.addEventListener('input', sync); f.addEventListener('change', sync);
     f.addEventListener('submit', async (e) => {
       e.preventDefault(); sync();
-      const fe = $('#ngtErr'), b = $('#ngtOk'); fe.hidden = true; b.disabled = true;
+      const fe = $('#ngtErr'), b = $('#ngtOk'); fe.hidden = true;
+      const thieu = ngtThieu(p);
+      if (thieu.length) { fe.innerHTML = thieuHtml(thieu); fe.hidden = false; fe.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+      b.disabled = true;
       try {
         const d = await api('saveAccept', { id: p.id || '', ngayNT: p.ngayNT, ma: p.ma, tenTB: p.tenTB.trim(),
           donVi: p.donVi.trim(), cvId: p.cvId || '', truoc: p.truoc, sau: p.sau });
@@ -11762,7 +11875,15 @@ Object.assign(TX, {
   mTruc: ['Lịch trực', '值班表'], mTrucNay: ['Hôm nay', '今天'], mTrucChua: ['Hôm nay chưa xếp ai trực', '今天未安排值班'],
   t_trucTong: ['Tổng số ca', '班次合计'], t_phanCa: ['Phân công ca trực', '值班排班表'], t_trucNguoi: ['Danh sách người trực ca', '值班人名单'],
   trucGio: ['Giờ trực', '值班时间'], trucTuanN: ['Tuần {a} – {b}', '{a} – {b} 周'],
-  trucChuaXep: ['Chưa xếp', '未安排'],
+  trucChuaXep: ['Chưa xếp', '未安排'], trucChuaND: ['Chưa có nội dung trực', '暂无值班内容'],
+  trucNoiDung: ['Nội dung trực', '值班内容'],
+  trucNDHelp: ['Nội dung do Quản lý nhập, mỗi người mỗi ngày một nội dung riêng. Gõ tiếng Việt, app tự dịch sang tiếng Trung.',
+    '值班内容由主管填写，每人每天各自不同。用越南语填写，应用自动翻译成中文。'],
+  trucNDZ: ['Nội dung tiếng Trung', '值班内容（中文）'],
+  trucNDZHelp: ['Để trống là app tự dịch. Dịch chưa đúng thì sửa ở đây, app sẽ không dịch đè nữa.',
+    '留空则自动翻译。翻译不准时在此修改，应用不再覆盖。'],
+  trucBang: ['Bảng lịch trực', '值班表'],
+  trucCheThang: ['Lịch tháng', '月历'], trucCheTuan: ['Chi tiết tuần', '周明细'],
   trucHomNay: ['Hôm nay', '今天'], trucBanTruc: ['Bạn trực', '您值班'], trucThieuN: ['{n} ngày chưa xếp', '{n}天未安排'], trucConThieuN: ['Còn {n} ngày chưa xếp', '还有{n}天未安排'],
   trucDuNgay: ['Đã xếp đủ tháng', '本月已排满'], trucNguoiTruc: ['Người trực', '值班人'],
   trucChuThich: ['Màu theo người trực', '颜色对应值班人'], trucNgayN: ['{n} ngày', '{n}天'],
@@ -11827,6 +11948,7 @@ const trucThangHT = () => S.f.trucThang || TODAY().slice(0, 7);
 const trucSua = () => can('giaoviec');
 const trucDS = () => (S.V && S.V.truc) || [];
 const trucNgay = (d) => trucDS().filter((x) => x.ngay === d)[0] || null;
+const trucTuanDS = (tu) => [0, 1, 2, 3, 4, 5, 6].map((i) => { const d = addD(tu, i); return { ngay: d, x: trucNgay(d) }; });
 const trucCoNguoi = (o) => !!(o.x && o.x.uid);
 // Các tuần (thứ Hai) có ngày rơi vào tháng đó
 function trucTuanTrongThang(ym) {
@@ -12018,9 +12140,48 @@ function rebuildTruc() {
   S.V.truc = lt; S.V.pc = pc; S.V.nt = nt;
 }
 
+const trucSegHtml = (che) => `<div class="seg" style="margin-bottom:12px">${[['thang', 'trucCheThang'], ['tuan', 'trucCheTuan']].map(([k, lb]) =>
+  `<button class="${che === k ? 'on' : ''}" data-act="trucChe" data-m="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div>`;
+// Bảng chi tiết một tuần: mỗi ngày một dòng, kèm nội dung trực song ngữ
+function trucTuanHtml() {
+  const tu = trucTuanHT(), den = addD(tu, 6), ds = trucTuanDS(tu), today = TODAY();
+  const thieu = ds.filter((o) => !trucCoNguoi(o)).length, me = (S.me || {}).id, mau = trucMauThang(tu.slice(0, 7));
+  let o = srvOld('truc') ? srvWarn('truc') : '';
+  o += trucSegHtml('tuan') + `<div class="caltools"><div class="stepper">
+    <button data-act="trucTuan" data-d="-1" aria-label="-">${IC.left}</button>
+    <b>${tv('trucTuanN', { a: fmtDM(tu), b: fmtDM(den) })}</b>
+    <button data-act="trucTuan" data-d="1" aria-label="+">${IC.right}</button></div>
+    <span class="pill ${thieu ? 'p-qua' : 'p-ok'}">${thieu ? t('trucThieuN', { n: thieu }) : t('trucDuNgay')}</span></div>`;
+  o += `<div class="help" style="margin:0 0 10px">${esc(tv('trucGio'))}: <b class="mono">17:00 – 19:30</b>
+    <span class="zi" lang="zh-CN">${esc(tz('trucGio'))}: 17:00 – 19:30</span></div>`;
+  o += sec('trucBang') + `<div class="list">${ds.map((d) => {
+    const x = d.x || {}, w = wday(d.ngay), nay = d.ngay === today, co = trucCoNguoi(d);
+    const m = co ? mau[x.uid] : null;
+    const sub = co ? (x.noiDung ? svH(x.noiDung, x.noiDungDich) : `<span style="color:var(--ink3)">${t('trucChuaND')}</span>`) : '';
+    return `<${trucSua() ? 'button' : 'div'} class="tcrow${nay ? ' on' : ''}"${trucSua() ? ` data-act="trucXep" data-d="${esc(d.ngay)}"` : ' style="cursor:default"'}>
+      <div class="h">${m ? `<i style="width:12px;height:12px;border-radius:4px;flex:none;background:${m[0]}"></i>` : ''}<b>${WD_VI_F[w]}</b>
+        <span class="mono" style="color:var(--ink3)">${fmtDM(d.ngay)}</span>
+        ${nay ? `<span class="pill p-nay">${t('trucHomNay')}</span>` : ''}
+        ${co ? `<span style="margin-left:auto;text-align:right">${trucTen(x)}${x.uid === me ? ` <span class="pill p-ok">${t('trucBanTruc')}</span>` : ''}</span>`
+    : `<span style="margin-left:auto;color:var(--red);font-weight:700">${t('trucChuaXep')}</span>`}
+        ${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}</div>
+      ${sub ? `<div class="sub">${sub}</div>` : ''}</${trucSua() ? 'button' : 'div'}>`;
+  }).join('')}</div>`;
+  if (trucSua()) o += `<div class="help" style="margin-top:8px">${t('trucNDHelp')}</div>
+    <div class="btns" style="margin-top:12px">${srvOld('cap') ? '' : `<button class="btn ghost" data-act="trucChep">${IC.share} ${t('trucChep')}</button>`}
+      <button class="btn ghost" data-act="trucPdf" data-m="${tu.slice(0, 7)}">${IC.print} ${t('trucPdf')}</button>
+      <button class="btn ghost" data-act="trucXuat" data-m="${tu.slice(0, 7)}">${IC.dl} ${t('trucXuat')}</button></div>`;
+  o += `<button class="cta2 blue" style="margin-top:14px" data-act="go" data-v="trucTong"><span class="ic">${IC.hist}</span>
+    <span>${tv('trucMoTong')}<span class="zi">${tz('trucMoTong')}</span></span>${IC.chev}</button>`;
+  o += `<button class="cta2" data-act="go" data-v="phanCa"><span class="ic">${IC.users}</span>
+    <span>${tv('trucMoPC')}<span class="zi">${tz('trucMoPC')}</span></span>${IC.chev}</button>`;
+  return o;
+}
 // ---------- Lịch trực tháng: mỗi người một màu ----------
 VIEWS.truc = {
   html() {
+    const che = S.f.trucChe || 'thang';
+    if (che === 'tuan') return trucTuanHtml();
     const ym = trucThangHT(), [y, mo] = ym.split('-').map(Number), today = TODAY();
     const { ds, truoc } = trucThangDS(ym), me = (S.me || {}).id, sua = trucSua();
     const tg = trucTongDS(ym), ngan = trTenNganMap(tg.map((n) => n.ten)), mau = trucMauThang(ym);
@@ -12028,7 +12189,7 @@ VIEWS.truc = {
     const moc = ym < today.slice(0, 7) ? '' : today;
     const thieu = ds.filter((o) => !trucCoNguoi(o) && o.ngay >= moc).length;
     let o = srvOld('truc') ? srvWarn('truc') : '';
-    o += `<div class="caltools"><div class="stepper">
+    o += trucSegHtml(che) + `<div class="caltools"><div class="stepper">
       <button data-act="trucThang" data-d="-1" aria-label="-">${IC.left}</button>
       <b>${tv('trucThangN', { m: mo, y })}</b>
       <button data-act="trucThang" data-d="1" aria-label="+">${IC.right}</button></div>
@@ -12074,8 +12235,8 @@ VIEWS.truc = {
 // ---------- Xếp một ngày ----------
 VIEWS.trucGhi = {
   html(p) {
-    const x = trucNgay(p.d) || { uid: '' };
-    if (!p.init) Object.assign(p, { init: 1, uid: x.uid || '' });
+    const x = trucNgay(p.d) || { uid: '', noiDung: '', noiDungDich: '' };
+    if (!p.init) Object.assign(p, { init: 1, uid: x.uid || '', nd: x.noiDung || '', ndz: x.noiDungDich || '', zSua: 0 });
     const w = wday(p.d), m = p.uid ? trMau(p.uid, p.d) : null;
     return `<form id="trF" class="card pad" autocomplete="off">
       <div class="help" style="margin-bottom:12px"><b>${WD_VI_F[w]}, ${fmtD(p.d)}</b> <span class="zi" lang="zh-CN">${WD_ZH_F[w]}</span> · 17:00 – 19:30</div>
@@ -12083,9 +12244,15 @@ VIEWS.trucGhi = {
         <select class="inp" id="trNg"><option value=""${!p.uid ? ' selected' : ''}>— ${esc(tp('trucChuaXep'))} —</option>
           ${nvDS().map((n) => `<option value="${esc(n.id)}"${n.id === p.uid ? ' selected' : ''}>${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ' ' + esc(n.tenZh) : ''}${n.maNV ? ' · ' + esc(n.maNV) : ''}</option>`).join('')}</select></div>
       <div class="trleg" id="trMau" style="margin:10px 0 0"${m ? '' : ' hidden'}><span><i style="background:${m ? m[0] : 'transparent'}"></i><em>${esc(tp('trucChuThich'))}</em></span></div>
+      <label class="fld" style="margin-top:12px"><span>${t('trucNoiDung')}</span>
+        <textarea class="inp" id="trND" rows="3" maxlength="500">${esc(p.nd)}</textarea></label>
+      <div class="help" style="margin-top:6px">${t('trucNDHelp')}</div>
+      <label class="fld" style="margin-top:12px"><span>${t('trucNDZ')}</span>
+        <textarea class="inp" id="trNDZ" rows="2" maxlength="500" style="font-family:var(--f-zh)">${esc(p.ndz)}</textarea></label>
+      <div class="help" style="margin-top:6px">${t('trucNDZHelp')}</div>
       <div id="trErr" class="err" hidden></div>
       <div class="btns" style="margin-top:16px"><button type="button" class="btn pri" id="trOk">${IC.check} ${t('trucLuu')}</button>
-        ${x.uid ? `<button type="button" class="btn ghost" data-act="trucBo" data-d="${esc(p.d)}">${t('trucBoTrong')}</button>` : ''}</div>
+        ${x.uid || p.nd ? `<button type="button" class="btn ghost" data-act="trucBo" data-d="${esc(p.d)}">${t('trucBoTrong')}</button>` : ''}</div>
     </form>`;
   },
   after(p) {
@@ -12095,10 +12262,14 @@ VIEWS.trucGhi = {
       box.hidden = !p.uid;
       if (p.uid) box.querySelector('i').style.background = trMau(p.uid, p.d)[0];
     });
+    $('#trND').addEventListener('input', (e) => { p.nd = e.target.value; });
+    $('#trNDZ').addEventListener('input', (e) => { p.ndz = e.target.value; p.zSua = 1; });
     $('#trOk').addEventListener('click', async () => {
       const e = $('#trErr'), b = $('#trOk');
       e.hidden = true; b.disabled = true;
-      const r = await send('dutySet', { ngay: p.d, uid: p.uid });
+      const pl = { ngay: p.d, uid: p.uid, noiDung: p.nd };
+      if (p.zSua) pl.noiDungDich = p.ndz;
+      const r = await send('dutySet', pl);
       b.disabled = false;
       if (r.err) { e.hidden = false; e.textContent = errMsg(r.err); return; }
       toast(r.queued ? t('savedLocal') : t('trucDaLuu'));
@@ -12485,6 +12656,7 @@ Object.assign(ACT, {
     m += +el.dataset.d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
     S.f.trucThang = y + '-' + String(m).padStart(2, '0'); render(); window.scrollTo(0, 0);
   },
+  trucChe: (el) => { S.f.trucChe = el.dataset.m; render(); window.scrollTo(0, 0); },
   trucXep: (el) => go('trucGhi', { d: el.dataset.d }),
   trucChep: () => {
     const tuDS = trucTuanTrongThang(trucThangHT());
@@ -12576,6 +12748,520 @@ Object.assign(ACT, {
     const a = p.ds[i]; p.ds[i] = p.ds[j]; p.ds[j] = a;
     render();
   }
+});
+
+// ===================== Máy nén khí · 空压机 =====================
+// Sáu máy nhưng mỗi ngày chỉ chạy 3 máy thường + 1 máy biến tần (máy 3 và máy 6 có biến tần).
+// Giờ chạy đọc trên đồng hồ của từng máy, cộng dồn; cứ 3000 h kể từ lần bảo dưỡng trước là đến hạn.
+Object.assign(TX, {
+  t_mnk: ['Máy nén khí', '空压机'], navMNK: ['Máy nén khí', '空压机'],
+  t_mnkGhi: ['Ghi giờ chạy', '记录运行小时'], t_mnkDS: ['Danh sách máy nén khí', '空压机名单'],
+  mnkCheMay: ['Giờ chạy', '运行小时'], mnkCheTuan: ['Lịch tuần', '周排班'], mnkCheThang: ['Tổng hợp tháng', '月度汇总'],
+  mnkChuaCo: ['Chưa có máy nén khí trong danh sách', '空压机名单为空'],
+  mnkBienTan: ['Biến tần', '变频'], mnkThuong: ['Máy thường', '普通空压机'],
+  mnkGio: ['Giờ trên đồng hồ', '表显小时'], mnkGioTuBD: ['Giờ từ lần bảo dưỡng', '上次保养后小时'],
+  mnkConGioN: ['Còn {n} h', '还剩 {n} 小时'], mnkQuaGioN: ['Quá {n} h', '超 {n} 小时'],
+  mnkQuaHan: ['Quá hạn bảo dưỡng', '超期保养'], mnkDenHan: ['Sắp đến hạn', '即将到期'], mnkNgung: ['Đã ngừng', '已停用'],
+  mnkChuKyN: ['Chu kỳ {n} h', '周期 {n} 小时'], mnkDuKien: ['Dự kiến tới hạn', '预计到期'],
+  mnkGioNgay: ['Bình quân {n} h/ngày', '平均 {n} 小时/天'], mnkChuaGhi: ['Chưa ghi giờ lần nào', '尚未记录小时'],
+  mnkGhiNgay: ['Ghi ngày {d}', '{d} 记录'], mnkGhiGio: ['Ghi giờ chạy', '记录运行小时'],
+  mnkBDXong: ['Bảo dưỡng xong', '保养完成'], mnkDangChay: ['Đang chạy tuần này', '本周运行'],
+  mnkNghi: ['Nghỉ tuần này', '本周停机'],
+  mnkTuanN: ['Tuần {a} – {b}', '{a} – {b} 周'], mnkChuaXepTuan: ['Tuần này chưa xếp máy chạy', '本周未安排运行机台'],
+  mnkDoiMay: ['Đổi máy chạy', '更换运行机台'], mnkGoiY: ['Gợi ý xếp lịch', '建议排班'],
+  mnkGoiYHoi: ['App chọn máy ít giờ nhất kể từ lần bảo dưỡng trước, máy tuần trước đã chạy xếp sau. Xếp cho tuần này?',
+    '应用按上次保养后小时数最少优先，上周已运行的排在后面。为本周安排？'],
+  mnkChonHelp: ['Chọn {a} máy thường và {b} máy biến tần. Số giờ bên phải là giờ kể từ lần bảo dưỡng trước.',
+    '请选择 {a} 台普通空压机和 {b} 台变频空压机。右侧为上次保养后的小时数。'],
+  mnkSaiSoThuong: ['Cần chọn đúng {n} máy thường', '需选择 {n} 台普通空压机'],
+  mnkSaiSoBT: ['Cần chọn đúng {n} máy biến tần', '需选择 {n} 台变频空压机'],
+  mnkDaXep: ['Đã xếp máy chạy tuần này', '已安排本周运行机台'],
+  mnkGhiLucDoi: ['Ghi số giờ lúc đổi', '记录更换时的小时数'],
+  mnkGhiLucDoiHelp: ['Vừa đổi máy chạy. Ghi luôn số giờ trên đồng hồ của những máy này để tính đúng giờ chạy của từng máy.',
+    '刚更换了运行机台。请记录这些机台的表显小时数，以便准确统计各机运行小时。'],
+  mnkDeSau: ['Để sau', '稍后'], mnkDoiVao: ['Đổi vào chạy', '改为运行'], mnkDoiRa: ['Đổi ra nghỉ', '改为停机'],
+  mnkChonMay: ['Máy nén khí', '空压机'], mnkNgayGhi: ['Ngày ghi', '记录日期'],
+  mnkSoGio: ['Số giờ trên đồng hồ', '表显小时数'],
+  mnkGioHelp: ['Đọc số giờ chạy trên màn hình máy, ghi nguyên số. Đồng hồ cộng dồn nên số sau phải lớn hơn số trước.',
+    '读取机台显示屏上的运行小时数，原样填写。表数累计，后一次必须大于前一次。'],
+  mnkLaBD: ['Lần này có bảo dưỡng (đặt lại mốc giờ)', '本次已保养（重置小时基准）'],
+  mnkBDHelp: ['Tích vào đây khi vừa bảo dưỡng xong: app lấy số giờ vừa ghi làm mốc mới, đếm lại từ 0.',
+    '保养完成后勾选：应用以本次小时数为新基准，重新从0计算。'],
+  mnkMocLam: ['Mốc đã làm lần này', '本次完成的项目'],
+  mnkGhiChu: ['Ghi chú', '备注'], mnkDaGhi: ['Đã ghi giờ chạy', '已记录运行小时'],
+  mnkLichSuGhi: ['Các lần ghi giờ', '小时记录'], mnkChuaCoGhi: ['Chưa có lần ghi nào', '暂无记录'],
+  mnkXoaGhi: ['Xoá lần ghi này', '删除此记录'], mnkXoaGhiHoi: ['Xoá lần ghi {d} — {n} h?', '删除 {d} — {n} 小时的记录？'],
+  mnkDaXoaGhi: ['Đã xoá lần ghi giờ', '已删除记录'],
+  mnkMoc: ['Mốc theo giờ chạy', '按小时保养项目'], mnkMocChuaCo: ['Chưa đặt mốc phụ', '未设置其他项目'],
+  mnkSuaDS: ['Sửa danh sách máy nén khí', '修改空压机名单'],
+  mnkTen: ['Tên máy', '机台名称'], mnkTenZh: ['Tên tiếng Trung', '中文名称'],
+  mnkCK: ['Chu kỳ (giờ)', '周期（小时）'], mnkMocGio: ['Giờ lúc bảo dưỡng gần nhất', '上次保养时小时数'],
+  mnkMaCT: ['Công tơ nhánh', '分表'], mnkMaMay: ['Mã máy trong danh mục', '设备台账编号'],
+  mnkThemMay: ['Thêm máy', '添加机台'], mnkXoaMay: ['Bỏ máy này', '移除此机台'],
+  mnkDSHelp: ['Bỏ một máy ra khỏi danh sách là đánh dấu ngừng, giờ chạy đã ghi vẫn còn.',
+    '移除机台即标记停用，已记录的小时数仍保留。'],
+  mnkDaLuuDS: ['Đã lưu danh sách máy nén khí', '已保存空压机名单'],
+  mnkThangN: ['Tháng {m}/{y}', '{y}年{m}月'], mnkGioThang: ['Giờ chạy trong tháng', '当月运行小时'],
+  mnkDauThang: ['Đầu tháng', '月初'], mnkCuoiThang: ['Cuối tháng', '月末'],
+  mnkTongCong: ['Tổng cộng', '合计'], mnkXuat: ['Xuất Excel', '导出Excel'],
+  mnkThangHelp: ['Giờ chạy trong tháng lấy theo hai lần ghi gần nhất trong tháng; tháng nào không ghi thì để trống.',
+    '当月运行小时取当月首末两次记录之差；当月无记录则留空。'],
+  mnkTuanHelp: ['Mỗi ngày chạy {a} máy thường + {b} máy biến tần. Quản lý xếp lịch, kỹ thuật đổi máy khi cần và ghi lại số giờ lúc đổi.',
+    '每天运行 {a} 台普通空压机 + {b} 台变频空压机。主管排班，技术员可按需更换并记录更换时的小时数。'],
+  srvMissMNK: ['Máy chủ chưa có phần máy nén khí. Cập nhật Code.gs rồi Triển khai lại.',
+    '服务器尚无空压机功能。请更新 Code.gs 后重新部署。'],
+  xlMNKTen: ['Máy nén khí', '空压机'], xlMNKLoai: ['Loại', '类型'], xlMNKGio: ['Giờ trên đồng hồ', '表显小时'],
+  xlMNKNgay: ['Ngày ghi', '记录日期'], xlMNKTuBD: ['Giờ từ lần bảo dưỡng', '上次保养后小时'],
+  xlMNKConLai: ['Còn lại tới hạn', '距到期小时'], xlMNKTT: ['Tình trạng', '状态'],
+  xlMNKNguoi: ['Người ghi', '记录人'], xlMNKNguon: ['Nguồn', '来源'],
+  xlMNKLog: ['Nhật ký ghi giờ', '小时记录明细'], xlMNKTong: ['Tổng hợp máy nén khí', '空压机汇总']
+});
+
+const MNK_CK = 3000;             // chu kỳ bảo dưỡng theo giờ, mặc định
+const MNK_NHAC = 200;            // còn bao nhiêu giờ thì nhắc sắp đến hạn
+const MNK_SO_THUONG = 3;         // mỗi ngày chạy mấy máy thường
+const MNK_SO_BT = 1;             // mỗi ngày chạy mấy máy biến tần
+
+const mnkDS = () => (S.V && S.V.mnk) || [];
+const mnkHD = () => mnkDS().filter((x) => x.hoatDong);
+const mnkOf = (id) => ((S.V && S.V.mnkById) || {})[id] || null;
+const mnkGcDS = () => (S.V && S.V.mnkGc) || [];
+const mnkLichDS = () => (S.V && S.V.mnkLich) || [];
+const mnkLichTuan = (tu) => mnkLichDS().filter((x) => x.tuNgay === tu)[0] || null;
+const mnkTuanHT = () => S.f.mnkTuan || tcThuHai(TODAY());
+const mnkThangHT = () => S.f.mnkThang || TODAY().slice(0, 7);
+// Giờ chạy bình quân mỗi ngày: lấy khoảng giữa lần ghi đầu và cuối trong 8 tuần gần nhất
+function mnkGioNgay(a) {
+  if (a.length < 2) return 0;
+  const cuoi = a[a.length - 1], moc = addD(cuoi.ngay, -56);
+  const dau = a.filter((x) => x.ngay >= moc)[0] || a[0];
+  const n = Math.round((Date.parse(cuoi.ngay) - Date.parse(dau.ngay)) / 86400000);
+  if (n <= 0) return 0;
+  return Math.max(0, (cuoi.gio - dau.gio) / n);
+}
+function mnkSt(m) {
+  if (!m.hoatDong) return { k: 'ngung', p: 'p-ok', lb: 'mnkNgung' };
+  if (m.conLai <= 0) return { k: 'qua', p: 'p-qua', lb: 'mnkQuaHan' };
+  if (m.conLai <= MNK_NHAC) return { k: 'nay', p: 'p-nay', lb: 'mnkDenHan' };
+  return { k: 'ok', p: 'p-ok', lb: '' };
+}
+function rebuildMNK() {
+  const b = S.base, me = S.me || {};
+  const mn = (b.mayNen || []).map((x) => Object.assign({}, x, { mocGio: (x.mocGio || []).map((o) => Object.assign({}, o)) }))
+    .sort((a, c) => (a.thuTu - c.thuTu) || (a.ten > c.ten ? 1 : a.ten < c.ten ? -1 : 0));
+  const gc = (b.gioChay || []).map((x) => Object.assign({}, x));
+  const lich = (b.lichMNK || []).map((x) => Object.assign({}, x, { dsChay: (x.dsChay || []).slice() }));
+  const byId = {};
+  mn.forEach((m) => { byId[m.id] = m; });
+  // Việc còn trong hàng chờ (máy mất mạng) cũng hiện luôn để người ghi thấy ngay
+  S.Q.forEach((q) => {
+    if (q.st !== 'cho') return;
+    if (q.action === 'compHour') {
+      gc.push({ id: 'tmp-' + q.opId, ngay: q.p.ngay, mnkID: q.p.mnkID, gio: +q.p.gio,
+        nguon: q.p.bd ? 'BD' : 'GHI', uid: q.uid, nguoi: me.ten || '', luc: q.t, ghiChu: q.p.ghiChu || '', cho: true });
+      const m = byId[q.p.mnkID];
+      if (m && q.p.bd) {
+        m.gioBD = +q.p.gio; m.cho = true;
+        if (q.p.mocLam && q.p.mocLam.length) m.mocGio = m.mocGio.map((o, i) => (q.p.mocLam.indexOf(i) >= 0 ? Object.assign({}, o, { gio: +q.p.gio }) : o));
+      }
+    } else if (q.action === 'compWeek') {
+      const i = lich.findIndex((x) => x.tuNgay === q.p.tuNgay);
+      const o = { tuNgay: q.p.tuNgay, dsChay: (q.p.dsChay || []).slice(), nguoi: me.ten || '', uid: q.uid, cho: true };
+      if (i >= 0) lich[i] = o; else lich.push(o);
+    }
+  });
+  gc.sort((a, c) => (a.ngay > c.ngay ? 1 : a.ngay < c.ngay ? -1 : (a.luc > c.luc ? 1 : -1)));
+  const theoMay = {};
+  mn.forEach((m) => { theoMay[m.id] = []; });
+  gc.forEach((x) => { if (theoMay[x.mnkID]) theoMay[x.mnkID].push(x); });
+  mn.forEach((m) => {
+    const a = theoMay[m.id], cuoi = a.length ? a[a.length - 1] : null;
+    m.ds = a;
+    m.ck = m.chuKyGio || MNK_CK;
+    m.gio = cuoi ? cuoi.gio : m.gioBD;
+    m.ngayGio = cuoi ? cuoi.ngay : '';
+    m.tuBD = Math.max(0, m.gio - m.gioBD);
+    m.conLai = m.ck - m.tuBD;
+    m.gioNgay = mnkGioNgay(a);
+    m.ngayDK = m.gioNgay > 0 && m.conLai > 0 ? addD(m.ngayGio || TODAY(), Math.ceil(m.conLai / m.gioNgay)) : '';
+  });
+  lich.sort((a, c) => (a.tuNgay > c.tuNgay ? 1 : -1));
+  S.V.mnk = mn; S.V.mnkById = byId; S.V.mnkGc = gc; S.V.mnkLich = lich;
+}
+const mnkSegHtml = (che) => `<div class="seg" style="margin-bottom:12px">${[['may', 'mnkCheMay'], ['tuan', 'mnkCheTuan'], ['thang', 'mnkCheThang']].map(([k, lb]) =>
+  `<button class="${che === k ? 'on' : ''}" data-act="mnkSeg" data-m="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div>`;
+const mnkTen = (m) => `<b>${esc(m.ten)}</b>${m.tenZh && m.tenZh !== m.ten ? ` <span class="zi" lang="zh-CN">${esc(m.tenZh)}</span>` : ''}`;
+const mnkChipBT = (m) => (m.bienTan ? `<span class="pill p-sap">${tv('mnkBienTan')}<span class="zi" lang="zh-CN">${tz('mnkBienTan')}</span></span>` : '');
+// Thẻ một máy: giờ trên đồng hồ, vạch tới mốc 3000 h, dự kiến ngày tới hạn
+function mnkTheHtml(m, chay) {
+  const st = mnkSt(m), pct = Math.max(0, Math.min(100, Math.round((m.tuBD / m.ck) * 100)));
+  const mau = st.k === 'qua' ? 'var(--red)' : st.k === 'nay' ? 'var(--orange)' : 'var(--green)';
+  const gioTxt = m.ngayGio ? `<b class="mono">${fmtNum(m.gio, 1)} h</b> <small>· ${esc(tv('mnkGhiNgay', { d: fmtD(m.ngayGio) }))}</small>`
+    : `<span style="color:var(--ink3)">${t('mnkChuaGhi')}</span>`;
+  return `<div class="card pad" style="margin-bottom:10px">
+    <div class="dh1" style="display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap">
+      <div>${mnkTen(m)} ${mnkChipBT(m)}
+        ${chay === true ? `<span class="pill p-xong">${tv('mnkDangChay')}<span class="zi" lang="zh-CN">${tz('mnkDangChay')}</span></span>` : ''}
+        ${chay === false ? `<span class="pill p-ok">${tv('mnkNghi')}<span class="zi" lang="zh-CN">${tz('mnkNghi')}</span></span>` : ''}</div>
+      ${st.lb ? `<span class="pill ${st.p}">${tv(st.lb)}<span class="zi" lang="zh-CN">${tz(st.lb)}</span></span>` : ''}</div>
+    <dl class="kv" style="margin-top:10px">
+      <dt>${t('mnkGio')}</dt><dd>${gioTxt}</dd>
+      <dt>${t('mnkGioTuBD')}</dt><dd><b class="mono">${fmtNum(m.tuBD, 1)} h</b> <small>/ ${fmtNum(m.ck, 0)} h</small></dd>
+      <dt>${t('mnkDuKien')}</dt><dd>${m.conLai <= 0
+    ? `<b style="color:var(--red)">${esc(tv('mnkQuaGioN', { n: fmtNum(-m.conLai, 1) }))}</b>`
+    : `<b>${esc(tv('mnkConGioN', { n: fmtNum(m.conLai, 1) }))}</b>${m.ngayDK ? ` <small>· ${fmtD(m.ngayDK)}</small>` : ''}`}
+        ${m.gioNgay > 0 ? `<div class="sub">${esc(tv('mnkGioNgay', { n: fmtNum(m.gioNgay, 1) }))}</div>` : ''}</dd>
+    </dl>
+    <div class="prog" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%;background:${mau}"></i></div>
+    ${(m.mocGio || []).length ? `<div class="help" style="margin-top:10px"><b>${t('mnkMoc')}</b></div>
+      <div class="dtwrap"><table class="dt"><tbody>${m.mocGio.map((o) => {
+    const con = o.ck - Math.max(0, m.gio - o.gio);
+    return `<tr><td>${esc(o.ten)}${o.tenZh ? ` <span class="zi" lang="zh-CN">${esc(o.tenZh)}</span>` : ''}</td>
+      <td class="num mono"><small>${fmtNum(o.ck, 0)} h</small></td>
+      <td class="num mono"${con <= 0 ? ' style="color:var(--red);font-weight:700"' : con <= MNK_NHAC ? ' style="color:var(--orange);font-weight:700"' : ''}>${con <= 0 ? esc(tv('mnkQuaGioN', { n: fmtNum(-con, 1) })) : esc(tv('mnkConGioN', { n: fmtNum(con, 1) }))}</td></tr>`;
+  }).join('')}</tbody></table></div>` : ''}
+    <div class="btns" style="margin-top:12px">
+      <button class="btn ghost sm" data-act="mnkGhiMay" data-id="${esc(m.id)}">${IC.edit} ${t('mnkGhiGio')}</button>
+      <button class="btn ghost sm" data-act="mnkGhiMay" data-id="${esc(m.id)}" data-bd="1">${IC.check} ${t('mnkBDXong')}</button></div>
+  </div>`;
+}
+VIEWS.mnk = {
+  html() {
+    const che = S.f.mnkChe || 'may';
+    let o = srvOld('mnk') ? srvWarn('mnk') : '';
+    o += mnkSegHtml(che);
+    if (!mnkDS().length) {
+      o += `<div class="card empty">${t('mnkChuaCo')}</div>`;
+      if (can('may')) o += `<div class="btns" style="margin-top:12px"><button class="btn pri" data-act="go" data-v="mnkDS">${IC.plus} ${t('mnkSuaDS')}</button></div>`;
+      return o;
+    }
+    if (che === 'tuan') return o + mnkTuanHtml();
+    if (che === 'thang') return o + mnkThangHtml();
+    const tu = tcThuHai(TODAY()), lich = mnkLichTuan(tu), dsChay = (lich && lich.dsChay) || [];
+    const sx = mnkDS().slice().sort((a, b) => {
+      const sa = mnkSt(a), sb = mnkSt(b), w = { qua: 0, nay: 1, ok: 2, ngung: 3 };
+      return (w[sa.k] - w[sb.k]) || (a.thuTu - b.thuTu);
+    });
+    o += sx.map((m) => mnkTheHtml(m, lich && m.hoatDong ? dsChay.indexOf(m.id) >= 0 : undefined)).join('');
+    o += `<div class="btns" style="margin-top:12px"><button class="btn pri" data-act="go" data-v="mnkGhi">${IC.plus} ${t('mnkGhiGio')}</button>
+      ${can('may') ? `<button class="btn ghost" data-act="go" data-v="mnkDS">${IC.gear} ${t('mnkSuaDS')}</button>` : ''}</div>`;
+    return o;
+  }
+};
+// ---------- Lịch luân phiên theo tuần ----------
+function mnkTuanHtml() {
+  const tu = mnkTuanHT(), lich = mnkLichTuan(tu), dsChay = (lich && lich.dsChay) || [];
+  const sua = can('confirm');
+  let o = `<div class="caltools"><div class="stepper">
+    <button data-act="mnkTuanD" data-d="-1" aria-label="-">${IC.left}</button>
+    <b>${tv('mnkTuanN', { a: fmtDM(tu), b: fmtDM(addD(tu, 6)) })}</b>
+    <button data-act="mnkTuanD" data-d="1" aria-label="+">${IC.right}</button></div>
+    ${dsChay.length ? `<span class="pill p-xong">${tv('mnkDaXep')}<span class="zi" lang="zh-CN">${tz('mnkDaXep')}</span></span>`
+    : `<span class="pill p-qua">${tv('mnkChuaXepTuan')}<span class="zi" lang="zh-CN">${tz('mnkChuaXepTuan')}</span></span>`}</div>`;
+  o += `<div class="help" style="margin:0 0 10px">${t('mnkTuanHelp', { a: MNK_SO_THUONG, b: MNK_SO_BT })}</div>`;
+  const nhom = [['mnkThuong', mnkHD().filter((m) => !m.bienTan)], ['mnkBienTan', mnkHD().filter((m) => m.bienTan)]];
+  nhom.forEach(([lb, ds]) => {
+    if (!ds.length) return;
+    o += `<div class="sec"><h2>${t(lb)}</h2></div><div class="dtwrap"><table class="dt"><tbody>${ds.map((m) => {
+      const chay = dsChay.indexOf(m.id) >= 0, st = mnkSt(m);
+      return `<tr${chay ? ' style="background:var(--green-bg)"' : ''}><td>${mnkTen(m)}</td>
+        <td class="num mono">${m.ngayGio ? fmtNum(m.tuBD, 1) + ' h' : '—'}</td>
+        <td class="num">${chay ? `<span class="pill p-xong">${tv('mnkDangChay')}<span class="zi" lang="zh-CN">${tz('mnkDangChay')}</span></span>`
+        : `<span class="pill ${st.k === 'qua' ? 'p-qua' : 'p-ok'}">${tv('mnkNghi')}<span class="zi" lang="zh-CN">${tz('mnkNghi')}</span></span>`}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+  });
+  if (sua) o += `<div class="btns" style="margin-top:14px">
+    <button class="btn pri" data-act="mnkDoi" data-t="${esc(tu)}">${IC.refresh} ${t('mnkDoiMay')}</button>
+    <button class="btn ghost" data-act="mnkGoiY" data-t="${esc(tu)}">${IC.flash} ${t('mnkGoiY')}</button></div>`;
+  return o;
+}
+// ---------- Tổng hợp tháng ----------
+function mnkThangDS(ym) {
+  return mnkDS().map((m) => {
+    const a = (m.ds || []).filter((x) => x.ngay.slice(0, 7) === ym);
+    const dau = a.length ? a[0] : null, cuoi = a.length ? a[a.length - 1] : null;
+    // Giờ đầu tháng: lần ghi gần nhất TRƯỚC tháng đó, không có thì lấy lần đầu trong tháng
+    const truoc = (m.ds || []).filter((x) => x.ngay < ym + '-01');
+    const g0 = truoc.length ? truoc[truoc.length - 1].gio : (dau ? dau.gio : null);
+    const g1 = cuoi ? cuoi.gio : null;
+    return { m, g0, g1, trong: g0 !== null && g1 !== null ? Math.max(0, g1 - g0) : null, so: a.length };
+  });
+}
+function mnkThangHtml() {
+  const ym = mnkThangHT(), [y, mo] = ym.split('-').map(Number), ds = mnkThangDS(ym);
+  let o = `<div class="caltools"><div class="stepper">
+    <button data-act="mnkThangD" data-d="-1" aria-label="-">${IC.left}</button><b>${tv('mnkThangN', { m: mo, y })}</b>
+    <button data-act="mnkThangD" data-d="1" aria-label="+">${IC.right}</button></div></div>`;
+  const tong = ds.reduce((a, x) => a + (x.trong || 0), 0);
+  o += `<div class="dtwrap" style="margin-top:12px"><table class="dt"><thead><tr>
+    <th>${esc(tv('mnkChonMay'))}<small>${esc(tz('mnkChonMay'))}</small></th>
+    <th class="num">${esc(tv('mnkGioThang'))}<small>${esc(tz('mnkGioThang'))}</small></th>
+    <th class="num">${esc(tv('mnkGio'))}<small>${esc(tz('mnkGio'))}</small></th>
+    <th class="num">${esc(tv('mnkGioTuBD'))}<small>${esc(tz('mnkGioTuBD'))}</small></th></tr></thead><tbody>`;
+  ds.forEach(({ m, trong }) => {
+    const st = mnkSt(m);
+    o += `<tr><td>${mnkTen(m)} ${mnkChipBT(m)}</td>
+      <td class="num mono">${trong === null ? '—' : fmtNum(trong, 1)}</td>
+      <td class="num mono">${m.ngayGio ? fmtNum(m.gio, 1) : '—'}</td>
+      <td class="num mono"${st.k === 'qua' ? ' style="color:var(--red);font-weight:700"' : st.k === 'nay' ? ' style="color:var(--orange);font-weight:700"' : ''}>${fmtNum(m.tuBD, 1)} / ${fmtNum(m.ck, 0)}</td></tr>`;
+  });
+  o += `<tr style="background:var(--soft)"><td><b>${t('mnkTongCong')}</b></td><td class="num mono"><b>${fmtNum(tong, 1)}</b></td><td></td><td></td></tr>`;
+  o += '</tbody></table></div>';
+  o += `<p class="help" style="margin-top:10px">${t('mnkThangHelp')}</p>`;
+  o += `<div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="mnkXuat" data-m="${ym}">${IC.dl} ${t('mnkXuat')}</button></div>`;
+  const log = mnkGcDS().filter((x) => x.ngay.slice(0, 7) === ym).slice().reverse();
+  o += `<div class="sec"><h2>${t('mnkLichSuGhi')}<span class="cnt">${log.length}</span></h2></div>`;
+  if (!log.length) o += `<div class="card empty">${t('mnkChuaCoGhi')}</div>`;
+  else o += `<div class="dtwrap"><table class="dt"><tbody>${log.map((x) => {
+    const m = mnkOf(x.mnkID);
+    return `<tr><td>${fmtD(x.ngay)}${x.cho ? ` <span class="pill p-cho">${t('pending')}</span>` : ''}</td>
+      <td>${m ? mnkTen(m) : esc(x.mnkID)}${x.nguon === 'BD' ? ` <span class="pill p-xong">${tv('mnkBDXong')}<span class="zi" lang="zh-CN">${tz('mnkBDXong')}</span></span>` : ''}</td>
+      <td class="num mono">${fmtNum(x.gio, 1)} h</td>
+      <td><small>${esc(x.nguoi || '')}${x.ghiChu ? ' · ' + esc(x.ghiChu) : ''}</small></td>
+      <td class="num">${can('giaoviec') && !x.cho ? `<button class="btn ghost sm" data-act="mnkXoaGhi" data-id="${esc(x.id)}">${t('del')}</button>` : ''}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+  return o;
+}
+// ---------- Ghi giờ chạy ----------
+VIEWS.mnkGhi = {
+  html(p) {
+    const ds = mnkHD();
+    if (!p.init) Object.assign(p, { init: 1, id: p.id || (ds[0] ? ds[0].id : ''), ngay: TODAY(), gio: '', bd: p.bd ? 1 : 0, gc: '', mocLam: [], nguon: p.nguon || '' });
+    const m = mnkOf(p.id);
+    return `<form id="mnF" class="card pad" autocomplete="off">
+      <div class="fld"><span>${t('mnkChonMay')}</span>
+        <select class="inp" id="mnMay">${ds.map((x) => `<option value="${esc(x.id)}"${x.id === p.id ? ' selected' : ''}>${esc(x.ten)}${x.tenZh ? ' ' + esc(x.tenZh) : ''}${x.bienTan ? ' · ' + esc(tv('mnkBienTan')) : ''}</option>`).join('')}</select></div>
+      <label class="fld" style="margin-top:12px"><span>${t('mnkNgayGhi')}</span>
+        <input class="inp" id="mnNgay" type="date" value="${esc(p.ngay)}" max="${esc(TODAY())}"></label>
+      <label class="fld" style="margin-top:12px"><span>${t('mnkSoGio')}</span>
+        <input class="inp mono" id="mnGio" type="number" inputmode="decimal" step="0.1" min="0" value="${esc(p.gio)}" placeholder="${m && m.ngayGio ? esc(fmtNum(m.gio, 1)) : '0'}"></label>
+      <div class="help" style="margin-top:6px">${t('mnkGioHelp')}</div>
+      ${m && m.ngayGio ? `<div class="help" style="margin-top:6px"><b>${esc(tv('mnkGhiNgay', { d: fmtD(m.ngayGio) }))}: ${fmtNum(m.gio, 1)} h</b></div>` : ''}
+      <label class="checkrow" style="margin-top:14px"><input type="checkbox" id="mnBD"${p.bd ? ' checked' : ''}><span>${t('mnkLaBD')}</span></label>
+      <div class="help" style="margin-top:6px">${t('mnkBDHelp')}</div>
+      <div id="mnMoc"${p.bd && m && (m.mocGio || []).length ? '' : ' hidden'} style="margin-top:12px">
+        <div class="help"><b>${t('mnkMocLam')}</b></div>
+        ${m ? (m.mocGio || []).map((o, i) => `<label class="checkrow"><input type="checkbox" class="mnMocI" data-i="${i}"${p.mocLam.indexOf(i) >= 0 ? ' checked' : ''}>
+          <span>${esc(o.ten)}${o.tenZh ? ` <span class="zi" lang="zh-CN">${esc(o.tenZh)}</span>` : ''} <small class="mono">· ${fmtNum(o.ck, 0)} h</small></span></label>`).join('') : ''}</div>
+      <label class="fld" style="margin-top:12px"><span>${t('mnkGhiChu')}</span>
+        <input class="inp" id="mnGC" maxlength="200" value="${esc(p.gc)}"></label>
+      <div id="mnErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:16px"><button type="button" class="btn pri" id="mnOk">${IC.check} ${t('save')}</button></div>
+    </form>`;
+  },
+  after(p) {
+    const ve = () => { const c = topV(); if (c) { $('#main').innerHTML = VIEWS.mnkGhi.html(c.p); VIEWS.mnkGhi.after(c.p); } };
+    $('#mnMay').addEventListener('change', (e) => { p.id = e.target.value; p.mocLam = []; ve(); });
+    $('#mnNgay').addEventListener('change', (e) => { p.ngay = e.target.value; });
+    $('#mnGio').addEventListener('input', (e) => { p.gio = e.target.value; });
+    $('#mnGC').addEventListener('input', (e) => { p.gc = e.target.value; });
+    $('#mnBD').addEventListener('change', (e) => { p.bd = e.target.checked ? 1 : 0; ve(); });
+    $$('.mnMocI').forEach((el) => el.addEventListener('change', () => {
+      p.mocLam = $$('.mnMocI').filter((x) => x.checked).map((x) => +x.dataset.i);
+    }));
+    $('#mnOk').addEventListener('click', async () => {
+      const e = $('#mnErr'), b = $('#mnOk');
+      e.hidden = true;
+      const thieu = [];
+      if (!p.id) thieu.push(['Máy nén khí', '空压机']);
+      if (!p.ngay) thieu.push(['Ngày ghi', '记录日期']);
+      if (String(p.gio).trim() === '' || isNaN(+p.gio) || +p.gio < 0) thieu.push(['Số giờ trên đồng hồ', '表显小时数']);
+      if (thieu.length) { e.hidden = false; e.innerHTML = thieuHtml(thieu); return; }
+      b.disabled = true;
+      const pl = { mnkID: p.id, ngay: p.ngay, gio: +p.gio, ghiChu: p.gc };
+      if (p.nguon) pl.nguon = p.nguon;
+      if (p.bd) { pl.bd = true; if (p.mocLam.length) pl.mocLam = p.mocLam.slice(); }
+      const r = await send('compHour', pl);
+      b.disabled = false;
+      if (r.err) { e.hidden = false; e.innerHTML = errMsg(r.err); return; }
+      toast(r.queued ? t('savedLocal') : t('mnkDaGhi'));
+      back();
+    });
+  }
+};
+// ---------- Danh sách máy nén khí (Quản lý) ----------
+VIEWS.mnkDS = {
+  html(p) {
+    if (!p.init) Object.assign(p, { init: 1, ds: mnkDS().map((m) => ({ id: m.id, ten: m.ten, tenZh: m.tenZh, ma: m.ma, maCT: m.maCT,
+      bienTan: m.bienTan, chuKyGio: m.chuKyGio || MNK_CK, gioBD: m.gioBD, mocGio: (m.mocGio || []).map((o) => Object.assign({}, o)), thuTu: m.thuTu, hoatDong: m.hoatDong })) });
+    const cts = (S.base && S.base.congTo) || [];
+    let o = `<div class="help" style="margin-bottom:12px">${t('mnkDSHelp')}</div><form id="mdF" autocomplete="off">`;
+    p.ds.forEach((x, i) => {
+      o += `<div class="card pad" style="margin-bottom:10px">
+        <label class="fld"><span>${t('mnkTen')}</span><input class="inp" data-md="ten" data-i="${i}" maxlength="60" value="${esc(x.ten)}"></label>
+        <label class="fld" style="margin-top:10px"><span>${t('mnkTenZh')}</span>
+          <input class="inp" data-md="tenZh" data-i="${i}" maxlength="60" style="font-family:var(--f-zh)" value="${esc(x.tenZh || '')}"></label>
+        <div class="rdgrid" style="margin-top:10px">
+          <label class="fld"><span>${t('mnkCK')}</span><input class="inp mono" data-md="chuKyGio" data-i="${i}" type="number" min="1" step="100" value="${esc(x.chuKyGio)}"></label>
+          <label class="fld"><span>${t('mnkMocGio')}</span><input class="inp mono" data-md="gioBD" data-i="${i}" type="number" min="0" step="0.1" value="${esc(x.gioBD)}"></label></div>
+        <div class="rdgrid" style="margin-top:10px">
+          <label class="fld"><span>${t('mnkMaMay')}</span><input class="inp mono" data-md="ma" data-i="${i}" maxlength="20" value="${esc(x.ma || '')}"></label>
+          <div class="fld"><span>${t('mnkMaCT')}</span><select class="inp" data-md="maCT" data-i="${i}">
+            <option value="">—</option>${cts.map((c) => `<option value="${esc(c.ma)}"${c.ma === x.maCT ? ' selected' : ''}>${esc(c.ma)} · ${esc(c.ten)}</option>`).join('')}</select></div></div>
+        <label class="checkrow" style="margin-top:10px"><input type="checkbox" data-md="bienTan" data-i="${i}"${x.bienTan ? ' checked' : ''}><span>${t('mnkBienTan')}</span></label>
+        <label class="checkrow"><input type="checkbox" data-md="hoatDong" data-i="${i}"${x.hoatDong ? ' checked' : ''}><span>${t('active')}</span></label>
+        <div class="btns" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="mdXoa" data-i="${i}">${t('mnkXoaMay')}</button></div>
+      </div>`;
+    });
+    o += `</form><div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="mdThem">${IC.plus} ${t('mnkThemMay')}</button></div>
+      <div id="mdErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:16px"><button class="btn pri" id="mdOk">${IC.check} ${t('save')}</button></div>`;
+    return o;
+  },
+  after(p) {
+    $$('[data-md]').forEach((el) => el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
+      const x = p.ds[+el.dataset.i]; if (!x) return;
+      x[el.dataset.md] = el.type === 'checkbox' ? el.checked : el.value;
+    }));
+    $('#mdOk').addEventListener('click', async () => {
+      const e = $('#mdErr'), b = $('#mdOk');
+      e.hidden = true;
+      const ds = p.ds.filter((x) => String(x.ten || '').trim());
+      if (!ds.length) { e.hidden = false; e.innerHTML = errMsg({ code: 'CAN_MAY_NEN', message: tp('mnkChuaCo') }); return; }
+      b.disabled = true;
+      const r = await send('compSave', { ds: ds.map((x, i) => Object.assign({}, x, { thuTu: i + 1, chuKyGio: +x.chuKyGio || MNK_CK, gioBD: +x.gioBD || 0 })) });
+      b.disabled = false;
+      if (r.err) { e.hidden = false; e.innerHTML = errMsg(r.err); return; }
+      toast(t('mnkDaLuuDS'));
+      back();
+    });
+  }
+};
+// Excel: một trang tổng hợp (có ô đỏ khi quá hạn) + một trang nhật ký ghi giờ
+function mnkXlsx(ym) {
+  const [y, mo] = ym.split('-').map(Number);
+  const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
+  const ten = (m) => m.ten + (m.tenZh && m.tenZh !== m.ten ? '\n' + m.tenZh : '');
+  const thang = tv('mnkThangN', { m: mo, y });
+  const DO = { fill: '#FBDBD8', color: '#8E2438', b: 1 }, CAM = { fill: '#FFE7CF', color: '#8A4A12', b: 1 };
+  const r1 = [[{ v: tp('xlMNKTong') + ' — ' + thang, s: { b: 1, sz: 14 } }], [],
+    hd(['xlMNKTen', 'xlMNKLoai', 'mnkGioThang', 'xlMNKGio', 'xlMNKNgay', 'xlMNKTuBD', 'xlMNKConLai', 'xlMNKTT'])];
+  let tong = 0;
+  mnkThangDS(ym).forEach(({ m, trong }) => {
+    const st = mnkSt(m), o = st.k === 'qua' ? DO : st.k === 'nay' ? CAM : {};
+    tong += trong || 0;
+    r1.push([c(ten(m), { b: 1 }), c(tv(m.bienTan ? 'mnkBienTan' : 'mnkThuong'), { align: 'center' }),
+      c(trong === null ? '' : Math.round(trong * 10) / 10, { align: 'right', fmt: '#,##0.#' }),
+      c(m.ngayGio ? Math.round(m.gio * 10) / 10 : '', { align: 'right', fmt: '#,##0.#' }),
+      c(m.ngayGio ? fmtD(m.ngayGio) : '', { align: 'center' }),
+      c(Math.round(m.tuBD * 10) / 10 + ' / ' + m.ck, Object.assign({ align: 'right' }, o)),
+      c(Math.round(m.conLai * 10) / 10, Object.assign({ align: 'right', fmt: '#,##0.#' }, o)),
+      c(st.lb ? tp(st.lb) : (m.ngayDK ? tv('mnkDuKien') + ': ' + fmtD(m.ngayDK) : ''), Object.assign({}, o))]);
+  });
+  r1.push([c(tp('mnkTongCong'), { b: 1 }), c(''), c(Math.round(tong * 10) / 10, { align: 'right', b: 1, fmt: '#,##0.#' })]);
+  r1.push([], [{ v: tp('mnkThangHelp') }], [{ v: tp('mnkTuanHelp', { a: MNK_SO_THUONG, b: MNK_SO_BT }) }]);
+  const r2 = [[{ v: tp('xlMNKLog') + ' — ' + thang, s: { b: 1, sz: 14 } }], [],
+    hd(['xlMNKNgay', 'xlMNKTen', 'xlMNKGio', 'xlMNKNguon', 'xlMNKNguoi', 'mnkGhiChu'])];
+  mnkGcDS().filter((x) => x.ngay.slice(0, 7) === ym).forEach((x) => {
+    const m = mnkOf(x.mnkID);
+    r2.push([c(fmtD(x.ngay), { align: 'center' }), c(m ? ten(m) : x.mnkID),
+      c(Math.round(x.gio * 10) / 10, { align: 'right', fmt: '#,##0.#' }),
+      c(x.nguon === 'BD' ? tp('mnkBDXong') : x.nguon === 'DOI' ? tp('mnkDoiMay') : tp('mnkGhiGio'), { align: 'center' }),
+      c(x.nguoi || ''), c(x.ghiChu || '')]);
+  });
+  return XW.build([
+    { name: 'Tong hop', rows: r1, cols: [26, 13, 14, 14, 12, 16, 14, 22], merges: ['A1:H1'], heights: { 3: 34 }, freeze: { r: 3, c: 0 } },
+    { name: 'Ghi gio', rows: r2, cols: [12, 26, 13, 14, 20, 30], merges: ['A1:F1'], heights: { 3: 34 }, freeze: { r: 3, c: 0 } }
+  ]);
+}
+// Vừa đổi máy chạy: mời ghi số giờ của đúng những máy vừa đổi
+function mnkNhacGhiGio(doi) {
+  openSheet(`<div class="grab"></div><h3>${tv('mnkGhiLucDoi')}<span class="zi">${tz('mnkGhiLucDoi')}</span></h3>
+    <p class="help">${t('mnkGhiLucDoiHelp')}</p>
+    <div class="list" style="margin-top:10px">${doi.map(({ m, vao }) => `<button class="row" data-act="mnkGhiMay" data-id="${esc(m.id)}" data-nguon="DOI">${IC.edit}
+      <div class="main"><div class="nm">${esc(m.ten)}${m.tenZh ? ` <span class="zi" lang="zh-CN">${esc(m.tenZh)}</span>` : ''}</div>
+      <div class="sub">${esc(tp(vao ? 'mnkDoiVao' : 'mnkDoiRa'))}${m.ngayGio ? ` · ${esc(fmtNum(m.gio, 1))} h · ${esc(fmtD(m.ngayGio))}` : ''}</div></div>${IC.chev}</button>`).join('')}</div>
+    <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="mnkNhacBo">${t('mnkDeSau')}</button></div>`);
+}
+Object.assign(ACT, {
+  mnkSeg: (el) => { S.f.mnkChe = el.dataset.m; render(); window.scrollTo(0, 0); },
+  mnkTuanD: (el) => { S.f.mnkTuan = addD(mnkTuanHT(), 7 * +el.dataset.d); render(); window.scrollTo(0, 0); },
+  mnkThangD: (el) => {
+    let [y, m] = mnkThangHT().split('-').map(Number);
+    m += +el.dataset.d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
+    S.f.mnkThang = y + '-' + pad2(m); render(); window.scrollTo(0, 0);
+  },
+  mnkGhiMay: (el) => { closeSheet(); go('mnkGhi', { id: el.dataset.id, bd: el.dataset.bd ? 1 : 0, nguon: el.dataset.nguon || '' }); },
+  mnkXuat: async (el) => {
+    const ym = (el && el.dataset.m) || mnkThangHT();
+    toast(t('exporting')); await sleep(30);
+    const blob = mnkXlsx(ym);
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'May-nen-khi_' + ym + '.xlsx');
+  },
+  mnkXoaGhi: (el) => {
+    const x = mnkGcDS().filter((v) => v.id === el.dataset.id)[0];
+    if (!x) return;
+    openSheet(`<div class="grab"></div><h3>${tv('mnkXoaGhi')}<span class="zi">${tz('mnkXoaGhi')}</span></h3>
+      <p class="help">${t('mnkXoaGhiHoi', { d: fmtD(x.ngay), n: fmtNum(x.gio, 1) })}</p>
+      <div id="mxErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn danger" id="mxOk">${t('del')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('close')}</button></div>`, () => {
+      $('#mxOk').addEventListener('click', async () => {
+        const b = $('#mxOk'), e = $('#mxErr');
+        b.disabled = true; e.hidden = true;
+        const r = await send('compHourDel', { id: x.id });
+        if (r.err) { b.disabled = false; e.hidden = false; e.innerHTML = errMsg(r.err); return; }
+        closeSheet(); toast(t('mnkDaXoaGhi')); render();
+      });
+    });
+  },
+  mnkGoiY: (el) => {
+    const tu = el.dataset.t;
+    openSheet(`<div class="grab"></div><h3>${tv('mnkGoiY')}<span class="zi">${tz('mnkGoiY')}</span></h3>
+      <p class="help">${t('mnkGoiYHoi')}</p>
+      <div id="mgErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn pri" id="mgOk">${IC.check} ${t('mnkGoiY')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('close')}</button></div>`, () => {
+      $('#mgOk').addEventListener('click', async () => {
+        const b = $('#mgOk'), e = $('#mgErr');
+        b.disabled = true; e.hidden = true;
+        const r = await send('compRotate', { tuNgay: tu });
+        if (r.err) { b.disabled = false; e.hidden = false; e.innerHTML = errMsg(r.err); return; }
+        closeSheet(); toast(t('mnkDaXep')); render();
+      });
+    });
+  },
+  mnkDoi: (el) => {
+    const tu = el.dataset.t, lich = mnkLichTuan(tu), cu = (lich && lich.dsChay) || [];
+    const ds = mnkHD();
+    openSheet(`<div class="grab"></div><h3>${tv('mnkDoiMay')}<span class="zi">${tz('mnkDoiMay')}</span></h3>
+      <p class="help">${t('mnkChonHelp', { a: MNK_SO_THUONG, b: MNK_SO_BT })}</p>
+      ${[['mnkThuong', ds.filter((m) => !m.bienTan)], ['mnkBienTan', ds.filter((m) => m.bienTan)]].map(([lb, a]) => a.length
+    ? `<div class="help" style="margin-top:10px"><b>${t(lb)}</b></div>` + a.map((m) => `<label class="checkrow"><input type="checkbox" class="mkI" data-id="${esc(m.id)}" data-bt="${m.bienTan ? 1 : 0}"${cu.indexOf(m.id) >= 0 ? ' checked' : ''}>
+        <span>${esc(m.ten)}${m.tenZh ? ` <span class="zi" lang="zh-CN">${esc(m.tenZh)}</span>` : ''} <small class="mono">· ${m.ngayGio ? fmtNum(m.tuBD, 1) + ' h' : '—'}</small></span></label>`).join('')
+    : '').join('')}
+      <div id="mkErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn pri" id="mkOk">${IC.check} ${t('save')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('close')}</button></div>`, () => {
+      $('#mkOk').addEventListener('click', async () => {
+        const b = $('#mkOk'), e = $('#mkErr');
+        const chon = $$('.mkI').filter((x) => x.checked);
+        const th = chon.filter((x) => x.dataset.bt !== '1').length, bt = chon.length - th;
+        e.hidden = true;
+        if (th !== MNK_SO_THUONG) { e.hidden = false; e.textContent = tp('mnkSaiSoThuong', { n: MNK_SO_THUONG }); return; }
+        if (bt !== MNK_SO_BT) { e.hidden = false; e.textContent = tp('mnkSaiSoBT', { n: MNK_SO_BT }); return; }
+        b.disabled = true;
+        const moi = chon.map((x) => x.dataset.id);
+        const r = await send('compWeek', { tuNgay: tu, dsChay: moi });
+        if (r.err) { b.disabled = false; e.hidden = false; e.innerHTML = errMsg(r.err); return; }
+        // Máy nào vừa đổi vào / đổi ra thì nhắc ghi luôn số giờ của nó, để giờ chạy từng máy không lệch
+        const doi = ds.filter((m) => (cu.indexOf(m.id) >= 0) !== (moi.indexOf(m.id) >= 0))
+          .map((m) => ({ m, vao: moi.indexOf(m.id) >= 0 }));
+        closeSheet(); toast(t('mnkDaXep')); render();
+        if (doi.length) mnkNhacGhiGio(doi);
+      });
+    });
+  },
+  mnkNhacBo: () => closeSheet(),
+  mdThem: () => {
+    const p = topV().p;
+    p.ds.push({ id: '', ten: '', tenZh: '', ma: '', maCT: '', bienTan: false, chuKyGio: MNK_CK, gioBD: 0, mocGio: [], thuTu: p.ds.length + 1, hoatDong: true });
+    render();
+  },
+  mdXoa: (el) => { const p = topV().p; p.ds.splice(+el.dataset.i, 1); render(); }
 });
 
 // Link từ tem QR: ...?m=M001

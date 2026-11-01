@@ -302,7 +302,9 @@ function setupSC() {
   const b = loadBackend({ now: '2026-10-05T03:00:00Z' });      // 10:00 giờ Việt Nam
   b.ctx.PropertiesService.getScriptProperties().setProperty('NHAP_EXCEL', 'test');
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333'), ad = b.login('NV001', '111111');
-  return Object.assign(b, { ql, kt, ad });
+  // uKT: id của tài khoản kỹ thuật — ghi sửa chữa nay bắt buộc có người làm
+  const uKT = (b.call('data', {}, ql).data.nhanVien.find((n) => n.maNV === 'NV003') || {}).id;
+  return Object.assign(b, { ql, kt, ad, uKT });
 }
 test('xác nhận bảo dưỡng vẫn gắn linh kiện vào máy và kho như trước (sau khi tách hàm dùng chung)', () => {
   const b = setupSC();
@@ -634,13 +636,21 @@ test('ghi sửa chữa: lưu luôn thành việc đã xong, 3 mục nhiều dòn
   assert.deepEqual([r.tieuDeDich, r.nguyenNhan, r.nguyenNhanDich, r.ketQuaDich], ['SAT260换料印花跑位', 'Sức căng quá lớn\nVạch màu lệch', '张力过紧\n色标偏差', '调整张力']);
   assert.deepEqual(r.linhKien.map((k) => k.ten), ['Lọc mực', 'Gioăng']);
   // Gửi lại cùng opId không tạo trùng
-  assert.equal(ok(b.call('saveRepair', { moTa: 'x', ketQua: 'y' }, b.ql, 'op-sc-1')).congViec.id, r.id);
+  assert.equal(ok(b.call('saveRepair', { moTa: 'x', ketQua: 'y', nguyenNhan: 'z', ma: 'M001', uidLam: b.uKT }, b.ql, 'op-sc-1')).congViec.id, r.id);
   // Kỹ thuật tự ghi: mặc định là người xử lý; thiếu mô tả / kết quả thì báo lỗi; ngày tương lai bị chặn
-  const k = ok(b.call('saveRepair', { moTa: 'Máy kêu to', ketQua: 'Siết bu lông' }, b.kt)).congViec;
+  const k = ok(b.call('saveRepair', { moTa: 'Máy kêu to', ketQua: 'Siết bu lông', nguyenNhan: 'Bu lông lỏng', ma: 'M001' }, b.kt)).congViec;
   assert.deepEqual([k.trangThai, k.nguoiLam], ['DONG', 'Kỹ thuật']);
-  err(b.call('saveRepair', { ketQua: 'y' }, b.kt), 'CAN_MO_TA');
-  err(b.call('saveRepair', { moTa: 'x' }, b.kt), 'CAN_KET_QUA');
-  err(b.call('saveRepair', { moTa: 'x', ketQua: 'y', ngay: '2026-12-01' }, b.kt), 'NGAY_SAI');
+  // Năm mục bắt buộc: mô tả, kết quả, nguyên nhân, thiết bị, người làm.
+  // Chặn ở máy chủ nữa vì bản ghi lưu lúc mất mạng không đi qua phần kiểm tra của app.
+  const sc5 = { moTa: 'x', ketQua: 'y', nguyenNhan: 'z', ma: 'M001' };
+  const bo = (k) => { const o = Object.assign({}, sc5); delete o[k]; return o; };
+  err(b.call('saveRepair', bo('moTa'), b.kt), 'CAN_MO_TA');
+  err(b.call('saveRepair', bo('ketQua'), b.kt), 'CAN_KET_QUA');
+  err(b.call('saveRepair', bo('nguyenNhan'), b.kt), 'CAN_NGUYEN_NHAN');
+  err(b.call('saveRepair', bo('ma'), b.kt), 'CAN_MAY');
+  err(b.call('saveRepair', sc5, b.ql), 'CAN_NGUOI_LAM', 'Quản lý ghi hộ thì phải chọn người làm');
+  ok(b.call('saveRepair', sc5, b.kt));
+  err(b.call('saveRepair', Object.assign({ ngay: '2026-12-01' }, sc5), b.kt), 'NGAY_SAI');
 });
 
 test('ghi sửa chữa: linh kiện thay có mã kho và số lượng; kho đã có thì thêm vào danh sách của máy, gõ tay thì không', () => {
@@ -652,7 +662,8 @@ test('ghi sửa chữa: linh kiện thay có mã kho và số lượng; kho đã
   assert.ok(coSan, 'kho mẫu có linh kiện');
   const truoc = d0.may.find((m) => m.ma === 'M038').linhKien.length;
   const r = ok(b.call('saveRepair', {
-    moTa: 'Máy nén khí rò dầu', ketQua: 'Thay gioăng', ma: 'M038', ngay: '2026-10-14',
+    moTa: 'Máy nén khí rò dầu', ketQua: 'Thay gioăng', nguyenNhan: 'Gioăng chai cứng',
+    uidLam: d0.nhanVien.find((n) => n.maNV === 'NV003').id, ma: 'M038', ngay: '2026-10-14',
     linhKien: [
       { id: 'LKNEW1', ten: coSan.ten, quyCach: coSan.qc || '', dv: coSan.dv || '', sl: 2, loai: 'THAY', maKho: coSan.ma },
       { id: 'LKNEW2', ten: 'Gioăng chế bằng tay ngoài kho', quyCach: '', dv: 'cái', sl: 1, loai: 'THAY' }
@@ -668,7 +679,8 @@ test('ghi sửa chữa: linh kiện thay có mã kho và số lượng; kho đã
   assert.ok(ten.includes(coSan.ten), 'linh kiện có sẵn trong kho được thêm vào máy');
   assert.ok(!ten.includes('Gioăng chế bằng tay ngoài kho'), 'linh kiện gõ tay kho chưa có thì không thêm vào máy');
   // Dạng chữ nhiều dòng của bản cũ vẫn nhận được (bản ghi ngoại tuyến từ app cũ)
-  const cu = ok(b.call('saveRepair', { moTa: 'x', ketQua: 'y', ma: 'M038', linhKien: 'Lọc mực\nGioăng' }, ql)).congViec;
+  const cu = ok(b.call('saveRepair', { moTa: 'x', ketQua: 'y', nguyenNhan: 'z',
+    uidLam: d0.nhanVien.find((n) => n.maNV === 'NV003').id, ma: 'M038', linhKien: 'Lọc mực\nGioăng' }, ql)).congViec;
   assert.deepEqual(cu.linhKien.map((k) => k.ten), ['Lọc mực', 'Gioăng']);
 });
 
@@ -699,8 +711,8 @@ test('mã hiển thị: tự đặt cho chuyền và máy, không trùng, đổi
 
 test('bản ghi sửa chữa: đánh dấu nguồn SC (cả bản ghi cũ 2.6.0); xoá: Quản lý xoá mọi bản ghi, người khác chỉ xoá bản mình ghi; việc thường không xoá kiểu này', () => {
   const b = setupSC();
-  const a = ok(b.call('saveRepair', { moTa: 'Máy kêu to', ketQua: 'Siết bu lông' }, b.kt)).congViec;
-  const q = ok(b.call('saveRepair', { moTa: 'Băng tải lệch', ketQua: 'Căn chỉnh', ma: 'M001' }, b.ql)).congViec;
+  const a = ok(b.call('saveRepair', { moTa: 'Máy kêu to', ketQua: 'Siết bu lông', nguyenNhan: 'Bu lông lỏng', ma: 'M001' }, b.kt)).congViec;
+  const q = ok(b.call('saveRepair', { moTa: 'Băng tải lệch', ketQua: 'Căn chỉnh', nguyenNhan: 'Lệch dẫn hướng', ma: 'M001', uidLam: b.uKT }, b.ql)).congViec;
   assert.equal(a.nguon, 'SC');
   err(b.call('deleteRepair', { id: q.id }, b.kt), 'KHONG_QUYEN');
   assert.equal(ok(b.call('deleteRepair', { id: a.id, lyDo: 'Ghi nhầm' }, b.kt)).congViec.trangThai, 'HUY');
@@ -941,13 +953,14 @@ test('sửa chữa ghi theo chuyền: thiết bị là mã chuyền (máy chính
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222');
   ok(b.call('data', {}, ql));
-  const r = ok(b.call('saveRepair', { moTa: 'Chuyền 01 dừng do kẹt vật liệu ở cụm cắt', ketQua: 'Gỡ kẹt, chỉnh dao cắt', ma: 'vky01', gioDung: 0.5 }, ql)).congViec;
+  const uKT = ok(b.call('data', {}, ql)).nhanVien.find((n) => n.maNV === 'NV003').id;
+  const r = ok(b.call('saveRepair', { moTa: 'Chuyền 01 dừng do kẹt vật liệu ở cụm cắt', ketQua: 'Gỡ kẹt, chỉnh dao cắt', nguyenNhan: 'Kẹt vật liệu', uidLam: uKT, ma: 'vky01', gioDung: 0.5 }, ql)).congViec;
   assert.deepEqual([r.ma, r.trangThai, r.nguon], ['VKY01', 'DONG', 'SC']);
   const v = ok(b.call('saveTask', { tieuDe: 'Kiểm tra cụm dán keo chuyền 16', loai: 'SUA', ma: 'VKY16' }, ql)).congViec;
   assert.equal(v.ma, 'VKY16');
-  err(b.call('saveRepair', { moTa: 'x', ketQua: 'y', ma: 'VKY99' }, ql), 'KHONG_CO_MAY');
+  err(b.call('saveRepair', { moTa: 'x', ketQua: 'y', nguyenNhan: 'z', uidLam: uKT, ma: 'VKY99' }, ql), 'KHONG_CO_MAY');
   // Máy ngoài chuyền vẫn chọn được
-  assert.equal(ok(b.call('saveRepair', { moTa: 'Máy nén khí kêu to', ketQua: 'Siết bu lông', ma: 'M038' }, ql)).congViec.ma, 'M038');
+  assert.equal(ok(b.call('saveRepair', { moTa: 'Máy nén khí kêu to', ketQua: 'Siết bu lông', nguyenNhan: 'Bu lông lỏng', uidLam: uKT, ma: 'M038' }, ql)).congViec.ma, 'M038');
 });
 
 test('phân quyền xem: Quản lý, Quản trị thấy hết; kỹ thuật chỉ việc của mình và mọi việc Sửa chữa / Bảo dưỡng, không xem kho, việc lặp', () => {
@@ -982,7 +995,7 @@ test('phân quyền xem: Quản lý, Quản trị thấy hết; kỹ thuật ch�
   // Điện / nước, máy, lịch sử bảo dưỡng: vẫn đủ để làm việc
   assert.ok(dk.congTo.length > 0 && dk.may.length === dq.may.length && dk.lichSu.length === dq.lichSu.length);
   // Lịch sử sửa chữa (bản ghi SC) của người khác: kỹ thuật vẫn xem được
-  const sc = ok(b.call('saveRepair', { moTa: 'Máy nén khí kêu to', ketQua: 'Siết bu lông', ma: 'M038' }, ql)).congViec;
+  const sc = ok(b.call('saveRepair', { moTa: 'Máy nén khí kêu to', ketQua: 'Siết bu lông', nguyenNhan: 'Bu lông lỏng', uidLam: uid('NV003'), ma: 'M038' }, ql)).congViec;
   assert.ok(ids(kt).has(sc.id));
 });
 
@@ -1826,4 +1839,109 @@ test('việc lặp lại: sửa mẫu thì việc đã sinh hôm nay đổi theo
   assert.equal(huy.length, 1, 'việc của người bị bỏ thì huỷ');
   assert.equal(huy[0].uidLam, c.id);
   assert.equal(ok(b.call('data', {}, b.ql)).congViec.filter((x) => x.lapLai === r5.viecLap.id && x.trangThai === 'DA_GIAO').length, 1);
+});
+
+// ===== Máy nén khí: giờ chạy và lịch luân phiên tuần =====
+function setupMNK() {
+  const b = loadBackend({ now: '2026-10-05T03:00:00Z' });
+  b.ctx.PropertiesService.getScriptProperties().setProperty('NHAP_EXCEL', 'test');
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const ds = [1, 2, 3, 4, 5, 6].map((i) => ({ ten: 'Máy nén khí số ' + i, tenZh: '空压机' + i + '号',
+    bienTan: i === 3 || i === 6, chuKyGio: 3000, gioBD: 0, thuTu: i }));
+  const mn = ok(b.call('compSave', { ds }, ql)).mayNen;
+  return Object.assign(b, { ql, kt, mn, id: (i) => mn[i - 1].id });
+}
+
+test('máy nén khí: danh sách 6 máy, 2 máy biến tần, kỹ thuật không sửa danh sách', () => {
+  const b = setupMNK();
+  assert.equal(b.mn.length, 6);
+  assert.deepEqual(b.mn.filter((x) => x.bienTan).map((x) => x.ten), ['Máy nén khí số 3', 'Máy nén khí số 6']);
+  assert.equal(b.mn[0].chuKyGio, 3000);
+  assert.deepEqual(ok(b.call('data', {}, b.kt)).mayNen.map((x) => x.ten), b.mn.map((x) => x.ten));
+  err(b.call('compSave', { ds: [{ ten: 'Máy nén khí số 1' }] }, b.kt), 'KHONG_QUYEN');
+  err(b.call('compSave', { ds: [] }, b.ql), 'CAN_MAY_NEN');
+  // Bỏ máy 6 ra khỏi danh sách: đánh dấu ngừng chứ không xoá, để giờ chạy đã ghi còn nguyên
+  const bo = ok(b.call('compSave', { ds: b.mn.slice(0, 5) }, b.ql)).mayNen;
+  assert.equal(bo.length, 6);
+  assert.equal(bo.find((x) => x.ten === 'Máy nén khí số 6').hoatDong, false);
+});
+
+test('máy nén khí: ghi giờ chạy, chặn giờ giảm và giờ vượt lần ghi sau', () => {
+  const b = setupMNK(), id = b.id(1);
+  ok(b.call('compHour', { mnkID: id, ngay: '2026-09-07', gio: 1200 }, b.kt));
+  ok(b.call('compHour', { mnkID: id, ngay: '2026-10-05', gio: 1850.5 }, b.kt));
+  const gc = ok(b.call('data', {}, b.kt)).gioChay.filter((x) => x.mnkID === id);
+  assert.equal(gc.length, 2);
+  assert.equal(gc[1].gio, 1850.5);
+  // Đồng hồ cộng dồn: không được ghi thấp hơn lần trước, cũng không được vượt lần ghi sau
+  err(b.call('compHour', { mnkID: id, ngay: '2026-10-05', gio: 1100 }, b.kt), 'GIO_GIAM');
+  err(b.call('compHour', { mnkID: id, ngay: '2026-09-20', gio: 1900 }, b.kt), 'GIO_VUOT');
+  ok(b.call('compHour', { mnkID: id, ngay: '2026-09-20', gio: 1500 }, b.kt));
+  err(b.call('compHour', { mnkID: id, ngay: '2026-10-06', gio: 1900 }, b.kt), 'NGAY_TUONG_LAI');
+  err(b.call('compHour', { mnkID: 'MNK999', ngay: '2026-10-05', gio: 10 }, b.kt), 'KHONG_CO_MAY_NEN');
+  err(b.call('compHour', { mnkID: id, ngay: '2026-10-05', gio: '' }, b.kt), 'CAN_GIO');
+  err(b.call('compHour', { mnkID: id, ngay: '2026-10-05', gio: -5 }, b.kt), 'GIO_SAI');
+  // Ghi lại cùng opId (máy mất mạng gửi lại) thì không ghi thêm dòng
+  const o = ok(b.call('compHour', { mnkID: id, ngay: '2026-10-05', gio: 1860 }, b.kt, 'OP-MNK-1'));
+  const o2 = ok(b.call('compHour', { mnkID: id, ngay: '2026-10-05', gio: 1860 }, b.kt, 'OP-MNK-1'));
+  assert.equal(o2.dup, true);
+  assert.equal(o2.ban.id, o.ban.id);
+});
+
+test('máy nén khí: ghi giờ lúc bảo dưỡng thì đặt lại mốc 3000 h', () => {
+  const b = setupMNK(), id = b.id(2);
+  ok(b.call('compHour', { mnkID: id, ngay: '2026-09-01', gio: 2900 }, b.kt));
+  const r = ok(b.call('compHour', { mnkID: id, ngay: '2026-10-05', gio: 3050, bd: true, ghiChu: 'Thay dầu + lọc khí' }, b.kt));
+  const m = r.mayNen.find((x) => x.id === id);
+  assert.equal(m.gioBD, 3050, 'mốc giờ bảo dưỡng chuyển sang số giờ vừa ghi');
+  assert.equal(r.ban.nguon, 'BD');
+  // Mốc phụ: chỉ mốc được tích là làm rồi mới đặt lại giờ
+  const ds = r.mayNen.map((x) => Object.assign({}, x, x.id === id
+    ? { mocGio: [{ ten: 'Thay dầu', ck: 3000, gio: 3050 }, { ten: 'Thay lọc khí', ck: 2000, gio: 1000 }] } : {}));
+  ok(b.call('compSave', { ds }, b.ql));
+  const r2 = ok(b.call('compHour', { mnkID: id, ngay: '2026-10-05', gio: 3060, bd: true, mocLam: [1] }, b.kt));
+  const m2 = r2.mayNen.find((x) => x.id === id);
+  assert.equal(m2.mocGio[0].gio, 3050, 'mốc không tích thì giữ nguyên');
+  assert.equal(m2.mocGio[1].gio, 3060, 'mốc đã tích thì tính lại từ đây');
+});
+
+test('máy nén khí: lịch tuần 3 máy thường + 1 máy biến tần, chặn xếp quá số máy', () => {
+  const b = setupMNK();
+  err(b.call('compWeek', { tuNgay: '2026-10-07', dsChay: [b.id(1)] }, b.ql), 'TUAN_SAI');
+  const r = ok(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(2), b.id(4), b.id(3)] }, b.ql));
+  assert.deepEqual(r.lichMNK[0].dsChay, [b.id(1), b.id(2), b.id(4), b.id(3)]);
+  // Máy 3 và máy 6 đều là biến tần: mỗi ngày chỉ chạy một trong hai
+  err(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(2), b.id(3), b.id(6)] }, b.ql), 'NHIEU_BIEN_TAN');
+  err(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(2), b.id(4), b.id(5)] }, b.ql), 'NHIEU_MAY_THUONG');
+  // Kỹ thuật đổi máy chạy trong tuần được (nhân viên tự đổi), nhưng không sửa danh sách máy
+  ok(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(2), b.id(5), b.id(6)] }, b.kt));
+  assert.deepEqual(ok(b.call('data', {}, b.kt)).lichMNK.find((x) => x.tuNgay === '2026-10-05').dsChay,
+    [b.id(1), b.id(2), b.id(5), b.id(6)]);
+});
+
+test('máy nén khí: gợi ý luân phiên chọn máy ít giờ nhất, máy tuần trước đã chạy xếp sau', () => {
+  const b = setupMNK();
+  // Giờ kể từ lần bảo dưỡng: máy 1 cao nhất, máy 4 thấp nhất; máy 3 nhiều hơn máy 6
+  [[1, 2600], [2, 1400], [3, 900], [4, 300], [5, 1400], [6, 400]].forEach(([i, g]) => {
+    ok(b.call('compHour', { mnkID: b.id(i), ngay: '2026-10-04', gio: g }, b.kt));
+  });
+  ok(b.call('compWeek', { tuNgay: '2026-09-28', dsChay: [b.id(2), b.id(4), b.id(5), b.id(6)] }, b.ql));
+  const g = ok(b.call('compRotate', { tuNgay: '2026-10-05', luu: false }, b.ql)).goiY;
+  assert.equal(g.length, 4);
+  // Ba máy thường ít giờ nhất: máy 4 (300) rồi máy 2 và máy 5 (1400) — máy 1 (2600) được nghỉ
+  assert.deepEqual(g.slice(0, 3).slice().sort(), [b.id(2), b.id(4), b.id(5)].slice().sort());
+  assert.equal(g[3], b.id(6), 'máy biến tần ít giờ hơn thì chạy');
+  // luu không gửi lên thì lưu luôn vào lịch tuần
+  const r = ok(b.call('compRotate', { tuNgay: '2026-10-05' }, b.ql));
+  assert.deepEqual(r.lichMNK[0].dsChay, g);
+  err(b.call('compRotate', { tuNgay: '2026-10-07' }, b.ql), 'TUAN_SAI');
+});
+
+test('máy nén khí: xoá lần ghi giờ (Quản lý) thì không tính nữa', () => {
+  const b = setupMNK(), id = b.id(5);
+  const r = ok(b.call('compHour', { mnkID: id, ngay: '2026-10-05', gio: 999 }, b.kt));
+  err(b.call('compHourDel', { id: r.ban.id }, b.kt), 'KHONG_QUYEN');
+  ok(b.call('compHourDel', { id: r.ban.id, lyDo: 'Ghi nhầm máy' }, b.ql));
+  assert.equal(ok(b.call('data', {}, b.ql)).gioChay.filter((x) => x.mnkID === id).length, 0);
+  err(b.call('compHourDel', { id: 'GC999' }, b.ql), 'KHONG_CO_GHI');
 });
