@@ -12266,7 +12266,7 @@ VIEWS.phanCa = {
     const mocTu = ym < TODAY().slice(0, 7) ? '' : tuanNay;
     const trong = ds.filter((w) => w.tu >= mocTu).reduce((a, w) => a + w.o.filter((x) => !x || !x.nguoiId).length, 0);
     let o = srvOld('truc') ? srvWarn('truc') : '';
-    o += trucSegHtml(che) + `<div class="caltools"><div class="stepper">
+    o += `<div class="caltools"><div class="stepper">
       <button data-act="trucThang" data-d="-1" aria-label="-">${IC.left}</button>
       <b>${tv('trucThangN', { m: mo, y })}</b>
       <button data-act="trucThang" data-d="1" aria-label="+">${IC.right}</button></div>
