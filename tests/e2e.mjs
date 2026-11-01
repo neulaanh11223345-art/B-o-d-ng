@@ -472,16 +472,19 @@ assert.match(don, /TỔNG CỘNG/); assert.match(don, /Hành chính nhân sự/)
 assert.equal(await page.locator('.tcsheet .ot tr').count(), 8, 'bảng 6 dòng + tiêu đề + tổng cộng');
 await shot('18-tang-ca-don');
 assert.ok(await page.evaluate(() => XW.build([tcSheet(tcLoc(tcUid(), tcTuanHT(), addD(tcTuanHT(), 6)), 'x', 'y')]).size) > 2000, 'xuất được Excel tuần');
-// Kỹ thuật chỉ thấy tăng ca của mình
-await page.evaluate(() => go('tcThang')); await wait(600);
+// Kỹ thuật chỉ thấy tăng ca của mình.
+// Dữ liệu mẫu nằm ở tuần chứa hôm nay; tuần đó có thể vắt sang tháng trước (vd Chủ nhật 01/11 thì
+// thứ Hai là 26/10), nên mở đúng tháng chứa thứ Hai của tuần, đừng để mặc định là tháng hiện tại.
+const tcThangMau = await page.evaluate(() => tcThuHai(TODAY()).slice(0, 7));
+await page.evaluate((m) => { S.f.tcThang = m; go('tcThang'); }, tcThangMau); await wait(600);
 assert.equal(await page.locator('.tcrow[data-act="tcNguoiMo"]').count(), 1, 'kỹ thuật chỉ thấy dòng của mình');
 assert.equal(await page.locator('#tcNguoi').count(), 0, 'kỹ thuật không chọn được người khác');
 // Quản lý thấy cả nhà máy và sửa được ca làm việc
 await logout(); await login('NV002', '222222');
-await page.evaluate(() => go('tcThang')); await wait(600);
+await page.evaluate((m) => { S.f.tcThang = m; go('tcThang'); }, tcThangMau); await wait(600);
 assert.ok(await page.locator('.tcrow[data-act="tcNguoiMo"]').count() > 1, 'Quản lý thấy nhiều người');
 await shot('19-tang-ca-thang');
-assert.ok(await page.evaluate(() => tcThangWorkbook(tcThangHT()).size) > 2000, 'xuất được Excel tổng hợp tháng');
+assert.ok(await page.evaluate((m) => tcThangWorkbook(m).size, tcThangMau) > 2000, 'xuất được Excel tổng hợp tháng');
 await page.evaluate(() => go('tcCfg')); await wait(500);
 assert.equal(await page.locator('[data-cf$=":ten"]').count(), 4, 'bốn ca làm việc');
 // Quản lý ghi hộ được cho tuần đã khoá (3 tuần trước)
@@ -577,35 +580,72 @@ assert.ok(!/data-act="btXacNhan/.test(ktBt), 'kỹ thuật không có nút xác 
 assert.match(ktBt, /Chỉ Quản lý/);
 ok('Bản 2.11.2: Quản lý xác nhận tiêu thụ bất thường, cảnh báo thôi hiện; kỹ thuật không xác nhận được');
 
-// 16. Bản 2.12: lịch trực tuần (nội dung trực của từng người) và phân công ca trực
+// 16. Bản 2.12 + 2.31: lịch trực tháng điểm màu theo người và phân công ca trực
 await logout(); await login('NV002', '222222');
-await page.evaluate(() => tab('truc')); await wait(600);
-assert.match(await text('#barTitle'), /Lịch trực tuần/);
-assert.match(await text('#main'), /Trực điện xưởng 1/, 'bảng lịch trực hiện nội dung trực của từng người');
-assert.match(await text('#main'), /1号车间电工值班/, 'nội dung trực hiện cả tiếng Trung');
-assert.equal(await page.locator('[data-act="trucXep"]').count(), 7, 'bảy ngày, Quản lý bấm được từng ngày');
-await shot('24-lich-truc-tuan');
-// Ngày chưa xếp: chọn người và nhập nội dung trực
-const trong16 = await page.evaluate(() => {
-  const tu = tcThuHai(TODAY());
-  return trucTuanDS(tu).filter((o) => !trucCoNguoi(o)).map((o) => o.ngay)[0];
+// Dữ liệu mẫu lịch trực nằm ở tuần chứa hôm nay; tuần đó có thể vắt sang tháng trước
+// (Chủ nhật 01/11 thì thứ Hai là 26/10), nên mở đúng tháng chứa thứ Hai của tuần.
+const ymMau = await page.evaluate(() => tcThuHai(TODAY()).slice(0, 7));
+await page.evaluate((m) => { S.f.trucThang = m; tab('truc'); }, ymMau); await wait(600);
+assert.match(await text('#barTitle'), /Lịch trực tháng/);
+const lich16 = await page.evaluate((ym) => {
+  const { ds } = trucThangDS(ym);
+  const co = ds.filter(trucCoNguoi);
+  return { n: ds.length, co: co.length, ten: co.length ? co[0].x.ten : '', trong: ds.filter((o) => !trucCoNguoi(o)).map((o) => o.ngay)[0] };
+}, ymMau);
+assert.equal(await page.locator('.trcal [data-act="trucXep"]').count(), lich16.n, 'lịch tháng có đủ mỗi ngày một ô, Quản lý bấm được: ' + lich16.n);
+assert.equal(await page.locator('.trcal .wd').count(), 7, 'bảy cột thứ, lịch bắt đầu từ thứ Hai');
+assert.match(await text('.trcal .wd:nth-child(7)'), /CN|日/, 'cột cuối là Chủ nhật');
+assert.ok(lich16.co >= 3, 'tháng mẫu đã xếp vài ngày: ' + lich16.co);
+// Ô ngày đã xếp mang màu riêng của người đó, chỉ hiện tên gọi cho vừa ô
+const oMau = await page.evaluate(() => {
+  const o = Array.from(document.querySelectorAll('.trcal .d')).filter((e) => e.style.background)[0];
+  return o ? { bg: o.style.background, txt: o.textContent } : null;
 });
-assert.ok(trong16, 'tuần mẫu có một ngày chưa xếp');
-await page.click(`[data-act="trucXep"][data-d="${trong16}"]`); await wait(500);
+assert.ok(oMau && oMau.bg, 'ngày đã xếp được tô màu');
+assert.match(await text('.trleg'), /黎明进|杜文红|阮俊/, 'chú thích màu hiện tên tiếng Trung');
+// Hai người không bao giờ trùng màu trong cùng một lịch
+const mauTruc = await page.evaluate((ym) => {
+  const m = trucMauThang(ym), v = Object.values(m).map((x) => x[0]);
+  return { n: v.length, rieng: new Set(v).size };
+}, ymMau);
+assert.equal(mauTruc.rieng, mauTruc.n, 'mỗi người một màu riêng: ' + JSON.stringify(mauTruc));
+const mauDon = await page.evaluate(() => {
+  // Giả lập 14 người cùng trực một tháng để chắc chắn không ai trùng màu
+  const ids = Array.from({ length: 14 }, (_, i) => 'U' + i);
+  const m = trMauMap(ids, (id) => +id.slice(1));
+  return new Set(Object.values(m).map((x) => x[0])).size;
+});
+assert.equal(mauDon, 10, 'quá 10 người thì dùng hết 10 màu, không bỏ màu nào');
+// Tháng đã qua thì đếm cả tháng (soát lại sổ); tháng này và tháng sau chỉ đếm từ hôm nay trở đi
+const cur16 = await page.evaluate(() => TODAY().slice(0, 7));
+if (ymMau < cur16) assert.match(await text('.caltools'), /\d+ ngày chưa xếp/, 'tháng đã qua đếm cả tháng');
+await page.evaluate((m) => { S.f.trucThang = m; render(); }, cur16); await wait(400);
+assert.match(await text('.caltools'), /Còn \d+ ngày chưa xếp|Đã xếp đủ tháng/, 'tháng này chỉ đếm từ hôm nay trở đi');
+const dem16 = await page.evaluate((m) => {
+  const today = TODAY(), ds = trucThangDS(m).ds;
+  return { ca: ds.filter((o) => !trucCoNguoi(o)).length, tuNay: ds.filter((o) => !trucCoNguoi(o) && o.ngay >= today).length };
+}, cur16);
+assert.ok(dem16.tuNay <= dem16.ca, 'đếm từ hôm nay không vượt quá đếm cả tháng: ' + JSON.stringify(dem16));
+await page.evaluate((m) => { S.f.trucThang = m; render(); }, ymMau); await wait(400);
+assert.doesNotMatch(await text('#main'), /Trực điện xưởng 1|1号车间电工值班/, 'lịch trực không còn hiện nội dung trực');
+await shot('24-lich-truc-thang');
+// Ngày chưa xếp: chỉ chọn người, không còn ô nội dung
+assert.ok(lich16.trong, 'tháng mẫu có một ngày chưa xếp');
+await page.click(`[data-act="trucXep"][data-d="${lich16.trong}"]`); await wait(500);
 assert.match(await text('#barTitle'), /Xếp người trực/);
+assert.equal(await page.locator('#trND, #trNDZ').count(), 0, 'ô xếp người trực không còn phần nội dung trực');
 const u16 = await page.evaluate(() => S.V.nv.find((n) => n.maNV === 'NV005').id);
-await page.selectOption('#trNg', u16);
-await page.fill('#trND', 'Kiểm tra bơm nước khu xử lý nước thải'); await wait();
+await page.selectOption('#trNg', u16); await wait();
+assert.equal(await page.locator('#trMau:visible').count(), 1, 'chọn người thì hiện màu của người đó');
 await page.click('#trOk'); await wait(1200);
-const d16 = await page.evaluate((d) => { const x = trucNgay(d); return { uid: x.uid, ten: x.ten, nd: x.noiDung, dich: !!x.noiDungDich }; }, trong16);
+const d16 = await page.evaluate((d) => { const x = trucNgay(d); return { uid: x.uid, ten: x.ten }; }, lich16.trong);
 assert.equal(d16.uid, u16);
-assert.equal(d16.nd, 'Kiểm tra bơm nước khu xử lý nước thải');
-assert.equal(d16.dich, true, 'máy chủ tự dịch nội dung trực sang tiếng Trung');
-assert.equal(await page.locator('[data-act="trucXep"] >> text=Chưa xếp').count(), 0, 'tuần đã xếp đủ bảy ngày');
+const sau16 = await page.evaluate((m) => trucThangDS(m).ds.filter(trucCoNguoi).length, ymMau);
+assert.equal(sau16, lich16.co + 1, 'xếp thêm một ngày thì lịch tháng đếm thêm một');
 // Tổng số ca: số ngày trực và số ngày Chủ nhật
 await page.evaluate(() => go('trucTong')); await wait(600);
 assert.match(await text('#barTitle'), /Tổng số ca/);
-const tong16 = await page.evaluate(() => trucTongDS(TODAY().slice(0, 7)));
+const tong16 = await page.evaluate((m) => trucTongDS(m), ymMau);
 assert.ok(tong16.length >= 3, 'bảng tổng liệt kê từng người');
 // Chủ nhật của tuần đang xem có thể rơi sang tháng sau (vd thứ Hai 26/10 thì Chủ nhật là 1/11),
 // nên đếm ngày Chủ nhật theo đúng tháng chứa Chủ nhật đó.
@@ -615,14 +655,72 @@ const cn16 = await page.evaluate(() => {
 });
 assert.ok(cn16 >= 1, 'đếm riêng số ngày Chủ nhật');
 await shot('25-truc-tong-so-ca');
-// Phân công ca trực: bảng giống bảng giấy, bấm luân phiên thì tiếp nối tuần trước
-await page.evaluate(() => { back(); go('phanCa'); }); await wait(700);
+// Xuất Excel cả tháng: ba sheet (lịch từng ngày, phân công ca, tổng hợp)
+const xlTruc = await page.evaluate(async (ym) => {
+  const blob = trucXlsx(ym);
+  const sh = await readXlsx(await blob.arrayBuffer());
+  const r = await Promise.all(sh.map((x) => x.rows()));
+  const cuoi = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7), 0)).getUTCDate();
+  const txt = (rows) => rows.map((x) => x.join('|')).join('\n');
+  return { ten: sh.map((x) => x.name), size: blob.size, cuoi, ngay: txt(r[0]), ca: txt(r[1]), tong: txt(r[2]),
+    dongCa: r[1].length };
+}, ymMau);
+assert.deepEqual(xlTruc.ten, ['Lich truc', 'Phan ca truc', 'Tong hop'], 'đủ ba sheet: ' + xlTruc.ten);
+assert.ok(xlTruc.dongCa >= 7 && xlTruc.dongCa <= 9, 'sheet phân ca có mỗi tuần một dòng: ' + xlTruc.dongCa);
+assert.match(xlTruc.ngay, /Thứ Hai.*Chủ nhật/s, 'sheet lịch trực là lịch tháng, bảy cột thứ Hai → Chủ nhật');
+assert.match(xlTruc.ngay, /星期日/, 'cột thứ song ngữ');
+assert.match(xlTruc.ngay, /Số ngày đã xếp/, 'sheet lịch trực đếm số ngày đã xếp');
+assert.match(xlTruc.ngay, /Màu theo người trực/, 'sheet lịch trực có chú thích màu');
+assert.doesNotMatch(xlTruc.ngay, /Nội dung trực/, 'sheet lịch trực không còn cột nội dung');
+assert.equal((xlTruc.ngay.match(/\n/g) || []).length >= 8, true, 'lịch tháng có các dòng tuần');
+assert.match(xlTruc.ca, /Kho ngũ kim/, 'sheet phân ca có nhóm kho ngũ kim');
+assert.match(xlTruc.ca, /0389978042|0946367665/, 'sheet phân ca mang số điện thoại');
+assert.match(xlTruc.tong, /Cộng/, 'sheet tổng hợp có dòng cộng');
+assert.ok(xlTruc.size > 3000, 'file Excel có nội dung: ' + xlTruc.size);
+await page.click('[data-act="trucXuat"]'); await wait(900);
+// Phân ca cả tháng: mỗi tuần một dòng, ô tô màu theo người, bấm tuần mở bảng giấy
+await page.evaluate((m) => { back(); S.f.trucThang = m; go('phanCa'); }, ymMau); await wait(700);
 assert.match(await text('#barTitle'), /Phân công ca trực/);
 assert.match(await text('#main'), /KHO NGŨ KIM/);
 assert.match(await text('#main'), /0389978042|0946367665/, 'ô phân ca hiện số điện thoại của người trực');
-await shot('26-phan-cong-ca-truc');
+const pcT = await page.evaluate((ym) => {
+  const bang = Array.from(document.querySelectorAll('.pcthang'));
+  return { tuan: pcThangDS(ym).length, nguoi: pcTongDS(ym).length, bang: bang.length,
+    cot: bang.map((t) => t.querySelectorAll('thead th').length),
+    tran: bang.filter((t) => t.scrollWidth > t.parentElement.clientWidth).length };
+}, ymMau);
+assert.equal(pcT.bang, 2, 'hai bảng xếp dọc: Sản xuất và Kho ngũ kim');
+assert.deepEqual(pcT.cot, [3, 3], 'mỗi bảng ba cột: tuần, ca ngày, ca đêm');
+assert.equal(pcT.tran, 0, 'bảng vừa bề ngang điện thoại, không phải kéo ngang');
+assert.ok(pcT.tuan >= 4 && pcT.tuan <= 6, 'mỗi tuần trong tháng một dòng: ' + pcT.tuan);
+assert.equal(await page.locator('.pcthang tbody tr').count(), pcT.tuan * 2);
+assert.ok(await page.evaluate(() => Array.from(document.querySelectorAll('.pcthang td')).filter((e) => e.style.background).length) >= 4,
+  'ô đã xếp được tô màu theo người');
+assert.match(await text('.trleg'), /tuần ca ngày|tuần ca đêm/, 'chú thích màu đếm số tuần ca ngày / ca đêm');
+await shot('26-phan-ca-thang');
+// Tờ A4 để in hoặc lưu thành PDF: lịch tháng và bảng phân ca tháng
+const toIn = await page.evaluate((ym) => {
+  const a = trucInHtml(ym), b = pcThangInHtml(ym);
+  const d = document.createElement('div');
+  d.innerHTML = a; const oA = d.querySelectorAll('table tr').length;
+  d.innerHTML = b; const oB = d.querySelectorAll('table').length;
+  return { a, b, dongA: oA, bangB: oB };
+}, ymMau);
+assert.match(toIn.a, /LỊCH TRỰC THÁNG|值班表/, 'tờ in lịch tháng có tiêu đề song ngữ');
+assert.match(toIn.a, /Màu theo người trực/, 'tờ in có chú thích màu');
+assert.match(toIn.a, /background:#[0-9A-F]{6}/i, 'ô ngày trên tờ in được tô màu');
+assert.match(toIn.a, /Người lập|制表人/, 'tờ in có chỗ ký');
+assert.ok(toIn.dongA >= 6, 'tờ in có dòng tiêu đề thứ và các dòng tuần: ' + toIn.dongA);
+assert.equal(toIn.bangB, 2, 'tờ in phân ca có hai bảng: Sản xuất và Kho ngũ kim');
+assert.match(toIn.b, /五金仓库/, 'tờ in phân ca song ngữ');
+assert.equal(await page.locator('[data-act="trucPdf"], [data-act="pcPdf"]').count() > 0, true, 'có nút xuất PDF');
+// Mở bảng một tuần: đúng mẫu giấy, bấm luân phiên thì tiếp nối tuần trước
 const pcTruoc = await page.evaluate(() => { const tu = tcThuHai(TODAY()); const x = pcO(tu, 'SX', 'NGAY'); return x ? x.ten : ''; });
 assert.ok(pcTruoc, 'tuần này đã có người trực ca ngày');
+await page.click(`[data-act="pcMoTuan"][data-tu="${await page.evaluate(() => tcThuHai(TODAY()))}"]`); await wait(700);
+assert.match(await text('#barTitle'), /Phân ca một tuần/);
+assert.match(await text('#main'), /BẢNG PHÂN CÔNG CA TRỰC/, 'bảng tuần đúng mẫu giấy');
+await shot('27-phan-ca-tuan');
 await page.click('[data-act="pcLP"]'); await wait(400);
 await page.click('[data-act="pcLPOk"]'); await wait(1200);
 const pcSau = await page.evaluate(() => {
@@ -653,14 +751,14 @@ assert.equal(ntSau.length, 10, 'thêm được người mới vào danh sách');
 assert.equal(ntSau[0].dt, '0912345678', 'sửa được số điện thoại');
 const moi16 = ntSau.find((x) => x.ten === 'Phạm Văn Mới');
 assert.equal(moi16.nhom, 'KHO');
-// Chép cả tuần sang hai tuần sau
+// Chép người trực của một tuần sang hai tuần sau
 await page.evaluate(() => { back(); tab('truc'); }); await wait(700);
 const tuan16 = await page.evaluate(() => tcThuHai(TODAY()));
 await page.click('[data-act="trucChep"]'); await wait(400);
 await page.click('[data-act="trucChepN"][data-n="2"]'); await wait(400);
 await page.click('[data-act="trucChepOk"][data-de="1"]'); await wait(1500);
 const chep16 = await page.evaluate((tu) => {
-  const g = (d) => { const x = trucNgay(d); return x ? { uid: x.uid, nd: x.noiDung } : null; };
+  const g = (d) => { const x = trucNgay(d); return x ? { uid: x.uid } : null; };
   return { goc: g(tu), t1: g(addD(tu, 7)), t2: g(addD(tu, 14)), t3: g(addD(tu, 21)) };
 }, tuan16);
 assert.ok(chep16.goc && chep16.goc.uid, 'tuần nguồn có người trực');
@@ -668,7 +766,7 @@ assert.deepEqual(chep16.t1, chep16.goc, 'chép sang tuần sau');
 assert.deepEqual(chep16.t2, chep16.goc, 'chép sang tuần thứ hai');
 assert.equal(chep16.t3, null, 'không chép quá số tuần đã chọn');
 // Cặp trực: sản xuất xếp theo cặp, hiện trong thứ tự luân phiên
-await page.evaluate(() => go('phanCa')); await wait(700);
+await page.evaluate(() => go('phanCaTuan')); await wait(700);
 assert.match(await text('#main'), /Cặp 1/, 'panel thứ tự luân phiên hiện theo cặp');
 const cap16 = await page.evaluate(() => {
   const ng = ntDS('SX'), caps = pcCapDS(ng);
@@ -680,13 +778,17 @@ assert.deepEqual(cap16.ten[0], ['Nguyễn Hữu Ninh', 'Đỗ Văn Quân']);
 // Kỹ thuật: xem được lịch trực và bảng phân ca, không xếp được
 await logout(); await login('NV003', '333333');
 await page.evaluate(() => tab('truc')); await wait(600);
-assert.match(await text('#main'), /Trực điện xưởng 1/, 'kỹ thuật xem được nội dung trực');
+assert.ok(await page.locator('.trcal .d').count() >= 28, 'kỹ thuật xem được lịch trực tháng');
+assert.match(await text('.trleg'), /Bạn trực/, 'chú thích màu đánh dấu ngày của chính mình');
 assert.equal(await page.locator('[data-act="trucXep"]').count(), 0, 'kỹ thuật không bấm xếp lịch được');
+assert.equal(await page.locator('.trcal button.d').count(), 0, 'ô ngày với kỹ thuật không phải nút bấm');
 await page.evaluate(() => go('phanCa')); await wait(600);
+assert.equal(await page.locator('.pcthang [data-act="pcChon"]').count(), 0, 'kỹ thuật không đổi được người trong bảng tháng');
+await page.evaluate(() => go('phanCaTuan')); await wait(600);
 assert.equal(await page.locator('[data-act="pcLP"]').count(), 0, 'kỹ thuật không có nút luân phiên');
 await page.evaluate(() => go('trucNguoi')); await wait(500);
 assert.match(await text('#barTitle'), /Chỉ Quản lý/);
-ok('Bản 2.17: lịch trực song ngữ, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
+ok('Bản 2.17 + 2.31: lịch trực tháng điểm màu, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
 
 // 17. Bản 2.13: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng và gần hết hàng
 await logout(); await login('NV002', '222222');
@@ -851,6 +953,116 @@ assert.equal(sau20.ketQua, 'DAT');
 assert.equal(await page.evaluate((d) => kdHanTu(d.ngayKD, d.chuKy), sau20), sau20.ngayHetHan, 'hạn tính đúng theo chu kỳ');
 assert.equal(sau20.lichSu.length, 1);
 assert.ok(await page.evaluate(() => kdXlsx(kdDS()).size) > 2000, 'xuất được Excel sổ kiểm định');
+// Nhập sổ kiểm định từ Excel: file mẫu đọc lại được, ghép theo số hiệu, nhập lại không nhân đôi
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
+await moThem('kd');
+assert.ok(await page.evaluate(() => kdMauXlsx().size) > 2000, 'tải được file mẫu');
+const mauKD = await page.evaluate(async () => {
+  const rows = await (await readXlsx(await new File([kdMauXlsx()], 'mau.xlsx').arrayBuffer()))[0].rows();
+  const h = timCotKD(rows);
+  let loi = '';
+  try { await docFileKD(new File([kdMauXlsx()], 'mau.xlsx')); } catch (e) { loi = e.code; }
+  return { cot: h ? Object.keys(h.cot).length : 0, loi };
+});
+assert.ok(mauKD.cot >= 16, 'file mẫu đọc lại nhận đủ cột: ' + JSON.stringify(mauKD));
+assert.equal(mauKD.loi, 'KHONG_CO_DONG', 'file mẫu chưa điền dòng nào thì báo đúng lý do');
+const truocKD = await page.evaluate(() => kdDS().length);
+const fileKD = await page.evaluate(async () => {
+  const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center' };
+  const c = (v) => ({ v, s: { border: true, wrap: 1 } });
+  const ks = ['Tên thiết bị', 'Loại', 'Số hiệu', 'Nhà sản xuất', 'Năm sản xuất', 'Thông số',
+    'Nghiêm ngặt', 'Chu kỳ', 'Đơn vị kiểm định', 'Số giấy chứng nhận', 'Số tem', 'Thuộc thiết bị',
+    'Ngày kiểm định', 'Kết quả'];
+  const rows = [ks.map((k) => ({ v: k, s: H }))];
+  [['4M3', 'TEST-1'], ['4M3', 'TEST-2'], ['4M3', 'TEST-3'], ['4M3', 'TEST-4'], ['4M3', 'TEST-5'],
+    ['2M3', 'TEST-6'], ['2M3', 'TEST-7'], ['5M3', 'TEST-8'], ['5M3', 'TEST-9']].forEach(([m, sr], i) => {
+    rows.push([c('Bình chứa khí nén AIR TANK ' + m), c('Bình chịu áp lực'), c(sr), c('Trung Quốc'), c(2025),
+      c('Dung tích ' + m + ' · 8,4 bar · 110 °C'), c('x'), c(36), c('PV TSR'), c('GCN-' + (i + 1)),
+      c('TEM-' + (i + 1)), c(''), c('11/08/2025'), c('Đạt')]);
+  });
+  // Áp kế và van an toàn: loại mới, gắn trên bình, có số tem riêng
+  rows.push([c('Áp kế bình chứa khí nén'), c('Áp kế'), c('AK-TEST-1'), c('Trung Quốc'), c(2025),
+    c('Lò xo ống · 0÷1,6 MPa'), c(''), c(12), c('PV TSR'), c('GCN-AK-1'), c('24B TEST1'), c('TEST-1'),
+    c('11/08/2025'), c('Đạt')]);
+  rows.push([c('Van an toàn bình chứa khí nén'), c('Van an toàn'), c('VAT-TEST-1'), c('Trung Quốc'), c(2024),
+    c('A28H-16 · 8,4 bar'), c('x'), c(12), c('PV TSR'), c('GCN-VAT-1'), c(''), c('TEST-1'),
+    c('09/08/2025'), c('Đạt')]);
+  rows.push([c('Găng tay cao su cách điện cấp 4'), c('Dụng cụ an toàn điện'), c('GT-TEST-1'), c('Shuang an'), c(2025),
+    c('35 kV · thử 40 kV/1 phút'), c(''), c(6), c('PV TSR'), c('GCN-GT-1'), c('01A; 01B'), c(''),
+    c('12/08/2025'), c('Đạt')]);
+  const blob = XW.build([{ name: 'KD', rows }]);
+  return Array.from(new Uint8Array(await blob.arrayBuffer()));
+});
+const napKD = { name: 'kiem-dinh.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(fileKD) };
+await page.setInputFiles('#kdFile', napKD); await wait(2500);
+const binh = await page.evaluate(() => kdDS().filter((x) => /AIR TANK/.test(x.ten)));
+// Ba loại thiết bị mới và hai trường Số tem / Thuộc thiết bị
+const kdMoi = await page.evaluate(() => {
+  const g = (lo) => kdDS().filter((x) => x.loai === lo)[0] || null;
+  return { ak: g('AP_KE'), van: g('VAN_AT'), gt: g('DC_DIEN'), binh1: kdDS().filter((x) => x.soHieu === 'TEST-1')[0] };
+});
+assert.ok(kdMoi.ak && kdMoi.van && kdMoi.gt, 'nhận đủ ba loại mới: áp kế, van an toàn, dụng cụ an toàn điện');
+assert.equal(kdMoi.ak.soTem, '24B TEST1', 'áp kế nhận số tem');
+assert.equal(kdMoi.ak.thuocTB, 'TEST-1', 'áp kế ghi rõ gắn trên bình nào');
+assert.equal(kdMoi.van.thuocTB, 'TEST-1', 'van an toàn ghi rõ gắn trên bình nào');
+assert.equal(kdMoi.van.nghiemNgat, true, 'van an toàn thuộc nhóm nghiêm ngặt');
+assert.equal(String(kdMoi.gt.chuKy), '6', 'dụng cụ an toàn điện chu kỳ sáu tháng');
+assert.equal(kdMoi.gt.ngayHetHan, '2026-02-11', 'chu kỳ sáu tháng tính đúng hạn: ' + kdMoi.gt.ngayHetHan);
+assert.equal(kdMoi.binh1.soTem, 'TEM-1', 'bình chứa khí nén nhận số tem');
+// Số tem và Thuộc thiết bị hiện ở hồ sơ và có trong file xuất ra
+await page.evaluate((i) => go('kdXem', { id: i }), kdMoi.ak.id); await wait(600);
+assert.match(await text('#main'), /24B TEST1/, 'hồ sơ hiện số tem');
+assert.match(await text('#main'), /Thuộc thiết bị/, 'hồ sơ hiện thiết bị mẹ');
+// Ghi thêm một lần kiểm định nữa để có "lần trước" mà đối chiếu
+const kdLan2 = await page.evaluate(async (i) => {
+  const d = await api('doInspect', { id: i, ngayKD: '2025-09-15', chuKy: 36, donViKD: 'PV TSR 2',
+    soGiayKD: 'GCN-LAN2', soTem: 'TEM-LAN2', ketQua: 'DAT' });
+  await refresh(true);
+  return (d.kiemDinh.lichSu || []).length;
+}, kdMoi.binh1.id);
+assert.equal(kdLan2, 2, 'ghi được lần kiểm định thứ hai');
+const xlKD = await page.evaluate(async () => {
+  const blob = kdXlsx(kdDS());
+  const sh = await readXlsx(await blob.arrayBuffer());
+  const r = await Promise.all(sh.map((x) => x.rows()));
+  const txt = (rows) => rows.map((x) => x.join('|')).join('\n');
+  // XW lưu zip không nén nên dò thẳng mã màu trong tệp là biết ô quá hạn có được tô đỏ không
+  const byt = new Uint8Array(await blob.arrayBuffer());
+  let raw = ''; for (let i = 0; i < byt.length; i++) raw += String.fromCharCode(byt[i]);
+  return { ten: sh.map((x) => x.name), tieuDe: txt(r[0].slice(0, 4)), so: txt(r[0]), ls: txt(r[1]),
+    dongLS: r[1].length, doQuaHan: raw.indexOf('FFFBDBD8') >= 0, camSapHet: raw.indexOf('FFFDEBCF') >= 0 };
+});
+assert.deepEqual(xlKD.ten, ['Kiem dinh', 'Lich su'], 'hai sheet: sổ kiểm định và lịch sử');
+assert.match(xlKD.tieuDe, /Số tem/, 'file xuất có cột số tem');
+assert.match(xlKD.tieuDe, /Thuộc thiết bị/, 'file xuất có cột thuộc thiết bị');
+assert.match(xlKD.tieuDe, /LẦN KIỂM ĐỊNH TRƯỚC/, 'có cụm cột lần kiểm định trước');
+assert.match(xlKD.tieuDe, /KỲ KIỂM ĐỊNH KẾ TIẾP/, 'có cụm cột kỳ kiểm định kế tiếp');
+assert.match(xlKD.tieuDe, /Còn lại \(ngày\)/, 'có cột số ngày còn lại');
+assert.doesNotMatch(xlKD.tieuDe, /undefined/, 'tiêu đề cột không dính chữ undefined');
+assert.match(xlKD.so, /GCN-LAN2/, 'sổ hiện giấy của lần gần nhất');
+assert.match(xlKD.so, /Quá hạn/, 'sổ đánh dấu thiết bị quá hạn');
+assert.equal(xlKD.doQuaHan, true, 'ô quá hạn được tô đỏ trong file Excel');
+assert.match(xlKD.ls, /Lần thứ/, 'sheet lịch sử có cột lần thứ');
+assert.match(xlKD.ls, /GCN-LAN2/, 'sheet lịch sử ghi cả lần mới nhất');
+assert.match(xlKD.ls, /GCN-1/, 'sheet lịch sử giữ cả lần cũ');
+assert.ok(xlKD.dongLS >= 13, 'sheet lịch sử một dòng cho mỗi lần kiểm định: ' + xlKD.dongLS);
+await page.evaluate(() => back()); await wait(500);
+assert.equal(binh.length, 9, 'nhập đủ chín bình chứa khí nén');
+// Chín bình + áp kế + van an toàn + găng tay cách điện
+assert.equal(await page.evaluate(() => kdDS().length), truocKD + 12);
+assert.ok(binh.every((x) => x.loai === 'BINH_AL' && x.nghiemNgat && x.chuKy === 36 && x.ketQua === 'DAT'),
+  'đúng loại, nhóm nghiêm ngặt, chu kỳ 36 tháng, kết quả Đạt');
+assert.ok(binh.every((x) => x.ngayKD === '2025-08-11' && x.ngayHetHan === '2028-08-10'), 'hạn tính đúng theo chu kỳ');
+assert.deepEqual(binh.map((x) => x.soHieu).sort(),
+  ['TEST-1', 'TEST-2', 'TEST-3', 'TEST-4', 'TEST-5', 'TEST-6', 'TEST-7', 'TEST-8', 'TEST-9']);
+await page.setInputFiles('#kdFile', napKD); await wait(2500);
+assert.equal(await page.evaluate(() => kdDS().filter((x) => /AIR TANK/.test(x.ten)).length), 9, 'nhập lại không nhân đôi');
+// TEST-1 đã được ghi thêm một lần kiểm định ở trên, nên soi một bình chưa đụng tới
+assert.equal(await page.evaluate(() => kdDS().find((x) => x.soHieu === 'TEST-2').lichSu.length), 1, 'không ghi trùng lần kiểm định');
+assert.equal(await page.evaluate(() => kdDS().find((x) => x.soHieu === 'TEST-1').lichSu.length), 2, 'lần kiểm định ghi tay vẫn còn sau khi nhập lại file');
+assert.equal(await page.evaluate(() => kdDS().filter((x) => ['AP_KE', 'VAN_AT', 'DC_DIEN'].indexOf(x.loai) >= 0).length), 3,
+  'nhập lại cũng không nhân đôi áp kế, van an toàn, dụng cụ an toàn điện');
+await shot('42-kiem-dinh-nhap-file');
 await shot('34-kiem-dinh-ho-so');
 // Tính toán TB: động cơ → dây dẫn → tụ bù → sụt áp
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);

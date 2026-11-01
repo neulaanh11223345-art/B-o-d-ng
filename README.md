@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.29.0
+# Credible Việt Nam CMMS · 设备管理 — v2.31.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.29.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.31.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.29.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.29.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.31.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.31.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.29.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.31.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò | Xem được |
 |---|---|---|---|
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.29.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.31.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.29.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.31.0.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -96,6 +96,114 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Việc chờ gửi chỉ được gửi khi app đang mở và có mạng. iOS không có gửi ngầm.
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
+
+## Điểm mới của v2.31.0: sổ kiểm định nhận thêm áp kế, van an toàn, dụng cụ an toàn điện
+
+Trước đây sổ kiểm định có 17 loại thiết bị, đủ cho nhóm nghiêm ngặt của Bộ LĐ-TB&XH nhưng thiếu đúng những thứ nhà máy phải kiểm định hằng năm. Nay thêm **ba loại**:
+
+| Loại | Chu kỳ thường gặp | Nghiêm ngặt |
+|---|---|---|
+| **Van an toàn** · 安全阀 | 12 tháng | có |
+| **Áp kế** · 压力表 | 12 tháng | không |
+| **Dụng cụ an toàn điện** · 电气安全用具 | **6 tháng** | không |
+
+*Dụng cụ an toàn điện* gộp chung găng tay cao su cách điện, ủng cách điện, thảm cách điện, sào tiếp địa và bút thử điện — mỗi thứ chu kỳ khác nhau nên chu kỳ sửa được cho từng cái.
+
+### Hai trường mới: Số tem và Thuộc thiết bị
+
+- **Số tem kiểm định** — số in trên tem dán ở thiết bị (`B06100`, `24B 09180`, `01A; 01B`). Thợ đọc tem ngoài xưởng là tra ra ngay hồ sơ, không phải nhớ số chế tạo.
+- **Thuộc thiết bị** — số hiệu thiết bị mẹ. Áp kế và van an toàn ghi rõ gắn trên bình chứa khí nén nào, nên tra ngược được *bình này có mấy van, cái nào hết hạn*.
+
+Cả hai có trong form, hồ sơ thiết bị, **file mẫu để nhập** và **file xuất Excel**. Trang `KiemDinh` tự thêm hai cột `SoTem`, `ThuocTB` khi nâng cấp; dữ liệu cũ giữ nguyên.
+
+### Xuất Excel: lần kiểm định trước, kỳ kế tiếp, quá hạn tô đỏ
+
+Nút **Xuất Excel sổ kiểm định** nay cho file **hai sheet**:
+
+**Sheet `Kiem dinh`** — mỗi thiết bị một dòng, cột gộp thành bốn cụm có màu tiêu đề riêng:
+
+| Cụm | Cột |
+|---|---|
+| **Hồ sơ thiết bị** | Tên · Loại · Nghiêm ngặt · Mã máy · Số hiệu · Thuộc thiết bị · Nhà SX · Năm SX · Thông số · Vị trí · Chu kỳ |
+| **Lần kiểm định trước** | Ngày · Đơn vị · Số giấy · Kết quả |
+| **Lần kiểm định gần nhất** | Ngày · Đơn vị · Số giấy · Số tem · Kết quả |
+| **Kỳ kiểm định kế tiếp** | Hạn · **Còn lại (ngày)** · Tình trạng |
+
+Ba ô của cụm cuối **tự tô màu**: đỏ khi *quá hạn*, cam khi *sắp hết hạn* (trong 30 ngày), xanh khi *còn hạn*, xám khi *chưa kiểm định*. Cột *Còn lại* là **số**, âm là đã quá hạn — lọc và sắp xếp được ngay trong Excel.
+
+**Sheet `Lich su`** — **mỗi lần kiểm định một dòng**: thiết bị, số hiệu, thuộc thiết bị, lần thứ mấy, ngày, hạn, đơn vị, số giấy, kết quả, ghi chú. Dùng để đối chiếu cả quá trình, không chỉ lần đang có hiệu lực.
+
+Ghi một lần kiểm định mới nay nhập được **số tem mới** — tem cũ nằm lại trong lịch sử, tem mới thành tem đang dán trên thiết bị.
+
+### Sửa: tiêu đề cột Excel dính chữ "undefined"
+
+Các khoá tiêu đề cột của sổ kiểm định viết gộp hai thứ tiếng vào một vế (`'Tên thiết bị · 设备名称'`) trong khi hàm ghép song ngữ chờ hai vế, nên mọi tiêu đề trong file xuất ra đều kết thúc bằng *" · undefined"*. Nay tách đúng hai vế, và hàm ghép cũng chịu được khoá chỉ có một vế.
+
+### Sửa: nhãn song ngữ bị ngắt giữa chữ Hán
+
+Bảng nhãn – giá trị ở hồ sơ thiết bị để tên Việt và tên Trung cùng một dòng, nên nhãn dài bị cắt giữa chừng (*设备类 别*, *编 号/序列号*). Nay tên Trung xuống dòng riêng, như mọi chỗ khác trong app.
+
+## Điểm mới của v2.31.0: lịch trực và phân ca xem theo tháng, điểm màu theo người
+
+### Lịch trực giờ là lịch tháng, mỗi người một màu
+
+Màn **Lịch trực** trước là danh sách bảy ngày của một tuần kèm nội dung trực. Nay là **lịch tháng** đúng kiểu lịch treo tường: bảy cột từ thứ Hai đến Chủ nhật, mỗi ngày một ô, ngày nào đã xếp thì tô **màu riêng của người trực** và ghi tên gọi. Dưới lịch là **chú thích màu**: ô màu – tên Việt – tên Trung – số ngày trong tháng. Ngày hôm nay có viền xanh, ngày của chính mình có viền xanh lá nét đứt.
+
+Mục đích là mở ra thấy ngay **ai trực ngày nào**, nên **bỏ hẳn phần nội dung trực**. Ô xếp người trực chỉ còn một việc: chọn người (hoặc bỏ trống). Không còn ô nội dung tiếng Việt, ô nội dung tiếng Trung và phần tự dịch.
+
+Màu lấy theo thứ tự trong danh sách nhân viên nên **tháng nào cũng giữ nguyên một màu cho một người**. Mười màu nền nhạt, chữ đậm cùng tông, đọc được cả chế độ sáng và tối.
+
+> Nội dung trực đã nhập trước đây vẫn còn nguyên trong trang `LichTruc` của Google Sheet, chỉ là app không hiện nữa. Không mất dữ liệu.
+
+**Chép lịch sang tuần sau** vẫn còn, nay chọn **tuần nguồn** trong tháng đang xem rồi chọn số tuần muốn chép.
+
+Pill đếm ngày chưa xếp chỉ tính **từ hôm nay trở đi** (*Còn 5 ngày chưa xếp*), không kêu vì những ngày đã trôi qua. Xem lại tháng cũ thì đếm cả tháng.
+
+Bảng màu có **mười màu**. Nếu trong một tháng hai người rơi vào cùng một màu thì app tự đẩy người sau sang màu còn trống, nên trong cùng một lịch không bao giờ có hai ô giống hệt nhau.
+
+### Phân công ca trực cũng xem theo tháng
+
+Màn **Phân công ca trực** trước mở ra là bảng giấy của một tuần. Nay mở ra là **bảng cả tháng**: mỗi tuần một dòng, bốn cột *Sản xuất ca ngày – ca đêm* và *Kho ngũ kim ca ngày – ca đêm*, mỗi ô **tô màu theo người** kèm tên gọi và số điện thoại. Tuần hiện tại có viền xanh. Dưới bảng là chú thích màu: ai giữ mấy tuần ca ngày, mấy tuần ca đêm trong tháng.
+
+Người trực ca là **danh sách riêng** (trang `NguoiTruc`), không phải tài khoản app, nên màu lấy theo thứ tự trong danh sách đó — độc lập với màu của lịch trực.
+
+Bấm vào **ô tuần** mở **bảng một tuần** đúng mẫu giấy như cũ, vẫn **In bảng**, **Xếp luân phiên** và xem **thứ tự luân phiên theo cặp**. Bấm thẳng vào **một ô ca** ngay trên bảng tháng thì đổi được người của tuần đó.
+
+### Xuất PDF để dán bảng tin
+
+Nút **Xuất PDF lịch tháng** (và **Xuất PDF bảng tháng** ở phân ca) mở hộp thoại in; chọn *Lưu thành PDF* (iPhone: Chia sẻ → Lưu vào Tệp) là có một tờ **A4 một trang** đúng màu như trên app, song ngữ, có chỗ ký *Người lập* và *Quản lý bộ phận*. Tháng nào có 6 dòng tuần vẫn gọn một trang.
+
+### Xuất Excel cả tháng
+
+Nút **Xuất Excel cả tháng** ở màn **Lịch trực** và màn **Tổng số ca**. File `Lich-truc_2026-10.xlsx` gồm ba sheet:
+
+| Sheet | Nội dung |
+|---|---|
+| **Lich truc** | Lịch tháng bảy cột thứ Hai → Chủ nhật, ô ngày tô đúng màu người trực kèm tên Việt – Trung. Dưới là dòng *Số ngày đã xếp* và bảng chú thích màu. |
+| **Phan ca truc** | Mỗi tuần một dòng, ô **tô đúng màu người trực** như trên app, kèm tên tiếng Trung và số điện thoại. Tuần gối tháng vẫn lấy vào. |
+| **Tong hop** | Mỗi người một dòng: số ngày trực, trong đó bao nhiêu ngày Chủ nhật, có dòng *Cộng*. Bên dưới là bảng người trực ca tô màu: giữ ca ngày / ca đêm bao nhiêu tuần trong tháng. |
+
+Tiêu đề song ngữ Việt – Trung, kẻ khung, khoá dòng tiêu đề, in vừa một trang ngang A4. Mở màn Lịch trực ở tháng nào thì xuất đúng tháng đó.
+
+Không đổi gì ở máy chủ — dán `Code.gs-v2.31.0.txt` chỉ để số phiên bản khớp.
+
+## Sửa lỗi ở v2.30.1: vỡ bố cục khi nhãn dài
+
+Bảng **nhãn – giá trị** (`.kv`) để cột nhãn tự giãn theo nội dung. Nhãn song ngữ dài — ví dụ *Thông số (tải trọng, áp suất, dung tích…) 参数（载重、压力、容积…）* — kéo cột nhãn chiếm gần hết bề ngang, cột giá trị còn đúng **một ký tự**, chữ rơi dọc từng chữ một. Màn hồ sơ thiết bị kiểm định dài tới 8810 px.
+
+Nay cột nhãn vừa nội dung nhưng **không quá 40 % bề ngang**, cột giá trị luôn co giãn được. Màn đó còn 2636 px và đọc bình thường. Sửa ở `.kv` nên mọi màn dùng bảng nhãn – giá trị đều được (hồ sơ máy, chi tiết linh kiện, tăng ca, kiểm định…).
+
+## Điểm mới của v2.30.0: nhập sổ kiểm định từ Excel
+
+Ở màn **Kiểm định thiết bị** thêm hai nút: **Tải file mẫu** và **Nhập từ Excel** — giống cách nhập tồn kho an toàn.
+
+Cột nhận được: *Tên thiết bị · Loại · Số hiệu · Nhà sản xuất · Năm sản xuất · Thông số · Vị trí · Mã máy · Nghiêm ngặt · Chu kỳ · Đơn vị kiểm định · Số giấy chứng nhận · Ngày kiểm định · Hạn kiểm định · Kết quả · Ghi chú*. Tiêu đề cột nhận nhiều cách viết (vd *Số hiệu*, *Serial*, *Số chế tạo*); ngày nhận cả `dd/mm/yyyy`, `yyyy-mm-dd` lẫn ô ngày của Excel.
+
+**Ghép theo Số hiệu** trong cùng một loại: thiết bị đã có thì cập nhật, chưa có thì thêm. Dòng nào có *Ngày kiểm định* và *Đơn vị kiểm định* thì **ghi luôn một lần kiểm định** và tự tính hạn theo chu kỳ.
+
+Nhập lại đúng file đó **không nhân đôi** thiết bị và **không ghi trùng** lần kiểm định (so theo ngày + số giấy). Giấy mới hơn thì thay giấy đang hiệu lực, giấy cũ lùi vào lịch sử. Dòng thiếu tên hoặc loại lạ thì bỏ qua và báo số dòng đã bỏ, không làm hỏng cả file.
+
+File mẫu chưa điền dòng nào thì app báo đúng lý do (*chưa có dòng*), không báo nhầm là thiếu cột.
 
 ## Điểm mới của v2.29.0: nghiệm thu động cơ, quạt gió gửi sửa ngoài
 
@@ -442,7 +550,7 @@ Danh sách sắp theo **thiếu nhiều nhất lên trước**, và **xuất Exc
 
 Toàn bộ phần này nằm trong **Kho ngũ kim**, chỉ **Quản lý, Quản trị** xem và sửa. Trang chủ không còn ô cảnh báo linh kiện dưới mức tối thiểu, ô *Linh kiện* ở Tổng quan chỉ còn đếm số mã còn hàng.
 
-Dán `Code.gs-v2.29.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Không có trang mới.
+Dán `Code.gs-v2.31.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Không có trang mới.
 
 ## Điểm mới của v2.13.0: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng
 
@@ -476,9 +584,11 @@ Phiếu chi tiết mỗi linh kiện có thêm mục **Tồn qua các lần nh�
 
 Màn **Ca làm việc** (phần Tăng ca) khi lưu đang ghi đè cả khối cài đặt, làm mất **giá điện**, **sản lượng tháng**, ngưỡng cảnh báo điện và cả **token Telegram** đã nhập — những thứ đó âm thầm quay về mặc định. Nay sửa thành đọc rồi sửa, chỉ thay phần ca làm việc.
 
-Dán `Code.gs-v2.29.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Trang `NhapKho` và cột `TonCu` tự thêm, dữ liệu cũ giữ nguyên. Lịch sử tồn bắt đầu tính từ lần nhập file đầu tiên sau khi nâng cấp.
+Dán `Code.gs-v2.31.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Trang `NhapKho` và cột `TonCu` tự thêm, dữ liệu cũ giữ nguyên. Lịch sử tồn bắt đầu tính từ lần nhập file đầu tiên sau khi nâng cấp.
 
 ## Điểm mới của v2.12.0: lịch trực tuần và phân công ca trực
+
+> Từ **v2.31.0** phần *Lịch trực tuần* đã thành **lịch tháng điểm màu** và **bỏ nội dung trực**. Mục dưới đây giữ lại để biết trang dữ liệu nào được tạo ở bản nào.
 
 Thêm mục **Lịch trực** (thanh bên và ô ở Tổng quan). Trong đó có hai phần tách riêng nhau, vì là hai việc khác nhau:
 
@@ -504,7 +614,7 @@ Dựng đúng bảng giấy của nhà máy: **ca ngày (7h30–19h30)** và **c
 
 **Phân quyền:** ai cũng **xem** được cả hai bảng (để biết ai trực, gọi số nào); chỉ **Quản lý, Quản trị** xếp lịch, nhập nội dung trực và sửa danh sách người trực ca.
 
-**Ba trang mới tự tạo khi nâng cấp:** `LichTruc` (mỗi ngày một dòng), `NguoiTruc` (danh sách người trực ca), `PhanCa` (bảng phân công từng tuần). Dán `Code.gs-v2.29.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới; dữ liệu cũ giữ nguyên.
+**Ba trang mới tự tạo khi nâng cấp:** `LichTruc` (mỗi ngày một dòng), `NguoiTruc` (danh sách người trực ca), `PhanCa` (bảng phân công từng tuần). Dán `Code.gs-v2.31.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới; dữ liệu cũ giữ nguyên.
 
 ## Điểm mới của v2.11.3: Ghi sửa chữa chọn linh kiện từ kho
 
@@ -526,7 +636,7 @@ Máy chủ vẫn nhận dạng chữ nhiều dòng của bản cũ, nên bản g
 
 ## Điểm mới của v2.11.2: xác nhận tiêu thụ bất thường, mã việc lặp lại không trùng
 
-Bản sửa lỗi, không thêm bảng dữ liệu nào. Dán `Code.gs-v2.29.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới là xong, dữ liệu cũ giữ nguyên.
+Bản sửa lỗi, không thêm bảng dữ liệu nào. Dán `Code.gs-v2.31.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới là xong, dữ liệu cũ giữ nguyên.
 
 ### Xác nhận tiêu thụ bất thường (chỉ Quản lý)
 
@@ -556,7 +666,7 @@ Nay mã **đánh số tăng dần** trong cùng một giây (`CV26102012340001`,
 
 ## Điểm mới của v2.11.1: chọn thiết bị cho mọi loại việc, mã bản ghi không trùng
 
-Bản này đã nằm trong v2.11.2 ở trên — dán `Code.gs-v2.29.0.txt` là có cả hai.
+Bản này đã nằm trong v2.11.2 ở trên — dán `Code.gs-v2.31.0.txt` là có cả hai.
 
 ### Mọi loại việc đều chọn được chuyền sản xuất hoặc máy của chuyền
 
@@ -617,7 +727,7 @@ Tài liệu đã để trên Google Drive thì **không cần tải lại**. App
 - **Bỏ khỏi danh mục:** tài liệu quét từ Drive chỉ bị gỡ khỏi danh mục của app, tệp gốc trên Drive không bị xoá và những lần quét sau cũng không thêm lại. Muốn nhận lại thì xoá dấu ở cột `Xoa` của dòng đó trên trang `TaiLieu`. Tệp do app tải lên thì vẫn vào thùng rác Drive như trước.
 - Trang `TaiLieu` có thêm 5 cột: `DuongDan` (đường dẫn thư mục trên Drive), `Nguon` (`APP` tải từ app · `DRIVE` tài liệu có sẵn), `ConTrenDrive`, `HienHanh`, `LucQuet`.
 
-- Nâng cấp: dán `Code.gs-v2.29.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
+- Nâng cấp: dán `Code.gs-v2.31.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
 
 ## Điểm mới của v2.10.0: phân quyền xem theo vai trò
 
@@ -960,6 +1070,6 @@ Tài liệu đã để trên Google Drive thì **không cần tải lại**. App
 
 ```bash
 node tools/build.mjs                    # tạo lại các file từ src/
-node --test tests/backend.test.mjs      # 57 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
+node --test tests/backend.test.mjs      # 58 bài kiểm thử máy chủ (chạy Code.gs với Apps Script giả lập)
 node tests/e2e.mjs                      # 20 bước toàn luồng trên bản xem thử (cần Playwright + Chromium)
 ```
