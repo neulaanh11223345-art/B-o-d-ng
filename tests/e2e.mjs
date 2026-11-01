@@ -1021,7 +1021,8 @@ assert.match(xlKD, /Số tem/, 'file xuất có cột số tem');
 assert.match(xlKD, /Thuộc thiết bị/, 'file xuất có cột thuộc thiết bị');
 await page.evaluate(() => back()); await wait(500);
 assert.equal(binh.length, 9, 'nhập đủ chín bình chứa khí nén');
-assert.equal(await page.evaluate(() => kdDS().length), truocKD + 9);
+// Chín bình + áp kế + van an toàn + găng tay cách điện
+assert.equal(await page.evaluate(() => kdDS().length), truocKD + 12);
 assert.ok(binh.every((x) => x.loai === 'BINH_AL' && x.nghiemNgat && x.chuKy === 36 && x.ketQua === 'DAT'),
   'đúng loại, nhóm nghiêm ngặt, chu kỳ 36 tháng, kết quả Đạt');
 assert.ok(binh.every((x) => x.ngayKD === '2025-08-11' && x.ngayHetHan === '2028-08-10'), 'hạn tính đúng theo chu kỳ');
@@ -1030,6 +1031,8 @@ assert.deepEqual(binh.map((x) => x.soHieu).sort(),
 await page.setInputFiles('#kdFile', napKD); await wait(2500);
 assert.equal(await page.evaluate(() => kdDS().filter((x) => /AIR TANK/.test(x.ten)).length), 9, 'nhập lại không nhân đôi');
 assert.equal(await page.evaluate(() => kdDS().find((x) => /AIR TANK/.test(x.ten)).lichSu.length), 1, 'không ghi trùng lần kiểm định');
+assert.equal(await page.evaluate(() => kdDS().filter((x) => ['AP_KE', 'VAN_AT', 'DC_DIEN'].indexOf(x.loai) >= 0).length), 3,
+  'nhập lại cũng không nhân đôi áp kế, van an toàn, dụng cụ an toàn điện');
 await shot('42-kiem-dinh-nhap-file');
 await shot('34-kiem-dinh-ho-so');
 // Tính toán TB: động cơ → dây dẫn → tụ bù → sụt áp
