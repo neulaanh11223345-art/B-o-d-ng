@@ -1082,8 +1082,26 @@ assert.deepEqual(kdMocTest, { n26: 1, k26: 'xong', n29: 1, k29: 'du', thang29: '
 // Đổi năm thì bảng đổi theo
 await page.click('[data-act="kdNamB"][data-d="1"]'); await wait(600);
 assert.notEqual(await page.evaluate(() => document.querySelector('.caltools .stepper b').textContent), kdL.nam, 'bấm mũi tên đổi năm');
+// Tổng hợp: đếm theo loại × tình trạng và mười hai tháng tới
+await page.click('[data-act="kdChe"][data-m="th"]'); await wait(700);
+const kdTH = await page.evaluate(() => {
+  const g = kdTongHop(kdDS(), TODAY());
+  return { kpi: document.querySelectorAll('.kpis .kpi').length, cot: document.querySelectorAll('.dt thead th').length,
+    bar: document.querySelectorAll('.kdbar .b').length, tong: g.tong,
+    cong: g.dem.qua + g.dem.sap + g.dem.ok + g.dem.chua, loai: g.theoLoai.length,
+    t12: g.thang.length, nhan: (document.querySelector('.dt thead th:nth-child(3)') || {}).textContent };
+});
+assert.equal(kdTH.kpi, 4, 'bốn ô: quá hạn, sắp đến hạn, hạn kế tiếp, chưa kiểm định');
+assert.equal(kdTH.cong, kdTH.tong, 'cộng bốn tình trạng phải bằng tổng số thiết bị');
+assert.ok(kdTH.loai >= 3, 'bảng chia theo loại thiết bị: ' + kdTH.loai);
+assert.equal(kdTH.bar, 12, 'biểu đồ mười hai tháng tới');
+assert.equal(kdTH.t12, 12);
+assert.match(kdTH.nhan, /Nghiêm ngặt/, 'cột nghiêm ngặt dùng nhãn ngắn, không phải câu giải thích');
+assert.doesNotMatch(kdTH.nhan, /danh mục/, 'không lấy nhầm nhãn dài vào tiêu đề cột');
+await shot('35-kiem-dinh-tong-hop');
 await page.click('[data-act="kdChe"][data-m="ds"]'); await wait(600);
 assert.equal(await page.locator('.cal.yr').count(), 0, 'quay lại danh sách thì ẩn bảng lịch');
+assert.equal(await page.locator('.kdbar').count(), 0, 'quay lại danh sách thì ẩn biểu đồ tổng hợp');
 assert.ok(xlKD.dongLS >= 13, 'sheet lịch sử một dòng cho mỗi lần kiểm định: ' + xlKD.dongLS);
 await page.evaluate(() => back()); await wait(500);
 assert.equal(binh.length, 9, 'nhập đủ chín bình chứa khí nén');
