@@ -1045,6 +1045,63 @@ assert.equal(xlKD.doQuaHan, true, 'ô quá hạn được tô đỏ trong file E
 assert.match(xlKD.ls, /Lần thứ/, 'sheet lịch sử có cột lần thứ');
 assert.match(xlKD.ls, /GCN-LAN2/, 'sheet lịch sử ghi cả lần mới nhất');
 assert.match(xlKD.ls, /GCN-1/, 'sheet lịch sử giữ cả lần cũ');
+// Lịch kiểm định cả năm, kiểu bảng bảo dưỡng: mỗi thiết bị một dòng, mười hai cột tháng
+await page.evaluate(() => back()); await wait(600);   // đang ở hồ sơ một áp kế, quay lại danh sách
+assert.match(await text('#barTitle'), /Kiểm định/);
+await page.click('[data-act="kdChe"][data-m="lich"]'); await wait(700);
+const kdL = await page.evaluate(() => ({
+  cot: document.querySelectorAll('.cal.yr thead th').length,
+  dong: document.querySelectorAll('.cal.yr tbody tr:not(.grp)').length,
+  nhom: document.querySelectorAll('.cal.yr tr.grp').length,
+  o: document.querySelectorAll('.cal.yr .c').length,
+  xong: document.querySelectorAll('.c-xong').length,
+  qua: document.querySelectorAll('.c-qua').length,
+  du: document.querySelectorAll('.c-du').length,
+  nam: (document.querySelector('.caltools .stepper b') || {}).textContent
+}));
+assert.equal(kdL.cot, 13, 'cột tên thiết bị và mười hai tháng');
+assert.ok(kdL.dong >= 3, 'có dòng thiết bị trong lịch năm: ' + kdL.dong);
+assert.ok(kdL.nhom >= 1, 'thiết bị gom theo loại');
+assert.ok(kdL.o >= kdL.dong, 'mỗi dòng ít nhất một mốc: ' + JSON.stringify(kdL));
+assert.ok(kdL.xong >= 1, 'đánh dấu ngày đã kiểm định');
+assert.ok(kdL.qua >= 1, 'đánh dấu mốc quá hạn');
+assert.match(kdL.nam, /\d{4}/, 'có bộ chọn năm');
+// Mốc tính đúng: lần đã kiểm định, hạn kế tiếp, và kỳ dự kiến theo chu kỳ
+const kdMocTest = await page.evaluate(() => {
+  const goc = '2026-03-10', han = kdHanTu(goc, 12);
+  const x = { chuKy: 12, ngayKD: goc, ngayHetHan: han, ketQua: 'DAT',
+    lichSu: [{ ngay: goc, hetHan: han, ketQua: 'DAT' }] };
+  const m26 = kdLichNam(x, 2026, '2026-11-01'), m29 = kdLichNam(x, 2029, '2026-11-01');
+  // Kỳ dự kiến cộng bội số chu kỳ từ ngày kiểm định gốc, không được trôi ngày qua từng năm
+  return { n26: m26.size, k26: m26.get(goc), n29: m29.size, k29: m29.get(kdHanTu(goc, 36)),
+    thang29: Array.from(m29.keys())[0].slice(5, 7), ngay29: Array.from(m29.keys())[0].slice(8, 10),
+    ngay32: kdHanTu(goc, 72).slice(5) };
+});
+assert.deepEqual(kdMocTest, { n26: 1, k26: 'xong', n29: 1, k29: 'du', thang29: '03', ngay29: '09', ngay32: '03-09' },
+  'năm cũ hiện lần đã kiểm định, năm sau hiện kỳ dự kiến đúng ngày, không trôi: ' + JSON.stringify(kdMocTest));
+// Đổi năm thì bảng đổi theo
+await page.click('[data-act="kdNamB"][data-d="1"]'); await wait(600);
+assert.notEqual(await page.evaluate(() => document.querySelector('.caltools .stepper b').textContent), kdL.nam, 'bấm mũi tên đổi năm');
+// Tổng hợp: đếm theo loại × tình trạng và mười hai tháng tới
+await page.click('[data-act="kdChe"][data-m="th"]'); await wait(700);
+const kdTH = await page.evaluate(() => {
+  const g = kdTongHop(kdDS(), TODAY());
+  return { kpi: document.querySelectorAll('.kpis .kpi').length, cot: document.querySelectorAll('.dt thead th').length,
+    bar: document.querySelectorAll('.kdbar .b').length, tong: g.tong,
+    cong: g.dem.qua + g.dem.sap + g.dem.ok + g.dem.chua, loai: g.theoLoai.length,
+    t12: g.thang.length, nhan: (document.querySelector('.dt thead th:nth-child(3)') || {}).textContent };
+});
+assert.equal(kdTH.kpi, 4, 'bốn ô: quá hạn, sắp đến hạn, hạn kế tiếp, chưa kiểm định');
+assert.equal(kdTH.cong, kdTH.tong, 'cộng bốn tình trạng phải bằng tổng số thiết bị');
+assert.ok(kdTH.loai >= 3, 'bảng chia theo loại thiết bị: ' + kdTH.loai);
+assert.equal(kdTH.bar, 12, 'biểu đồ mười hai tháng tới');
+assert.equal(kdTH.t12, 12);
+assert.match(kdTH.nhan, /Nghiêm ngặt/, 'cột nghiêm ngặt dùng nhãn ngắn, không phải câu giải thích');
+assert.doesNotMatch(kdTH.nhan, /danh mục/, 'không lấy nhầm nhãn dài vào tiêu đề cột');
+await shot('35-kiem-dinh-tong-hop');
+await page.click('[data-act="kdChe"][data-m="ds"]'); await wait(600);
+assert.equal(await page.locator('.cal.yr').count(), 0, 'quay lại danh sách thì ẩn bảng lịch');
+assert.equal(await page.locator('.kdbar').count(), 0, 'quay lại danh sách thì ẩn biểu đồ tổng hợp');
 assert.ok(xlKD.dongLS >= 13, 'sheet lịch sử một dòng cho mỗi lần kiểm định: ' + xlKD.dongLS);
 await page.evaluate(() => back()); await wait(500);
 assert.equal(binh.length, 9, 'nhập đủ chín bình chứa khí nén');

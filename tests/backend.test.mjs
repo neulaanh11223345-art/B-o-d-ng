@@ -1696,6 +1696,23 @@ test('kiểm định: nhập danh sách từ file, ghép theo số hiệu, nhậ
   assert.equal(ok(b.call('data', {}, b.ql)).kiemDinh.filter((v) => v.loai === 'BINH_AL').length, 3);
   assert.equal(r2.dsKiemDinh.find((v) => v.soHieu === 'Y25267-1').lichSu.length, 1, 'không ghi trùng lần kiểm định');
 
+  // Hai đợt kiểm định trong CÙNG một file: thiết bị vừa thêm ở dòng trên phải nhận được
+  // lần kiểm định ở dòng dưới. Trước đây dòng dưới gọi suaDong với số dòng rỗng và hỏng cả lần nhập.
+  const hai = [
+    { ten: 'Áp kế thử hai đợt', loai: 'AP_KE', soHieu: 'AK-2D', chuKy: '12', donViKD: 'PV TSR',
+      soGiayKD: 'GCN-2025', soTem: 'TEM-2025', ngayKD: '2025-08-11', ketQua: 'DAT' },
+    { ten: 'Áp kế thử hai đợt', loai: 'AP_KE', soHieu: 'AK-2D', chuKy: '12', donViKD: 'PV TSR',
+      soGiayKD: 'GCN-2026', soTem: 'TEM-2026', ngayKD: '2026-08-25', ketQua: 'DAT' }];
+  const rh = ok(b.call('importInspect', { ds: hai }, b.ql));
+  assert.deepEqual([rh.nhapKD.them, rh.nhapKD.sua, rh.nhapKD.lanKD], [1, 0, 2],
+    'một thiết bị, hai lần kiểm định, dù nằm trong cùng một file');
+  const ak = ok(b.call('data', {}, b.ql)).kiemDinh.filter((v) => v.soHieu === 'AK-2D');
+  assert.equal(ak.length, 1, 'không tạo hai thiết bị cho hai dòng cùng số hiệu');
+  assert.equal(ak[0].lichSu.length, 2);
+  assert.equal(ak[0].ngayKD, '2026-08-25', 'giấy đang hiệu lực là lần mới nhất');
+  assert.equal(ak[0].soTem, 'TEM-2026', 'tem đang dán là tem của lần mới nhất');
+  assert.equal(ak[0].lichSu[1].soGiay, 'GCN-2025', 'lần cũ nằm lại trong lịch sử');
+
   // Giấy mới hơn của cùng thiết bị thì thay giấy đang hiệu lực, giấy cũ vào lịch sử
   const r3 = ok(b.call('importInspect', { ds: [Object.assign(binh('KD-2026-001', 'Y25267-1', 4),
     { ngayKD: '2026-09-20' })] }, b.ql));

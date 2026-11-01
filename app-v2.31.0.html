@@ -258,7 +258,7 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .yr td{min-width:62px;padding:5px 4px;vertical-align:middle}
 .yr thead th.m{padding:6px 4px;min-width:62px}
 .yr thead th.m button{border:0;background:none;font-weight:700;font-size:12.5px;line-height:1.2;color:var(--ink)}
-.yr thead th.m button small{display:block;font-family:var(--f-zh);font-weight:500;color:var(--ink3)}
+.yr thead th.m button small,.yr thead th.m>small{display:block;font-family:var(--f-zh);font-weight:500;color:var(--ink3)}
 .yr .cur{background:var(--today)}
 .cells{display:flex;flex-wrap:wrap;gap:3px}
 .c{display:inline-grid;place-items:center;min-width:22px;height:20px;border-radius:5px;font-family:var(--f-mono);font-size:11px;font-weight:700;border:0;padding:0 3px}
@@ -266,6 +266,13 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .c-qua{background:var(--red);color:#fff}
 .c-nay{background:var(--orange);color:#fff}
 .c-kh{background:var(--blue-bg);color:var(--blue);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--blue) 35%,transparent)}
+.c-du{background:transparent;color:var(--ink3);box-shadow:inset 0 0 0 1px var(--line)}
+.kdbar{display:flex;align-items:flex-end;gap:4px;height:110px}
+.kdbar .b{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;min-width:0}
+.kdbar .b .v{font:700 11px var(--f-mono);color:var(--ink2);line-height:1}
+.kdbar .b .c{width:100%;border-radius:4px 4px 0 0;background:var(--blue)}
+.kdbar .b .m{font-size:10px;color:var(--ink3);line-height:1.1;text-align:center}
+.kdbar .b .m i{display:block;font-style:normal;font-size:9px}
 .mg td{width:26px;min-width:26px;height:30px;text-align:center}
 .mg thead th.d{width:26px;min-width:26px;padding:3px 0;font-size:11px;line-height:1.15}
 .mg thead th.d b{display:block;font-family:var(--f-mono);font-size:12px;color:var(--ink)}
@@ -10440,6 +10447,17 @@ Object.assign(TX, {
   kdSoTem: ['Số tem kiểm định', '检定标签号'], kdThuoc: ['Thuộc thiết bị', '所属设备'],
   kdThuocHelp: ['Số tem là số in trên tem dán ở thiết bị. Thuộc thiết bị: ghi số hiệu thiết bị mẹ — áp kế và van an toàn thì ghi số hiệu bình chứa khí nén.',
     '检定标签号为贴在设备上标签的号码。所属设备：填写母设备编号 — 压力表与安全阀填储气罐编号。'],
+  kdCheDS: ['Danh sách', '清单'], kdCheLich: ['Lịch năm', '年度日历'], kdCheTH: ['Tổng hợp', '汇总'],
+  kdThTong: ['Tổng', '合计'], kdTh12: ['Mười hai tháng tới', '未来十二个月'],
+  kdTh12Help: ['Số lượt phải kiểm định từng tháng, gồm cả kỳ dự kiến tính theo chu kỳ. Dùng để dự trù chi phí và đặt lịch với đơn vị kiểm định.',
+    '各月应检定次数，含按周期推算的预计周期。用于预算与预约检定单位。'],
+  kdChuKyN: ['{n} tháng/lần', '每{n}个月'],
+  kdMoc_xong: ['Đã kiểm định', '已检定'], kdMoc_qua: ['Quá hạn', '逾期'],
+  kdMoc_nay: ['Sắp đến hạn', '即将到期'], kdMoc_kh: ['Hạn kế tiếp', '下次期限'],
+  kdMoc_du: ['Kỳ dự kiến', '预计周期'],
+  kdLichHelp: ['Mỗi ô là một ngày trong tháng đó. Chỉ hiện thiết bị có mốc trong năm đang xem. Bấm vào ô hoặc tên thiết bị để mở hồ sơ.',
+    '每个方块为当月的某一天。仅显示当年有节点的设备。点击方块或设备名称可打开档案。'],
+  kdLichTrong: ['Năm {y} không có mốc kiểm định nào', '{y}年没有检定节点'],
   kdKhaiBaoHelp: ['Thiết bị nghiêm ngặt phải khai báo sử dụng với Sở LĐ-TB&XH sau khi kiểm định lần đầu.', '严格要求设备首次检定后须向劳动部门申报使用。'],
   srvMissKD: ['Sổ kiểm định thiết bị', '设备检定台账'],
   xlKDTen: ['Tên thiết bị', '设备名称'], xlKDLoai: ['Loại', '类别'], xlKDNN: ['Nghiêm ngặt', '严格'],
@@ -10634,18 +10652,27 @@ VIEWS.kd = {
     else if (loc !== 'all') ds = ds.filter((x) => kdMuc(x, today) === loc);
     const uu = { qua: 0, sap: 1, chua: 2, ok: 3 };
     ds = ds.slice().sort((a, b) => (uu[kdMuc(a, today)] - uu[kdMuc(b, today)]) || String(a.ngayHetHan || '9').localeCompare(String(b.ngayHetHan || '9')));
-    const d = kdDem();
+    const d = kdDem(), che = S.f.kdChe || 'ds', nam = S.f.kdNam || +today.slice(0, 4);
+    const segC = `<div class="seg" role="tablist">${[['ds', 'kdCheDS'], ['lich', 'kdCheLich'], ['th', 'kdCheTH']].map(([m, k]) =>
+      `<button class="${che === m ? 'on' : ''}" data-act="kdChe" data-m="${m}">${tv(k)} ${tz(k)}</button>`).join('')}</div>`;
     return `<div class="hscroll stchips">${KD_LOC.map(([v, k]) => {
       const n = v === 'all' ? kdDS().length : v === 'nn' ? kdDS().filter((x) => x.nghiemNgat).length : d[v];
       return `<button class="chip${loc === v ? ' on' : ''}" data-act="kdLoc" data-v="${v}">${t(k)}${n ? ' (' + n + ')' : ''}</button>`;
     }).join('')}</div>
+      <div class="caltools" style="margin-top:12px">${segC}
+        ${che === 'lich' ? `<div class="stepper"><button data-act="kdNamB" data-d="-1" aria-label="-">${IC.left}</button>
+          <b>${tv('yearN', { y: nam })}</b><button data-act="kdNamB" data-d="1" aria-label="+">${IC.right}</button></div>` : ''}</div>
+      ${che === 'th' ? kdTongHopHtml(ds, today) : ''}
+      ${che === 'lich' ? `<div class="legend"><span><i class="c-xong"></i>${t('kdMoc_xong')}</span><span><i class="c-qua"></i>${t('kdMoc_qua')}</span>
+        <span><i class="c-nay"></i>${t('kdMoc_nay')}</span><span><i class="c-kh"></i>${t('kdMoc_kh')}</span><span><i class="c-du"></i>${t('kdMoc_du')}</span></div>
+        ${kdLichHtml(ds, nam, today)}` : ''}
       <div class="btns" style="margin:12px 0"><button class="btn sm" data-act="kdNew">${IC.plus} ${t('kdThem')}</button>
         <button class="btn ghost sm" data-act="kdXuat">${IC.dl} ${t('kdXuat')}</button>
         <button class="btn ghost sm" data-act="kdMauTai">${IC.dl} ${t('kdMauTai')}</button>
         <button class="btn ghost sm" data-act="kdNhapFile">${IC.plus} ${t('kdNhap')}</button></div>
       <input type="file" id="kdFile" accept=".xlsx,.csv,.txt" hidden>
-      ${sec('kdMo', tv('kdTongN', { n: ds.length }))}
-      <div class="list">${ds.length ? ds.map(kdRow).join('') : `<div class="card empty">${t('kdTrong')}</div>`}</div>`;
+      ${che !== 'ds' ? '' : sec('kdMo', tv('kdTongN', { n: ds.length }))
+      + `<div class="list">${ds.length ? ds.map(kdRow).join('') : `<div class="card empty">${t('kdTrong')}</div>`}</div>`}`;
   }
 };
 VIEWS.kd.after = function () {
@@ -10774,6 +10801,119 @@ VIEWS.kdGhi = {
   }
 };
 // Hạn kiểm định kế tiếp = ngày kiểm định + chu kỳ tháng, lùi một ngày
+// Các mốc của một thiết bị trong năm y: lần đã kiểm định, hạn kế tiếp, và các kỳ dự kiến sau đó.
+// xong = đã kiểm định đạt · qua = quá hạn hoặc lần không đạt · nay = hạn trong 30 ngày tới
+// kh = hạn còn xa · du = kỳ dự kiến tính theo chu kỳ, chưa phải lịch chốt
+function kdLichNam(x, y, today) {
+  const m = new Map(), tu = y + '-01-01', den = y + '-12-31';
+  (x.lichSu || []).forEach((h) => {
+    if (h.ngay >= tu && h.ngay <= den) m.set(h.ngay, h.ketQua === 'DAT' ? 'xong' : 'qua');
+  });
+  const han = x.ngayHetHan;
+  if (!han) return m;
+  if (han >= tu && han <= den && !m.has(han)) {
+    const d = soNgayTu(han, today);
+    m.set(han, d < 0 ? 'qua' : d <= KD_NHAC_TRUOC ? 'nay' : 'kh');
+  }
+  // Kỳ dự kiến: cộng bội số chu kỳ từ NGÀY KIỂM ĐỊNH gốc, không nối đuôi hạn này sang hạn kia.
+  // kdHanTu lùi một ngày ("đến hết ngày…"), nối đuôi sẽ trôi mất một ngày sau mỗi chu kỳ.
+  const goc = x.ngayKD || '';
+  if (x.chuKy > 0 && han < den && goc) {
+    for (let i = 2; i <= 120; i++) {
+      const k = kdHanTu(goc, x.chuKy * i);
+      if (!k || k > den) break;
+      if (k >= tu && !m.has(k)) m.set(k, 'du');
+    }
+  }
+  return m;
+}
+// Tổng hợp: đếm theo loại × tình trạng, và số lượt phải kiểm định trong 12 tháng tới
+function kdTongHop(ds, today) {
+  const theoLoai = [], dem = { qua: 0, sap: 0, ok: 0, chua: 0 };
+  KD_LOAI.forEach((lo) => {
+    const arr = ds.filter((x) => x.loai === lo.k);
+    if (!arr.length) return;
+    const d = { qua: 0, sap: 0, ok: 0, chua: 0 };
+    arr.forEach((x) => { const m = kdMuc(x, today); d[m]++; dem[m]++; });
+    theoLoai.push({ lo, n: arr.length, nn: arr.filter((x) => x.nghiemNgat).length, d });
+  });
+  // Mười hai tháng tới: mỗi tháng bao nhiêu lượt tới hạn (gồm cả kỳ dự kiến)
+  const thang = [], y0 = +today.slice(0, 4), m0 = +today.slice(5, 7);
+  for (let i = 0; i < 12; i++) {
+    const t = (y0 * 12 + m0 - 1) + i, y = Math.floor(t / 12), m = t % 12 + 1;
+    thang.push({ y, m, ym: y + '-' + pad2(m), n: 0, ds: [] });
+  }
+  const chiSo = {};
+  thang.forEach((t, i) => { chiSo[t.ym] = i; });
+  ds.forEach((x) => {
+    const nam = {};
+    [y0, y0 + 1].forEach((y) => kdLichNam(x, y, today).forEach((k, d) => { if (k !== 'xong') nam[d] = k; }));
+    Object.keys(nam).forEach((d) => {
+      const i = chiSo[d.slice(0, 7)];
+      if (i === undefined || d < today) return;
+      thang[i].n++; thang[i].ds.push(x);
+    });
+  });
+  return { theoLoai, dem, thang, tong: ds.length, nn: ds.filter((x) => x.nghiemNgat).length };
+}
+function kdTongHopHtml(ds, today) {
+  const g = kdTongHop(ds, today);
+  const o1 = `<div class="kpis">${[['qua', 'kdMoc_qua', 'var(--red)'], ['sap', 'kdMoc_nay', 'var(--orange)'],
+    ['ok', 'kdMoc_kh', 'var(--green)'], ['chua', 'kq_CHUA', 'var(--ink3)']].map(([k, tx, c]) =>
+    `<div class="kpi"><div class="kl">${t(tx)}</div><div class="kv" style="color:${c}">${g.dem[k]}</div></div>`).join('')}</div>`;
+  const o2 = `<div class="dtwrap"><table class="dt"><thead><tr>
+    <th>${esc(tv('kdLoai'))}<small>${esc(tz('kdLoai'))}</small></th>
+    <th class="num">${esc(tv('kdThTong'))}<small>${esc(tz('kdThTong'))}</small></th>
+    <th class="num">${esc(tv('xlKDNN'))}<small>${esc(tz('xlKDNN'))}</small></th>
+    ${['kdMoc_qua', 'kdMoc_nay', 'kdMoc_kh', 'kq_CHUA'].map((k) => `<th class="num">${esc(tv(k))}<small>${esc(tz(k))}</small></th>`).join('')}
+    </tr></thead><tbody>${g.theoLoai.map((r) => `<tr><td>${esc(r.lo.vi)}<div class="zi" lang="zh-CN">${esc(r.lo.zh)}</div></td>
+      <td class="num mono"><b>${r.n}</b></td><td class="num mono">${r.nn || '—'}</td>
+      <td class="num mono"${r.d.qua ? ' style="color:var(--red);font-weight:700"' : ''}>${r.d.qua || '—'}</td>
+      <td class="num mono"${r.d.sap ? ' style="color:var(--orange);font-weight:700"' : ''}>${r.d.sap || '—'}</td>
+      <td class="num mono">${r.d.ok || '—'}</td><td class="num mono">${r.d.chua || '—'}</td></tr>`).join('')}
+      <tr style="background:var(--soft)"><td><b>${t('trucTongCong')}</b></td><td class="num mono"><b>${g.tong}</b></td>
+      <td class="num mono"><b>${g.nn}</b></td><td class="num mono"><b>${g.dem.qua}</b></td><td class="num mono"><b>${g.dem.sap}</b></td>
+      <td class="num mono"><b>${g.dem.ok}</b></td><td class="num mono"><b>${g.dem.chua}</b></td></tr></tbody></table></div>`;
+  const dinh = Math.max(1, ...g.thang.map((x) => x.n));
+  const o3 = sec('kdTh12') + `<div class="card pad"><div class="kdbar">${g.thang.map((x) => `<div class="b">
+    <div class="v">${x.n || ''}</div><div class="c" style="height:${x.n ? Math.round(x.n / dinh * 72) + 4 : 2}px"></div>
+    <div class="m">T${x.m}${x.m === 1 ? '<i>' + x.y + '</i>' : ''}</div></div>`).join('')}</div>
+    <div class="help" style="margin-top:10px">${t('kdTh12Help')}</div></div>`;
+  return o1 + o2 + o3;
+}
+// Bảng lịch kiểm định cả năm: mỗi thiết bị một dòng, mười hai cột tháng
+function kdLichHtml(ds, y, today) {
+  const curM = today.slice(0, 4) === String(y) ? +today.slice(5, 7) : 0;
+  let o = `<p class="help" style="margin:-4px 0 10px">${t('kdLichHelp')}</p>`;
+  o += `<div class="tblwrap"><table class="cal yr"><thead><tr><th class="nmc">${t('kdTen')}</th>`;
+  for (let mo = 1; mo <= 12; mo++) o += `<th class="m${mo === curM ? ' cur' : ''}">T${mo}<small>${mo}月</small></th>`;
+  o += '</tr></thead><tbody>';
+  let nMoc = 0;
+  KD_LOAI.forEach((lo) => {
+    const arr = ds.filter((x) => x.loai === lo.k);
+    if (!arr.length) return;
+    const co = arr.map((x) => [x, kdLichNam(x, y, today)]).filter(([, m]) => m.size);
+    if (!co.length) return;
+    o += `<tr class="grp"><th class="nmc">${esc(lo.vi)} · ${esc(lo.zh)}</th><td colspan="12"></td></tr>`;
+    co.forEach(([x, moc]) => {
+      const by = {};
+      Array.from(moc.keys()).sort().forEach((d) => { const k = +d.slice(5, 7); (by[k] = by[k] || []).push(d); });
+      nMoc += moc.size;
+      o += `<tr><th class="nmc"><button data-act="kdMo" data-id="${esc(x.id)}">${esc(x.ten)}</button>
+        <span class="s">${esc(x.soHieu || '—')}${x.chuKy ? ' · ' + esc(tv('kdChuKyN', { n: x.chuKy })) : ''}</span></th>`;
+      for (let mo = 1; mo <= 12; mo++) {
+        o += `<td class="${mo === curM ? 'cur' : ''}"><div class="cells">${(by[mo] || []).map((d) => {
+          const k = moc.get(d);
+          return `<button class="c c-${k}" data-act="kdMo" data-id="${esc(x.id)}" title="${esc(fmtD(d) + ' · ' + tv('kdMoc_' + k))}">${+d.slice(8, 10)}</button>`;
+        }).join('')}</div></td>`;
+      }
+      o += '</tr>';
+    });
+  });
+  o += '</tbody></table></div>';
+  if (!nMoc) o += `<div class="card empty" style="margin-top:10px">${t('kdLichTrong', { y })}</div>`;
+  return o;
+}
 function kdHanTu(ngay, thang) {
   if (!ngay || !(thang > 0)) return '';
   const y = +ngay.slice(0, 4), m = +ngay.slice(5, 7), d = +ngay.slice(8, 10);
@@ -10809,6 +10949,9 @@ Object.assign(ACT, {
     await saveFile(blob, 'So-kiem-dinh_mau.xlsx');
   },
   kdNhapFile: () => { const f = $('#kdFile'); if (f) f.click(); },
+  kdChe: (el) => { S.f.kdChe = el.dataset.m; render(); window.scrollTo(0, 0); },
+  kdNamB: (el) => { S.f.kdNam = (S.f.kdNam || +TODAY().slice(0, 4)) + (+el.dataset.d); render(); },
+  kdMo: (el) => go('kdXem', { id: el.dataset.id }),
   kdXuat: async () => {
     const ds = kdDS();
     if (!ds.length) { toast(t('kdTrong'), true); return; }

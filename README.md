@@ -116,6 +116,34 @@ Trước đây sổ kiểm định có 17 loại thiết bị, đủ cho nhóm n
 
 Cả hai có trong form, hồ sơ thiết bị, **file mẫu để nhập** và **file xuất Excel**. Trang `KiemDinh` tự thêm hai cột `SoTem`, `ThuocTB` khi nâng cấp; dữ liệu cũ giữ nguyên.
 
+### Tổng hợp kiểm định
+
+Chế độ thứ ba ở màn **Kiểm định thiết bị**: bốn ô đếm nhanh (quá hạn · sắp đến hạn · hạn kế tiếp · chưa kiểm định), bảng **theo loại × tình trạng** có dòng *Cộng*, và biểu đồ **mười hai tháng tới** đếm số lượt phải kiểm định từng tháng — gồm cả kỳ dự kiến tính theo chu kỳ. Dùng để dự trù chi phí và đặt lịch với đơn vị kiểm định.
+
+### Sửa: nhập nhiều đợt kiểm định trong một file làm hỏng cả lần nhập
+
+Một thiết bị có thể có nhiều dòng trong file — mỗi đợt kiểm định một dòng — để nạp đủ lịch sử trong một lần. Nhưng thiết bị **vừa được thêm ở dòng trên** chưa có số dòng trong trang tính, nên dòng dưới của chính nó gọi hàm sửa với số dòng rỗng và **hỏng toàn bộ lần nhập** (`Cannot set properties of undefined`).
+
+Nay gom thay đổi của từng thiết bị rồi **ghi một lần** sau khi duyệt hết file — vừa đúng, vừa nhanh hơn vì mỗi thiết bị chỉ ghi một lượt. Số đếm *thêm / cập nhật* cũng tính theo thiết bị chứ không theo dòng.
+
+### Lịch kiểm định cả năm, kiểu bảng bảo dưỡng
+
+Màn **Kiểm định thiết bị** thêm hai chế độ: **Danh sách** (như cũ) và **Lịch năm**.
+
+Lịch năm dựng đúng kiểu bảng bảo dưỡng: mỗi thiết bị một dòng, **mười hai cột tháng**, thiết bị gom theo loại. Mỗi ô vuông là một ngày trong tháng đó, bấm vào là mở hồ sơ:
+
+| Màu ô | Nghĩa |
+|---|---|
+| 🟩 Xanh lá | **Đã kiểm định** — ngày thực tế lấy từ lịch sử |
+| 🟥 Đỏ | **Quá hạn** — hạn đã qua mà chưa kiểm định lại, hoặc lần đó không đạt |
+| 🟧 Cam | **Sắp đến hạn** — còn trong 30 ngày |
+| 🟦 Xanh dương nhạt | **Hạn kế tiếp** — còn xa |
+| ⬜ Viền trống | **Kỳ dự kiến** — app tự cộng chu kỳ để xếp lịch các năm sau, chưa phải lịch chốt |
+
+Cột tháng hiện tại tô nền vàng. Bấm mũi tên đổi năm: lùi lại xem các lần đã kiểm định, tiến lên xem kỳ phải làm — dùng để lên kế hoạch và dự trù chi phí cho năm sau.
+
+Chỉ hiện thiết bị **có mốc trong năm đang xem**, nên bảng không đầy ô trống. Chip lọc phía trên vẫn áp dụng: chọn *Quá hạn* rồi mở Lịch năm là ra đúng những thứ phải gọi đơn vị kiểm định.
+
 ### Xuất Excel: lần kiểm định trước, kỳ kế tiếp, quá hạn tô đỏ
 
 Nút **Xuất Excel sổ kiểm định** nay cho file **hai sheet**:
