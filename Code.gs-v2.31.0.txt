@@ -1555,8 +1555,13 @@ function luuSuaChua(u, p, opId) {
   var moTa = catNhieuDong(p.moTa, 1000).trim(), nn = catNhieuDong(p.nguyenNhan, 1000).trim(), kq = catNhieuDong(p.ketQua, 1000).trim();
   if (!moTa) throw loi('CAN_MO_TA', 'Cần ghi mô tả sự cố · 请填写问题描述');
   if (!kq) throw loi('CAN_KET_QUA', 'Cần ghi kết quả · 请填写工作结果');
+  // Chặn ở máy chủ nữa, vì bản ghi lưu lúc mất mạng được xếp hàng rồi gửi lên sau,
+  // không đi qua phần kiểm tra của app.
+  if (!nn) throw loi('CAN_NGUYEN_NHAN', 'Cần ghi nguyên nhân · 请填写原因');
+  if (!s(p.ma)) throw loi('CAN_MAY', 'Cần chọn thiết bị · 请选择设备');
   var nvs = dsNguoiDung(), quanLy = coQuyen(u, 'giaoviec');
   var f = cvTruong({ tieuDe: moTa.replace(/\s+/g, ' '), ma: p.ma, uidLam: s(p.uidLam) || (quanLy ? '' : u.id), uidPhu: p.uidPhu }, nvs);
+  if (!f.lam) throw loi('CAN_NGUOI_LAM', 'Cần chọn người làm · 请选择执行人');
   var ngay = s(p.ngay) ? ngayStr(p.ngay) : homNayStr();
   if (!hopLeNgay(ngay) || ngay > homNayStr()) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
   var bay = thoiGianStr(), luc = ngay === homNayStr() ? bay : ngay + ' 17:00:00';

@@ -196,6 +196,20 @@ assert.equal(await page.locator('#scMa option[value="VKY03"]').count(), 1, 'ch�
 assert.equal(await page.locator('#scMa option[value="M038"]').count(), 1, 'chọn được máy ngoài chuyền');
 assert.equal(await page.locator('#scMa optgroup[label*="Máy của chuyền VKY03"] option[value="M020"]').count(), 1,
   'máy thuộc chuyền gom đúng vào nhóm của chuyền đó');
+// Bỏ lựa chọn "không gắn thiết bị": phải chọn máy
+assert.equal(await page.locator('#scMa option[value=""]').count(), 1, 'ô trống chỉ còn là lời nhắc chọn máy');
+assert.match(await page.locator('#scMa option[value=""]').textContent(), /Chọn thiết bị/);
+// Thiếu nội dung thì không lưu được; cảnh báo liệt kê đúng mục còn thiếu, song ngữ
+await page.fill('#scMT', 'Máy hút bụi VKY03 không chạy');
+await page.click('#scOk'); await wait(500);
+const thieuSC = await text('#scErr');
+assert.match(thieuSC, /Chưa điền đủ/, 'chặn lưu khi thiếu nội dung');
+assert.match(thieuSC, /填写不完整/, 'cảnh báo có cả tiếng Trung');
+assert.match(thieuSC, /Thiết bị \/ máy/); assert.match(thieuSC, /设备/);
+assert.match(thieuSC, /Nguyên nhân/); assert.match(thieuSC, /原因/);
+assert.match(thieuSC, /Kết quả/); assert.match(thieuSC, /处理结果/);
+assert.doesNotMatch(thieuSC, /Mô tả sự cố/, 'mục đã điền thì không báo thiếu');
+assert.equal(await page.locator('#scF').count(), 1, 'vẫn ở lại form, chưa lưu gì');
 await page.selectOption('#scMa', 'VKY03'); await wait(400);
 await page.fill('#scMT', 'Máy hút bụi VKY03 không chạy');
 await page.click('[data-act="scNNChon"][data-k="nn_mon"]'); await wait(300);
@@ -230,6 +244,29 @@ await page.fill('[data-m="a1"][data-s="so"]', '0,4'); await wait(300);
 await page.click('[data-act="ngtDg"][data-k="a1"][data-v="K"]'); await wait(500);
 await page.fill('#ngtVB', 'Cuộn dây ẩm, cách điện thấp');
 await shot('40-nghiem-thu-truoc');
+// Phần đã mở mà điền dở thì không lưu được; cảnh báo nêu rõ phần nào, mục nào, song ngữ
+await page.click('#ngtOk'); await wait(600);
+const thieuNT = await text('#ngtErr');
+assert.match(thieuNT, /Chưa điền đủ/); assert.match(thieuNT, /填写不完整/);
+assert.match(thieuNT, /Trước khi sửa chữa ›/, 'nêu rõ thuộc phần nào');
+assert.match(thieuNT, /维修前 ›/);
+assert.match(thieuNT, /chưa chấm Đạt \/ Không đạt/, 'mục kiểm tra chưa chấm thì báo thiếu');
+assert.doesNotMatch(thieuNT, /Công suất/, 'mục đã điền thì không báo thiếu');
+assert.equal(await page.evaluate(() => ngtDS().length), 0, 'chưa lưu biên bản nào');
+// Điền nốt các mục còn lại rồi lưu
+const ngtDienNot = () => page.evaluate(() => {
+  const p = topV().p, m = NGT_MAU[p.seg], d = ngtPhan(p);
+  m.chung.forEach(([k]) => { if (!String(d.chung[k] || '').trim()) d.chung[k] = '—'; });
+  m.nhom.forEach((n) => n.muc.forEach(([k, , , , , dv]) => {
+    const q = d.muc[k] = d.muc[k] || {};
+    if (dv === 'A/B/C') ['A', 'B', 'C'].forEach((ph) => { if (!q[ph]) q[ph] = '1'; });
+    else if (dv && !String(q.so || '').trim()) q.so = '1';
+    if (!q.dg) q.dg = 'D';
+  }));
+  if (m.ketLuan && !d.ketLuan) d.ketLuan = 'DAT';
+  render();
+});
+await ngtDienNot(); await wait(500);
 await page.click('#ngtOk'); await wait(1600);
 const bb = await page.evaluate(() => ngtDS()[0]);
 assert.match(bb.soBB, /^BBNT\d{4}\.\d{2}\.\d{2}\/1$/, 'số biên bản tự đánh theo ngày: ' + bb.soBB);
@@ -242,6 +279,9 @@ await page.fill('[data-m="b3"][data-s="so"]', '3200');
 await page.fill('[data-m="b4"][data-s="so"]', '450');
 await page.click('[data-act="ngtDg"][data-k="a2"][data-v="D"]'); await wait(400);
 await page.click('[data-act="ngtKl"][data-v="DAT"]'); await wait(400);
+await page.click('#ngtOk'); await wait(600);
+assert.match(await text('#ngtErr'), /Sau khi sửa chữa ›/, 'phần sau điền dở cũng bị chặn');
+await ngtDienNot(); await wait(500);
 await page.click('#ngtOk'); await wait(1600);
 const bb2 = await page.evaluate(() => ngtDS()[0]);
 assert.equal(bb2.ketLuan, 'DAT');

@@ -273,6 +273,9 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .kdbar .b .c{width:100%;border-radius:4px 4px 0 0;background:var(--blue)}
 .kdbar .b .m{font-size:10px;color:var(--ink3);line-height:1.1;text-align:center}
 .kdbar .b .m i{display:block;font-style:normal;font-size:9px}
+.thieu ul{margin:6px 0 0;padding-left:18px}
+.thieu li{margin:2px 0;line-height:1.4}
+.thieu li .zi{display:inline;margin-left:.4em}
 .mg td{width:26px;min-width:26px;height:30px;text-align:center}
 .mg thead th.d{width:26px;min-width:26px;padding:3px 0;font-size:11px;line-height:1.15}
 .mg thead th.d b{display:block;font-family:var(--f-mono);font-size:12px;color:var(--ink)}
@@ -2589,6 +2592,15 @@ const maSuaChua = (ma) => { const m = ma && S.V.byMa[ma]; return m && m.chuyen &
 // Danh sách thiết bị dùng chung cho mọi loại việc (Ghi việc, Ghi sửa chữa, Việc lặp lại).
 // Ba nhóm: chuyền sản xuất · máy ngoài chuyền · máy của từng chuyền. Máy chủ nhận cả mã máy lẫn mã chuyền.
 // Chuyền để trên cùng vì việc sửa chữa thường ghi theo chuyền, nhưng máy nhánh vẫn chọn được.
+// Khối cảnh báo liệt kê đúng tên từng mục còn thiếu, song ngữ Việt – Trung.
+// ds: mảng [vi, zh]; nhom: tên phần (vd "Trước khi sửa chữa") nếu mục nằm ở tab khác.
+function thieuHtml(ds) {
+  if (!ds.length) return '';
+  return `<div class="thieu"><b>${tv('chuaDayDu')}<span class="zi" lang="zh-CN">${tz('chuaDayDu')}</span></b>
+    <ul>${ds.map(([vi, zh]) => `<li>${esc(vi)}<span class="zi" lang="zh-CN">${esc(zh)}</span></li>`).join('')}</ul></div>`;
+}
+// Danh sách máy / chuyền, bỏ lựa chọn "không gắn máy" khi mục này bắt buộc
+function tbOptionsBuoc(cur) { return tbOptions(cur, 'scChonMay').replace(/^<option value=""[^>]*>[^<]*<\/option>/, (m) => m.replace(' selected', '')); }
 function tbOptions(cur, khongChon) {
   if (srvOld('scch')) return mayOptions(cur);     // máy chủ cũ chưa nhận mã chuyền: giữ danh sách máy như trước
   cur = cur || '';
@@ -4480,7 +4492,8 @@ Object.assign(TX, {
   tabTL: ['Tài liệu', '资料'], tlSec: ['Tài liệu', '资料'], tlCuaCh: ['Tài liệu của chuyền {c}', '产线{c}的资料'],
   tlTaiTep: ['Tải tệp lên', '上传文件'], tlChupAnh: ['Chụp ảnh', '拍照'], tlThemLink: ['Thêm liên kết', '添加链接'], tlThem: ['Thêm tài liệu', '添加资料'],
   tlTrong: ['Chưa có tài liệu. Thêm sách hướng dẫn, bản vẽ, quy trình hoặc ảnh máy để xem ngay khi quét QR.', '暂无资料。可添加说明书、图纸、作业指导书或设备照片，扫码即可查看。'],
-  tl_HDSD: ['Hướng dẫn sử dụng', '使用说明书'], tl_BANVE: ['Bản vẽ', '图纸'], tl_QUYTRINH: ['Quy trình (SOP)', '作业指导书'], tl_ANH: ['Ảnh', '照片'], tl_KHAC: ['Khác', '其他'],
+  tl_HDSD: ['Hướng dẫn sử dụng', '使用说明书'], tl_BANVE: ['Bản vẽ', '图纸'], tl_QUYTRINH: ['Quy trình (SOP)', '作业指导书'],
+  tl_KIEMDINH: ['Kiểm định', '检定'], tl_ANH: ['Ảnh', '照片'], tl_KHAC: ['Khác', '其他'],
   tlDaiDien: ['Ảnh đại diện', '封面'], tlLamDaiDien: ['Đặt làm ảnh đại diện của máy', '设为设备封面'], tlTen: ['Tên tài liệu', '资料名称'], tlNhom: ['Nhóm', '类别'],
   tlLink: ['Liên kết', '链接'], tlLinkHelp: ['Tệp lớn hơn 10 MB: tải lên Google Drive, chia sẻ “Bất kỳ ai có đường liên kết”, rồi dán liên kết vào đây.', '超过10MB的文件：上传到Google Drive，设置“知道链接的任何人”可查看，再粘贴链接。'],
   tlLuuBtn: ['Tải lên', '上传'], tlDangDoc: ['Đang đọc tệp…', '正在读取文件…'], tlDangTai: ['Đang tải lên ({kb})…', '正在上传（{kb}）…'],
@@ -8123,8 +8136,12 @@ Object.assign(TX, {
   scNhieuDong: ['Mỗi dòng một ý, app tự đánh số 1, 2, 3', '每行一项，自动编号'], scNgay: ['Ngày sửa', '维修日期'], scNguoi: ['Người xử lý (không bắt buộc)', '维修人（可选）'],
   scLKHelp: ['Chọn linh kiện của máy, hoặc chọn Khác rồi gõ tên — app gợi ý linh kiện có trong kho và hiện tồn. Thứ kho chưa có thì vẫn ghi được, chỉ không thêm vào danh sách linh kiện của máy.',
     '可选择该设备的零件，或选"其他"后输入名称 — 应用会提示库存零件并显示库存量。库存没有的也能记录，只是不加入该设备的零件清单。'],
-  scChuaChon: ['Không chọn', '不选'], scKhongMay: ['— Không gắn thiết bị —', '— 不关联设备 —'], scLK: ['Linh kiện thay (mỗi dòng một loại)', '更换零件（每行一种）'], scLKPh: ['Vd: Attomat 32A 3P', '如：32A 3P空开'],
+  scChuaChon: ['Không chọn', '不选'], scKhongMay: ['— Không gắn thiết bị —', '— 不关联设备 —'],
+  scChonMay: ['— Chọn thiết bị —', '— 请选择设备 —'],
+  chuaDayDu: ['Chưa điền đủ, các mục còn thiếu:', '填写不完整，缺少以下内容：'], scLK: ['Linh kiện thay (mỗi dòng một loại)', '更换零件（每行一种）'], scLKPh: ['Vd: Attomat 32A 3P', '如：32A 3P空开'],
   CAN_MO_TA: ['Cần ghi mô tả sự cố.', '请填写问题描述。'],
+  CAN_NGUYEN_NHAN: ['Cần ghi nguyên nhân.', '请填写原因。'], CAN_MAY: ['Cần chọn thiết bị.', '请选择设备。'],
+  CAN_NGUOI_LAM: ['Cần chọn người làm.', '请选择执行人。'],
   MA_HT_TRUNG: ['Mã hiển thị này đã dùng cho {m}.', '该显示编号已被{m}使用。'], MA_HT_SAI: ['Mã hiển thị có ký tự không hợp lệ.', '显示编号含无效字符。'],
   srvMissCV: ['Bản 2.4: công việc, giao việc, việc lặp lại, báo cáo tháng, tự dịch Việt ↔ Trung.', '2.4版：工作、派工、重复工作、月度报表、中越自动翻译。'],
   cvTuDich: ['Lưu xong app tự dịch sang tiếng Trung (gõ tiếng Trung thì dịch sang tiếng Việt).', '保存后自动翻译成越南语或中文。'],
@@ -8655,7 +8672,7 @@ VIEWS.scGhi = {
     const ta = (id, k, rows, ph) => `<label class="fld"><span>${t(k)}</span><textarea class="inp" id="${id}" rows="${rows}" maxlength="1000"${ph ? ` placeholder="${esc(tp(ph))}"` : ''}>${esc(p[id] || '')}</textarea></label>`;
     return `<form id="scF" class="card pad" autocomplete="off">
       <div class="help" style="margin-bottom:10px">${t('scGhiHelp')}</div>
-      <div class="row2f"><label class="fld"><span>${t('thMay')}</span><select class="inp" id="scMa">${tbOptions(p.scMa, 'scKhongMay')}</select>${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</label>
+      <div class="row2f"><label class="fld"><span>${t('thMay')}</span><select class="inp" id="scMa">${tbOptionsBuoc(p.scMa)}</select>${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</label>
         <label class="fld"><span>${t('scNgay')}</span><input class="inp" id="scNgay" type="date" max="${esc(TODAY())}" value="${esc(p.ngay)}"></label></div>
       ${ta('scMT', 'scMT', 2, '')}
       <div id="scGoiY">${gyHtml(scGoiY(p.scMa, p.scMT), 'sc', p.scMa)}</div>
@@ -8689,8 +8706,14 @@ VIEWS.scGhi = {
       e.preventDefault();
       const fe = $('#scErr'), err = (h) => { fe.innerHTML = h; fe.hidden = false; fe.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
       const v = (id) => ($('#' + id).value || '').trim();
-      if (!v('scMT')) return err(t('CAN_MO_TA'));
-      if (!v('scKQ')) return err(t('CAN_KET_QUA'));
+      // Liệt kê một lượt mọi mục còn thiếu, đừng bắt thợ sửa từng cái một
+      const thieu = [];
+      if (!$('#scMa').value) thieu.push(['Thiết bị / máy', '设备']);
+      if (!v('scMT')) thieu.push(['Mô tả sự cố', '故障描述']);
+      if (!v('scNN')) thieu.push(['Nguyên nhân', '原因']);
+      if (!v('scKQ')) thieu.push(['Kết quả / cách xử lý', '处理结果']);
+      if (!p.sel.lam) thieu.push(['Người làm', '执行人']);
+      if (thieu.length) return err(thieuHtml(thieu));
       const ngay = $('#scNgay').value || TODAY();
       if (!validD(ngay) || ngay > TODAY()) return err(t('NGAY_SAI'));
       const gio = parseSo(v('scGio'));
@@ -10203,6 +10226,36 @@ VIEWS.ngt = {
       <div class="list">${ds.length ? ds.map(ngtRow).join('') : `<div class="card empty">${t('ngtTrong')}</div>`}</div>`;
   }
 };
+// Phần nào đã động tới thì phải điền đủ phần đó. Phần chưa đụng vẫn để trống được,
+// vì biên bản trước và biên bản sau thường ghi cách nhau vài ngày.
+function ngtCoDL(d) {
+  if (!d) return false;
+  return Object.keys(d.chung || {}).some((k) => String(d.chung[k] || '').trim())
+    || Object.keys(d.muc || {}).some((k) => Object.keys(d.muc[k] || {}).some((j) => String(d.muc[k][j] || '').trim()))
+    || Object.keys(d.ky || {}).some((k) => String(d.ky[k] || '').trim())
+    || String(d.vanBan || '').trim() || d.ketLuan;
+}
+function ngtThieu(p) {
+  const r = [];
+  if (!String(p.tenTB || '').trim()) r.push(['Tên thiết bị', '设备名称']);
+  if (!String(p.donVi || '').trim()) r.push(['Đơn vị sửa chữa', '维修单位']);
+  const phan = [['truoc', p.truoc, 'Trước khi sửa chữa', '维修前'], ['sau', p.sau, 'Sau khi sửa chữa', '维修后']];
+  const coPhanNao = phan.some(([, d]) => ngtCoDL(d));
+  if (!coPhanNao) { r.push(['Chưa điền phần nào — mở tab Trước hoặc Sau rồi điền', '尚未填写任何部分']); return r; }
+  phan.forEach(([seg, d, pv, pz]) => {
+    if (!ngtCoDL(d)) return;                       // phần chưa đụng tới thì bỏ qua
+    const m = NGT_MAU[seg], nhan = (vi, zh) => [pv + ' › ' + vi, pz + ' › ' + zh];
+    m.chung.forEach(([k, vi, zh]) => { if (!String((d.chung || {})[k] || '').trim()) r.push(nhan(vi, zh)); });
+    m.nhom.forEach((n) => n.muc.forEach(([k, vi, zh, , , dv]) => {
+      const q = (d.muc || {})[k] || {};
+      if (!q.dg) r.push(nhan(vi + ' — chưa chấm Đạt / Không đạt', zh + ' — 未评定'));
+      else if (dv === 'A/B/C') { if (!['A', 'B', 'C'].every((ph) => String(q[ph] || '').trim())) r.push(nhan(vi + ' — thiếu số đo A/B/C', zh + ' — 缺A/B/C实测值')); }
+      else if (dv && !String(q.so || '').trim()) r.push(nhan(vi + ' — thiếu số đo (' + dv + ')', zh + ' — 缺实测值'));
+    }));
+    if (m.ketLuan && !d.ketLuan) r.push(nhan('Kết luận nghiệm thu', '验收结论'));
+  });
+  return r;
+}
 function ngtPhan(p) { return p.seg === 'sau' ? (p.sau = p.sau || { chung: {}, muc: {}, ky: {} }) : (p.truoc = p.truoc || { chung: {}, muc: {}, ky: {} }); }
 VIEWS.ngtGhi = {
   html(p) {
@@ -10291,7 +10344,10 @@ VIEWS.ngtGhi = {
     f.addEventListener('input', sync); f.addEventListener('change', sync);
     f.addEventListener('submit', async (e) => {
       e.preventDefault(); sync();
-      const fe = $('#ngtErr'), b = $('#ngtOk'); fe.hidden = true; b.disabled = true;
+      const fe = $('#ngtErr'), b = $('#ngtOk'); fe.hidden = true;
+      const thieu = ngtThieu(p);
+      if (thieu.length) { fe.innerHTML = thieuHtml(thieu); fe.hidden = false; fe.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+      b.disabled = true;
       try {
         const d = await api('saveAccept', { id: p.id || '', ngayNT: p.ngayNT, ma: p.ma, tenTB: p.tenTB.trim(),
           donVi: p.donVi.trim(), cvId: p.cvId || '', truoc: p.truoc, sau: p.sau });
