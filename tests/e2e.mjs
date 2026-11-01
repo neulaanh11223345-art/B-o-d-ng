@@ -1068,13 +1068,17 @@ assert.ok(kdL.qua >= 1, 'đánh dấu mốc quá hạn');
 assert.match(kdL.nam, /\d{4}/, 'có bộ chọn năm');
 // Mốc tính đúng: lần đã kiểm định, hạn kế tiếp, và kỳ dự kiến theo chu kỳ
 const kdMocTest = await page.evaluate(() => {
-  const x = { chuKy: 12, ngayHetHan: '2027-03-10', ketQua: 'DAT',
-    lichSu: [{ ngay: '2026-03-10', hetHan: '2027-03-10', ketQua: 'DAT' }] };
+  const goc = '2026-03-10', han = kdHanTu(goc, 12);
+  const x = { chuKy: 12, ngayKD: goc, ngayHetHan: han, ketQua: 'DAT',
+    lichSu: [{ ngay: goc, hetHan: han, ketQua: 'DAT' }] };
   const m26 = kdLichNam(x, 2026, '2026-11-01'), m29 = kdLichNam(x, 2029, '2026-11-01');
-  return { n26: m26.size, k26: m26.get('2026-03-10'), n29: m29.size, k29: m29.get('2029-03-10') };
+  // Kỳ dự kiến cộng bội số chu kỳ từ ngày kiểm định gốc, không được trôi ngày qua từng năm
+  return { n26: m26.size, k26: m26.get(goc), n29: m29.size, k29: m29.get(kdHanTu(goc, 36)),
+    thang29: Array.from(m29.keys())[0].slice(5, 7), ngay29: Array.from(m29.keys())[0].slice(8, 10),
+    ngay32: kdHanTu(goc, 72).slice(5) };
 });
-assert.deepEqual(kdMocTest, { n26: 1, k26: 'xong', n29: 1, k29: 'du' },
-  'năm cũ hiện lần đã kiểm định, năm sau hiện kỳ dự kiến theo chu kỳ: ' + JSON.stringify(kdMocTest));
+assert.deepEqual(kdMocTest, { n26: 1, k26: 'xong', n29: 1, k29: 'du', thang29: '03', ngay29: '09', ngay32: '03-09' },
+  'năm cũ hiện lần đã kiểm định, năm sau hiện kỳ dự kiến đúng ngày, không trôi: ' + JSON.stringify(kdMocTest));
 // Đổi năm thì bảng đổi theo
 await page.click('[data-act="kdNamB"][data-d="1"]'); await wait(600);
 assert.notEqual(await page.evaluate(() => document.querySelector('.caltools .stepper b').textContent), kdL.nam, 'bấm mũi tên đổi năm');
