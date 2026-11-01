@@ -1057,7 +1057,9 @@ assert.deepEqual(binh.map((x) => x.soHieu).sort(),
   ['TEST-1', 'TEST-2', 'TEST-3', 'TEST-4', 'TEST-5', 'TEST-6', 'TEST-7', 'TEST-8', 'TEST-9']);
 await page.setInputFiles('#kdFile', napKD); await wait(2500);
 assert.equal(await page.evaluate(() => kdDS().filter((x) => /AIR TANK/.test(x.ten)).length), 9, 'nhập lại không nhân đôi');
-assert.equal(await page.evaluate(() => kdDS().find((x) => /AIR TANK/.test(x.ten)).lichSu.length), 1, 'không ghi trùng lần kiểm định');
+// TEST-1 đã được ghi thêm một lần kiểm định ở trên, nên soi một bình chưa đụng tới
+assert.equal(await page.evaluate(() => kdDS().find((x) => x.soHieu === 'TEST-2').lichSu.length), 1, 'không ghi trùng lần kiểm định');
+assert.equal(await page.evaluate(() => kdDS().find((x) => x.soHieu === 'TEST-1').lichSu.length), 2, 'lần kiểm định ghi tay vẫn còn sau khi nhập lại file');
 assert.equal(await page.evaluate(() => kdDS().filter((x) => ['AP_KE', 'VAN_AT', 'DC_DIEN'].indexOf(x.loai) >= 0).length), 3,
   'nhập lại cũng không nhân đôi áp kế, van an toàn, dụng cụ an toàn điện');
 await shot('42-kiem-dinh-nhap-file');
