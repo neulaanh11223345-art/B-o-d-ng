@@ -582,13 +582,16 @@ ok('Bản 2.11.2: Quản lý xác nhận tiêu thụ bất thường, cảnh bá
 
 // 16. Bản 2.12 + 2.31: lịch trực tháng điểm màu theo người và phân công ca trực
 await logout(); await login('NV002', '222222');
-await page.evaluate(() => tab('truc')); await wait(600);
+// Dữ liệu mẫu lịch trực nằm ở tuần chứa hôm nay; tuần đó có thể vắt sang tháng trước
+// (Chủ nhật 01/11 thì thứ Hai là 26/10), nên mở đúng tháng chứa thứ Hai của tuần.
+const ymMau = await page.evaluate(() => tcThuHai(TODAY()).slice(0, 7));
+await page.evaluate((m) => { S.f.trucThang = m; tab('truc'); }, ymMau); await wait(600);
 assert.match(await text('#barTitle'), /Lịch trực tháng/);
-const lich16 = await page.evaluate(() => {
-  const ym = TODAY().slice(0, 7), { ds } = trucThangDS(ym);
+const lich16 = await page.evaluate((ym) => {
+  const { ds } = trucThangDS(ym);
   const co = ds.filter(trucCoNguoi);
   return { n: ds.length, co: co.length, ten: co.length ? co[0].x.ten : '', trong: ds.filter((o) => !trucCoNguoi(o)).map((o) => o.ngay)[0] };
-});
+}, ymMau);
 assert.equal(await page.locator('.trcal [data-act="trucXep"]').count(), lich16.n, 'lịch tháng có đủ mỗi ngày một ô, Quản lý bấm được: ' + lich16.n);
 assert.equal(await page.locator('.trcal .wd').count(), 7, 'bảy cột thứ, lịch bắt đầu từ thứ Hai');
 assert.match(await text('.trcal .wd:nth-child(7)'), /CN|日/, 'cột cuối là Chủ nhật');
@@ -601,10 +604,10 @@ const oMau = await page.evaluate(() => {
 assert.ok(oMau && oMau.bg, 'ngày đã xếp được tô màu');
 assert.match(await text('.trleg'), /黎明进|杜文红|阮俊/, 'chú thích màu hiện tên tiếng Trung');
 // Hai người không bao giờ trùng màu trong cùng một lịch
-const mauTruc = await page.evaluate(() => {
-  const m = trucMauThang(TODAY().slice(0, 7)), v = Object.values(m).map((x) => x[0]);
+const mauTruc = await page.evaluate((ym) => {
+  const m = trucMauThang(ym), v = Object.values(m).map((x) => x[0]);
   return { n: v.length, rieng: new Set(v).size };
-});
+}, ymMau);
 assert.equal(mauTruc.rieng, mauTruc.n, 'mỗi người một màu riêng: ' + JSON.stringify(mauTruc));
 const mauDon = await page.evaluate(() => {
   // Giả lập 14 người cùng trực một tháng để chắc chắn không ai trùng màu
@@ -627,12 +630,12 @@ assert.equal(await page.locator('#trMau:visible').count(), 1, 'chọn người t
 await page.click('#trOk'); await wait(1200);
 const d16 = await page.evaluate((d) => { const x = trucNgay(d); return { uid: x.uid, ten: x.ten }; }, lich16.trong);
 assert.equal(d16.uid, u16);
-const sau16 = await page.evaluate(() => trucThangDS(TODAY().slice(0, 7)).ds.filter(trucCoNguoi).length);
+const sau16 = await page.evaluate((m) => trucThangDS(m).ds.filter(trucCoNguoi).length, ymMau);
 assert.equal(sau16, lich16.co + 1, 'xếp thêm một ngày thì lịch tháng đếm thêm một');
 // Tổng số ca: số ngày trực và số ngày Chủ nhật
 await page.evaluate(() => go('trucTong')); await wait(600);
 assert.match(await text('#barTitle'), /Tổng số ca/);
-const tong16 = await page.evaluate(() => trucTongDS(TODAY().slice(0, 7)));
+const tong16 = await page.evaluate((m) => trucTongDS(m), ymMau);
 assert.ok(tong16.length >= 3, 'bảng tổng liệt kê từng người');
 // Chủ nhật của tuần đang xem có thể rơi sang tháng sau (vd thứ Hai 26/10 thì Chủ nhật là 1/11),
 // nên đếm ngày Chủ nhật theo đúng tháng chứa Chủ nhật đó.
@@ -643,15 +646,15 @@ const cn16 = await page.evaluate(() => {
 assert.ok(cn16 >= 1, 'đếm riêng số ngày Chủ nhật');
 await shot('25-truc-tong-so-ca');
 // Xuất Excel cả tháng: ba sheet (lịch từng ngày, phân công ca, tổng hợp)
-const xlTruc = await page.evaluate(async () => {
-  const ym = TODAY().slice(0, 7), blob = trucXlsx(ym);
+const xlTruc = await page.evaluate(async (ym) => {
+  const blob = trucXlsx(ym);
   const sh = await readXlsx(await blob.arrayBuffer());
   const r = await Promise.all(sh.map((x) => x.rows()));
   const cuoi = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7), 0)).getUTCDate();
   const txt = (rows) => rows.map((x) => x.join('|')).join('\n');
   return { ten: sh.map((x) => x.name), size: blob.size, cuoi, ngay: txt(r[0]), ca: txt(r[1]), tong: txt(r[2]),
     dongCa: r[1].length };
-});
+}, ymMau);
 assert.deepEqual(xlTruc.ten, ['Lich truc', 'Phan ca truc', 'Tong hop'], 'đủ ba sheet: ' + xlTruc.ten);
 assert.ok(xlTruc.dongCa >= 7 && xlTruc.dongCa <= 9, 'sheet phân ca có mỗi tuần một dòng: ' + xlTruc.dongCa);
 assert.match(xlTruc.ngay, /Thứ Hai.*Chủ nhật/s, 'sheet lịch trực là lịch tháng, bảy cột thứ Hai → Chủ nhật');
@@ -666,16 +669,16 @@ assert.match(xlTruc.tong, /Cộng/, 'sheet tổng hợp có dòng cộng');
 assert.ok(xlTruc.size > 3000, 'file Excel có nội dung: ' + xlTruc.size);
 await page.click('[data-act="trucXuat"]'); await wait(900);
 // Phân ca cả tháng: mỗi tuần một dòng, ô tô màu theo người, bấm tuần mở bảng giấy
-await page.evaluate(() => { back(); go('phanCa'); }); await wait(700);
+await page.evaluate((m) => { back(); S.f.trucThang = m; go('phanCa'); }, ymMau); await wait(700);
 assert.match(await text('#barTitle'), /Phân công ca trực/);
 assert.match(await text('#main'), /KHO NGŨ KIM/);
 assert.match(await text('#main'), /0389978042|0946367665/, 'ô phân ca hiện số điện thoại của người trực');
-const pcT = await page.evaluate(() => {
-  const ym = TODAY().slice(0, 7), bang = Array.from(document.querySelectorAll('.pcthang'));
+const pcT = await page.evaluate((ym) => {
+  const bang = Array.from(document.querySelectorAll('.pcthang'));
   return { tuan: pcThangDS(ym).length, nguoi: pcTongDS(ym).length, bang: bang.length,
     cot: bang.map((t) => t.querySelectorAll('thead th').length),
     tran: bang.filter((t) => t.scrollWidth > t.parentElement.clientWidth).length };
-});
+}, ymMau);
 assert.equal(pcT.bang, 2, 'hai bảng xếp dọc: Sản xuất và Kho ngũ kim');
 assert.deepEqual(pcT.cot, [3, 3], 'mỗi bảng ba cột: tuần, ca ngày, ca đêm');
 assert.equal(pcT.tran, 0, 'bảng vừa bề ngang điện thoại, không phải kéo ngang');
@@ -686,13 +689,13 @@ assert.ok(await page.evaluate(() => Array.from(document.querySelectorAll('.pctha
 assert.match(await text('.trleg'), /tuần ca ngày|tuần ca đêm/, 'chú thích màu đếm số tuần ca ngày / ca đêm');
 await shot('26-phan-ca-thang');
 // Tờ A4 để in hoặc lưu thành PDF: lịch tháng và bảng phân ca tháng
-const toIn = await page.evaluate(() => {
-  const ym = TODAY().slice(0, 7), a = trucInHtml(ym), b = pcThangInHtml(ym);
+const toIn = await page.evaluate((ym) => {
+  const a = trucInHtml(ym), b = pcThangInHtml(ym);
   const d = document.createElement('div');
   d.innerHTML = a; const oA = d.querySelectorAll('table tr').length;
   d.innerHTML = b; const oB = d.querySelectorAll('table').length;
   return { a, b, dongA: oA, bangB: oB };
-});
+}, ymMau);
 assert.match(toIn.a, /LỊCH TRỰC THÁNG|值班表/, 'tờ in lịch tháng có tiêu đề song ngữ');
 assert.match(toIn.a, /Màu theo người trực/, 'tờ in có chú thích màu');
 assert.match(toIn.a, /background:#[0-9A-F]{6}/i, 'ô ngày trên tờ in được tô màu');
