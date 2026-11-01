@@ -12794,7 +12794,13 @@ Object.assign(TX, {
   mnkTen: ['Tên máy', '机台名称'], mnkTenZh: ['Tên tiếng Trung', '中文名称'],
   mnkCK: ['Chu kỳ (giờ)', '周期（小时）'], mnkMocGio: ['Giờ lúc bảo dưỡng gần nhất', '上次保养时小时数'],
   mnkMaCT: ['Công tơ nhánh', '分表'], mnkMaMay: ['Mã máy trong danh mục', '设备台账编号'],
-  mnkThemMay: ['Thêm máy', '添加机台'], mnkXoaMay: ['Bỏ máy này', '移除此机台'],
+  mnkThemMay: ['Thêm máy trống', '添加空白机台'], mnkXoaMay: ['Bỏ máy này', '移除此机台'],
+  mnkLayCo: ['Lấy từ danh sách có sẵn', '从现有名单导入'],
+  mnkLayCoHelp: ['Máy nén khí đã có trong danh mục máy hoặc trong danh sách công tơ nhánh thì lấy thẳng sang đây, không phải gõ lại. Tên và mã điền sẵn, bạn chỉ cần tích máy nào chạy biến tần và điền số giờ lúc bảo dưỡng gần nhất.',
+    '设备台账或分表名单中已有的空压机可直接导入，无需重新录入。名称和编号自动填好，您只需勾选变频机台并填写上次保养时的小时数。'],
+  mnkLayCoTrong: ['Không còn máy nào để lấy — danh sách đã có hết', '没有可导入的机台 — 名单已齐全'],
+  mnkNguonCT: ['Công tơ nhánh', '分表'], mnkNguonMay: ['Danh mục máy', '设备台账'],
+  mnkDaLay: ['Đã lấy {n} máy, nhớ bấm Lưu', '已导入{n}台，请记得保存'],
   mnkDSHelp: ['Bỏ một máy ra khỏi danh sách là đánh dấu ngừng, giờ chạy đã ghi vẫn còn.',
     '移除机台即标记停用，已记录的小时数仍保留。'],
   mnkDaLuuDS: ['Đã lưu danh sách máy nén khí', '已保存空压机名单'],
@@ -12929,7 +12935,8 @@ VIEWS.mnk = {
     o += mnkSegHtml(che);
     if (!mnkDS().length) {
       o += `<div class="card empty">${t('mnkChuaCo')}</div>`;
-      if (can('may')) o += `<div class="btns" style="margin-top:12px"><button class="btn pri" data-act="go" data-v="mnkDS">${IC.plus} ${t('mnkSuaDS')}</button></div>`;
+      if (can('may')) o += `<div class="btns" style="margin-top:12px"><button class="btn pri" data-act="go" data-v="mnkDS">${IC.plus} ${t('mnkSuaDS')}</button></div>
+        <p class="help" style="margin-top:8px">${t('mnkLayCoHelp')}</p>`;
       return o;
     }
     if (che === 'tuan') return o + mnkTuanHtml();
@@ -13083,6 +13090,7 @@ VIEWS.mnkDS = {
       bienTan: m.bienTan, chuKyGio: m.chuKyGio || MNK_CK, gioBD: m.gioBD, mocGio: (m.mocGio || []).map((o) => Object.assign({}, o)), thuTu: m.thuTu, hoatDong: m.hoatDong })) });
     const cts = (S.base && S.base.congTo) || [];
     let o = `<div class="help" style="margin-bottom:12px">${t('mnkDSHelp')}</div><form id="mdF" autocomplete="off">`;
+    if (!p.ds.length) o = `<div class="card empty" style="margin-bottom:12px">${t('mnkChuaCo')}</div>` + o;
     p.ds.forEach((x, i) => {
       o += `<div class="card pad" style="margin-bottom:10px">
         <label class="fld"><span>${t('mnkTen')}</span><input class="inp" data-md="ten" data-i="${i}" maxlength="60" value="${esc(x.ten)}"></label>
@@ -13100,7 +13108,9 @@ VIEWS.mnkDS = {
         <div class="btns" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="mdXoa" data-i="${i}">${t('mnkXoaMay')}</button></div>
       </div>`;
     });
-    o += `</form><div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="mdThem">${IC.plus} ${t('mnkThemMay')}</button></div>
+    o += `</form><div class="btns" style="margin-top:12px"><button class="btn pri" data-act="mdLayCo">${IC.dl} ${t('mnkLayCo')}</button>
+      <button class="btn ghost" data-act="mdThem">${IC.plus} ${t('mnkThemMay')}</button></div>
+      <p class="help" style="margin-top:8px">${t('mnkLayCoHelp')}</p>
       <div id="mdErr" class="err" hidden></div>
       <div class="btns" style="margin-top:16px"><button class="btn pri" id="mdOk">${IC.check} ${t('save')}</button></div>`;
     return o;
@@ -13163,6 +13173,36 @@ function mnkXlsx(ym) {
     { name: 'Ghi gio', rows: r2, cols: [12, 26, 13, 14, 20, 30], merges: ['A1:F1'], heights: { 3: 34 }, freeze: { r: 3, c: 0 } }
   ]);
 }
+// Máy nén khí đã có sẵn trong danh mục máy / danh sách công tơ nhánh thì lấy thẳng sang, không gõ lại.
+// Tên công tơ của nhà máy viết "Máy nén khí số 1 · 空压机1号" nên tách luôn ra tên Việt và tên Trung.
+function mnkTachTen(v) {
+  const i = String(v || '').indexOf(' · ');
+  return i > 0 ? [v.slice(0, i).trim(), v.slice(i + 3).trim()] : [String(v || '').trim(), ''];
+}
+const MNK_TU_KHOA = /máy nén khí|may nen khi|空压|空壓/i;
+function mnkNguonDS(daCo) {
+  const co = {}, ra = [];
+  (daCo || []).forEach((x) => {
+    if (x.maCT) co['CT|' + x.maCT] = 1;
+    if (x.ma) co['MAY|' + x.ma] = 1;
+    co['TEN|' + String(x.ten || '').toLowerCase()] = 1;
+  });
+  ((S.base && S.base.congTo) || []).forEach((c) => {
+    if (!MNK_TU_KHOA.test(c.ten) || co['CT|' + c.ma]) return;
+    const [ten, zh] = mnkTachTen(c.ten);
+    if (co['TEN|' + ten.toLowerCase()]) return;
+    ra.push({ k: 'CT|' + c.ma, nguon: 'mnkNguonCT', phu: c.ma + (c.viTri ? ' · ' + c.viTri : ''), ten, tenZh: zh, maCT: c.ma, ma: '' });
+  });
+  ((S.V && S.V.may) || []).forEach((m) => {
+    if (!m.hoatDong || co['MAY|' + m.ma]) return;
+    if (!MNK_TU_KHOA.test(m.ten + ' ' + (m.tenPhu || '') + ' ' + (m.nhom || ''))) return;
+    const [ten, zh] = mnkTachTen(m.ten);
+    if (co['TEN|' + ten.toLowerCase()]) return;
+    ra.push({ k: 'MAY|' + m.ma, nguon: 'mnkNguonMay', phu: mh(m.ma) + (m.nhom ? ' · ' + m.nhom : ''), ten, tenZh: m.tenPhu || zh, maCT: '', ma: m.ma });
+  });
+  return ra;
+}
+
 // Vừa đổi máy chạy: mời ghi số giờ của đúng những máy vừa đổi
 function mnkNhacGhiGio(doi) {
   openSheet(`<div class="grab"></div><h3>${tv('mnkGhiLucDoi')}<span class="zi">${tz('mnkGhiLucDoi')}</span></h3>
@@ -13253,6 +13293,26 @@ Object.assign(ACT, {
     });
   },
   mnkNhacBo: () => closeSheet(),
+  mdLayCo: () => {
+    const p = topV().p, ds = mnkNguonDS(p.ds);
+    if (!ds.length) { toast(t('mnkLayCoTrong')); return; }
+    openSheet(`<div class="grab"></div><h3>${tv('mnkLayCo')}<span class="zi">${tz('mnkLayCo')}</span></h3>
+      <p class="help">${t('mnkLayCoHelp')}</p>
+      <div class="list" style="margin-top:10px;max-height:46vh;overflow:auto">${ds.map((x, i) => `<label class="checkrow"><input type="checkbox" class="mlI" data-i="${i}" checked>
+        <span class="main"><span class="nm" style="font-weight:600">${esc(x.ten)}</span>${x.tenZh ? ` <span class="zi" lang="zh-CN">${esc(x.tenZh)}</span>` : ''}
+        <span class="sub">${esc(tp(x.nguon))} · <span class="code">${esc(x.phu)}</span></span></span></label>`).join('')}</div>
+      <div class="btns" style="margin-top:12px"><button class="btn pri" id="mlOk">${IC.check} ${t('mnkLayCo')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('close')}</button></div>`, () => {
+      $('#mlOk').addEventListener('click', () => {
+        const chon = $$('.mlI').filter((x) => x.checked).map((x) => ds[+x.dataset.i]);
+        chon.forEach((x, j) => p.ds.push({ id: '', ten: x.ten, tenZh: x.tenZh, ma: x.ma, maCT: x.maCT,
+          bienTan: false, chuKyGio: MNK_CK, gioBD: 0, mocGio: [], thuTu: p.ds.length + j + 1, hoatDong: true }));
+        closeSheet();
+        if (chon.length) toast(tp('mnkDaLay', { n: chon.length }));
+        render();
+      });
+    });
+  },
   mdThem: () => {
     const p = topV().p;
     p.ds.push({ id: '', ten: '', tenZh: '', ma: '', maCT: '', bienTan: false, chuKyGio: MNK_CK, gioBD: 0, mocGio: [], thuTu: p.ds.length + 1, hoatDong: true });

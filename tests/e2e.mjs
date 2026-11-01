@@ -1305,6 +1305,19 @@ assert.equal(qua21.length, 1, 'một máy đã quá 3000 h kể từ lần bảo
 assert.match(await text('#main'), /Quá hạn bảo dưỡng/, 'máy quá hạn báo đỏ ngay đầu danh sách');
 assert.match(await text('#main'), /Thay lọc tách dầu/, 'mốc phụ theo giờ hiện trong thẻ máy');
 await shot('40-may-nen-khi');
+// Máy nén khí đã có trong sổ điện / danh mục máy thì lấy thẳng sang, không gõ lại
+const nguon21 = await page.evaluate(() => ({
+  trong: mnkNguonDS([]).map((x) => ({ ten: x.ten, zh: x.tenZh, ct: x.maCT, ma: x.ma })),
+  conLai: mnkNguonDS(mnkDS()).map((x) => x.ten)
+}));
+assert.ok(nguon21.trong.length >= 6, 'nhận ra máy nén khí có sẵn: ' + nguon21.trong.length);
+assert.deepEqual(nguon21.trong.filter((x) => x.ct).map((x) => x.ten).slice(0, 3),
+  ['Máy nén khí số 1', 'Máy nén khí số 2', 'Máy nén khí số 3'], 'tách tên Việt khỏi tên công tơ');
+assert.equal(nguon21.trong[0].zh, '空压机1号', 'tách luôn tên tiếng Trung');
+assert.equal(nguon21.conLai.some((t0) => /số \d/.test(t0)), false, 'máy đã có trong danh sách thì không gợi ý lấy lại');
+await page.evaluate(() => go('mnkDS')); await wait(700);
+assert.equal(await page.locator('[data-act="mdLayCo"]').count(), 1, 'màn sửa danh sách có nút lấy từ danh sách có sẵn');
+await page.evaluate(() => back()); await wait(500);
 // Ghi giờ: đồng hồ cộng dồn nên ghi lùi là chặn
 const idQua = await page.evaluate((ten) => mnkDS().find((m) => m.ten === ten).id, qua21[0].ten);
 await page.click(`[data-act="mnkGhiMay"][data-id="${idQua}"]`); await wait(700);

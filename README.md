@@ -124,6 +124,10 @@ Sáu máy nén khí nhưng mỗi ngày chỉ chạy **3 máy thường + 1 máy 
 - **Gợi ý xếp lịch**: chọn máy ít giờ nhất kể từ lần bảo dưỡng trước, máy tuần trước đã chạy xếp sau — để các máy mòn đều và không dồn bảo dưỡng vào cùng một tuần.
 - Đổi máy xong, app **mời ghi luôn số giờ** của đúng những máy vừa đổi vào / đổi ra, nên giờ chạy từng máy không bị lệch.
 
+### Không phải gõ lại danh sách máy
+
+Sáu máy nén khí **đã có sẵn** trong sổ điện (sáu công tơ nhánh *Máy nén khí số 1…6*), còn danh mục máy thì chỉ có một mã `M038` *Phòng máy nén khí*. Giờ chạy phải tính cho **từng máy** nên danh sách máy nén khí để riêng — nhưng không bắt gõ lại: màn **Sửa danh sách máy nén khí** có nút **Lấy từ danh sách có sẵn**, quét cả danh mục máy lẫn danh sách công tơ nhánh, tách sẵn tên Việt và tên Trung (`Máy nén khí số 1 · 空压机1号`) và điền sẵn mã công tơ. Việc còn lại chỉ là tích máy nào chạy biến tần và điền số giờ lúc bảo dưỡng gần nhất. Máy đã có trong danh sách thì không gợi ý lấy lại.
+
 Ba trang mới trên Google Sheet: `MayNen` (danh sách máy), `GioChay` (từng lần ghi giờ), `LichMNK` (máy chạy từng tuần). Bỏ một máy khỏi danh sách là **đánh dấu ngừng**, giờ chạy đã ghi vẫn còn.
 
 ### Thêm tài liệu ngay từ màn tra cứu
