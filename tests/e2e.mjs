@@ -301,6 +301,12 @@ await shot('41-nghiem-thu-to-in');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
 await page.click('[data-act="ngtNew"]'); await wait(700);
 await page.fill('#ngtTen', 'Quạt mái xưởng 1');
+// Biên bản trống rỗng cũng không lưu được nữa
+await page.click('#ngtOk'); await wait(500);
+assert.match(await text('#ngtErr'), /Chưa điền phần nào|尚未填写/, 'không lưu được biên bản trống');
+assert.equal(await page.evaluate(() => ngtDS().length), 1, 'chưa sinh thêm biên bản nào');
+await page.fill('#ngtDV', 'Cơ điện Minh Phát');
+await ngtDienNot(); await wait(500);
 await page.click('#ngtOk'); await wait(1500);
 const hai = await page.evaluate(() => ngtDS().map((v) => v.soBB).sort());
 assert.equal(hai.length, 2);
