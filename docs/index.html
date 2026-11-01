@@ -1414,7 +1414,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.32.0";
+const APP_VER = "2.32.1";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -4952,7 +4952,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK'], ['mnkma', '2.32.1', 'srvMissMNK']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -12804,6 +12804,17 @@ Object.assign(TX, {
   mnkLayCoTrong: ['Không còn máy nào để lấy — danh sách đã có hết', '没有可导入的机台 — 名单已齐全'],
   mnkNguonCT: ['Công tơ nhánh', '分表'], mnkNguonMay: ['Danh mục máy', '设备台账'],
   mnkDaLay: ['Đã lấy {n} máy, nhớ bấm Lưu', '已导入{n}台，请记得保存'],
+  mnkTaoMa: ['Tạo mã máy trong danh mục', '在设备台账中建立编号'],
+  mnkTaoMaHoi: ['App tạo cho mỗi máy nén khí một mã máy riêng trong danh mục, rồi nối mã lại. Mỗi máy sẽ có hồ sơ riêng, tem QR riêng, tài liệu và lịch bảo dưỡng theo ngày riêng; giờ chạy vẫn đếm ở màn này. Máy nào trong danh mục đã trùng tên thì nối vào mã đó, không tạo mã trùng.',
+    '应用为每台空压机在设备台账中建立独立编号并关联。每台将有独立档案、二维码标签、资料和按天的保养计划；运行小时数仍在本页统计。台账中同名设备将直接关联，不会重复建号。'],
+  mnkTaoMaN: ['Sẽ tạo mã cho {n} máy', '将为 {n} 台建立编号'],
+  mnkTaoMaDu: ['Máy nén khí nào cũng đã có mã máy trong danh mục', '每台空压机都已有设备编号'],
+  mnkTaoMaXong: ['Đã tạo {n} mã máy', '已建立 {n} 个设备编号'],
+  mnkTaoMaNoi: ['Nối vào {n} mã có sẵn', '关联 {n} 个现有编号'],
+  mnkCkNgay: ['Chu kỳ bảo dưỡng theo ngày', '按天保养周期'],
+  mnkCkNgayHelp: ['Lịch bảo dưỡng theo ngày của hồ sơ máy, không thay cho mốc 3000 h. Sửa lại được trong hồ sơ từng máy.',
+    '设备档案中按天的保养计划，不替代 3000 小时里程碑。可在各设备档案中修改。'],
+  mnkViTriMay: ['Vị trí', '位置'], mnkNDMay: ['Nội dung bảo dưỡng', '保养内容'],
   mnkDSHelp: ['Bỏ một máy ra khỏi danh sách là đánh dấu ngừng, giờ chạy đã ghi vẫn còn.',
     '移除机台即标记停用，已记录的小时数仍保留。'],
   mnkDaLuuDS: ['Đã lưu danh sách máy nén khí', '已保存空压机名单'],
@@ -13111,9 +13122,12 @@ VIEWS.mnkDS = {
         <div class="btns" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="mdXoa" data-i="${i}">${t('mnkXoaMay')}</button></div>
       </div>`;
     });
+    const chuaCoMa = p.ds.filter((x) => x.id && x.hoatDong && !x.ma).length;
     o += `</form><div class="btns" style="margin-top:12px"><button class="btn pri" data-act="mdLayCo">${IC.dl} ${t('mnkLayCo')}</button>
       <button class="btn ghost" data-act="mdThem">${IC.plus} ${t('mnkThemMay')}</button></div>
       <p class="help" style="margin-top:8px">${t('mnkLayCoHelp')}</p>
+      ${chuaCoMa && !srvOld('mnkma') ? `<div class="btns" style="margin-top:12px"><button class="btn" data-act="mdTaoMa">${IC.qr} ${t('mnkTaoMa')}</button></div>
+        <p class="help" style="margin-top:8px">${t('mnkTaoMaHoi')}</p>` : ''}
       <div id="mdErr" class="err" hidden></div>
       <div class="btns" style="margin-top:16px"><button class="btn pri" id="mdOk">${IC.check} ${t('save')}</button></div>`;
     return o;
@@ -13296,6 +13310,43 @@ Object.assign(ACT, {
     });
   },
   mnkNhacBo: () => closeSheet(),
+  mdTaoMa: () => {
+    const chuaCo = mnkHD().filter((m) => !m.ma);
+    if (!chuaCo.length) { toast(t('mnkTaoMaDu')); return; }
+    const phong = (S.V.may || []).filter((m) => m.hoatDong && MNK_TU_KHOA.test(m.ten + ' ' + (m.nhom || '')))[0];
+    openSheet(`<div class="grab"></div><h3>${tv('mnkTaoMa')}<span class="zi">${tz('mnkTaoMa')}</span></h3>
+      <p class="help">${t('mnkTaoMaHoi')}</p>
+      <div class="who"><b>${esc(tv('mnkTaoMaN', { n: chuaCo.length }))}</b>: ${chuaCo.map((m) => esc(m.ten)).join(' · ')}</div>
+      <label class="fld" style="margin-top:10px"><span>${t('mnkCkNgay')}</span>
+        <input class="inp mono" id="mtCk" type="number" min="1" max="3650" value="${phong ? phong.chuKy : 30}"></label>
+      <div class="help" style="margin-top:6px">${t('mnkCkNgayHelp')}</div>
+      <label class="fld" style="margin-top:10px"><span>${t('mnkViTriMay')}</span>
+        <input class="inp" id="mtVT" maxlength="120" value="${esc(phong ? (phong.viTri || phong.ten) : '')}"></label>
+      <label class="fld" style="margin-top:10px"><span>${t('mnkNDMay')}</span>
+        <textarea class="inp" id="mtND" rows="3" maxlength="1000">${esc(phong ? (phong.noiDung || '') : '')}</textarea></label>
+      <div id="mtErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn pri" id="mtOk">${IC.check} ${t('mnkTaoMa')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('close')}</button></div>`, () => {
+      $('#mtOk').addEventListener('click', async () => {
+        const b = $('#mtOk'), e = $('#mtErr');
+        b.disabled = true; e.hidden = true;
+        try {
+          const d = await api('compMakeMay', { chuKy: +$('#mtCk').value || 0, hanKeTiep: TODAY(),
+            nhom: phong ? phong.nhom : '', viTri: $('#mtVT').value, noiDung: $('#mtND').value });
+          mergeResult(d);
+          closeSheet();
+          toast(tp('mnkTaoMaXong', { n: (d.themMa || []).length })
+            + ((d.noiMa || []).length ? ' · ' + tp('mnkTaoMaNoi', { n: d.noiMa.length }) : ''));
+          const c = topV();
+          if (c && c.v === 'mnkDS') c.p.init = 0;
+          render();
+        } catch (er) {
+          b.disabled = false; e.hidden = false;
+          e.innerHTML = er.code === 'MANG' ? t('needNet') : errMsg(er);
+        }
+      });
+    });
+  },
   mdLayCo: () => {
     const p = topV().p, ds = mnkNguonDS(p.ds);
     if (!ds.length) { toast(t('mnkLayCoTrong')); return; }

@@ -1394,6 +1394,25 @@ assert.match(xlMNK.tong, /空压机/, 'tiêu đề song ngữ');
 assert.match(xlMNK.tong, /Biến tần/, 'ghi rõ máy nào chạy biến tần');
 assert.match(xlMNK.log, /Bảo dưỡng xong/, 'nhật ký ghi rõ lần nào là bảo dưỡng');
 assert.equal(xlMNK.cam, xlMNK.sapHan, 'máy sắp đến hạn thì ô giờ tô cam trong Excel');
+// Tạo mã máy riêng trong danh mục cho từng máy nén khí, nối mã lại
+await page.evaluate(() => go('mnkDS')); await wait(700);
+assert.equal(await page.locator('[data-act="mdTaoMa"]').count(), 1, 'có nút tạo mã máy khi còn máy chưa có mã');
+await page.click('[data-act="mdTaoMa"]'); await wait(600);
+assert.match(await text('#sheetBg'), /Sẽ tạo mã cho 6 máy|将为 6 台/, 'nói rõ sẽ tạo mấy mã');
+assert.equal(await page.inputValue('#mtCk'), '15', 'chu kỳ ngày lấy theo Phòng máy nén khí có sẵn');
+await page.click('#mtOk'); await wait(1600);
+const taoMa21 = await page.evaluate(() => ({
+  mnk: mnkDS().map((m) => m.ma),
+  may: (S.V.may || []).filter((m) => /Máy nén khí số/.test(m.ten)).map((m) => ({ ma: m.ma, zh: m.tenPhu, nhom: m.nhom, ck: m.chuKy }))
+}));
+assert.equal(taoMa21.may.length, 6, 'sáu máy nén khí thành sáu mã máy trong danh mục');
+assert.equal(new Set(taoMa21.mnk).size, 6, 'mỗi máy một mã, nối ngược lại đủ');
+assert.equal(taoMa21.may[0].zh, '空压机1号', 'tên tiếng Trung sang cột tên phụ của hồ sơ máy');
+assert.match(taoMa21.may[0].nhom, /Khí nén/, 'cùng nhóm với Phòng máy nén khí');
+assert.equal(taoMa21.may[0].ck, 15);
+assert.equal(await page.locator('[data-act="mdTaoMa"]').count(), 0, 'tạo xong thì nút biến mất');
+await page.evaluate(() => back()); await wait(500);
+await shot('43-may-nen-khi-ma-may');
 // Kỹ thuật: ghi giờ và đổi máy được, nhưng không sửa danh sách máy
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
 await logout();

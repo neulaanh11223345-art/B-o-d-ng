@@ -476,7 +476,7 @@ function mauMayNen() {
     so++;
     var id = 'MNKMAU' + so;
     mnk.push(mnkThanhDong({ id: id, ten: 'Máy nén khí số ' + r[0], tenZh: '空压机' + r[0] + '号',
-      ma: 'M038', maCT: ct[String(r[0])] || '', bienTan: !!r[1], chuKyGio: MNK_CK_GIO, gioBD: r[3],
+      ma: '', maCT: ct[String(r[0])] || '', bienTan: !!r[1], chuKyGio: MNK_CK_GIO, gioBD: r[3],
       mocGio: [{ ten: 'Thay dầu máy nén', tenZh: '更换空压机机油', ck: 3000, gio: r[3] },
         { ten: 'Thay lọc khí', tenZh: '更换空气滤芯', ck: 2000, gio: r[3] },
         { ten: 'Thay lọc tách dầu', tenZh: '更换油气分离器', ck: 6000, gio: Math.max(0, r[3] - 2400) }],
