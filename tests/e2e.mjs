@@ -616,7 +616,17 @@ const mauDon = await page.evaluate(() => {
   return new Set(Object.values(m).map((x) => x[0])).size;
 });
 assert.equal(mauDon, 10, 'quá 10 người thì dùng hết 10 màu, không bỏ màu nào');
-assert.match(await text('.caltools'), /Còn \d+ ngày chưa xếp|Đã xếp đủ tháng/, 'chỉ đếm ngày chưa xếp từ hôm nay trở đi');
+// Tháng đã qua thì đếm cả tháng (soát lại sổ); tháng này và tháng sau chỉ đếm từ hôm nay trở đi
+const cur16 = await page.evaluate(() => TODAY().slice(0, 7));
+if (ymMau < cur16) assert.match(await text('.caltools'), /\d+ ngày chưa xếp/, 'tháng đã qua đếm cả tháng');
+await page.evaluate((m) => { S.f.trucThang = m; render(); }, cur16); await wait(400);
+assert.match(await text('.caltools'), /Còn \d+ ngày chưa xếp|Đã xếp đủ tháng/, 'tháng này chỉ đếm từ hôm nay trở đi');
+const dem16 = await page.evaluate((m) => {
+  const today = TODAY(), ds = trucThangDS(m).ds;
+  return { ca: ds.filter((o) => !trucCoNguoi(o)).length, tuNay: ds.filter((o) => !trucCoNguoi(o) && o.ngay >= today).length };
+}, cur16);
+assert.ok(dem16.tuNay <= dem16.ca, 'đếm từ hôm nay không vượt quá đếm cả tháng: ' + JSON.stringify(dem16));
+await page.evaluate((m) => { S.f.trucThang = m; render(); }, ymMau); await wait(400);
 assert.doesNotMatch(await text('#main'), /Trực điện xưởng 1|1号车间电工值班/, 'lịch trực không còn hiện nội dung trực');
 await shot('24-lich-truc-thang');
 // Ngày chưa xếp: chỉ chọn người, không còn ô nội dung
