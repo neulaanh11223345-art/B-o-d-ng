@@ -1945,3 +1945,35 @@ test('máy nén khí: xoá lần ghi giờ (Quản lý) thì không tính nữa'
   assert.equal(ok(b.call('data', {}, b.ql)).gioChay.filter((x) => x.mnkID === id).length, 0);
   err(b.call('compHourDel', { id: 'GC999' }, b.ql), 'KHONG_CO_GHI');
 });
+
+test('máy nén khí: tạo mã máy riêng trong danh mục cho từng máy, nối mã lại', () => {
+  const b = setupMNK();
+  // Danh mục sẵn có đúng một mã "Phòng máy nén khí" như nhà máy đang dùng
+  const phong = ok(b.call('data', {}, b.ql)).may.find((m) => m.ten === 'Phòng máy nén khí');
+  assert.ok(phong, 'danh mục có sẵn Phòng máy nén khí');
+  err(b.call('compMakeMay', { chuKy: 15, hanKeTiep: '2026-10-20' }, b.kt), 'KHONG_QUYEN');
+  err(b.call('compMakeMay', { chuKy: 0, hanKeTiep: '2026-10-20' }, b.ql), 'CHU_KY_SAI');
+  const r = ok(b.call('compMakeMay', { chuKy: 15, hanKeTiep: '2026-10-20',
+    viTri: 'Phòng máy nén khí', noiDung: 'Kiểm tra mức dầu\nXả nước bình chứa' }, b.ql));
+  assert.equal(r.dsMay.length, 6, 'sáu máy nén khí thành sáu mã máy');
+  assert.deepEqual(r.dsMay.map((m) => m.ten), b.mn.map((m) => m.ten));
+  assert.equal(r.dsMay[0].tenPhu, '空压机1号', 'tên tiếng Trung sang cột tên phụ');
+  assert.equal(r.dsMay[0].nhom, 'Khí nén · 空压机');
+  assert.equal(r.dsMay[0].chuKy, 15);
+  assert.match(r.dsMay[0].noiDung, /mức dầu/, 'nội dung bảo dưỡng điền sẵn cho cả sáu máy');
+  assert.notEqual(r.dsMay[0].ma, phong.ma, 'mã mới, không đụng mã Phòng máy nén khí');
+  // Mã đã nối ngược lại vào bảng máy nén khí
+  const sau = r.mayNen.filter((x) => x.hoatDong);
+  assert.equal(sau.every((x) => x.ma), true, 'máy nào cũng có mã máy');
+  assert.equal(new Set(sau.map((x) => x.ma)).size, 6, 'sáu mã khác nhau');
+  // Gọi lần nữa thì không tạo trùng
+  err(b.call('compMakeMay', { chuKy: 15, hanKeTiep: '2026-10-20' }, b.ql), 'DU_MA_MAY');
+  assert.equal(ok(b.call('data', {}, b.ql)).may.filter((m) => /Máy nén khí số/.test(m.ten)).length, 6);
+  // Máy trong danh mục đã trùng tên thì nối vào mã đó chứ không tạo thêm
+  const b2 = setupMNK();
+  const co = ok(b2.call('saveMachine', { ten: 'Máy nén khí số 1', chuKy: 30, hanKeTiep: '2026-10-20' }, b2.ql)).may;
+  const r2 = ok(b2.call('compMakeMay', { chuKy: 15, hanKeTiep: '2026-10-20' }, b2.ql));
+  assert.equal(r2.dsMay.length, 5, 'chỉ tạo năm mã mới');
+  assert.deepEqual(r2.noiMa, [co.ma], 'máy số 1 nối vào mã có sẵn');
+  assert.equal(r2.mayNen.find((x) => x.ten === 'Máy nén khí số 1').ma, co.ma);
+});

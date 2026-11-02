@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.32.0';
+var PHIEN_BAN = '2.32.1';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -162,7 +162,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'importInspect', 'saveFault', 'deleteFault', 'saveAccept', 'deleteAccept',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy',
-  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate'];
+  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
@@ -383,6 +383,7 @@ function dieuHuong(a, p, req) {
     case 'compHourDel': canQuyen(u, 'giaoviec'); return xoaGioChay(u, p);
     case 'compWeek': canQuyen(u, 'xacnhan'); return luuLichMNK(u, p);
     case 'compRotate': canQuyen(u, 'xacnhan'); return goiYLichMNK(u, p);
+    case 'compMakeMay': canQuyen(u, 'may'); return taoMayTuMNK(u, p);
   }
   throw loi('KHONG_HIEU', 'Máy chủ chưa hiểu yêu cầu này: ' + a);
 }
@@ -1193,6 +1194,41 @@ function luuMayNen(u, p) {
   sua.forEach(function (x) { suaDong('MayNen', x._r, mnkThanhDong(x)); });
   ghiNhatKy(u, 'LUU_MAY_NEN', 'MayNen', '', String(cu.length), String(n), '');
   return { mayNen: docMayNen().map(sachMNK) };
+}
+// Tạo mã máy trong danh mục cho những máy nén khí chưa có mã, rồi nối mã lại vào bảng máy nén khí.
+// Nhà máy vốn chỉ có MỘT mã "Phòng máy nén khí". Mỗi máy một mã thì mỗi máy có hồ sơ riêng, tem QR
+// riêng, tài liệu và lịch bảo dưỡng theo ngày riêng; giờ chạy vẫn đếm ở bảng MayNen.
+// Máy nào trong danh mục đã trùng tên thì NỐI vào mã đó, không tạo thêm mã trùng.
+function taoMayTuMNK(u, p) {
+  var mn = docMayNen().filter(function (x) { return x.hoatDong && !x.ma; });
+  if (!mn.length) throw loi('DU_MA_MAY', 'Máy nén khí nào cũng đã có mã máy · 每台空压机都已有设备编号');
+  var chuKy = Math.round(Number(p.chuKy)) || 0;
+  if (!(chuKy >= 1 && chuKy <= 3650)) throw loi('CHU_KY_SAI', 'Chu kỳ 1–3650 ngày · 周期 1–3650 天');
+  var han = ngayStr(p.hanKeTiep) || homNayStr();
+  if (!hopLeNgay(han)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  var ds = dsMay(), theoTen = {};
+  ds.forEach(function (y) { if (y.hoatDong) theoTen[y.ten.toLowerCase()] = y; });
+  var nhom = catChu(p.nhom, 60) || 'Khí nén · 空压机';
+  var viTri = catChu(p.viTri, 120), noiDung = catNhieuDong(p.noiDung, 1000);
+  var bay = thoiGianStr();
+  capNhatTieuDe('May'); capNhatTieuDe('MayNen');
+  var mayMoi = [], noi = [], sua = [];
+  mn.forEach(function (x) {
+    var co = theoTen[x.ten.toLowerCase()];
+    if (co) { x.ma = co.ma; noi.push(co.ma); } else {
+      var m = { ma: maMoi(ds), ten: x.ten, tenPhu: x.tenZh, nhom: nhom, viTri: viTri, chuKy: chuKy,
+        hanKeTiep: han, noiDung: noiDung, hoatDong: true, hangMuc: [], linhKien: [],
+        phuTrach: '', ngayDuaVao: '', chuyen: '', maHT: '', capNhat: bay };
+      ds.push(m); theoTen[m.ten.toLowerCase()] = m; mayMoi.push(m);
+      x.ma = m.ma;
+    }
+    x.capNhat = bay; sua.push(x);
+  });
+  if (mayMoi.length) themNhieu('May', mayMoi.map(mayThanhDong));
+  sua.forEach(function (x) { suaDong('MayNen', x._r, mnkThanhDong(x)); });
+  ghiNhatKy(u, 'TAO_MAY_NEN_KHI', 'May', '', '', mayMoi.map(function (m) { return m.ma + ' ' + m.ten; }).join(' · '), '');
+  return { dsMay: mayMoi.map(sachMay), mayNen: docMayNen().map(sachMNK),
+    themMa: mayMoi.map(function (m) { return m.ma; }), noiMa: noi };
 }
 // Ghi số giờ trên đồng hồ của một máy. bd = true: đây là lần bảo dưỡng, đặt lại mốc giờ.
 function ghiGioChay(u, p, opId) {
