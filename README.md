@@ -97,6 +97,23 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
+## Điểm mới của v2.34.0: đối chiếu giờ trực với giờ tăng ca
+
+Trực ca gần như toàn bộ là giờ tăng ca, nên **Tổng số ca** thêm bảng **Đối chiếu với tăng ca**: mỗi người một dòng, so **giờ trực** với **giờ tăng ca đã đăng ký của đúng những ngày có trực**.
+
+| Cột | Nghĩa |
+|---|---|
+| Số giờ trực | Cộng theo giờ thật của từng lượt trực trong tháng |
+| Tăng ca ngày trực | Giờ tăng ca đã đăng ký, chỉ tính những ngày người đó có trực |
+| Lệch | Chip xanh *Khớp*, chip đỏ *Thiếu x h* (quên đăng ký), chip cam *Thừa x h* (đăng ký nhiều hơn giờ trực) |
+| Tổng tăng ca tháng | Cả tháng, gồm cả tăng ca không phải ca trực — để đối chiếu với bảng lương |
+
+Dưới bảng là danh sách **Ngày trực chưa đăng ký đủ tăng ca**: ghi rõ ai, ngày nào, khung giờ trực, đã đăng ký mấy tiếng và thiếu mấy tiếng. **Bấm vào một dòng là mở thẳng form tăng ca**, điền sẵn đúng người, đúng ngày và đúng khung giờ của ca trực hôm đó — chỉ việc kiểm lại rồi lưu.
+
+File Excel lịch trực thêm sheet thứ tư **Doi chieu TC** với cùng số liệu, ô lệch tô đỏ / cam, kèm bảng chi tiết từng ngày thiếu.
+
+Bảng này chỉ Quản lý và Quản trị thấy, vì tài khoản kỹ thuật chỉ nhận tăng ca của chính mình nên đối chiếu cả nhà máy sẽ sai.
+
 ## Điểm mới của v2.34.0: giờ trực theo từng người, Chủ nhật khung giờ riêng
 
 Trước đây giờ trực bị gán cứng `17:00 – 19:30` khắp nơi. Thực tế có người trực **17:00–19:00**, có người **17:30–21:00**, còn Chủ nhật trực **07:30–17:00**. Nay **mỗi lượt trực có giờ riêng**.

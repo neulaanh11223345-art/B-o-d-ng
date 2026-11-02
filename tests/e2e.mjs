@@ -783,6 +783,37 @@ await page.evaluate(() => go('trucTong')); await wait(700);
 assert.match(await text('.dt thead'), /Số giờ trực/, 'bảng tổng có cột số giờ');
 const tongGio = await page.evaluate((m) => trucTongDS(m).map((x) => x.gio), ymMau);
 assert.ok(tongGio.every((g) => g > 0), 'mỗi người có số giờ trực: ' + JSON.stringify(tongGio));
+// Đối chiếu giờ trực với giờ tăng ca đã đăng ký
+assert.match(await text('#main'), /Đối chiếu với tăng ca/, 'Tổng số ca có bảng đối chiếu tăng ca');
+const dc16 = await page.evaluate((m) => trucDoiChieu(m).map((x) => ({ ten: x.ten, truc: x.truc, tc: x.tc, lech: x.lech, thangTC: x.thangTC, thieu: x.thieu.length })), ymMau);
+assert.ok(dc16.length >= 3, 'đối chiếu từng người: ' + dc16.length);
+assert.ok(dc16.every((x) => Math.abs(x.truc - x.tc - x.lech) < 0.01), 'lệch = giờ trực − tăng ca ngày trực');
+assert.ok(dc16.some((x) => x.tc > 0), 'có người đã đăng ký tăng ca đúng ngày trực');
+assert.ok(dc16.some((x) => x.thieu > 0), 'có ngày trực chưa đăng ký đủ tăng ca');
+assert.ok(dc16.every((x) => x.thangTC >= x.tc - 0.01), 'tổng tăng ca tháng không nhỏ hơn tăng ca ngày trực');
+const dcM = await text('#main');
+assert.match(dcM, /Ngày trực chưa đăng ký đủ tăng ca/);
+assert.match(dcM, /chưa đăng ký/, 'ngày chưa đăng ký tăng ca ghi rõ');
+await shot('25b-doi-chieu-tang-ca');
+// Bấm một ngày thiếu thì mở thẳng form tăng ca, điền sẵn người, ngày và khung giờ của ca trực
+const soThieu = await page.locator('[data-act="trucDCGhi"]').count();
+assert.ok(soThieu >= 1, 'liệt kê từng ngày thiếu để bấm vào ghi');
+const nhan16 = await page.evaluate(() => { const el = document.querySelector('[data-act="trucDCGhi"]'); return { d: el.dataset.d, tu: el.dataset.tu, den: el.dataset.den }; });
+await page.click('[data-act="trucDCGhi"] >> nth=0'); await wait(900);
+assert.match(await text('#barTitle'), /tăng ca/i, 'mở form tăng ca');
+assert.equal(await page.inputValue('#tcNgay'), nhan16.d, 'điền sẵn đúng ngày trực');
+assert.equal(await page.inputValue('#tcTu'), nhan16.tu, 'điền sẵn giờ bắt đầu ca trực');
+assert.equal(await page.inputValue('#tcDen'), nhan16.den, 'điền sẵn giờ kết thúc ca trực');
+await page.evaluate(() => back()); await wait(500);
+// File Excel có thêm sheet đối chiếu
+const shDC = await page.evaluate(async (m) => {
+  const sh = await readXlsx(await trucXlsx(m).arrayBuffer());
+  const r = await sh[3].rows();
+  return { ten: sh.map((x) => x.name), txt: r.map((x) => x.join('|')).join('\n') };
+}, ymMau);
+assert.deepEqual(shDC.ten, ['Lich truc', 'Phan ca truc', 'Tong hop', 'Doi chieu TC'], 'Excel có bốn sheet');
+assert.match(shDC.txt, /值班与加班核对/, 'sheet đối chiếu song ngữ');
+assert.match(shDC.txt, /Ngày trực chưa đăng ký đủ tăng ca/, 'sheet liệt kê cả ngày thiếu');
 await page.evaluate(() => back()); await wait(500);
 await shot('24c-lich-truc-hai-nguoi');
 // Bỏ người thứ hai: ngày đó quay về một người
@@ -817,7 +848,7 @@ const xlTruc = await page.evaluate(async (ym) => {
   return { ten: sh.map((x) => x.name), size: blob.size, cuoi, ngay: txt(r[0]), ca: txt(r[1]), tong: txt(r[2]),
     dongCa: r[1].length };
 }, ymMau);
-assert.deepEqual(xlTruc.ten, ['Lich truc', 'Phan ca truc', 'Tong hop'], 'đủ ba sheet: ' + xlTruc.ten);
+assert.deepEqual(xlTruc.ten, ['Lich truc', 'Phan ca truc', 'Tong hop', 'Doi chieu TC'], 'đủ bốn sheet: ' + xlTruc.ten);
 assert.ok(xlTruc.dongCa >= 7 && xlTruc.dongCa <= 9, 'sheet phân ca có mỗi tuần một dòng: ' + xlTruc.dongCa);
 assert.match(xlTruc.ngay, /Thứ Hai.*Chủ nhật/s, 'sheet lịch trực là lịch tháng, bảy cột thứ Hai → Chủ nhật');
 assert.match(xlTruc.ngay, /星期日/, 'cột thứ song ngữ');
@@ -940,7 +971,7 @@ await page.evaluate(() => go('phanCaTuan')); await wait(600);
 assert.equal(await page.locator('[data-act="pcLP"]').count(), 0, 'kỹ thuật không có nút luân phiên');
 await page.evaluate(() => go('trucNguoi')); await wait(500);
 assert.match(await text('#barTitle'), /Chỉ Quản lý/);
-ok('Bản 2.17 + 2.34: lịch trực tháng điểm màu, một ngày nhiều người trực, mỗi lượt một giờ và một nội dung riêng, Chủ nhật khung giờ riêng, tổng số giờ trực, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
+ok('Bản 2.17 + 2.34: lịch trực tháng điểm màu, một ngày nhiều người trực, mỗi lượt một giờ và một nội dung riêng, Chủ nhật khung giờ riêng, đối chiếu giờ trực với tăng ca đã đăng ký, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
 
 // 17. Bản 2.13: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng và gần hết hàng
 await logout(); await login('NV002', '222222');

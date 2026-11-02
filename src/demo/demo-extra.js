@@ -272,6 +272,9 @@ function mauTangCa() {
   tc('NV005', congNgay(t2, 1), 'HC', '17:30', '19:30', 'Kiểm tra tủ điện xưởng 1', '检查一车间电柜');
   tc('NV005', congNgay(t2, -1), 'CN', '08:00', '12:00', 'Vệ sinh máy nén khí', '清洁空压机');
   tc('NV006', congNgay(t2, 3), 'HC', '17:30', '21:00', 'Sửa băng tải chuyền VKY02', '维修产线VKY02输送带');
+  // Hai ngày trực đã đăng ký tăng ca đúng khung giờ trực, để bảng đối chiếu có cả dòng "Khớp"
+  tc('NV004', congNgay(t2, 0), 'HC', '17:00', '19:30', 'Trực ca xưởng 1', '一车间值班');
+  tc('NV005', congNgay(t2, 0), 'HC', '17:30', '21:00', 'Trực ca xưởng 2', '二车间值班');
 }
 // Lịch trực tuần mẫu: tuần này mỗi ngày một người, có nội dung trực riêng; một ngày để trống cho thấy cảnh báo
 function mauLichTruc() {

@@ -9402,9 +9402,12 @@ VIEWS.tcGhi = {
       const tu = tcTuanHT(), ht = TODAY();
       let ngay = cu ? cu.ngay : (ht >= tu && ht <= addD(tu, 6) ? ht : tu);
       if (!cu && !tcNgayOk(ngay)) ngay = ngay > ht ? ht : tcMoTu();
+      // Mở từ bảng đối chiếu trực · tăng ca: điền sẵn người, ngày và khung giờ của ca trực đó
+      if (!cu && p.ngay && tcNgayOk(p.ngay)) ngay = p.ngay;
       const ca = cu ? cu.ca : (wday(ngay) === 0 ? 'CN' : tcCaDS()[0].k), c = tcCaOf(ca);
-      Object.assign(p, { init: 1, uid: (cu && cu.uid) || tcUid(), ngay, ca,
-        tu: cu ? cu.tu : c.tu, den: cu ? cu.den : c.den, gio: cu ? tcSo(cu.soGio) : tcSo(tcGio(c.tu, c.den)), ly: cu ? cu.lyDo : '' });
+      const tu0 = cu ? cu.tu : (p.tu || c.tu), den0 = cu ? cu.den : (p.den || c.den);
+      Object.assign(p, { init: 1, uid: (cu && cu.uid) || p.uid || tcUid(), ngay, ca,
+        tu: tu0, den: den0, gio: cu ? tcSo(cu.soGio) : tcSo(tcGio(tu0, den0)), ly: cu ? cu.lyDo : (p.ly || '') });
     }
     const n = tcNguoi(p.uid);
     return `<form id="tcF" class="card pad" autocomplete="off">
@@ -11897,6 +11900,19 @@ Object.assign(TX, {
   trucGioCfgHelp: ['Giờ mặc định áp dụng cho lượt trực chưa ghi giờ riêng. Lượt đã ghi giờ riêng giữ nguyên.',
     '默认时间适用于未单独填写时间的值班。已填写的保持不变。'],
   trucSoGio: ['Số giờ trực', '值班小时'], trucGioN: ['{n} giờ', '{n}小时'],
+  trucDC: ['Đối chiếu với tăng ca', '与加班核对'],
+  trucDCHelp: ['Trực ca gần như toàn bộ là giờ tăng ca, nên bảng này so giờ trực với giờ tăng ca ĐÃ ĐĂNG KÝ của đúng những ngày có trực. Tăng ca của ngày không trực không tính vào cột này.',
+    '值班基本都算加班，本表将值班小时与值班当天已登记的加班小时对比。非值班日的加班不计入此列。'],
+  trucDCGioTC: ['Tăng ca ngày trực', '值班日加班'], trucDCLech: ['Lệch', '差额'],
+  trucDCThangTC: ['Tổng tăng ca tháng', '当月加班合计'],
+  trucDCKhop: ['Khớp', '一致'], trucDCThieu: ['Thiếu {n} h', '少 {n} 小时'], trucDCThua: ['Thừa {n} h', '多 {n} 小时'],
+  trucDCNgayThieu: ['Ngày trực chưa đăng ký đủ tăng ca', '值班日加班登记不足'],
+  trucDCDuNgay: ['Ngày trực nào cũng đã đăng ký đủ tăng ca', '每个值班日的加班均已登记齐全'],
+  trucDCGhiTC: ['Ghi tăng ca', '登记加班'], trucDCChuaCo: ['chưa đăng ký', '未登记'],
+  trucDCMo: ['Đối chiếu trực · tăng ca', '值班与加班核对'],
+  xlTrDCTruc: ['Giờ trực', '值班小时'], xlTrDCTC: ['Tăng ca ngày trực', '值班日加班'],
+  xlTrDCLech: ['Lệch', '差额'], xlTrDCThangTC: ['Tổng tăng ca tháng', '当月加班合计'],
+  xlTrDCNgay: ['Ngày', '日期'], xlTrDC: ['Đối chiếu trực · tăng ca', '值班与加班核对'],
   trucGioRieng: ['giờ riêng', '单独时间'],
   trucChuaXep: ['Chưa xếp', '未安排'], trucChuaND: ['Chưa có nội dung trực', '暂无值班内容'],
   trucNoiDung: ['Nội dung trực', '值班内容'],
@@ -12136,6 +12152,35 @@ function trucTongDS(ym) {
   });
   return Object.values(by).sort((a, b) => b.n - a.n || a.ten.localeCompare(b.ten));
 }
+// Đối chiếu giờ trực với giờ tăng ca đã đăng ký, theo từng ngày có trực.
+// Trực ca gần như toàn bộ là giờ tăng ca nên hai con số này phải khớp nhau.
+function trucDoiChieu(ym) {
+  const tcAll = (S.V && S.V.tc) || [], by = {};
+  trucDS().forEach((x) => {
+    if (!x.uid || x.ngay.slice(0, 7) !== ym) return;
+    const o = by[x.uid] = by[x.uid] || { uid: x.uid, ten: x.ten, truc: 0, tc: 0, ngay: [], thieu: [] };
+    const g = trucSoGio(x, x.ngay);
+    o.truc = Math.round((o.truc + g) * 100) / 100;
+    const cu = o.ngay.filter((d) => d.ngay === x.ngay)[0];
+    if (cu) cu.truc = Math.round((cu.truc + g) * 100) / 100;
+    else o.ngay.push({ ngay: x.ngay, truc: g, tc: 0, tu: trucGioCua(x, x.ngay).tu, den: trucGioCua(x, x.ngay).den });
+  });
+  Object.values(by).forEach((o) => {
+    o.ngay.forEach((d) => {
+      d.tc = Math.round(tcAll.filter((v) => v.uid === o.uid && v.ngay === d.ngay)
+        .reduce((a, v) => a + (+v.soGio || 0), 0) * 100) / 100;
+      o.tc = Math.round((o.tc + d.tc) * 100) / 100;
+      if (d.tc + 0.01 < d.truc) o.thieu.push(d);
+    });
+    o.ngay.sort((a, b) => (a.ngay < b.ngay ? -1 : 1));
+    o.thieu.sort((a, b) => (a.ngay < b.ngay ? -1 : 1));
+    o.lech = Math.round((o.truc - o.tc) * 100) / 100;
+    o.thangTC = Math.round(tcAll.filter((v) => v.uid === o.uid && v.ngay.slice(0, 7) === ym)
+      .reduce((a, v) => a + (+v.soGio || 0), 0) * 100) / 100;
+  });
+  return Object.values(by).sort((a, b) => b.lech - a.lech || b.truc - a.truc || a.ten.localeCompare(b.ten));
+}
+
 // Dữ liệu hiển thị = máy chủ + việc đang chờ gửi
 function rebuildTruc() {
   const b = S.base;
@@ -12399,6 +12444,10 @@ VIEWS.trucGhi = {
   }
 };
 Object.assign(ACT, {
+  trucDCGhi: (el) => {
+    const d = el.dataset;
+    go('tcGhi', { uid: d.uid, ngay: d.d, tu: d.tu, den: d.den, ly: tv('trucDCMo') });
+  },
   trucGioCfg: () => {
     const t0 = trucGioMacDinh('2026-01-05'), cn = trucGioMacDinh('2026-01-04');
     openSheet(`<div class="grab"></div><h3>${tv('trucGioSua')}<span class="zi">${tz('trucGioSua')}</span></h3>
@@ -12462,9 +12511,50 @@ VIEWS.trucTong = {
       <th class="num">${esc(tv('trucSoGio'))}<small>${esc(tz('trucSoGio'))}</small></th>
       <th class="num">${esc(tv('trucCN'))}<small>${esc(tz('trucCN'))}</small></th></tr></thead><tbody>${tr}</tbody></table></div>`;
     o += `<p class="help" style="margin-top:10px">${t('trucTongHelp')}</p>` + nutXuat;
+    o += trucDCHtml(ym);
     return o;
   }
 };
+
+// Bảng đối chiếu giờ trực với giờ tăng ca đã đăng ký. Chỉ Quản lý xem (kỹ thuật chỉ nhận
+// tăng ca của chính mình nên đối chiếu cả nhà máy sẽ sai).
+function trucDCHtml(ym) {
+  if (!xemHet()) return '';
+  const ds = trucDoiChieu(ym);
+  let o = sec('trucDC', ds.length);
+  if (!ds.length) return o + `<div class="card empty">${t('trucChuaAi')}</div>`;
+  const tTruc = ds.reduce((a, x) => a + x.truc, 0), tTC = ds.reduce((a, x) => a + x.tc, 0);
+  const chip = (x) => (Math.abs(x.lech) < 0.01
+    ? `<span class="pill p-xong">${tv('trucDCKhop')}<span class="zi" lang="zh-CN">${tz('trucDCKhop')}</span></span>`
+    : x.lech > 0 ? `<span class="pill p-qua">${esc(tv('trucDCThieu', { n: fmtNum(x.lech, 1) }))}</span>`
+      : `<span class="pill p-nay">${esc(tv('trucDCThua', { n: fmtNum(-x.lech, 1) }))}</span>`);
+  o += `<div class="dtwrap"><table class="dt"><thead><tr>
+    <th>${esc(tv('trucNguoiTruc'))}<small>${esc(tz('trucNguoiTruc'))}</small></th>
+    <th class="num">${esc(tv('trucSoGio'))}<small>${esc(tz('trucSoGio'))}</small></th>
+    <th class="num">${esc(tv('trucDCGioTC'))}<small>${esc(tz('trucDCGioTC'))}</small></th>
+    <th class="num">${esc(tv('trucDCLech'))}<small>${esc(tz('trucDCLech'))}</small></th>
+    <th class="num">${esc(tv('trucDCThangTC'))}<small>${esc(tz('trucDCThangTC'))}</small></th></tr></thead><tbody>
+    ${ds.map((x) => `<tr><td>${trucTen(x)}</td>
+      <td class="num mono">${fmtNum(x.truc, 1)}</td>
+      <td class="num mono">${fmtNum(x.tc, 1)}</td>
+      <td class="num">${chip(x)}</td>
+      <td class="num mono">${fmtNum(x.thangTC, 1)}</td></tr>`).join('')}
+    <tr style="background:var(--soft)"><td><b>${t('trucTongCong')}</b></td>
+      <td class="num mono"><b>${fmtNum(tTruc, 1)}</b></td><td class="num mono"><b>${fmtNum(tTC, 1)}</b></td>
+      <td class="num mono"><b>${fmtNum(Math.round((tTruc - tTC) * 100) / 100, 1)}</b></td><td></td></tr>
+    </tbody></table></div>`;
+  o += `<p class="help" style="margin-top:10px">${t('trucDCHelp')}</p>`;
+  const thieu = ds.filter((x) => x.thieu.length);
+  o += `<div class="sec"><h2>${t('trucDCNgayThieu')}${thieu.length ? `<span class="cnt">${thieu.reduce((a, x) => a + x.thieu.length, 0)}</span>` : ''}</h2></div>`;
+  if (!thieu.length) return o + `<div class="card empty">${t('trucDCDuNgay')}</div>`;
+  o += `<div class="list">${thieu.map((x) => x.thieu.map((d) => `<button class="row" data-act="trucDCGhi"
+    data-uid="${esc(x.uid)}" data-d="${esc(d.ngay)}" data-tu="${esc(d.tu)}" data-den="${esc(d.den)}">${IC.clock}
+    <div class="main"><div class="nm">${esc(x.ten)} · ${fmtD(d.ngay)}</div>
+    <div class="sub"><span class="mono">${d.tu} – ${d.den}</span> · ${esc(tv('trucGioN', { n: fmtNum(d.truc, 1) }))}
+      → ${d.tc ? esc(tv('trucGioN', { n: fmtNum(d.tc, 1) })) : `<span style="color:var(--red);font-weight:700">${esc(tp('trucDCChuaCo'))}</span>`}</div></div>
+    <span class="pill p-qua">${esc(tv('trucDCThieu', { n: fmtNum(Math.round((d.truc - d.tc) * 100) / 100, 1) }))}</span>${IC.chev}</button>`).join('')).join('')}</div>`;
+  return o;
+}
 
 // ---------- Phân công ca trực ----------
 function pcONoiDung(tu, nhom, ca) {
@@ -12761,10 +12851,36 @@ function trucXlsx(ym) {
       c(x.NGAY || '', { align: 'center' }), c(x.DEM || '', { align: 'center' })]));
   }
 
+  // 4) Đối chiếu giờ trực với giờ tăng ca đã đăng ký của đúng ngày có trực
+  const dc = trucDoiChieu(ym);
+  const r4 = [[{ v: tp('xlTrDC') + ' — ' + thang, s: { b: 1, sz: 14 } }], [],
+    hd(['xlTrNguoi', 'xlTrDCTruc', 'xlTrDCTC', 'xlTrDCLech', 'xlTrDCThangTC'])];
+  const DO4 = { fill: '#FBDBD8', color: '#8E2438', b: 1 }, CAM4 = { fill: '#FFE7CF', color: '#8A4A12', b: 1 };
+  dc.forEach((x) => {
+    const o = Math.abs(x.lech) < 0.01 ? {} : x.lech > 0 ? DO4 : CAM4;
+    r4.push([c(tenNV(x.uid, x.ten)), c(x.truc, { align: 'right', fmt: '#,##0.#' }),
+      c(x.tc, { align: 'right', fmt: '#,##0.#' }), c(x.lech, Object.assign({ align: 'right', fmt: '#,##0.#' }, o)),
+      c(x.thangTC, { align: 'right', fmt: '#,##0.#' })]);
+  });
+  r4.push([c(tp('trucTongCong'), { b: 1 }),
+    c(Math.round(dc.reduce((a, x) => a + x.truc, 0) * 100) / 100, { b: 1, align: 'right', fmt: '#,##0.#' }),
+    c(Math.round(dc.reduce((a, x) => a + x.tc, 0) * 100) / 100, { b: 1, align: 'right', fmt: '#,##0.#' }),
+    c(Math.round(dc.reduce((a, x) => a + x.lech, 0) * 100) / 100, { b: 1, align: 'right', fmt: '#,##0.#' }), c('')]);
+  const thieu4 = dc.filter((x) => x.thieu.length);
+  if (thieu4.length) {
+    r4.push([], [{ v: tp('trucDCNgayThieu'), s: { b: 1, sz: 12 } }],
+      hd(['xlTrNguoi', 'xlTrDCNgay', 'trucGio', 'xlTrDCTruc', 'xlTrDCTC', 'xlTrDCLech']));
+    thieu4.forEach((x) => x.thieu.forEach((d) => r4.push([c(tenNV(x.uid, x.ten)), c(fmtD(d.ngay), { align: 'center' }),
+      c(d.tu + ' – ' + d.den, { align: 'center' }), c(d.truc, { align: 'right', fmt: '#,##0.#' }),
+      c(d.tc || '', Object.assign({ align: 'right', fmt: '#,##0.#' }, d.tc ? {} : DO4)),
+      c(Math.round((d.truc - d.tc) * 100) / 100, Object.assign({ align: 'right', fmt: '#,##0.#' }, DO4))])));
+  }
+  r4.push([], [{ v: tp('trucDCHelp') }]);
   return XW.build([
     { name: 'Lich truc', rows: r1, cols: [17, 17, 17, 17, 17, 17, 17], merges: ['A1:G1'], freeze: { r: 3, c: 0 }, heights: cao },
     { name: 'Phan ca truc', rows: r2, cols: [22, 24, 24, 24, 24], merges: ['A1:E1'], freeze: { r: 3, c: 0 } },
-    { name: 'Tong hop', rows: r3, cols: [26, 13, 13, 13, 13], merges: ['A1:D1'], freeze: { r: 3, c: 0 } }
+    { name: 'Tong hop', rows: r3, cols: [26, 13, 13, 13, 13], merges: ['A1:D1'], freeze: { r: 3, c: 0 } },
+    { name: 'Doi chieu TC', rows: r4, cols: [26, 13, 16, 13, 16, 13], merges: ['A1:E1'], heights: { 3: 34 }, freeze: { r: 3, c: 0 } }
   ]);
 }
 
