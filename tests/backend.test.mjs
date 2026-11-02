@@ -1061,10 +1061,11 @@ test('lịch trực tuần: Quản lý xếp người và nội dung, tự dịc
   const b = setup();
   const nv = ok(b.call('data', {}, b.ql)).nhanVien;
   const kt3 = nv.find((x) => x.vaiTro === 'kythuat');
+  const mot = (r) => { assert.equal(r.dsLichTruc.length, 1, JSON.stringify(r)); return r.dsLichTruc[0]; };
 
   // Chỉ Quản lý, Quản trị mới xếp được
   err(b.call('dutySet', { ngay: '2026-10-21', uid: kt3.id, noiDung: 'Trực điện xưởng 1' }, b.kt), 'KHONG_QUYEN');
-  const x = ok(b.call('dutySet', { ngay: '2026-10-21', uid: kt3.id, noiDung: 'Trực điện xưởng 1' }, b.ql)).lichTruc;
+  const x = mot(ok(b.call('dutySet', { ngay: '2026-10-21', uid: kt3.id, noiDung: 'Trực điện xưởng 1' }, b.ql)));
   assert.equal(x.uid, kt3.id);
   assert.equal(x.ten, kt3.ten);
   assert.equal(x.noiDung, 'Trực điện xưởng 1');
@@ -1075,17 +1076,17 @@ test('lịch trực tuần: Quản lý xếp người và nội dung, tự dịc
   err(b.call('dutySet', { ngay: '2026-10-22', uid: 'U999' }, b.ql), 'KHONG_CO_NV');
 
   // Chỉ gửi nội dung: giữ người đang xếp
-  const y = ok(b.call('dutySet', { ngay: '2026-10-21', noiDung: 'Ghi số điện kỳ 20/10' }, b.ql)).lichTruc;
+  const y = mot(ok(b.call('dutySet', { ngay: '2026-10-21', noiDung: 'Ghi số điện kỳ 20/10' }, b.ql)));
   assert.equal(y.uid, kt3.id);
   assert.equal(y.noiDung, 'Ghi số điện kỳ 20/10');
 
   // Sửa tay bản dịch tiếng Trung thì giữ nguyên, lần sau không dịch đè
-  const z = ok(b.call('dutySet', { ngay: '2026-10-21', noiDung: 'Ghi số điện kỳ 20/10', noiDungDich: '抄录10月20日电表' }, b.ql)).lichTruc;
+  const z = mot(ok(b.call('dutySet', { ngay: '2026-10-21', noiDung: 'Ghi số điện kỳ 20/10', noiDungDich: '抄录10月20日电表' }, b.ql)));
   assert.equal(z.noiDungDich, '抄录10月20日电表');
-  const z2 = ok(b.call('dutySet', { ngay: '2026-10-21', uid: kt3.id }, b.ql)).lichTruc;
+  const z2 = mot(ok(b.call('dutySet', { ngay: '2026-10-21', uid: kt3.id }, b.ql)));
   assert.equal(z2.noiDungDich, '抄录10月20日电表');
 
-  // Mỗi ngày một dòng, không sinh thêm dòng mới
+  // Một người một ngày thì vẫn chỉ một dòng, không sinh thêm dòng mới
   assert.equal(b.ctx.docTho('LichTruc').filter((r) => r[0] === '2026-10-21').length, 1);
 
   // Kỹ thuật xem được lịch (để biết ai trực)
@@ -1094,9 +1095,67 @@ test('lịch trực tuần: Quản lý xếp người và nội dung, tự dịc
   assert.equal(dsKT[0].uid, kt3.id);
 
   // Bỏ trống ngày
-  const bo = ok(b.call('dutySet', { ngay: '2026-10-21', uid: '', noiDung: '' }, b.ql)).lichTruc;
-  assert.equal(bo.uid, '');
-  assert.equal(bo.noiDung, '');
+  const bo = ok(b.call('dutySet', { ngay: '2026-10-21', uid: '', noiDung: '' }, b.ql));
+  assert.deepEqual(bo.dsLichTruc, [], 'ngày trống thì không còn lượt trực nào');
+  assert.equal(ok(b.call('data', {}, b.ql)).lichTruc.filter((r) => r.ngay === '2026-10-21').length, 0);
+});
+
+test('lịch trực: xếp nhiều người cùng một ngày, mỗi người một nội dung riêng', () => {
+  const b = setup();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien;
+  const [a1, a2, a3] = nv;
+  const ngay = '2026-10-21';
+  const r = ok(b.call('dutySet', { ngay, ds: [
+    { uid: a1.id, noiDung: 'Trực sửa chữa máy' },
+    { uid: a2.id, noiDung: 'Vệ sinh tủ điện' }
+  ] }, b.ql));
+  assert.equal(r.dsLichTruc.length, 2, 'hai người cùng một ngày');
+  assert.deepEqual(r.dsLichTruc.map((x) => x.uid), [a1.id, a2.id]);
+  assert.deepEqual(r.dsLichTruc.map((x) => x.ten), [a1.ten, a2.ten]);
+  assert.equal(r.dsLichTruc[0].noiDung, 'Trực sửa chữa máy');
+  assert.equal(r.dsLichTruc[1].noiDung, 'Vệ sinh tủ điện');
+  assert.ok(r.dsLichTruc[1].noiDungDich, 'người thứ hai cũng được dịch');
+  assert.deepEqual(r.trucNgays, [ngay]);
+  assert.equal(b.ctx.docTho('LichTruc').filter((x) => x[0] === ngay).length, 2, 'mỗi người một dòng');
+
+  // Thêm người thứ ba, sửa nội dung người đầu: bản dịch của người không đổi thì giữ nguyên
+  const zh1 = r.dsLichTruc[0].noiDungDich;
+  const r2 = ok(b.call('dutySet', { ngay, ds: [
+    { uid: a1.id, noiDung: 'Trực sửa chữa máy' },
+    { uid: a2.id, noiDung: 'Vệ sinh tủ điện' },
+    { uid: a3.id, noiDung: 'Kiểm tra phòng máy nén khí' }
+  ] }, b.ql));
+  assert.equal(r2.dsLichTruc.length, 3);
+  assert.equal(r2.dsLichTruc[0].noiDungDich, zh1, 'nội dung không đổi thì không dịch lại');
+
+  // Bỏ người giữa: còn hai người, không sinh dòng rác
+  const r3 = ok(b.call('dutySet', { ngay, ds: [{ uid: a1.id, noiDung: 'Trực sửa chữa máy' }, { uid: a3.id, noiDung: 'Kiểm tra phòng máy nén khí' }] }, b.ql));
+  assert.deepEqual(r3.dsLichTruc.map((x) => x.uid), [a1.id, a3.id]);
+  assert.equal(ok(b.call('data', {}, b.ql)).lichTruc.filter((x) => x.ngay === ngay).length, 2,
+    'dòng của người đã bỏ không còn hiện ra');
+
+  // Cùng một người gửi hai lần trong một ngày thì chỉ tính một
+  const r4 = ok(b.call('dutySet', { ngay, ds: [{ uid: a1.id, noiDung: 'A' }, { uid: a1.id, noiDung: 'B' }] }, b.ql));
+  assert.equal(r4.dsLichTruc.length, 1);
+  assert.equal(r4.dsLichTruc[0].noiDung, 'A');
+
+  // Tối đa 6 người một ngày
+  const r5 = ok(b.call('dutySet', { ngay, ds: nv.slice(0, 8).map((n) => ({ uid: n.id, noiDung: 'Trực' })) }, b.ql));
+  assert.ok(r5.dsLichTruc.length <= 6, 'không quá sáu người một ngày: ' + r5.dsLichTruc.length);
+});
+
+test('lịch trực: chép tuần mang theo cả hai người của từng ngày', () => {
+  const b = setup();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien;
+  ok(b.call('dutySet', { ngay: '2026-10-19', ds: [{ uid: nv[0].id, noiDung: 'Trực A' }, { uid: nv[1].id, noiDung: 'Trực B' }] }, b.ql));
+  ok(b.call('dutySet', { ngay: '2026-10-21', ds: [{ uid: nv[2].id, noiDung: 'Trực C' }] }, b.ql));
+  const r = ok(b.call('dutyCopy', { tuNgay: '2026-10-19', soTuan: 2 }, b.ql));
+  assert.equal(r.n, 6, 'hai tuần × (2 + 1) lượt trực');
+  const ds = ok(b.call('data', {}, b.ql)).lichTruc;
+  const t2 = ds.filter((x) => x.ngay === '2026-10-26');
+  assert.deepEqual(t2.map((x) => x.uid), [nv[0].id, nv[1].id], 'tuần sau vẫn đủ hai người');
+  assert.deepEqual(t2.map((x) => x.noiDung), ['Trực A', 'Trực B']);
+  assert.equal(ds.filter((x) => x.ngay === '2026-10-28').length, 1);
 });
 
 test('phân công ca trực: danh sách riêng, xếp tay từng ô, luân phiên tiếp nối tuần trước; người nghỉ không được xếp nữa', () => {
@@ -1905,14 +1964,21 @@ test('máy nén khí: ghi giờ lúc bảo dưỡng thì đặt lại mốc 3000
   assert.equal(m2.mocGio[1].gio, 3060, 'mốc đã tích thì tính lại từ đây');
 });
 
-test('máy nén khí: lịch tuần 3 máy thường + 1 máy biến tần, chặn xếp quá số máy', () => {
+test('máy nén khí: lịch tuần nhiều nhất một máy biến tần, không xếp quá số máy đang có', () => {
   const b = setupMNK();
   err(b.call('compWeek', { tuNgay: '2026-10-07', dsChay: [b.id(1)] }, b.ql), 'TUAN_SAI');
   const r = ok(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(2), b.id(4), b.id(3)] }, b.ql));
   assert.deepEqual(r.lichMNK[0].dsChay, [b.id(1), b.id(2), b.id(4), b.id(3)]);
   // Máy 3 và máy 6 đều là biến tần: mỗi ngày chỉ chạy một trong hai
   err(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(2), b.id(3), b.id(6)] }, b.ql), 'NHIEU_BIEN_TAN');
-  err(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(2), b.id(4), b.id(5)] }, b.ql), 'NHIEU_MAY_THUONG');
+  // Bốn máy thường đều chạy được khi sản xuất cần, không còn chặn cứng ở ba máy
+  const nam = ok(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(2), b.id(4), b.id(5), b.id(3)] }, b.ql));
+  assert.equal(nam.lichMNK[0].dsChay.length, 5);
+  // Máy đã ngừng thì không xếp vào lịch
+  ok(b.call('compSave', { ds: b.mn.map((m) => (m.id === b.id(5) ? Object.assign({}, m, { hoatDong: false }) : m)) }, b.ql));
+  const bo5 = ok(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(2), b.id(4), b.id(5), b.id(3)] }, b.ql));
+  assert.equal(bo5.lichMNK[0].dsChay.indexOf(b.id(5)), -1, 'máy đã ngừng không được xếp');
+  ok(b.call('compSave', { ds: b.mn }, b.ql));
   // Kỹ thuật đổi máy chạy trong tuần được (nhân viên tự đổi), nhưng không sửa danh sách máy
   ok(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(2), b.id(5), b.id(6)] }, b.kt));
   assert.deepEqual(ok(b.call('data', {}, b.kt)).lichMNK.find((x) => x.tuNgay === '2026-10-05').dsChay,
@@ -1976,4 +2042,54 @@ test('máy nén khí: tạo mã máy riêng trong danh mục cho từng máy, n�
   assert.equal(r2.dsMay.length, 5, 'chỉ tạo năm mã mới');
   assert.deepEqual(r2.noiMa, [co.ma], 'máy số 1 nối vào mã có sẵn');
   assert.equal(r2.mayNen.find((x) => x.ten === 'Máy nén khí số 1').ma, co.ma);
+});
+
+test('máy nén khí: tính số máy cần bật theo lượng khí nén của các chuyền đang chạy', () => {
+  const b = setupMNK();
+  const ch = ok(b.call('data', {}, b.ql)).chuyen.slice(0, 5).map((c) => c.ma);
+  assert.ok(ch.length >= 4, 'dữ liệu mẫu có sẵn vài chuyền');
+  // Khai lượng khí nén cho từng chuyền (m³/phút) như bảng của nhà máy
+  [[0, 6], [1, 6], [2, 7], [3, 12], [4, 5]].forEach(([i, kn]) => {
+    const c = ok(b.call('saveLine', { ma: ch[i], khiNen: kn }, b.ql)).chuyen;
+    assert.equal(c.khiNen, kn);
+  });
+  err(b.call('saveLine', { ma: ch[0], khiNen: 'nhiều' }, b.ql), 'KHI_NEN_SAI');
+  err(b.call('saveLine', { ma: ch[0], khiNen: -3 }, b.ql), 'KHI_NEN_SAI');
+  assert.equal(ok(b.call('data', {}, b.kt)).chuyen.find((c) => c.ma === ch[0]).khiNen, 6, 'kỹ thuật cũng đọc được');
+
+  // Bốn chuyền chạy: 6 + 6 + 7 + 12 = 31 m³ → 31 / 27 = 1,15 → 2 máy
+  const r = ok(b.call('compRotate', { tuNgay: '2026-10-05', dsChuyen: ch.slice(0, 4), luu: false }, b.ql));
+  assert.equal(r.tinh.soChuyen, 4);
+  assert.equal(r.tinh.tongKhi, 31);
+  assert.equal(r.tinh.motMay, 27);
+  assert.equal(r.tinh.can, 2, 'cần hai máy');
+  assert.equal(r.tinh.tai, 57, 'tải 57 %');
+  assert.equal(r.goiY.length, 2, 'gợi ý đúng hai máy');
+  assert.equal(r.goiY.filter((id) => b.mn.find((m) => m.id === id).bienTan).length, 1, 'trong đó một máy biến tần');
+
+  // Một chuyền 5 m³ → một máy là đủ
+  const r1 = ok(b.call('compRotate', { tuNgay: '2026-10-05', dsChuyen: [ch[4]], luu: false }, b.ql));
+  assert.equal(r1.tinh.can, 1);
+  assert.equal(r1.goiY.length, 1);
+
+  // Chưa khai lượng khí thì giữ nếp cũ: 3 máy thường + 1 biến tần
+  const r0 = ok(b.call('compRotate', { tuNgay: '2026-10-05', dsChuyen: ['KHONG_CO'], luu: false }, b.ql));
+  assert.equal(r0.tinh.tongKhi, 0);
+  assert.equal(r0.goiY.length, 4);
+
+  // Chuyền chưa khai lượng khí thì báo ra để người xếp biết số còn thiếu
+  const rt = ok(b.call('compRotate', { tuNgay: '2026-10-05', dsChuyen: ch, luu: false }, b.ql));
+  assert.equal(rt.tinh.tongKhi, 36);
+  assert.equal(rt.tinh.can, 2);
+  assert.deepEqual(rt.tinh.thieu, [], 'năm chuyền này đều đã khai');
+
+  // Lưu lịch tuần thì nhớ luôn danh sách chuyền chạy và trả về phép tính
+  const w = ok(b.call('compWeek', { tuNgay: '2026-10-05', dsChay: [b.id(1), b.id(3)], dsChuyen: ch.slice(0, 4) }, b.ql));
+  assert.deepEqual(w.lichMNK[0].dsChuyen, ch.slice(0, 4));
+  assert.equal(w.tinh.can, 2);
+  assert.deepEqual(ok(b.call('data', {}, b.kt)).lichMNK.find((x) => x.tuNgay === '2026-10-05').dsChuyen, ch.slice(0, 4));
+
+  // Gợi ý lần sau không gửi danh sách chuyền thì lấy lại danh sách tuần trước
+  const r2 = ok(b.call('compRotate', { tuNgay: '2026-10-12', luu: false }, b.ql));
+  assert.equal(r2.tinh.can, 2, 'nhớ danh sách chuyền của tuần trước');
 });
