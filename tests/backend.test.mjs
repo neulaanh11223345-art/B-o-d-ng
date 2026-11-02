@@ -2093,3 +2093,47 @@ test('máy nén khí: tính số máy cần bật theo lượng khí nén của 
   const r2 = ok(b.call('compRotate', { tuNgay: '2026-10-12', luu: false }, b.ql));
   assert.equal(r2.tinh.can, 2, 'nhớ danh sách chuyền của tuần trước');
 });
+
+test('lịch trực: mỗi lượt một khung giờ riêng, Chủ nhật giờ khác ngày thường', () => {
+  const b = setup();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien;
+  const cd = ok(b.call('data', {}, b.ql)).caiDat;
+  assert.equal(cd.trucTu, '17:00');
+  assert.equal(cd.trucDen, '19:30');
+  assert.equal(cd.trucCnTu, '07:30');
+  assert.equal(cd.trucCnDen, '17:00');
+
+  // Hai người cùng một ngày, mỗi người một khung giờ
+  const r = ok(b.call('dutySet', { ngay: '2026-10-21', ds: [
+    { uid: nv[0].id, noiDung: 'Trực sửa chữa', tu: '17:00', den: '19:00' },
+    { uid: nv[1].id, noiDung: 'Vệ sinh tủ điện', tu: '17:30', den: '21:00' }
+  ] }, b.ql));
+  assert.deepEqual(r.dsLichTruc.map((x) => x.tu + '-' + x.den), ['17:00-19:00', '17:30-21:00']);
+
+  // Để trống là theo giờ mặc định, không ghi đè số nào vào sheet
+  const r2 = ok(b.call('dutySet', { ngay: '2026-10-22', ds: [{ uid: nv[0].id, noiDung: 'Trực' }] }, b.ql));
+  assert.equal(r2.dsLichTruc[0].tu, '');
+  assert.equal(r2.dsLichTruc[0].den, '');
+
+  // Giờ sai thì chặn
+  err(b.call('dutySet', { ngay: '2026-10-23', ds: [{ uid: nv[0].id, tu: '25:00', den: '19:00' }] }, b.ql), 'GIO_SAI');
+  err(b.call('dutySet', { ngay: '2026-10-23', ds: [{ uid: nv[0].id, tu: '17:00', den: 'tối' }] }, b.ql), 'GIO_SAI');
+  err(b.call('dutySet', { ngay: '2026-10-23', ds: [{ uid: nv[0].id, tu: '17:00', den: '17:00' }] }, b.ql), 'GIO_SAI');
+
+  // Sửa giờ trực mặc định; Chủ nhật 07:30–17:00 như nhà máy đang làm
+  err(b.call('dutyCfg', { tu: '17:00', den: '19:30' }, b.kt), 'KHONG_QUYEN');
+  err(b.call('dutyCfg', { tu: '99:99' }, b.ql), 'GIO_SAI');
+  err(b.call('dutyCfg', {}, b.ql), 'GIO_SAI');
+  const c2 = ok(b.call('dutyCfg', { tu: '17:30', den: '21:00', cnTu: '07:30', cnDen: '17:00' }, b.ql)).caiDat;
+  assert.equal(c2.trucTu, '17:30');
+  assert.equal(c2.trucDen, '21:00');
+  assert.equal(ok(b.call('data', {}, b.kt)).caiDat.trucCnDen, '17:00', 'kỹ thuật cũng đọc được giờ mặc định');
+
+  // Chép tuần mang theo giờ riêng của từng lượt
+  ok(b.call('dutySet', { ngay: '2026-10-19', ds: [{ uid: nv[0].id, noiDung: 'A', tu: '17:00', den: '19:00' }] }, b.ql));
+  ok(b.call('dutyCopy', { tuNgay: '2026-10-19', soTuan: 1 }, b.ql));
+  const sau = ok(b.call('data', {}, b.ql)).lichTruc.filter((x) => x.ngay === '2026-10-26');
+  assert.equal(sau.length, 1);
+  assert.equal(sau[0].tu, '17:00');
+  assert.equal(sau[0].den, '19:00');
+});

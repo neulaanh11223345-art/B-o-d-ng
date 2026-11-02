@@ -1414,7 +1414,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.33.0";
+const APP_VER = "2.34.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1813,7 +1813,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.33.0';
+var PHIEN_BAN = '2.34.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1875,9 +1875,11 @@ var BANG = {
   // ConTrenDrive = 0: lần quét gần nhất không còn thấy tệp · HienHanh = 1: bản đang dùng của máy đó, nhóm đó · LucQuet: lần quét gần nhất
   TaiLieu: ['ID', 'Ma', 'Ten', 'Nhom', 'Kieu', 'FileId', 'Mime', 'KichThuoc', 'Url', 'DaiDien', 'AnhNho', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat',
     'DuongDan', 'Nguon', 'ConTrenDrive', 'HienHanh', 'LucQuet'],
-  // Lịch trực tuần (17:00–19:30): mỗi ngày MỘT dòng. UID = người trong app; để trống là chưa xếp.
+  // Lịch trực tuần: mỗi NGƯỜI một dòng, một ngày xếp được nhiều người. UID = người trong app.
   // NoiDung / NoiDungDich: nội dung trực của riêng người đó ngày đó, Quản lý nhập, tự dịch Việt ↔ Trung (sửa tay được)
-  LichTruc: ['Ngay', 'UID', 'Ten', 'NoiDung', 'NoiDungDich', 'Nguoi', 'CapNhat'],
+  // Tu / Den: giờ trực của riêng lượt đó (HH:MM). Để trống là theo giờ mặc định trong Cài đặt
+  // (ngày thường một giờ, Chủ nhật một giờ), vì có người trực 17:00–19:00, có người 17:30–21:00.
+  LichTruc: ['Ngay', 'UID', 'Ten', 'NoiDung', 'NoiDungDich', 'Nguoi', 'CapNhat', 'Tu', 'Den'],
   // Người trực ca (bảng phân công ca trực) — danh sách riêng, không phải tài khoản dùng app
   // Nhom: SX (sản xuất) · KHO (kho ngũ kim) · ThuTu: thứ tự luân phiên · HoatDong = 0: đã nghỉ, không xếp nữa
   // Cap: số hiệu cặp trực (hai người cùng số là một cặp, trực chung 2 tuần rồi đổi ca cho nhau); 0 = chưa ghép cặp
@@ -1960,7 +1962,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'saveLine', 'saveRepair',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg', 'importMin',
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'importInspect', 'saveFault', 'deleteFault', 'saveAccept', 'deleteAccept',
-  'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy',
+  'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy', 'dutyCfg',
   'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay'];
 
 var CAI_DAT_MAC_DINH = {
@@ -1968,6 +1970,8 @@ var CAI_DAT_MAC_DINH = {
   wwBat: false, wwUrl: '', wwTen: '',               // robot nhóm WeChat Work · 企业微信群机器人
   mailBat: false, baoXong: false, linkApp: '',
   baoViec: true,                     // báo lên Telegram khi giao việc
+  trucTu: '17:00', trucDen: '19:30',       // giờ trực mặc định ngày thường
+  trucCnTu: '07:30', trucCnDen: '17:00',   // giờ trực mặc định Chủ nhật
   saoLuuTat: false,                  // true = tắt sao lưu tự động hằng đêm
   // Giá điện sản xuất EVN, cấp 22 kV – dưới 110 kV, chưa VAT (QĐ 1279/QĐ-BCT, từ 10/05/2025). Quản lý sửa trong app khi EVN đổi giá.
   giaDien: [{ tu: '2025-05-10', bt: 1833, cd: 3398, td: 1190 }],
@@ -2176,6 +2180,7 @@ function dieuHuong(a, p, req) {
     case 'shiftRotate': canQuyen(u, 'giaoviec'); return luanPhienTuan(u, p);
     case 'shiftPeople': canQuyen(u, 'giaoviec'); return luuNguoiTruc(u, p);
     case 'dutyCopy': canQuyen(u, 'giaoviec'); return chepLichTruc(u, p);
+    case 'dutyCfg': canQuyen(u, 'giaoviec'); return luuGioTruc(u, p);
     // Máy nén khí: danh sách do Quản lý sửa; giờ chạy và đổi máy trong tuần thì kỹ thuật cũng ghi được
     case 'compSave': canQuyen(u, 'may'); return luuMayNen(u, p);
     case 'compHour': canQuyen(u, 'xacnhan'); return ghiGioChay(u, p, s(req.opId));
@@ -2610,9 +2615,11 @@ function layDuLieu(u) {
     chiSo: docChiSo().filter(function (x) { return x.ky >= tu && x.trangThai !== 'HUY'; }).map(sachCS),
     caiDat: coQuyen(u, 'may')
       ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram }
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram,
+        trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN }
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
-        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram },
+        caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram,
+        trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN },
     taiLieu: tlChoNguoi(u),
     tlInfo: coQuyen(u, 'tailieu') ? tlThongTinNhe() : null,
     khoaKy: docKhoaKy(),
@@ -2641,13 +2648,15 @@ function layDuLieu(u) {
 
 // ===================== Lịch trực · 值班表 =====================
 // Hai phần tách riêng nhau:
-//  1. LỊCH TRỰC TUẦN (17:00–19:30): mỗi ngày một người có tài khoản trong app.
+//  1. LỊCH TRỰC TUẦN: mỗi ngày xếp được nhiều người có tài khoản trong app, mỗi người một giờ trực riêng.
 //     Nội dung trực do Quản lý nhập, mỗi người mỗi ngày một nội dung riêng, tự dịch Việt ↔ Trung (sửa tay được).
 //  2. PHÂN CÔNG CA TRỰC (值班排班表): ca ngày / ca đêm × SẢN XUẤT · KHO NGŨ KIM, đúng mẫu bảng giấy của nhà máy.
 //     Người trực ca là danh sách riêng (trang NguoiTruc), KHÔNG phải tài khoản dùng app và không dính tới công việc.
 //     Mỗi tuần xếp tay từng ô, hoặc bấm luân phiên: lấy người kế tiếp trong danh sách, tiếp nối tuần trước.
 // Cả hai phần: ai cũng xem được (để biết ai trực, gọi số nào); chỉ Quản lý, Quản trị (quyền giaoviec) mới xếp.
-var TRUC_TU = '17:00', TRUC_DEN = '19:30';   // giờ trực của lịch trực tuần
+// Giờ trực mặc định — sửa được trong app (Cài đặt), vì mỗi người một khung giờ khác nhau
+var TRUC_TU = '17:00', TRUC_DEN = '19:30';         // ngày thường
+var TRUC_CN_TU = '07:30', TRUC_CN_DEN = '17:00';   // Chủ nhật
 var PC_NHOM = ['SX', 'KHO'];
 var PC_CA = ['NGAY', 'DEM'];
 var NT_TOI_DA = 60;                          // số người tối đa trong danh sách trực ca
@@ -2672,14 +2681,33 @@ function laThuHai(d) { return hopLeNgay(d) && trucThuHai(d) === d; }
 // ----- Lịch trực tuần -----
 function ltTuDong(r, i) {
   return { ngay: ngayStr(r[0]), uid: s(r[1]), ten: s(r[2]), noiDung: s(r[3]), noiDungDich: s(r[4]),
-    nguoi: s(r[5]), capNhat: tgStr(r[6]), _r: i + 2 };
+    nguoi: s(r[5]), capNhat: tgStr(r[6]), tu: gioHM(r[7]), den: gioHM(r[8]), _r: i + 2 };
 }
 function ltThanhDong(x) {
-  return [x.ngay, x.uid, anToan(x.ten), anToan(x.noiDung), anToan(x.noiDungDich), anToan(x.nguoi), x.capNhat];
+  return [x.ngay, x.uid, anToan(x.ten), anToan(x.noiDung), anToan(x.noiDungDich), anToan(x.nguoi), x.capNhat,
+    x.tu || '', x.den || ''];
+}
+// Ô giờ trên Google Sheet có thể là chữ "17:00" hoặc là Date (sheet tự nhận là giờ)
+function gioHM(v) {
+  if (v instanceof Date) return isNaN(v.getTime()) ? '' : Utilities.formatDate(v, TZ, 'HH:mm');
+  var t = s(v);
+  if (!t) return '';
+  var k = /^(\d{1,2}):(\d{2})/.exec(t);
+  if (!k) return '';
+  if (Number(k[1]) > 23 || Number(k[2]) > 59) return '';
+  return ('0' + k[1]).slice(-2) + ':' + k[2];
 }
 function docLichTruc() { return docTho('LichTruc').map(ltTuDong).filter(function (x) { return x.ngay; }); }
 function sachLT(x) {
-  return { ngay: x.ngay, uid: x.uid, ten: x.ten, noiDung: x.noiDung, noiDungDich: x.noiDungDich, nguoi: x.nguoi, capNhat: x.capNhat };
+  return { ngay: x.ngay, uid: x.uid, ten: x.ten, noiDung: x.noiDung, noiDungDich: x.noiDungDich,
+    nguoi: x.nguoi, capNhat: x.capNhat, tu: x.tu || '', den: x.den || '' };
+}
+// Giờ trực mặc định của một ngày: Chủ nhật một giờ, ngày thường một giờ
+function trucGioMD(ngay, cd) {
+  var c = cd || docCaiDat();
+  var cn = new Date(ngay + 'T00:00:00Z').getUTCDay() === 0;
+  return cn ? { tu: c.trucCnTu || TRUC_CN_TU, den: c.trucCnDen || TRUC_CN_DEN }
+    : { tu: c.trucTu || TRUC_TU, den: c.trucDen || TRUC_DEN };
 }
 var TRUC_TOI_DA_NGAY = 6;        // số người trực tối đa trong một ngày
 
@@ -2698,20 +2726,22 @@ function luuLichTruc(u, p) {
   var gui;
   if (p.ds) {
     gui = (p.ds || []).slice(0, TRUC_TOI_DA_NGAY).map(function (o) {
-      return { uid: s(o.uid), noiDung: o.noiDung, noiDungDich: o.noiDungDich };
+      return { uid: s(o.uid), noiDung: o.noiDung, noiDungDich: o.noiDungDich, tu: o.tu, den: o.den };
     });
   } else {
     var dau = coNguoi[0] || null;
     if (p.uid === undefined) {
       // Chỉ sửa nội dung, giữ nguyên người đang xếp
-      gui = [{ uid: dau ? dau.uid : '', noiDung: p.noiDung, noiDungDich: p.noiDungDich }];
+      gui = [{ uid: dau ? dau.uid : '', noiDung: p.noiDung, noiDungDich: p.noiDungDich,
+        tu: p.tu !== undefined ? p.tu : (dau ? dau.tu : ''), den: p.den !== undefined ? p.den : (dau ? dau.den : '') }];
       if (dau && p.noiDung === undefined) gui[0].noiDung = dau.noiDung;
       gui = gui.concat(coNguoi.slice(1).map(function (r) {
-        return { uid: r.uid, noiDung: r.noiDung, noiDungDich: r.noiDungDich, _giu: r };
+        return { uid: r.uid, noiDung: r.noiDung, noiDungDich: r.noiDungDich, tu: r.tu, den: r.den, _giu: r };
       }));
     } else {
       gui = [{ uid: s(p.uid), noiDung: p.noiDung === undefined && dau ? dau.noiDung : p.noiDung,
-        noiDungDich: p.noiDung === undefined && dau ? dau.noiDungDich : p.noiDungDich }];
+        noiDungDich: p.noiDung === undefined && dau ? dau.noiDungDich : p.noiDungDich,
+        tu: p.tu !== undefined ? p.tu : (dau ? dau.tu : ''), den: p.den !== undefined ? p.den : (dau ? dau.den : '') }];
     }
   }
   // Bỏ trùng người, bỏ dòng rỗng hoàn toàn
@@ -2749,6 +2779,12 @@ function luuLichTruc(u, p) {
     else x._dung = 1;
     var ndCu = x.noiDung, ndzCu = x.noiDungDich;
     x.uid = o.uid; x.ten = o.uid ? tenCua[o.uid] : '';
+    // Giờ trực của riêng lượt này; để trống là theo giờ mặc định của ngày đó
+    var gtu = gioHM(o.tu), gden = gioHM(o.den);
+    if (s(o.tu) && !gtu) throw loi('GIO_SAI', 'Giờ trực không hợp lệ · 值班时间无效');
+    if (s(o.den) && !gden) throw loi('GIO_SAI', 'Giờ trực không hợp lệ · 值班时间无效');
+    if (gtu && gden && gtu === gden) throw loi('GIO_SAI', 'Giờ trực không hợp lệ · 值班时间无效');
+    x.tu = gtu; x.den = gden;
     if (o.noiDung !== undefined) {
       var nd = catNhieuDong(o.noiDung, 500).trim();
       var h = them ? songNgu(nd, o.noiDungDich) : dichKhiSua(nd, ndCu, ndzCu, o.noiDungDich);
@@ -2764,13 +2800,31 @@ function luuLichTruc(u, p) {
   con.forEach(function (r) {
     if (r._dung || ra.indexOf(r) >= 0) return;
     if (!r.uid && !r.noiDung && !r.noiDungDich) return;
-    r.uid = ''; r.ten = ''; r.noiDung = ''; r.noiDungDich = ''; r.nguoi = u.ten; r.capNhat = bay;
+    r.uid = ''; r.ten = ''; r.noiDung = ''; r.noiDungDich = ''; r.tu = ''; r.den = ''; r.nguoi = u.ten; r.capNhat = bay;
     suaDong('LichTruc', r._r, ltThanhDong(r));
   });
   if (moi.length) themNhieu('LichTruc', moi.map(ltThanhDong));
   ghiNhatKy(u, 'XEP_LICH_TRUC', 'LichTruc', ngay, cuTxt,
     ra.map(function (x) { return x.ten || '—'; }).join(', '), '');
   return { trucNgays: [ngay], dsLichTruc: ra.map(sachLT) };
+}
+
+// Giờ trực mặc định: ngày thường và Chủ nhật. Lượt nào đã ghi giờ riêng thì không đụng tới.
+function luuGioTruc(u, p) {
+  var c = docCaiDat(), truoc = { trucTu: c.trucTu, trucDen: c.trucDen, trucCnTu: c.trucCnTu, trucCnDen: c.trucCnDen };
+  var doi = false;
+  [['tu', 'trucTu'], ['den', 'trucDen'], ['cnTu', 'trucCnTu'], ['cnDen', 'trucCnDen']].forEach(function (k) {
+    if (p[k[0]] === undefined) return;
+    var g = gioHM(p[k[0]]);
+    if (!g) throw loi('GIO_SAI', 'Giờ trực không hợp lệ · 值班时间无效');
+    c[k[1]] = g; doi = true;
+  });
+  if (!doi) throw loi('GIO_SAI', 'Không có gì để lưu · 没有要保存的内容');
+  if (c.trucTu === c.trucDen || c.trucCnTu === c.trucCnDen) throw loi('GIO_SAI', 'Giờ trực không hợp lệ · 值班时间无效');
+  ghiCaiDat(c);
+  ghiNhatKy(u, 'SUA_GIO_TRUC', 'CaiDat', 'truc', truoc,
+    { trucTu: c.trucTu, trucDen: c.trucDen, trucCnTu: c.trucCnTu, trucCnDen: c.trucCnDen }, '');
+  return { caiDat: { trucTu: c.trucTu, trucDen: c.trucDen, trucCnTu: c.trucCnTu, trucCnDen: c.trucCnDen } };
 }
 
 // Chép cả tuần lịch trực (người trực + nội dung trực) sang mấy tuần kế tiếp.
@@ -2789,7 +2843,7 @@ function chepLichTruc(u, p) {
     var a0 = coNguoi(theoNgay[congNgay(tu, i)]);
     if (a0.length) {
       nguon.push({ i: i, ds: a0.map(function (r) {
-        return { uid: r.uid, ten: r.ten, noiDung: r.noiDung, noiDungDich: r.noiDungDich };
+        return { uid: r.uid, ten: r.ten, noiDung: r.noiDung, noiDungDich: r.noiDungDich, tu: r.tu, den: r.den };
       }) });
     }
   }
@@ -2808,6 +2862,7 @@ function chepLichTruc(u, p) {
         var them = !x;
         if (them) { x = { ngay: ngay }; cu.push(x); }
         x.uid = g.uid; x.ten = g.ten; x.noiDung = g.noiDung; x.noiDungDich = g.noiDungDich;
+        x.tu = g.tu || ''; x.den = g.den || '';
         x.nguoi = u.ten; x.capNhat = bay;
         if (them) moi.push(x); else suaDong('LichTruc', x._r, ltThanhDong(x));
         out.push(x); n++;
@@ -2815,7 +2870,7 @@ function chepLichTruc(u, p) {
       for (var k2 = o.ds.length; k2 < cu.length; k2++) {
         var r2 = cu[k2];
         if (!r2._r || (!r2.uid && !r2.noiDung && !r2.noiDungDich)) continue;
-        r2.uid = ''; r2.ten = ''; r2.noiDung = ''; r2.noiDungDich = ''; r2.nguoi = u.ten; r2.capNhat = bay;
+        r2.uid = ''; r2.ten = ''; r2.noiDung = ''; r2.noiDungDich = ''; r2.tu = ''; r2.den = ''; r2.nguoi = u.ten; r2.capNhat = bay;
         suaDong('LichTruc', r2._r, ltThanhDong(r2));
       }
       theoNgay[ngay] = cu;
@@ -7222,6 +7277,9 @@ function mauTangCa() {
   tc('NV005', congNgay(t2, 1), 'HC', '17:30', '19:30', 'Kiểm tra tủ điện xưởng 1', '检查一车间电柜');
   tc('NV005', congNgay(t2, -1), 'CN', '08:00', '12:00', 'Vệ sinh máy nén khí', '清洁空压机');
   tc('NV006', congNgay(t2, 3), 'HC', '17:30', '21:00', 'Sửa băng tải chuyền VKY02', '维修产线VKY02输送带');
+  // Hai ngày trực đã đăng ký tăng ca đúng khung giờ trực, để bảng đối chiếu có cả dòng "Khớp"
+  tc('NV004', congNgay(t2, 0), 'HC', '17:00', '19:30', 'Trực ca xưởng 1', '一车间值班');
+  tc('NV005', congNgay(t2, 0), 'HC', '17:30', '21:00', 'Trực ca xưởng 2', '二车间值班');
 }
 // Lịch trực tuần mẫu: tuần này mỗi ngày một người, có nội dung trực riêng; một ngày để trống cho thấy cảnh báo
 function mauLichTruc() {
@@ -7230,14 +7288,14 @@ function mauLichTruc() {
   var hn = homNayStr(), bay = thoiGianStr(), nv = {};
   dsNguoiDung().forEach(function (n) { nv[n.maNV] = n; });
   var w = new Date(hn + 'T00:00:00Z').getUTCDay(), t2 = congNgay(hn, -((w + 6) % 7));
-  function lt(i, ma, nd, ndZh) {
+  function lt(i, ma, nd, ndZh, tu, den) {
     var n = nv[ma]; if (!n) return;
-    themDong('LichTruc', [congNgay(t2, i), n.id, n.ten, nd, ndZh, 'Quản lý', bay]);
+    themDong('LichTruc', [congNgay(t2, i), n.id, n.ten, nd, ndZh, 'Quản lý', bay, tu || '', den || '']);
   }
   lt(0, 'NV004', 'Trực điện xưởng 1, theo dõi máy nén khí', '1号车间电工值班，跟踪空压机');
   // Ngày cao điểm xếp hai người, mỗi người một nội dung riêng
-  lt(0, 'NV005', 'Trực cơ khí xưởng 2, hỗ trợ đổi mã chuyền 5', '2号车间机修值班，协助5线换款');
-  lt(1, 'NV003', 'Ghi số điện kỳ 20, trực xưởng 2', '抄录20日电表，2号车间值班');
+  lt(0, 'NV005', 'Trực cơ khí xưởng 2, hỗ trợ đổi mã chuyền 5', '2号车间机修值班，协助5线换款', '17:30', '21:00');
+  lt(1, 'NV003', 'Ghi số điện kỳ 20, trực xưởng 2', '抄录20日电表，2号车间值班', '17:00', '19:00');
   lt(2, 'NV006', 'Hỗ trợ chuyền VKY17 đổi mã, chờ máy in phun chạy xong', '协助VKY17线换款，等喷码机跑完');
   lt(4, 'NV005', 'Tra dầu máy cắt xưởng 1, kiểm tủ điện chuyền 3', '1号车间裁断机加油，检查3线电箱');
   lt(5, 'NV004', 'Trực chung cả xưởng, tăng ca chuyền 5 đến 19:30', '全厂值班，5线加班至19:30');
@@ -11029,7 +11087,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK'], ['mnkma', '2.32.1', 'srvMissMNK'], ['trucnhieu', '2.33.0', 'srvMissTrucNhieu'], ['khinen', '2.33.0', 'srvMissKhiNen']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK'], ['mnkma', '2.32.1', 'srvMissMNK'], ['trucnhieu', '2.33.0', 'srvMissTrucNhieu'], ['khinen', '2.33.0', 'srvMissKhiNen'], ['trucgio', '2.34.0', 'srvMissTrucGio']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -15468,9 +15526,12 @@ VIEWS.tcGhi = {
       const tu = tcTuanHT(), ht = TODAY();
       let ngay = cu ? cu.ngay : (ht >= tu && ht <= addD(tu, 6) ? ht : tu);
       if (!cu && !tcNgayOk(ngay)) ngay = ngay > ht ? ht : tcMoTu();
+      // Mở từ bảng đối chiếu trực · tăng ca: điền sẵn người, ngày và khung giờ của ca trực đó
+      if (!cu && p.ngay && tcNgayOk(p.ngay)) ngay = p.ngay;
       const ca = cu ? cu.ca : (wday(ngay) === 0 ? 'CN' : tcCaDS()[0].k), c = tcCaOf(ca);
-      Object.assign(p, { init: 1, uid: (cu && cu.uid) || tcUid(), ngay, ca,
-        tu: cu ? cu.tu : c.tu, den: cu ? cu.den : c.den, gio: cu ? tcSo(cu.soGio) : tcSo(tcGio(c.tu, c.den)), ly: cu ? cu.lyDo : '' });
+      const tu0 = cu ? cu.tu : (p.tu || c.tu), den0 = cu ? cu.den : (p.den || c.den);
+      Object.assign(p, { init: 1, uid: (cu && cu.uid) || p.uid || tcUid(), ngay, ca,
+        tu: tu0, den: den0, gio: cu ? tcSo(cu.soGio) : tcSo(tcGio(tu0, den0)), ly: cu ? cu.lyDo : (p.ly || '') });
     }
     const n = tcNguoi(p.uid);
     return `<form id="tcF" class="card pad" autocomplete="off">
@@ -17947,7 +18008,7 @@ VIEWS.ttLoiEdit = {
 Object.assign(ACT, { mlSet: (el) => { topV().p[el.dataset.k] = el.dataset.v; render(); } });
 
 // ===================== Lịch trực · 值班表 =====================
-// Hai phần tách riêng: LỊCH TRỰC TUẦN (17:00–19:30, người trong app, mỗi người một nội dung trực riêng)
+// Hai phần tách riêng: LỊCH TRỰC TUẦN (người trong app; mỗi lượt một giờ trực và một nội dung riêng)
 // và PHÂN CÔNG CA TRỰC (值班排班表 — ca ngày / ca đêm × SẢN XUẤT · KHO NGŨ KIM, danh sách người riêng).
 // Ai cũng xem được; chỉ Quản lý, Quản trị mới xếp lịch, nhập nội dung và sửa danh sách.
 Object.assign(TX, {
@@ -17955,6 +18016,28 @@ Object.assign(TX, {
   mTruc: ['Lịch trực', '值班表'], mTrucNay: ['Hôm nay', '今天'], mTrucChua: ['Hôm nay chưa xếp ai trực', '今天未安排值班'],
   t_trucTong: ['Tổng số ca', '班次合计'], t_phanCa: ['Phân công ca trực', '值班排班表'], t_trucNguoi: ['Danh sách người trực ca', '值班人名单'],
   trucGio: ['Giờ trực', '值班时间'], trucTuanN: ['Tuần {a} – {b}', '{a} – {b} 周'],
+  trucTu: ['Từ', '从'], trucDen: ['Đến', '到'],
+  trucGioMD: ['Giờ mặc định', '默认时间'], trucGioThuong: ['Ngày thường', '平日'], trucGioCN: ['Chủ nhật', '周日'],
+  trucGioSua: ['Sửa giờ mặc định', '修改默认时间'],
+  trucGioHelp: ['Mỗi lượt trực có giờ riêng. Để trống là lấy theo giờ mặc định của ngày đó — ngày thường một khung, Chủ nhật một khung.',
+    '每个值班可单独设置时间。留空则按该日默认时间 — 平日一个时段，周日一个时段。'],
+  trucGioCfgHelp: ['Giờ mặc định áp dụng cho lượt trực chưa ghi giờ riêng. Lượt đã ghi giờ riêng giữ nguyên.',
+    '默认时间适用于未单独填写时间的值班。已填写的保持不变。'],
+  trucSoGio: ['Số giờ trực', '值班小时'], trucGioN: ['{n} giờ', '{n}小时'],
+  trucDC: ['Đối chiếu với tăng ca', '与加班核对'],
+  trucDCHelp: ['Trực ca gần như toàn bộ là giờ tăng ca, nên bảng này so giờ trực với giờ tăng ca ĐÃ ĐĂNG KÝ của đúng những ngày có trực. Tăng ca của ngày không trực không tính vào cột này.',
+    '值班基本都算加班，本表将值班小时与值班当天已登记的加班小时对比。非值班日的加班不计入此列。'],
+  trucDCGioTC: ['Tăng ca ngày trực', '值班日加班'], trucDCLech: ['Lệch', '差额'],
+  trucDCThangTC: ['Tổng tăng ca tháng', '当月加班合计'],
+  trucDCKhop: ['Khớp', '一致'], trucDCThieu: ['Thiếu {n} h', '少 {n} 小时'], trucDCThua: ['Thừa {n} h', '多 {n} 小时'],
+  trucDCNgayThieu: ['Ngày trực chưa đăng ký đủ tăng ca', '值班日加班登记不足'],
+  trucDCDuNgay: ['Ngày trực nào cũng đã đăng ký đủ tăng ca', '每个值班日的加班均已登记齐全'],
+  trucDCGhiTC: ['Ghi tăng ca', '登记加班'], trucDCChuaCo: ['chưa đăng ký', '未登记'],
+  trucDCMo: ['Đối chiếu trực · tăng ca', '值班与加班核对'],
+  xlTrDCTruc: ['Giờ trực', '值班小时'], xlTrDCTC: ['Tăng ca ngày trực', '值班日加班'],
+  xlTrDCLech: ['Lệch', '差额'], xlTrDCThangTC: ['Tổng tăng ca tháng', '当月加班合计'],
+  xlTrDCNgay: ['Ngày', '日期'], xlTrDC: ['Đối chiếu trực · tăng ca', '值班与加班核对'],
+  trucGioRieng: ['giờ riêng', '单独时间'],
   trucChuaXep: ['Chưa xếp', '未安排'], trucChuaND: ['Chưa có nội dung trực', '暂无值班内容'],
   trucNoiDung: ['Nội dung trực', '值班内容'],
   trucNDHelp: ['Nội dung do Quản lý nhập, mỗi người mỗi ngày một nội dung riêng. Gõ tiếng Việt, app tự dịch sang tiếng Trung.',
@@ -18035,6 +18118,26 @@ const TRUC_TOI_DA_NGAY = 6;
 const trucNgayDS = (d) => trucDS().filter((x) => x.ngay === d && (x.uid || x.noiDung));
 const trucTuanDS = (tu) => [0, 1, 2, 3, 4, 5, 6].map((i) => { const d = addD(tu, i); return { ngay: d, ds: trucNgayDS(d) }; });
 const trucCoNguoi = (o) => (o.ds || []).some((x) => x.uid);
+// Giờ trực mặc định của một ngày: Chủ nhật một khung, ngày thường một khung
+function trucGioMacDinh(ngay) {
+  const c = (S.base && S.base.caiDat) || {};
+  return wday(ngay) === 0
+    ? { tu: c.trucCnTu || '07:30', den: c.trucCnDen || '17:00' }
+    : { tu: c.trucTu || '17:00', den: c.trucDen || '19:30' };
+}
+// Giờ thật của một lượt trực: giờ riêng nếu có, không thì giờ mặc định của ngày
+function trucGioCua(x, ngay) {
+  const md = trucGioMacDinh(ngay || x.ngay);
+  return { tu: x.tu || md.tu, den: x.den || md.den, rieng: !!(x.tu || x.den) };
+}
+const trucGioTxt = (x, ngay) => { const g = trucGioCua(x, ngay); return g.tu + ' – ' + g.den; };
+// Số giờ của một lượt trực, qua 0 giờ vẫn đúng
+function trucSoGio(x, ngay) {
+  const g = trucGioCua(x, ngay);
+  const a = +g.tu.slice(0, 2) * 60 + +g.tu.slice(3, 5), b = +g.den.slice(0, 2) * 60 + +g.den.slice(3, 5);
+  let m = b - a; if (m <= 0) m += 24 * 60;
+  return Math.round((m / 60) * 100) / 100;
+}
 const trucUids = (o) => (o.ds || []).filter((x) => x.uid).map((x) => x.uid);
 // Các tuần (thứ Hai) có ngày rơi vào tháng đó
 function trucTuanTrongThang(ym) {
@@ -18167,11 +18270,41 @@ function trucTongDS(ym) {
   const by = {};
   trucDS().forEach((x) => {
     if (!x.uid || x.ngay.slice(0, 7) !== ym) return;
-    const o = by[x.uid] = by[x.uid] || { uid: x.uid, ten: x.ten, n: 0, cn: 0 };
-    o.n++; if (wday(x.ngay) === 0) o.cn++;
+    const o = by[x.uid] = by[x.uid] || { uid: x.uid, ten: x.ten, n: 0, cn: 0, gio: 0 };
+    o.n++; o.gio = Math.round((o.gio + trucSoGio(x, x.ngay)) * 100) / 100;
+    if (wday(x.ngay) === 0) o.cn++;
   });
   return Object.values(by).sort((a, b) => b.n - a.n || a.ten.localeCompare(b.ten));
 }
+// Đối chiếu giờ trực với giờ tăng ca đã đăng ký, theo từng ngày có trực.
+// Trực ca gần như toàn bộ là giờ tăng ca nên hai con số này phải khớp nhau.
+function trucDoiChieu(ym) {
+  const tcAll = (S.V && S.V.tc) || [], by = {};
+  trucDS().forEach((x) => {
+    if (!x.uid || x.ngay.slice(0, 7) !== ym) return;
+    const o = by[x.uid] = by[x.uid] || { uid: x.uid, ten: x.ten, truc: 0, tc: 0, ngay: [], thieu: [] };
+    const g = trucSoGio(x, x.ngay);
+    o.truc = Math.round((o.truc + g) * 100) / 100;
+    const cu = o.ngay.filter((d) => d.ngay === x.ngay)[0];
+    if (cu) cu.truc = Math.round((cu.truc + g) * 100) / 100;
+    else o.ngay.push({ ngay: x.ngay, truc: g, tc: 0, tu: trucGioCua(x, x.ngay).tu, den: trucGioCua(x, x.ngay).den });
+  });
+  Object.values(by).forEach((o) => {
+    o.ngay.forEach((d) => {
+      d.tc = Math.round(tcAll.filter((v) => v.uid === o.uid && v.ngay === d.ngay)
+        .reduce((a, v) => a + (+v.soGio || 0), 0) * 100) / 100;
+      o.tc = Math.round((o.tc + d.tc) * 100) / 100;
+      if (d.tc + 0.01 < d.truc) o.thieu.push(d);
+    });
+    o.ngay.sort((a, b) => (a.ngay < b.ngay ? -1 : 1));
+    o.thieu.sort((a, b) => (a.ngay < b.ngay ? -1 : 1));
+    o.lech = Math.round((o.truc - o.tc) * 100) / 100;
+    o.thangTC = Math.round(tcAll.filter((v) => v.uid === o.uid && v.ngay.slice(0, 7) === ym)
+      .reduce((a, v) => a + (+v.soGio || 0), 0) * 100) / 100;
+  });
+  return Object.values(by).sort((a, b) => b.lech - a.lech || b.truc - a.truc || a.ten.localeCompare(b.ten));
+}
+
 // Dữ liệu hiển thị = máy chủ + việc đang chờ gửi
 function rebuildTruc() {
   const b = S.base;
@@ -18194,7 +18327,8 @@ function rebuildTruc() {
       if (q.p.ds) {
         moi = q.p.ds.map((g) => Object.assign({}, giu(g.uid), { ngay: q.p.ngay, uid: g.uid || '',
           ten: g.uid ? nvTen(g.uid) : '', noiDung: g.noiDung || '',
-          noiDungDich: g.noiDungDich !== undefined ? g.noiDungDich : (giu(g.uid).noiDungDich || ''), cho: true }));
+          noiDungDich: g.noiDungDich !== undefined ? g.noiDungDich : (giu(g.uid).noiDungDich || ''),
+          tu: g.tu || '', den: g.den || '', cho: true }));
       } else {
         const o = Object.assign({ ngay: q.p.ngay, uid: '', ten: '', noiDung: '', noiDungDich: '' }, cu[0] || {}, { cho: true });
         if (q.p.uid !== undefined) { o.uid = q.p.uid; o.ten = q.p.uid ? nvTen(q.p.uid) : ''; }
@@ -18238,6 +18372,13 @@ function rebuildTruc() {
   S.V.truc = lt; S.V.pc = pc; S.V.nt = nt;
 }
 
+// Dòng giờ mặc định ở đầu màn: ngày thường và Chủ nhật, Quản lý bấm sửa được
+function trucGioDongHtml() {
+  const t0 = trucGioMacDinh('2026-01-05'), cn = trucGioMacDinh('2026-01-04');
+  return `<div class="help" style="margin:0 0 10px"><b>${esc(tv('trucGioMD'))}<span class="zi" lang="zh-CN">${esc(tz('trucGioMD'))}</span></b>
+    — ${esc(tp('trucGioThuong'))}: <b class="mono">${t0.tu} – ${t0.den}</b> · ${esc(tp('trucGioCN'))}: <b class="mono">${cn.tu} – ${cn.den}</b>
+    ${trucSua() && !srvOld('trucgio') ? ` <button type="button" class="lnkbtn" data-act="trucGioCfg">${esc(tp('trucGioSua'))}</button>` : ''}</div>`;
+}
 const trucSegHtml = (che) => `<div class="seg" style="margin-bottom:12px">${[['thang', 'trucCheThang'], ['tuan', 'trucCheTuan']].map(([k, lb]) =>
   `<button class="${che === k ? 'on' : ''}" data-act="trucChe" data-m="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div>`;
 // Bảng chi tiết một tuần: mỗi ngày một dòng, kèm nội dung trực song ngữ
@@ -18250,8 +18391,7 @@ function trucTuanHtml() {
     <b>${tv('trucTuanN', { a: fmtDM(tu), b: fmtDM(den) })}</b>
     <button data-act="trucTuan" data-d="1" aria-label="+">${IC.right}</button></div>
     <span class="pill ${thieu ? 'p-qua' : 'p-ok'}">${thieu ? t('trucThieuN', { n: thieu }) : t('trucDuNgay')}</span></div>`;
-  o += `<div class="help" style="margin:0 0 10px">${esc(tv('trucGio'))}: <b class="mono">17:00 – 19:30</b>
-    <span class="zi" lang="zh-CN">${esc(tz('trucGio'))}: 17:00 – 19:30</span></div>`;
+  o += trucGioDongHtml();
   o += sec('trucBang') + `<div class="list">${ds.map((d) => {
     const a = d.ds || [], w = wday(d.ngay), nay = d.ngay === today, co = trucCoNguoi(d);
     const cho = a.some((x) => x.cho);
@@ -18259,8 +18399,10 @@ function trucTuanHtml() {
     const than = co ? a.filter((x) => x.uid || x.noiDung).map((x, i) => {
       const m = x.uid ? mau[x.uid] : null;
       const nd = x.noiDung ? svH(x.noiDung, x.noiDungDich) : `<span style="color:var(--ink3)">${t('trucChuaND')}</span>`;
+      const g = trucGioCua(x, d.ngay);
       return `<div${i ? ' style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)"' : ''}>
         <div class="h" style="margin:0">${m ? `<i style="width:12px;height:12px;border-radius:4px;flex:none;background:${m[0]}"></i>` : ''}
+          <span class="mono" style="color:var(--ink2);font-size:12.5px">${g.tu} – ${g.den}</span>
           <span style="margin-left:auto;text-align:right">${x.uid ? trucTen(x) : `<span style="color:var(--ink3)">${t('trucChuaXep')}</span>`}${x.uid === me ? ` <span class="pill p-ok">${t('trucBanTruc')}</span>` : ''}</span></div>
         <div class="sub">${nd}</div></div>`;
     }).join('') : '';
@@ -18300,8 +18442,7 @@ VIEWS.truc = {
       <b>${tv('trucThangN', { m: mo, y })}</b>
       <button data-act="trucThang" data-d="1" aria-label="+">${IC.right}</button></div>
       <span class="pill ${thieu ? 'p-qua' : 'p-ok'}">${thieu ? t(moc ? 'trucConThieuN' : 'trucThieuN', { n: thieu }) : t('trucDuNgay')}</span></div>`;
-    o += `<div class="help" style="margin:0 0 10px">${esc(tv('trucGio'))}: <b class="mono">17:00 – 19:30</b>
-      <span class="zi" lang="zh-CN">${esc(tz('trucGio'))}: 17:00 – 19:30</span></div>`;
+    o += trucGioDongHtml();
     o += '<div class="trcal">';
     for (let i = 0; i < 7; i++) o += `<div class="wd${i === 6 ? ' cn' : ''}">${WD_VI[(i + 1) % 7]}<small>${WD_ZH[(i + 1) % 7]}</small></div>`;
     for (let i = 0; i < truoc; i++) o += '<div class="d out"></div>';
@@ -18314,7 +18455,7 @@ VIEWS.truc = {
       const st = ms.length === 1 ? ` style="background:${ms[0][0]};color:${ms[0][1]};border-color:${ms[0][0]}"`
         : ms.length > 1 ? ` style="background:linear-gradient(${ms.map((m, i) => `${m[0]} ${Math.round((i * 100) / ms.length)}%, ${m[0]} ${Math.round(((i + 1) * 100) / ms.length)}%`).join(', ')});color:${ms[0][1]};border-color:${ms[0][0]}"` : '';
       const nd = a.map((x) => `<span class="nm">${esc(ngan[x.ten] || x.ten)}</span>`).join('');
-      const ttl = co ? ` title="${esc(fmtD(d.ngay) + ' · ' + a.map((x) => x.ten).join(', '))}"` : '';
+      const ttl = co ? ` title="${esc(fmtD(d.ngay) + ' · ' + a.map((x) => x.ten + ' ' + trucGioTxt(x, d.ngay)).join(' · '))}"` : '';
       const cho = (d.ds || []).some((x) => x.cho) ? '<span class="nm">•</span>' : '';
       o += sua
         ? `<button class="${cls}"${st}${ttl} data-act="trucXep" data-d="${esc(d.ngay)}"><span class="n">${+d.ngay.slice(8, 10)}</span>${nd}${cho}</button>`
@@ -18347,8 +18488,10 @@ VIEWS.trucGhi = {
   html(p) {
     if (!p.init) {
       const a0 = trucNgayDS(p.d).filter((x) => x.uid || x.noiDung);
-      Object.assign(p, { init: 1, ds: (a0.length ? a0 : [{ uid: '', noiDung: '', noiDungDich: '' }])
-        .map((x) => ({ uid: x.uid || '', nd: x.noiDung || '', ndz: x.noiDungDich || '', zSua: 0 })) });
+      const md = trucGioMacDinh(p.d);
+      Object.assign(p, { init: 1, md, ds: (a0.length ? a0 : [{ uid: '', noiDung: '', noiDungDich: '' }])
+        .map((x) => ({ uid: x.uid || '', nd: x.noiDung || '', ndz: x.noiDungDich || '', zSua: 0,
+          tu: x.tu || md.tu, den: x.den || md.den })) });
     }
     const w = wday(p.d), dsNV = nvDS();
     const khoi = (o, i) => {
@@ -18364,6 +18507,10 @@ VIEWS.trucGhi = {
           <select class="inp trNg" data-i="${i}"><option value=""${!o.uid ? ' selected' : ''}>— ${esc(tp('trucChuaXep'))} —</option>
             ${dsNV.filter((n) => !daCo[n.id]).map((n) => `<option value="${esc(n.id)}"${n.id === o.uid ? ' selected' : ''}>${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ' ' + esc(n.tenZh) : ''}${n.maNV ? ' · ' + esc(n.maNV) : ''}</option>`).join('')}</select></div>
         <div class="trleg" style="margin:10px 0 0"${m ? '' : ' hidden'}><span><i style="background:${m ? m[0] : 'transparent'}"></i><em>${esc(tp('trucChuThich'))}</em></span></div>
+        ${srvOld('trucgio') ? '' : `<div class="rdgrid" style="margin-top:10px">
+          <label class="fld"><span>${t('trucTu')}</span><input class="inp mono trTu" data-i="${i}" type="time" value="${esc(o.tu)}"></label>
+          <label class="fld"><span>${t('trucDen')}</span><input class="inp mono trDen" data-i="${i}" type="time" value="${esc(o.den)}"></label></div>
+        <div class="help" style="margin-top:4px">${esc(tv('trucGioN', { n: fmtNum(trucSoGio({ tu: o.tu, den: o.den }, p.d), 1) }))}</div>`}
         <label class="fld" style="margin-top:12px"><span>${t('trucNoiDung')}</span>
           <textarea class="inp trND" data-i="${i}" rows="3" maxlength="500">${esc(o.nd)}</textarea></label>
         ${i > 0 ? `<div class="btns" style="margin-top:8px"><button type="button" class="btn ghost sm" data-act="trChepND" data-i="${i}">${t('trucChepND')}</button></div>` : ''}
@@ -18372,7 +18519,9 @@ VIEWS.trucGhi = {
       </div>`;
     };
     return `<form id="trF" autocomplete="off">
-      <div class="help" style="margin-bottom:12px"><b>${WD_VI_F[w]}, ${fmtD(p.d)}</b> <span class="zi" lang="zh-CN">${WD_ZH_F[w]}</span> · 17:00 – 19:30</div>
+      <div class="help" style="margin-bottom:12px"><b>${WD_VI_F[w]}, ${fmtD(p.d)}</b> <span class="zi" lang="zh-CN">${WD_ZH_F[w]}</span>
+        · ${esc(tv('trucGioMD'))} <b class="mono">${p.md.tu} – ${p.md.den}</b></div>
+      <div class="help" style="margin-bottom:12px">${t('trucGioHelp')}</div>
       ${p.ds.map(khoi).join('')}
       ${p.ds.length < TRUC_TOI_DA_NGAY && !srvOld('trucnhieu') ? `<div class="btns"><button type="button" class="btn ghost" data-act="trThemNguoi">${IC.plus} ${t('trucThemNguoi')}</button></div>` : ''}
       ${srvOld('trucnhieu') ? srvWarn('trucnhieu') : ''}
@@ -18386,6 +18535,8 @@ VIEWS.trucGhi = {
   after(p) {
     $$('.trNg').forEach((el) => el.addEventListener('change', () => { p.ds[+el.dataset.i].uid = el.value; render(); }));
     $$('.trND').forEach((el) => el.addEventListener('input', () => { p.ds[+el.dataset.i].nd = el.value; }));
+    $$('.trTu').forEach((el) => el.addEventListener('change', () => { p.ds[+el.dataset.i].tu = el.value; render(); }));
+    $$('.trDen').forEach((el) => el.addEventListener('change', () => { p.ds[+el.dataset.i].den = el.value; render(); }));
     $$('.trNDZ').forEach((el) => el.addEventListener('input', () => {
       const o = p.ds[+el.dataset.i]; o.ndz = el.value; o.zSua = 1;
     }));
@@ -18400,6 +18551,12 @@ VIEWS.trucGhi = {
         : { ngay: p.d, ds: loc.map((o) => {
           const g = { uid: o.uid, noiDung: o.nd };
           if (o.zSua) g.noiDungDich = o.ndz;
+          // Trùng giờ mặc định thì không ghi vào ô giờ riêng, để đổi giờ mặc định là đổi theo
+          if (!srvOld('trucgio')) {
+            g.tu = o.tu && o.tu !== p.md.tu ? o.tu : '';
+            g.den = o.den && o.den !== p.md.den ? o.den : '';
+            if (g.tu || g.den) { g.tu = o.tu || p.md.tu; g.den = o.den || p.md.den; }
+          }
           return g;
         }) };
       const r = await send('dutySet', pl);
@@ -18411,13 +18568,40 @@ VIEWS.trucGhi = {
   }
 };
 Object.assign(ACT, {
+  trucDCGhi: (el) => {
+    const d = el.dataset;
+    go('tcGhi', { uid: d.uid, ngay: d.d, tu: d.tu, den: d.den, ly: tv('trucDCMo') });
+  },
+  trucGioCfg: () => {
+    const t0 = trucGioMacDinh('2026-01-05'), cn = trucGioMacDinh('2026-01-04');
+    openSheet(`<div class="grab"></div><h3>${tv('trucGioSua')}<span class="zi">${tz('trucGioSua')}</span></h3>
+      <p class="help">${t('trucGioCfgHelp')}</p>
+      <div class="help" style="margin-top:10px"><b>${t('trucGioThuong')}</b></div>
+      <div class="rdgrid"><label class="fld"><span>${t('trucTu')}</span><input class="inp mono" id="gcTu" type="time" value="${esc(t0.tu)}"></label>
+        <label class="fld"><span>${t('trucDen')}</span><input class="inp mono" id="gcDen" type="time" value="${esc(t0.den)}"></label></div>
+      <div class="help" style="margin-top:10px"><b>${t('trucGioCN')}</b></div>
+      <div class="rdgrid"><label class="fld"><span>${t('trucTu')}</span><input class="inp mono" id="gcCnTu" type="time" value="${esc(cn.tu)}"></label>
+        <label class="fld"><span>${t('trucDen')}</span><input class="inp mono" id="gcCnDen" type="time" value="${esc(cn.den)}"></label></div>
+      <div id="gcErr" class="err" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn pri" id="gcOk">${IC.check} ${t('save')}</button>
+        <button class="btn ghost" data-act="closeSheet">${t('close')}</button></div>`, () => {
+      $('#gcOk').addEventListener('click', async () => {
+        const b = $('#gcOk'), e = $('#gcErr');
+        b.disabled = true; e.hidden = true;
+        const r = await send('dutyCfg', { tu: $('#gcTu').value, den: $('#gcDen').value,
+          cnTu: $('#gcCnTu').value, cnDen: $('#gcCnDen').value });
+        if (r.err) { b.disabled = false; e.hidden = false; e.innerHTML = errMsg(r.err); return; }
+        closeSheet(); toast(t('saved')); render();
+      });
+    });
+  },
   trThemNguoi: () => {
     const p = topV().p;
     if (p.ds.length >= TRUC_TOI_DA_NGAY) return;
-    p.ds.push({ uid: '', nd: '', ndz: '', zSua: 0 });
+    p.ds.push({ uid: '', nd: '', ndz: '', zSua: 0, tu: p.md.tu, den: p.md.den });
     render();
   },
-  trBoNguoi: (el) => { const p = topV().p; p.ds.splice(+el.dataset.i, 1); if (!p.ds.length) p.ds.push({ uid: '', nd: '', ndz: '', zSua: 0 }); render(); },
+  trBoNguoi: (el) => { const p = topV().p; p.ds.splice(+el.dataset.i, 1); if (!p.ds.length) p.ds.push({ uid: '', nd: '', ndz: '', zSua: 0, tu: p.md.tu, den: p.md.den }); render(); },
   // Hai người trực cùng ngày thường làm giống nhau: chép nội dung của người đầu sang cho nhanh
   trChepND: (el) => {
     const p = topV().p, i = +el.dataset.i, g = p.ds[0];
@@ -18438,18 +18622,63 @@ VIEWS.trucTong = {
     if (!ds.length) return o + `<div class="card empty" style="margin-top:12px">${t('trucChuaAi')}</div>` + nutXuat;
     const tn = ds.reduce((a, x) => a + x.n, 0), tc = ds.reduce((a, x) => a + x.cn, 0), tb = tn / ds.length;
     const nhieu = (x) => x.n > tb + 1;
+    const tg0 = ds.reduce((a, x) => a + (x.gio || 0), 0);
     const tr = ds.map((x) => `<tr><td>${trucTen(x)}</td>
       <td class="num mono"><b${nhieu(x) ? ' class="warnx"' : ''}>${x.n}</b></td>
+      <td class="num mono">${fmtNum(x.gio || 0, 1)}</td>
       <td class="num mono"${x.cn ? ' style="color:var(--orange);font-weight:700"' : ''}>${x.cn || '—'}</td></tr>`).join('')
-      + `<tr style="background:var(--soft)"><td><b>${t('trucTongCong')}</b></td><td class="num mono"><b>${tn}</b></td><td class="num mono"><b>${tc}</b></td></tr>`;
+      + `<tr style="background:var(--soft)"><td><b>${t('trucTongCong')}</b></td><td class="num mono"><b>${tn}</b></td>
+        <td class="num mono"><b>${fmtNum(tg0, 1)}</b></td><td class="num mono"><b>${tc}</b></td></tr>`;
     o += `<div class="dtwrap" style="margin-top:12px"><table class="dt"><thead><tr>
       <th>${esc(tv('trucNguoiTruc'))}<small>${esc(tz('trucNguoiTruc'))}</small></th>
       <th class="num">${esc(tv('trucSoNgay'))}<small>${esc(tz('trucSoNgay'))}</small></th>
+      <th class="num">${esc(tv('trucSoGio'))}<small>${esc(tz('trucSoGio'))}</small></th>
       <th class="num">${esc(tv('trucCN'))}<small>${esc(tz('trucCN'))}</small></th></tr></thead><tbody>${tr}</tbody></table></div>`;
     o += `<p class="help" style="margin-top:10px">${t('trucTongHelp')}</p>` + nutXuat;
+    o += trucDCHtml(ym);
     return o;
   }
 };
+
+// Bảng đối chiếu giờ trực với giờ tăng ca đã đăng ký. Chỉ Quản lý xem (kỹ thuật chỉ nhận
+// tăng ca của chính mình nên đối chiếu cả nhà máy sẽ sai).
+function trucDCHtml(ym) {
+  if (!xemHet()) return '';
+  const ds = trucDoiChieu(ym);
+  let o = sec('trucDC', ds.length);
+  if (!ds.length) return o + `<div class="card empty">${t('trucChuaAi')}</div>`;
+  const tTruc = ds.reduce((a, x) => a + x.truc, 0), tTC = ds.reduce((a, x) => a + x.tc, 0);
+  const chip = (x) => (Math.abs(x.lech) < 0.01
+    ? `<span class="pill p-xong">${tv('trucDCKhop')}<span class="zi" lang="zh-CN">${tz('trucDCKhop')}</span></span>`
+    : x.lech > 0 ? `<span class="pill p-qua">${esc(tv('trucDCThieu', { n: fmtNum(x.lech, 1) }))}</span>`
+      : `<span class="pill p-nay">${esc(tv('trucDCThua', { n: fmtNum(-x.lech, 1) }))}</span>`);
+  o += `<div class="dtwrap"><table class="dt"><thead><tr>
+    <th>${esc(tv('trucNguoiTruc'))}<small>${esc(tz('trucNguoiTruc'))}</small></th>
+    <th class="num">${esc(tv('trucSoGio'))}<small>${esc(tz('trucSoGio'))}</small></th>
+    <th class="num">${esc(tv('trucDCGioTC'))}<small>${esc(tz('trucDCGioTC'))}</small></th>
+    <th class="num">${esc(tv('trucDCLech'))}<small>${esc(tz('trucDCLech'))}</small></th>
+    <th class="num">${esc(tv('trucDCThangTC'))}<small>${esc(tz('trucDCThangTC'))}</small></th></tr></thead><tbody>
+    ${ds.map((x) => `<tr><td>${trucTen(x)}</td>
+      <td class="num mono">${fmtNum(x.truc, 1)}</td>
+      <td class="num mono">${fmtNum(x.tc, 1)}</td>
+      <td class="num">${chip(x)}</td>
+      <td class="num mono">${fmtNum(x.thangTC, 1)}</td></tr>`).join('')}
+    <tr style="background:var(--soft)"><td><b>${t('trucTongCong')}</b></td>
+      <td class="num mono"><b>${fmtNum(tTruc, 1)}</b></td><td class="num mono"><b>${fmtNum(tTC, 1)}</b></td>
+      <td class="num mono"><b>${fmtNum(Math.round((tTruc - tTC) * 100) / 100, 1)}</b></td><td></td></tr>
+    </tbody></table></div>`;
+  o += `<p class="help" style="margin-top:10px">${t('trucDCHelp')}</p>`;
+  const thieu = ds.filter((x) => x.thieu.length);
+  o += `<div class="sec"><h2>${t('trucDCNgayThieu')}${thieu.length ? `<span class="cnt">${thieu.reduce((a, x) => a + x.thieu.length, 0)}</span>` : ''}</h2></div>`;
+  if (!thieu.length) return o + `<div class="card empty">${t('trucDCDuNgay')}</div>`;
+  o += `<div class="list">${thieu.map((x) => x.thieu.map((d) => `<button class="row" data-act="trucDCGhi"
+    data-uid="${esc(x.uid)}" data-d="${esc(d.ngay)}" data-tu="${esc(d.tu)}" data-den="${esc(d.den)}">${IC.clock}
+    <div class="main"><div class="nm">${esc(x.ten)} · ${fmtD(d.ngay)}</div>
+    <div class="sub"><span class="mono">${d.tu} – ${d.den}</span> · ${esc(tv('trucGioN', { n: fmtNum(d.truc, 1) }))}
+      → ${d.tc ? esc(tv('trucGioN', { n: fmtNum(d.tc, 1) })) : `<span style="color:var(--red);font-weight:700">${esc(tp('trucDCChuaCo'))}</span>`}</div></div>
+    <span class="pill p-qua">${esc(tv('trucDCThieu', { n: fmtNum(Math.round((d.truc - d.tc) * 100) / 100, 1) }))}</span>${IC.chev}</button>`).join('')).join('')}</div>`;
+  return o;
+}
 
 // ---------- Phân công ca trực ----------
 function pcONoiDung(tu, nhom, ca) {
@@ -18586,9 +18815,10 @@ function trucInHtml(ym) {
     const nen = ms.length === 1 ? `background:${ms[0][0]};color:${ms[0][1]}` : '';
     o += `<td style="${B};${nen}"><div style="font-size:13pt;font-weight:700">${+d.ngay.slice(8, 10)}</div>
       ${a.map((x, i) => {
-    const m = mau[x.uid], zh = (S.V.nvById[x.uid] || {}).tenZh;
+    const m = mau[x.uid], zh = (S.V.nvById[x.uid] || {}).tenZh, g = trucGioCua(x, d.ngay);
     const ri = ms.length > 1 ? `background:${m[0]};color:${m[1]};border-radius:3px;padding:1px 3px;` : '';
-    return `<div style="font-size:10.5pt;font-weight:700;line-height:1.2;margin-top:2px;${ri}">${esc(x.ten)}${zh ? '<br>' + esc(zh) : ''}</div>`;
+    return `<div style="font-size:10.5pt;font-weight:700;line-height:1.2;margin-top:2px;${ri}">${esc(x.ten)}${zh ? '<br>' + esc(zh) : ''}
+      <div style="font-size:8.5pt;font-weight:400">${g.tu}–${g.den}</div></div>`;
   }).join('')}</td>`;
     if (++c % 7 === 0) o += '</tr><tr>';
   });
@@ -18598,7 +18828,8 @@ function trucInHtml(ym) {
     <div style="text-align:center">
       <div style="font-size:16pt;font-weight:700">LỊCH TRỰC THÁNG ${mo}/${y}</div>
       <div style="font-size:14pt;font-weight:700">${y}年${mo}月值班表</div>
-      <div style="margin-top:6px;font-size:12pt">Giờ trực 值班时间: 17:00 – 19:30</div></div>
+      <div style="margin-top:6px;font-size:12pt">Giờ trực 值班时间 — ngày thường 平日: ${trucGioMacDinh('2026-01-05').tu} – ${trucGioMacDinh('2026-01-05').den}
+        · Chủ nhật 周日: ${trucGioMacDinh('2026-01-04').tu} – ${trucGioMacDinh('2026-01-04').den}</div></div>
     <table style="border-collapse:collapse;width:100%;margin-top:12px;table-layout:fixed">
       <tr>${[1, 2, 3, 4, 5, 6, 0].map((w) => `<td style="${hd}">${WD_VI_F[w]}<br>${WD_ZH_F[w]}</td>`).join('')}</tr>
       ${o}</table>
@@ -18688,7 +18919,7 @@ function trucXlsx(ym) {
     // Ô Excel chỉ tô được một màu: nhiều người thì tô màu người đầu, tên xuống dòng kê đủ
     const m = a.length ? mauTruc[a[0].uid] : null;
     if (a.length) soNgay++;
-    hang.push(c(+d.ngay.slice(8, 10) + (a.length ? '\n' + a.map((x) => tenNV(x.uid, x.ten)).join('\n') : ''),
+    hang.push(c(+d.ngay.slice(8, 10) + (a.length ? '\n' + a.map((x) => tenNV(x.uid, x.ten) + '\n' + trucGioTxt(x, d.ngay)).join('\n') : ''),
       Object.assign({ align: 'center', valign: 'center', b: 1 }, m ? { fill: m[0], color: m[1] } : {})));
     if (hang.length === 7) { r1.push(hang); cao[r1.length] = a.length > 1 ? 62 : 44; hang = []; }
   });
@@ -18698,7 +18929,8 @@ function trucXlsx(ym) {
   trucTongDS(ym).forEach((n) => {
     const m = mauTruc[n.uid];
     r1.push([{ v: '', s: Object.assign({ fill: m[0] }, B) }, c(tenNV(n.uid, n.ten)),
-      c(tv('trucNgayN', { n: n.n }), { align: 'center' })]);
+      c(tv('trucNgayN', { n: n.n }), { align: 'center' }),
+      c(tv('trucGioN', { n: fmtNum(n.gio || 0, 1) }), { align: 'center' })]);
   });
 
   // 2) Phân công ca trực: mỗi tuần một dòng
@@ -18720,10 +18952,12 @@ function trucXlsx(ym) {
 
   // 3) Tổng hợp: số ngày trực của người có tài khoản, số tuần ca của người trực ca
   const r3 = [[{ v: 'TỔNG HỢP TRỰC · 值班汇总 — ' + thang, s: { b: 1, sz: 14 } }], [],
-    hd(['xlTrNguoi', 'xlTrSoNgay', 'xlTrCN'])];
+    hd(['xlTrNguoi', 'xlTrSoNgay', 'trucSoGio', 'xlTrCN'])];
   const tg = trucTongDS(ym);
-  tg.forEach((x) => r3.push([c(tenNV(x.uid, x.ten)), c(x.n, { align: 'center' }), c(x.cn || '', { align: 'center' })]));
+  tg.forEach((x) => r3.push([c(tenNV(x.uid, x.ten)), c(x.n, { align: 'center' }),
+    c(Math.round((x.gio || 0) * 100) / 100, { align: 'center', fmt: '#,##0.#' }), c(x.cn || '', { align: 'center' })]));
   r3.push([c(tp('trucTongCong'), { b: 1 }), c(tg.reduce((a, x) => a + x.n, 0), { b: 1, align: 'center' }),
+    c(Math.round(tg.reduce((a, x) => a + (x.gio || 0), 0) * 100) / 100, { b: 1, align: 'center', fmt: '#,##0.#' }),
     c(tg.reduce((a, x) => a + x.cn, 0), { b: 1, align: 'center' })]);
   // Người trực ca: đếm số tuần mỗi người giữ ca ngày / ca đêm trong tháng
   const byCa = {};
@@ -18741,10 +18975,36 @@ function trucXlsx(ym) {
       c(x.NGAY || '', { align: 'center' }), c(x.DEM || '', { align: 'center' })]));
   }
 
+  // 4) Đối chiếu giờ trực với giờ tăng ca đã đăng ký của đúng ngày có trực
+  const dc = trucDoiChieu(ym);
+  const r4 = [[{ v: tp('xlTrDC') + ' — ' + thang, s: { b: 1, sz: 14 } }], [],
+    hd(['xlTrNguoi', 'xlTrDCTruc', 'xlTrDCTC', 'xlTrDCLech', 'xlTrDCThangTC'])];
+  const DO4 = { fill: '#FBDBD8', color: '#8E2438', b: 1 }, CAM4 = { fill: '#FFE7CF', color: '#8A4A12', b: 1 };
+  dc.forEach((x) => {
+    const o = Math.abs(x.lech) < 0.01 ? {} : x.lech > 0 ? DO4 : CAM4;
+    r4.push([c(tenNV(x.uid, x.ten)), c(x.truc, { align: 'right', fmt: '#,##0.#' }),
+      c(x.tc, { align: 'right', fmt: '#,##0.#' }), c(x.lech, Object.assign({ align: 'right', fmt: '#,##0.#' }, o)),
+      c(x.thangTC, { align: 'right', fmt: '#,##0.#' })]);
+  });
+  r4.push([c(tp('trucTongCong'), { b: 1 }),
+    c(Math.round(dc.reduce((a, x) => a + x.truc, 0) * 100) / 100, { b: 1, align: 'right', fmt: '#,##0.#' }),
+    c(Math.round(dc.reduce((a, x) => a + x.tc, 0) * 100) / 100, { b: 1, align: 'right', fmt: '#,##0.#' }),
+    c(Math.round(dc.reduce((a, x) => a + x.lech, 0) * 100) / 100, { b: 1, align: 'right', fmt: '#,##0.#' }), c('')]);
+  const thieu4 = dc.filter((x) => x.thieu.length);
+  if (thieu4.length) {
+    r4.push([], [{ v: tp('trucDCNgayThieu'), s: { b: 1, sz: 12 } }],
+      hd(['xlTrNguoi', 'xlTrDCNgay', 'trucGio', 'xlTrDCTruc', 'xlTrDCTC', 'xlTrDCLech']));
+    thieu4.forEach((x) => x.thieu.forEach((d) => r4.push([c(tenNV(x.uid, x.ten)), c(fmtD(d.ngay), { align: 'center' }),
+      c(d.tu + ' – ' + d.den, { align: 'center' }), c(d.truc, { align: 'right', fmt: '#,##0.#' }),
+      c(d.tc || '', Object.assign({ align: 'right', fmt: '#,##0.#' }, d.tc ? {} : DO4)),
+      c(Math.round((d.truc - d.tc) * 100) / 100, Object.assign({ align: 'right', fmt: '#,##0.#' }, DO4))])));
+  }
+  r4.push([], [{ v: tp('trucDCHelp') }]);
   return XW.build([
     { name: 'Lich truc', rows: r1, cols: [17, 17, 17, 17, 17, 17, 17], merges: ['A1:G1'], freeze: { r: 3, c: 0 }, heights: cao },
     { name: 'Phan ca truc', rows: r2, cols: [22, 24, 24, 24, 24], merges: ['A1:E1'], freeze: { r: 3, c: 0 } },
-    { name: 'Tong hop', rows: r3, cols: [26, 13, 13, 13], merges: ['A1:C1'], freeze: { r: 3, c: 0 } }
+    { name: 'Tong hop', rows: r3, cols: [26, 13, 13, 13, 13], merges: ['A1:D1'], freeze: { r: 3, c: 0 } },
+    { name: 'Doi chieu TC', rows: r4, cols: [26, 13, 16, 13, 16, 13], merges: ['A1:E1'], heights: { 3: 34 }, freeze: { r: 3, c: 0 } }
   ]);
 }
 
@@ -19007,6 +19267,8 @@ Object.assign(TX, {
     '服务器尚无空压机功能。请更新 Code.gs 后重新部署。'],
   srvMissTrucNhieu: ['Máy chủ chưa xếp được nhiều người một ngày. Cập nhật Code.gs rồi Triển khai lại.',
     '服务器尚不支持一天多人值班。请更新 Code.gs 后重新部署。'],
+  srvMissTrucGio: ['Máy chủ chưa ghi được giờ trực riêng. Cập nhật Code.gs rồi Triển khai lại.',
+    '服务器尚不支持单独的值班时间。请更新 Code.gs 后重新部署。'],
   xlMNKTen: ['Máy nén khí', '空压机'], xlMNKLoai: ['Loại', '类型'], xlMNKGio: ['Giờ trên đồng hồ', '表显小时'],
   xlMNKNgay: ['Ngày ghi', '记录日期'], xlMNKTuBD: ['Giờ từ lần bảo dưỡng', '上次保养后小时'],
   xlMNKConLai: ['Còn lại tới hạn', '距到期小时'], xlMNKTT: ['Tình trạng', '状态'],
