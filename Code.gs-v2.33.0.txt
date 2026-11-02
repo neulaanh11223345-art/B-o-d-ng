@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.32.1';
+var PHIEN_BAN = '2.33.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -29,8 +29,9 @@ var BANG = {
   May: ['Ma', 'Ten', 'TenPhu', 'Nhom', 'ViTri', 'ChuKy', 'HanKeTiep', 'NoiDung', 'HoatDong', 'CapNhat', 'HangMuc', 'LinhKien',
     'PhuTrach', 'NgayDuaVao', 'Chuyen', 'MaHT'],
   // Chuyền sản xuất (theo Sổ cái quản lý cơ sở vật chất VKY-PR-E01-03). Sửa trực tiếp trên sheet hoặc trong app (Quản lý)
+  // KhiNen: lượng khí nén chuyền đó dùng, m³/phút — để tính cần bật mấy máy nén khí
   Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
-    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT'],
+    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT', 'KhiNen'],
   LichSu: ['ID', 'Ma', 'TenMay', 'Ngay', 'DenHan', 'NguoiLam', 'GhiChu', 'NguoiXacNhan', 'ThoiGian', 'TrangThai', 'OpId', 'UID', 'Huy', 'ChiTiet'],
   NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh', 'MaThe', 'BoPhan', 'BoPhanZh', 'ChucVu'],
   TangCa: ['ID', 'UID', 'Ngay', 'Ca', 'Tu', 'Den', 'SoGio', 'LyDo', 'LyDoDich', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat'],
@@ -111,22 +112,24 @@ var BANG = {
   // BienTan = 1: máy chạy biến tần (mỗi ngày chỉ chạy MỘT trong các máy biến tần)
   // ChuKyGio: số giờ chạy giữa hai lần bảo dưỡng (3000 h) · GioBD: số giờ trên đồng hồ lúc bảo dưỡng gần nhất
   // MocGio (JSON): các mốc phụ [{ten, tenZh, ck, gio}] — ck = chu kỳ giờ, gio = số giờ lúc làm gần nhất
+  // CongSuat: lượng khí máy đó cấp được, m³/phút (máy nhà máy 27 m³/phút)
   MayNen: ['ID', 'Ten', 'TenZh', 'Ma', 'MaCT', 'BienTan', 'ChuKyGio', 'GioBD', 'MocGio', 'ThuTu',
-    'HoatDong', 'GhiChu', 'NguoiTao', 'CapNhat'],
+    'HoatDong', 'GhiChu', 'NguoiTao', 'CapNhat', 'CongSuat'],
   // Số giờ chạy đọc trên đồng hồ của máy nén khí (cộng dồn, không được giảm).
   // Nguon: GHI (ghi tay) · DOI (ghi lúc đổi máy chạy trong tuần) · BD (ghi lúc bảo dưỡng, đặt lại mốc giờ)
   GioChay: ['ID', 'Ngay', 'MnkID', 'Gio', 'Nguon', 'UID', 'Nguoi', 'Luc', 'GhiChu', 'OpId', 'CapNhat', 'Xoa'],
   // Lịch luân phiên máy nén khí theo tuần: TuNgay = thứ Hai · DsChay (JSON) = danh sách ID máy chạy tuần đó
-  LichMNK: ['TuNgay', 'DsChay', 'Nguoi', 'UID', 'GhiChu', 'CapNhat']
+  // DsChuyen (JSON): các chuyền sản xuất chạy tuần đó — cộng lượng khí để biết cần mấy máy
+  LichMNK: ['TuNgay', 'DsChay', 'Nguoi', 'UID', 'GhiChu', 'CapNhat', 'DsChuyen']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
   NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'], KiemDinh: ['NamSX', 'ChuKy', 'NghiemNgat', 'HoatDong'], MaLoi: ['HoatDong'], NghiemThu: ['STT', 'Xoa'],
   NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop'],
-  MayNen: ['BienTan', 'ChuKyGio', 'GioBD', 'ThuTu', 'HoatDong'], GioChay: ['Gio'], LichMNK: [] };
+  MayNen: ['BienTan', 'ChuKyGio', 'GioBD', 'ThuTu', 'HoatDong', 'CongSuat'], GioChay: ['Gio'], LichMNK: [] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' },
-  MayNen: { GioBD: '#,##0.#' }, GioChay: { Gio: '#,##0.#' } };
+  MayNen: { GioBD: '#,##0.#', CongSuat: '#,##0.##' }, GioChay: { Gio: '#,##0.#' }, Chuyen: { KhiNen: '#,##0.##' } };
 
 // Thông số công tơ (mã OBIS). Quản trị sửa được trong app (lưu ở Script Properties THONG_SO).
 // tich = true: chỉ số cộng dồn → tiêu thụ = (kỳ này − kỳ trước) × hệ số nhân.
@@ -517,11 +520,21 @@ function chTuDong(r, i) {
   var o = { _r: i + 2 };
   CH_KHOA.forEach(function (k, j) { o[k] = s(r[j]); });
   o.ma = o.ma.toUpperCase(); o.hoatDong = s(r[15]) === '' ? true : hd(r[15]); o.capNhat = tgStr(r[16]); o.maHT = s(r[17]);
+  o.khiNen = s(r[18]) === '' ? '' : (Number(r[18]) || 0);
   return o;
 }
-function chThanhDong(o) { return CH_KHOA.map(function (k) { return anToan(o[k] || ''); }).concat([o.hoatDong === false ? 0 : 1, o.capNhat || '', anToan(o.maHT || '')]); }
+function chThanhDong(o) {
+  return CH_KHOA.map(function (k) { return anToan(o[k] || ''); })
+    .concat([o.hoatDong === false ? 0 : 1, o.capNhat || '', anToan(o.maHT || ''), o.khiNen === '' || o.khiNen === undefined ? '' : o.khiNen]);
+}
 function dsChuyen() { return docTho('Chuyen').map(chTuDong).filter(function (x) { return x.ma; }); }
-function sachCh(o) { var x = {}; CH_KHOA.forEach(function (k) { x[k] = o[k] || ''; }); x.hoatDong = o.hoatDong !== false; x.maHT = o.maHT || ''; return x; }
+function sachCh(o) {
+  var x = {};
+  CH_KHOA.forEach(function (k) { x[k] = o[k] || ''; });
+  x.hoatDong = o.hoatDong !== false; x.maHT = o.maHT || '';
+  x.khiNen = o.khiNen === '' || o.khiNen === undefined ? '' : o.khiNen;
+  return x;
+}
 // Lần đầu: tạo 16 chuyền từ sổ cái, xếp máy in phun (喷印机 VKYxx) và máy hút bụi (Máy hút bụi VKYxx) vào chuyền cùng số. Chạy lại không trùng, không đè máy đã xếp.
 function napChuyen() {
   if (typeof DL_CHUYEN === 'undefined') return 0;
@@ -531,7 +544,9 @@ function napChuyen() {
   DL_CHUYEN.forEach(function (r) {
     if (co[r[0]]) return;
     var o = {}; CH_KHOA.forEach(function (k, j) { o[k] = r[j] === undefined || r[j] === null ? '' : String(r[j]); });
-    o.hoatDong = true; o.capNhat = bay; moi.push(chThanhDong(o)); co[r[0]] = 1;
+    o.hoatDong = true; o.capNhat = bay;
+    o.khiNen = DL_KHI_NEN[r[0]] === undefined ? '' : DL_KHI_NEN[r[0]];
+    moi.push(chThanhDong(o)); co[r[0]] = 1;
   });
   if (moi.length) themNhieu('Chuyen', moi);
   var n = 0;
@@ -552,6 +567,15 @@ function luuChuyen(u, p) {
   CH_KHOA.forEach(function (k) { if (k !== 'ma' && p[k] !== undefined) x[k] = catChu(p[k], k === 'ghiChu' ? 500 : 200); });
   if (p.hoatDong !== undefined) x.hoatDong = p.hoatDong !== false;
   if (p.maHT !== undefined) x.maHT = kiemMaHT(p.maHT, ma);
+  if (p.khiNen !== undefined) {
+    var kn = s(p.khiNen);
+    if (kn === '') x.khiNen = '';
+    else {
+      var v = Number(kn);
+      if (isNaN(v) || v < 0 || v > 10000) throw loi('KHI_NEN_SAI', 'Lượng khí nén không hợp lệ · 用气量无效');
+      x.khiNen = Math.round(v * 100) / 100;
+    }
+  }
   x.capNhat = thoiGianStr();
   if (moi) themDong('Chuyen', chThanhDong(x)); else suaDong('Chuyen', x._r, chThanhDong(x));
   return { chuyen: sachCh(x) };
@@ -799,7 +823,7 @@ function layDuLieu(u) {
     congViec: docCongViec().filter(function (x) { return (CV_MO.indexOf(x.trangThai) >= 0 || x.trangThai === 'XONG' || x.lucTao >= tu) && xemViec(u, x); }).map(sachCV),
     viecLap: coQuyen(u, 'xemhet') ? docViecLap().map(sachCV) : [],
     tangCa: docTangCa().filter(function (x) { return !x.xoa && x.ngay >= tu && (coQuyen(u, 'xemhet') || x.uid === u.id); }).map(sachTC),
-    lichTruc: docLichTruc().filter(function (x) { return x.ngay >= tu; }).map(sachLT),
+    lichTruc: docLichTruc().filter(function (x) { return x.ngay >= tu && (x.uid || x.noiDung); }).map(sachLT),
     nguoiTruc: docNguoiTruc().map(sachNT),
     phanCa: docPhanCa().filter(function (x) { return x.tuNgay >= tu; }).map(sachPC),
     nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) {
@@ -861,35 +885,96 @@ function docLichTruc() { return docTho('LichTruc').map(ltTuDong).filter(function
 function sachLT(x) {
   return { ngay: x.ngay, uid: x.uid, ten: x.ten, noiDung: x.noiDung, noiDungDich: x.noiDungDich, nguoi: x.nguoi, capNhat: x.capNhat };
 }
-// Xếp người trực và nội dung trực của một ngày. Gửi uid rỗng = bỏ trống ngày đó.
-// Chỉ gửi noiDung (không gửi uid) = chỉ sửa nội dung, giữ người đang xếp.
+var TRUC_TOI_DA_NGAY = 6;        // số người trực tối đa trong một ngày
+
+// Xếp người trực của MỘT NGÀY. Một ngày xếp được nhiều người, mỗi người MỘT DÒNG
+// và một nội dung trực riêng (khoá là Ngay + UID).
+//  - Cách gọi mới: p.ds = [{uid, noiDung, noiDungDich}] — thay cả ngày bằng danh sách này.
+//  - Cách gọi cũ (app bản trước còn lưu trên máy): p.uid / p.noiDung cho cả ngày.
+//    Gửi uid rỗng = bỏ trống ngày. Chỉ gửi noiDung = sửa nội dung của người đầu tiên.
+// Dòng thừa không xoá (xoá làm trôi số dòng của các dòng sau) mà để trống, lúc đọc bỏ qua.
 function luuLichTruc(u, p) {
   var ngay = ngayStr(p.ngay);
   if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
-  var ds = docLichTruc(), x = ds.filter(function (r) { return r.ngay === ngay; })[0], moi = !x;
-  var cuTen = x ? x.ten : '', cuND = x ? x.noiDung : '';
-  if (moi) x = { ngay: ngay, uid: '', ten: '', noiDung: '', noiDungDich: '' };
-  if (p.uid !== undefined) {
-    var uid = s(p.uid), ten = '';
-    if (uid) {
-      var nv = dsNguoiDung().filter(function (n) { return n.id === uid; })[0];
-      if (!nv) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
-      ten = nv.ten;
+  var ds = docLichTruc();
+  var cua = ds.filter(function (r) { return r.ngay === ngay; });
+  var coNguoi = cua.filter(function (r) { return r.uid || r.noiDung; });
+  var gui;
+  if (p.ds) {
+    gui = (p.ds || []).slice(0, TRUC_TOI_DA_NGAY).map(function (o) {
+      return { uid: s(o.uid), noiDung: o.noiDung, noiDungDich: o.noiDungDich };
+    });
+  } else {
+    var dau = coNguoi[0] || null;
+    if (p.uid === undefined) {
+      // Chỉ sửa nội dung, giữ nguyên người đang xếp
+      gui = [{ uid: dau ? dau.uid : '', noiDung: p.noiDung, noiDungDich: p.noiDungDich }];
+      if (dau && p.noiDung === undefined) gui[0].noiDung = dau.noiDung;
+      gui = gui.concat(coNguoi.slice(1).map(function (r) {
+        return { uid: r.uid, noiDung: r.noiDung, noiDungDich: r.noiDungDich, _giu: r };
+      }));
+    } else {
+      gui = [{ uid: s(p.uid), noiDung: p.noiDung === undefined && dau ? dau.noiDung : p.noiDung,
+        noiDungDich: p.noiDung === undefined && dau ? dau.noiDungDich : p.noiDungDich }];
     }
-    x.uid = uid; x.ten = ten;
   }
-  if (p.noiDung !== undefined) {
-    var nd = catNhieuDong(p.noiDung, 500).trim();
-    var h = moi ? songNgu(nd, p.noiDungDich) : dichKhiSua(nd, x.noiDung, x.noiDungDich, p.noiDungDich);
-    x.noiDung = h[0]; x.noiDungDich = h[1];
-  } else if (p.noiDungDich !== undefined) {
-    x.noiDungDich = catNhieuDong(p.noiDungDich, 500).trim();
-  }
-  x.nguoi = u.ten; x.capNhat = thoiGianStr();
+  // Bỏ trùng người, bỏ dòng rỗng hoàn toàn
+  var daCo = {}, loc = [];
+  gui.forEach(function (o) {
+    var uid = s(o.uid);
+    if (uid && daCo[uid]) return;
+    if (!uid && !s(o.noiDung) && !s(o.noiDungDich)) return;
+    if (uid) daCo[uid] = 1;
+    loc.push(o);
+  });
+  var nv = dsNguoiDung(), tenCua = {};
+  nv.forEach(function (n) { tenCua[n.id] = n.ten; });
+  loc.forEach(function (o) {
+    if (o.uid && tenCua[o.uid] === undefined) throw loi('KHONG_CO_NV', 'Không tìm thấy nhân viên · 找不到员工');
+  });
+  var bay = thoiGianStr(), cuTxt = coNguoi.map(function (r) { return r.ten || '—'; }).join(', ');
   capNhatTieuDe('LichTruc');
-  if (moi) themDong('LichTruc', ltThanhDong(x)); else suaDong('LichTruc', x._r, ltThanhDong(x));
-  ghiNhatKy(u, 'XEP_LICH_TRUC', 'LichTruc', ngay, { ten: cuTen, noiDung: cuND }, { ten: x.ten, noiDung: x.noiDung }, '');
-  return { lichTruc: sachLT(x) };
+  // Dùng lại đúng dòng của người cũ để nội dung đã dịch không phải dịch lại
+  var theoUid = {};
+  cua.forEach(function (r) { if (r.uid) theoUid[r.uid] = r; });
+  var con = cua.slice(), moi = [], ra = [];
+  loc.forEach(function (o) {
+    var x = o._giu || (o.uid ? theoUid[o.uid] : null);
+    // Chưa có dòng riêng thì dùng lại dòng trống, hoặc dòng của người không còn trực ngày đó nữa
+    if (!x) {
+      for (var i = 0; i < con.length; i++) {
+        var r0 = con[i];
+        if (r0._dung || (r0.uid && daCo[r0.uid])) continue;
+        x = r0; break;
+      }
+    }
+    var them = !x;
+    if (them) x = { ngay: ngay, uid: '', ten: '', noiDung: '', noiDungDich: '' };
+    else x._dung = 1;
+    var ndCu = x.noiDung, ndzCu = x.noiDungDich;
+    x.uid = o.uid; x.ten = o.uid ? tenCua[o.uid] : '';
+    if (o.noiDung !== undefined) {
+      var nd = catNhieuDong(o.noiDung, 500).trim();
+      var h = them ? songNgu(nd, o.noiDungDich) : dichKhiSua(nd, ndCu, ndzCu, o.noiDungDich);
+      x.noiDung = h[0]; x.noiDungDich = h[1];
+    } else if (o.noiDungDich !== undefined) {
+      x.noiDungDich = catNhieuDong(o.noiDungDich, 500).trim();
+    }
+    x.nguoi = u.ten; x.capNhat = bay;
+    if (them) { moi.push(x); } else { suaDong('LichTruc', x._r, ltThanhDong(x)); }
+    ra.push(x);
+  });
+  // Dòng cũ không dùng nữa thì để trống, giữ lại số dòng
+  con.forEach(function (r) {
+    if (r._dung || ra.indexOf(r) >= 0) return;
+    if (!r.uid && !r.noiDung && !r.noiDungDich) return;
+    r.uid = ''; r.ten = ''; r.noiDung = ''; r.noiDungDich = ''; r.nguoi = u.ten; r.capNhat = bay;
+    suaDong('LichTruc', r._r, ltThanhDong(r));
+  });
+  if (moi.length) themNhieu('LichTruc', moi.map(ltThanhDong));
+  ghiNhatKy(u, 'XEP_LICH_TRUC', 'LichTruc', ngay, cuTxt,
+    ra.map(function (x) { return x.ten || '—'; }).join(', '), '');
+  return { trucNgays: [ngay], dsLichTruc: ra.map(sachLT) };
 }
 
 // Chép cả tuần lịch trực (người trực + nội dung trực) sang mấy tuần kế tiếp.
@@ -900,31 +985,50 @@ function chepLichTruc(u, p) {
   var soTuan = Math.round(Number(p.soTuan)) || 1;
   if (!(soTuan >= 1 && soTuan <= 12)) throw loi('SO_SAI', 'Chép được tối đa 12 tuần · 最多复制12周');
   var ghiDe = p.ghiDe !== false, ds = docLichTruc(), theoNgay = {};
-  ds.forEach(function (x) { theoNgay[x.ngay] = x; });
+  ds.forEach(function (x) { (theoNgay[x.ngay] = theoNgay[x.ngay] || []).push(x); });
+  var coNguoi = function (a) { return (a || []).filter(function (r) { return r.uid || r.noiDung; }); };
+  // Mỗi ngày nguồn có thể có nhiều người, chép sang cả danh sách
   var nguon = [];
   for (var i = 0; i < 7; i++) {
-    var x = theoNgay[congNgay(tu, i)];
-    if (x && (x.uid || x.noiDung)) nguon.push({ i: i, uid: x.uid, ten: x.ten, noiDung: x.noiDung, noiDungDich: x.noiDungDich });
+    var a0 = coNguoi(theoNgay[congNgay(tu, i)]);
+    if (a0.length) {
+      nguon.push({ i: i, ds: a0.map(function (r) {
+        return { uid: r.uid, ten: r.ten, noiDung: r.noiDung, noiDungDich: r.noiDungDich };
+      }) });
+    }
   }
   if (!nguon.length) throw loi('TUAN_TRONG', 'Tuần này chưa xếp ai · 本周尚未安排');
   capNhatTieuDe('LichTruc');
-  var bay = thoiGianStr(), moi = [], out = [], n = 0;
+  var bay = thoiGianStr(), moi = [], out = [], ngays = [], n = 0;
   for (var w = 1; w <= soTuan; w++) {
     var dau = congNgay(tu, 7 * w);
     nguon.forEach(function (o) {
-      var ngay = congNgay(dau, o.i), cu = theoNgay[ngay];
-      if (cu && !ghiDe && (cu.uid || cu.noiDung)) return;
-      var x = cu || { ngay: ngay };
-      x.uid = o.uid; x.ten = o.ten; x.noiDung = o.noiDung; x.noiDungDich = o.noiDungDich;
-      x.nguoi = u.ten; x.capNhat = bay;
-      if (cu) suaDong('LichTruc', x._r, ltThanhDong(x)); else { moi.push(ltThanhDong(x)); theoNgay[ngay] = x; }
-      out.push(sachLT(x)); n++;
+      var ngay = congNgay(dau, o.i), cu = theoNgay[ngay] || [];
+      if (!ghiDe && coNguoi(cu).length) return;
+      ngays.push(ngay);
+      // Dùng lại dòng cũ của ngày đó, thiếu thì thêm, thừa thì để trống
+      o.ds.forEach(function (g, k) {
+        var x = cu[k];
+        var them = !x;
+        if (them) { x = { ngay: ngay }; cu.push(x); }
+        x.uid = g.uid; x.ten = g.ten; x.noiDung = g.noiDung; x.noiDungDich = g.noiDungDich;
+        x.nguoi = u.ten; x.capNhat = bay;
+        if (them) moi.push(x); else suaDong('LichTruc', x._r, ltThanhDong(x));
+        out.push(x); n++;
+      });
+      for (var k2 = o.ds.length; k2 < cu.length; k2++) {
+        var r2 = cu[k2];
+        if (!r2._r || (!r2.uid && !r2.noiDung && !r2.noiDungDich)) continue;
+        r2.uid = ''; r2.ten = ''; r2.noiDung = ''; r2.noiDungDich = ''; r2.nguoi = u.ten; r2.capNhat = bay;
+        suaDong('LichTruc', r2._r, ltThanhDong(r2));
+      }
+      theoNgay[ngay] = cu;
     });
   }
-  if (moi.length) themNhieu('LichTruc', moi);
+  if (moi.length) themNhieu('LichTruc', moi.map(ltThanhDong));
   if (!n) throw loi('KHONG_CO', 'Các tuần đó đã xếp đủ rồi · 这些周已排满');
-  ghiNhatKy(u, 'CHEP_LICH_TRUC', 'LichTruc', tu, '', soTuan + ' tuần · ' + n + ' ngày', '');
-  return { dsLichTruc: out, n: n };
+  ghiNhatKy(u, 'CHEP_LICH_TRUC', 'LichTruc', tu, '', soTuan + ' tuần · ' + n + ' lượt trực', '');
+  return { trucNgays: ngays, dsLichTruc: out.map(sachLT), n: n };
 }
 
 // ----- Người trực ca (danh sách riêng) -----
@@ -1106,6 +1210,7 @@ function luanPhienTuan(u, p) {
 // Tới ChuKyGio giờ (3000 h) kể từ lần bảo dưỡng trước là đến hạn bảo dưỡng.
 var MNK_TOI_DA = 30;             // số máy nén khí tối đa trong danh sách
 var MNK_CK_GIO = 3000;           // chu kỳ bảo dưỡng theo giờ chạy, mặc định
+var MNK_CONG_SUAT = 27;          // lượng khí một máy cấp được, m³/phút
 var MNK_NHAC_GIO = 200;          // còn bao nhiêu giờ nữa thì nhắc sắp đến hạn
 var MNK_THUONG = 3;              // mỗi ngày chạy mấy máy thường
 var MNK_BT = 1;                  // mỗi ngày chạy mấy máy biến tần
@@ -1113,9 +1218,9 @@ var MNK_MOC_TOI_DA = 10;         // số mốc phụ tối đa của một máy
 var MNK_NGUON = ['GHI', 'DOI', 'BD'];
 
 var MNK_KHOA = ['id', 'ten', 'tenZh', 'ma', 'maCT', 'bienTan', 'chuKyGio', 'gioBD', 'mocGio', 'thuTu',
-  'hoatDong', 'ghiChu', 'nguoiTao', 'capNhat'];
+  'hoatDong', 'ghiChu', 'nguoiTao', 'capNhat', 'congSuat'];
 var GC_KHOA = ['id', 'ngayGhi', 'mnkID', 'gio', 'nguon', 'uid', 'nguoi', 'luc', 'ghiChu', 'opId', 'capNhat', 'xoa'];
-var LMNK_KHOA = ['tuNgay', 'dsChay', 'nguoi', 'uid', 'ghiChu', 'capNhat'];
+var LMNK_KHOA = ['tuNgay', 'dsChay', 'nguoi', 'uid', 'ghiChu', 'capNhat', 'dsChuyen'];
 
 function docMayNen() {
   return docTho('MayNen').map(function (r, i) { return obTuDong(MNK_KHOA, r, i); }).filter(function (x) { return x.id && x.ten; });
@@ -1130,14 +1235,15 @@ function docLichMNK() {
 function sachMNK(x) {
   return { id: x.id, ten: x.ten, tenZh: x.tenZh, ma: x.ma, maCT: x.maCT, bienTan: x.bienTan,
     chuKyGio: x.chuKyGio, gioBD: x.gioBD, mocGio: x.mocGio, thuTu: x.thuTu, hoatDong: x.hoatDong,
-    ghiChu: x.ghiChu, capNhat: x.capNhat };
+    ghiChu: x.ghiChu, capNhat: x.capNhat, congSuat: x.congSuat || MNK_CONG_SUAT };
 }
 function sachGC(x) {
   return { id: x.id, ngay: x.ngayGhi, mnkID: x.mnkID, gio: x.gio, nguon: x.nguon,
     uid: x.uid, nguoi: x.nguoi, luc: x.luc, ghiChu: x.ghiChu };
 }
 function sachLMNK(x) {
-  return { tuNgay: x.tuNgay, dsChay: x.dsChay, nguoi: x.nguoi, uid: x.uid, ghiChu: x.ghiChu, capNhat: x.capNhat };
+  return { tuNgay: x.tuNgay, dsChay: x.dsChay, nguoi: x.nguoi, uid: x.uid, ghiChu: x.ghiChu,
+    capNhat: x.capNhat, dsChuyen: x.dsChuyen || [] };
 }
 function mnkThanhDong(x) { return obThanhDong(MNK_KHOA, x); }
 function gcThanhDong(x) { return obThanhDong(GC_KHOA, x); }
@@ -1178,6 +1284,7 @@ function luuMayNen(u, p) {
     x.ma = s(o.ma).toUpperCase().slice(0, 20); x.maCT = s(o.maCT).toUpperCase().slice(0, 20);
     x.bienTan = !!o.bienTan;
     x.chuKyGio = Math.max(0, Math.round(Number(o.chuKyGio) || 0)) || MNK_CK_GIO;
+    x.congSuat = Math.max(0, Number(o.congSuat) || 0) || MNK_CONG_SUAT;
     x.gioBD = Math.max(0, Number(o.gioBD) || 0);
     x.mocGio = mnkMoc(o.mocGio);
     x.thuTu = Math.round(Number(o.thuTu) || 0) || n;
@@ -1288,7 +1395,29 @@ function xoaGioChay(u, p) {
   ghiNhatKy(u, 'XOA_GIO_CHAY', 'GioChay', id, String(x.gio) + ' h ' + x.ngayGhi, '', catChu(p.lyDo, 200));
   return { xoa: id };
 }
-// Máy chạy trong tuần: 3 máy thường + 1 máy biến tần
+// Số máy nén khí cần bật = tổng lượng khí các chuyền đang chạy ÷ công suất một máy, làm tròn lên.
+// Không cộng dự phòng; phần trăm tải trả về để người xếp tự cân.
+// dsCh rỗng = tính cho TẤT CẢ chuyền còn hoạt động.
+function mnkTinhCan(ds, dsCh, chs) {
+  var cs = (ds || []).filter(function (x) { return x.hoatDong; });
+  var mot = cs.length ? (cs[0].congSuat || MNK_CONG_SUAT) : MNK_CONG_SUAT;
+  var chon = {}, co = (dsCh || []).length > 0;
+  (dsCh || []).forEach(function (m) { chon[s(m).toUpperCase()] = 1; });
+  var tong = 0, nCh = 0, thieu = [];
+  (chs || dsChuyen()).forEach(function (c) {
+    if (!c.hoatDong) return;
+    if (co && !chon[c.ma]) return;
+    nCh++;
+    if (c.khiNen === '' || c.khiNen === undefined) thieu.push(c.ma);
+    else tong += Number(c.khiNen) || 0;
+  });
+  tong = Math.round(tong * 100) / 100;
+  var can = mot > 0 ? Math.ceil(tong / mot) : 0;
+  return { soChuyen: nCh, tongKhi: tong, motMay: mot, can: can, thieu: thieu,
+    tai: can > 0 ? Math.round((tong / (can * mot)) * 100) : 0 };
+}
+
+// Máy chạy trong tuần: nhiều nhất một máy biến tần, còn lại là máy thường
 function mnkChonHopLe(ds, dsChay) {
   var theoId = {}, ra = [], bt = 0, th = 0;
   ds.forEach(function (x) { theoId[x.id] = x; });
@@ -1300,16 +1429,22 @@ function mnkChonHopLe(ds, dsChay) {
   });
   if (bt > MNK_BT) throw loi('NHIEU_BIEN_TAN', 'Mỗi ngày chỉ chạy ' + MNK_BT + ' máy biến tần · 每天只运行 '
     + MNK_BT + ' 台变频空压机');
-  if (th > MNK_THUONG) throw loi('NHIEU_MAY_THUONG', 'Mỗi ngày chỉ chạy ' + MNK_THUONG + ' máy thường · 每天只运行 '
-    + MNK_THUONG + ' 台普通空压机');
+  var toiDa = ds.filter(function (x) { return x.hoatDong && !x.bienTan; }).length;
+  if (th > toiDa) throw loi('NHIEU_MAY_THUONG', 'Chỉ có ' + toiDa + ' máy thường · 只有 ' + toiDa + ' 台普通空压机');
   return ra;
 }
-function lmnkDat(ds, tuNgay, dsChay, u, ghiChu) {
+function lmnkDat(ds, tuNgay, dsChay, u, ghiChu, dsCh) {
   var x = null, bay = thoiGianStr();
   ds.forEach(function (r) { if (r.tuNgay === tuNgay) x = r; });
   var moi = !x;
-  if (moi) x = { tuNgay: tuNgay };
+  if (moi) x = { tuNgay: tuNgay, dsChuyen: [] };
   x.dsChay = dsChay; x.nguoi = u.ten; x.uid = u.id;
+  if (dsCh !== undefined) {
+    var co = {};
+    dsChuyen().forEach(function (c) { co[c.ma] = 1; });
+    x.dsChuyen = (dsCh || []).map(function (m) { return s(m).toUpperCase(); })
+      .filter(function (m, i, a) { return co[m] && a.indexOf(m) === i; }).slice(0, 100);
+  }
   if (ghiChu !== undefined) x.ghiChu = catChu(ghiChu, 200);
   x.capNhat = bay;
   capNhatTieuDe('LichMNK');
@@ -1320,9 +1455,9 @@ function luuLichMNK(u, p) {
   var tuNgay = ngayStr(p.tuNgay);
   if (!laThuHai(tuNgay)) throw loi('TUAN_SAI', 'Tuần không hợp lệ · 周次无效');
   var ds = docMayNen(), chon = mnkChonHopLe(ds, p.dsChay);
-  var x = lmnkDat(docLichMNK(), tuNgay, chon, u, p.ghiChu);
+  var x = lmnkDat(docLichMNK(), tuNgay, chon, u, p.ghiChu, p.dsChuyen);
   ghiNhatKy(u, 'LICH_MAY_NEN', 'LichMNK', tuNgay, '', chon.join(','), '');
-  return { lichMNK: [sachLMNK(x)] };
+  return { lichMNK: [sachLMNK(x)], tinh: mnkTinhCan(ds, x.dsChuyen) };
 }
 // Gợi ý máy chạy tuần tới: máy nào ít giờ kể từ lần bảo dưỡng trước thì chạy trước,
 // máy tuần trước đã chạy thì xếp sau (để các máy mòn đều và không dồn bảo dưỡng vào cùng một tuần).
@@ -1343,13 +1478,25 @@ function goiYLichMNK(u, p) {
     return (diem(a) - diem(b)) || ((daChay[a.id] ? 1 : 0) - (daChay[b.id] ? 1 : 0))
       || (a.thuTu - b.thuTu) || (a.ten < b.ten ? -1 : 1);
   };
-  var thuong = ds.filter(function (x) { return !x.bienTan; }).sort(xep).slice(0, MNK_THUONG);
-  var bt = ds.filter(function (x) { return x.bienTan; }).sort(xep).slice(0, MNK_BT);
+  // Số máy cần: theo lượng khí nén của các chuyền chạy tuần đó. Chưa khai lượng khí thì
+  // giữ nếp cũ của nhà máy: 3 máy thường + 1 máy biến tần.
+  var dsCh = p.dsChuyen !== undefined ? p.dsChuyen : ((truoc && truoc.dsChuyen) || []);
+  var tinh = mnkTinhCan(ds, dsCh);
+  var soBT = Math.min(MNK_BT, ds.filter(function (x) { return x.bienTan; }).length);
+  var soTh;
+  if (tinh.tongKhi > 0) {
+    soBT = Math.min(soBT, tinh.can);
+    soTh = Math.max(0, tinh.can - soBT);
+  } else {
+    soTh = MNK_THUONG;
+  }
+  var thuong = ds.filter(function (x) { return !x.bienTan; }).sort(xep).slice(0, soTh);
+  var bt = ds.filter(function (x) { return x.bienTan; }).sort(xep).slice(0, soBT);
   var chon = thuong.concat(bt).map(function (x) { return x.id; });
-  if (p.luu === false) return { goiY: chon };
-  var x = lmnkDat(docLichMNK(), tuNgay, chon, u, p.ghiChu);
+  if (p.luu === false) return { goiY: chon, tinh: tinh };
+  var x = lmnkDat(docLichMNK(), tuNgay, chon, u, p.ghiChu, p.dsChuyen);
   ghiNhatKy(u, 'GOI_Y_MAY_NEN', 'LichMNK', tuNgay, '', chon.join(','), '');
-  return { lichMNK: [sachLMNK(x)], goiY: chon };
+  return { lichMNK: [sachLMNK(x)], goiY: chon, tinh: tinh };
 }
 
 // ===================== Xác nhận bảo dưỡng =====================
@@ -1600,11 +1747,11 @@ var CV_KHOA = ['id', 'so', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'han', 'tra
 // nguon: 'SC' = bản ghi sửa chữa (Ghi sửa chữa), chỉ lưu làm lịch sử, không hiện trong danh sách công việc
 var VL_KHOA = ['id', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'kieu', 'ngay', 'uidLam', 'canKiemTra', 'hoatDong', 'taoDen', 'nguoiTao', 'capNhat',
   'tieuDeDich', 'moTaDich', 'uidPhu', 'dsGiao'];
-var CV_JSON = { uidPhu: 1, linhKien: 1, anhTao: 1, anhXong: 1, nhatKy: 1, dsGiao: 1, lichSu: 1, mocGio: 1, dsChay: 1 };
+var CV_JSON = { uidPhu: 1, linhKien: 1, anhTao: 1, anhXong: 1, nhatKy: 1, dsGiao: 1, lichSu: 1, mocGio: 1, dsChay: 1, dsChuyen: 1 };
 var CV_BOOL = { canKiemTra: 1, hoatDong: 1, nghiemNgat: 1, bienTan: 1 };
 var CV_NGAY = { han: 1, taoDen: 1, ngayKD: 1, ngayHetHan: 1, ngayKhaiBao: 1, ngayGhi: 1, tuNgay: 1 };
 // Cột số (giữ cả phần thập phân, vd 1234.5 giờ chạy)
-var CV_SO = { chuKyGio: 1, gioBD: 1, gio: 1, thuTu: 1 };
+var CV_SO = { chuKyGio: 1, gioBD: 1, gio: 1, thuTu: 1, congSuat: 1 };
 function obTuDong(khoa, r, i) {
   var o = { _r: i + 2 };
   khoa.forEach(function (k, j) {
@@ -4900,6 +5047,11 @@ var DL_EXCEL = {"nguon":"Sổ điện Credible T1–T10/2026 (đến kỳ 10/10)
   ["PCCC · 消防","nhanh",1,1,"",[null,null,null,null,null,null,null,null,null,null,null,null,954.54,989.9,995.34,1000.25,1003.04,1004.54,1007.59,null,null,1023.65,1041.34,1269.65,1288.65,1291.34,1292.4,1294.3,1295.09]]
 ]};
 // [DL_EXCEL] hết
+
+// Lượng khí nén từng chuyền dùng (m³/phút), theo bảng dùng khí của nhà máy.
+// Chuyền nào không có trong bảng thì để trống, app báo "chưa khai" chứ không tính bừa.
+var DL_KHI_NEN = { VKY01: 5, VKY02: 6, VKY03: 6, VKY04: 7, VKY06: 6, VKY08: 6, VKY09: 5,
+  VKY12: 6, VKY13: 12, VKY15: 6, VKY17: 6, VKY18: 6, VKY21: 5, VKY23: 6 };
 
 // [DL_CHUYEN] 16 chuyền theo Sổ cái quản lý cơ sở vật chất (VKY-PR-E01-03 Rev.1), thứ tự cột như CH_KHOA
 var DL_CHUYEN = [

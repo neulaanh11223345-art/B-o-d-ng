@@ -285,6 +285,8 @@ function mauLichTruc() {
     themDong('LichTruc', [congNgay(t2, i), n.id, n.ten, nd, ndZh, 'Quản lý', bay]);
   }
   lt(0, 'NV004', 'Trực điện xưởng 1, theo dõi máy nén khí', '1号车间电工值班，跟踪空压机');
+  // Ngày cao điểm xếp hai người, mỗi người một nội dung riêng
+  lt(0, 'NV005', 'Trực cơ khí xưởng 2, hỗ trợ đổi mã chuyền 5', '2号车间机修值班，协助5线换款');
   lt(1, 'NV003', 'Ghi số điện kỳ 20, trực xưởng 2', '抄录20日电表，2号车间值班');
   lt(2, 'NV006', 'Hỗ trợ chuyền VKY17 đổi mã, chờ máy in phun chạy xong', '协助VKY17线换款，等喷码机跑完');
   lt(4, 'NV005', 'Tra dầu máy cắt xưởng 1, kiểm tủ điện chuyền 3', '1号车间裁断机加油，检查3线电箱');

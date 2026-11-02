@@ -662,7 +662,7 @@ assert.match(await text('#barTitle'), /Lịch trực tháng/);
 const lich16 = await page.evaluate((ym) => {
   const { ds } = trucThangDS(ym);
   const co = ds.filter(trucCoNguoi);
-  return { n: ds.length, co: co.length, ten: co.length ? co[0].x.ten : '', trong: ds.filter((o) => !trucCoNguoi(o)).map((o) => o.ngay)[0] };
+  return { n: ds.length, co: co.length, ten: co.length ? co[0].ds[0].ten : '', trong: ds.filter((o) => !trucCoNguoi(o)).map((o) => o.ngay)[0] };
 }, ymMau);
 assert.equal(await page.locator('.trcal [data-act="trucXep"]').count(), lich16.n, 'lịch tháng có đủ mỗi ngày một ô, Quản lý bấm được: ' + lich16.n);
 assert.equal(await page.locator('.trcal .wd').count(), 7, 'bảy cột thứ, lịch bắt đầu từ thứ Hai');
@@ -714,16 +714,53 @@ assert.equal(await page.locator('.trcal').count(), 1, 'quay lại lịch tháng'
 assert.ok(lich16.trong, 'tháng mẫu có một ngày chưa xếp');
 await page.click(`[data-act="trucXep"][data-d="${lich16.trong}"]`); await wait(500);
 assert.match(await text('#barTitle'), /Xếp người trực/);
-assert.equal(await page.locator('#trND, #trNDZ').count(), 2, 'ô xếp người trực có lại phần nội dung trực song ngữ');
+assert.equal(await page.locator('.trND, .trNDZ').count(), 2, 'ô xếp người trực có lại phần nội dung trực song ngữ');
 const u16 = await page.evaluate(() => S.V.nv.find((n) => n.maNV === 'NV005').id);
-await page.selectOption('#trNg', u16); await wait();
-assert.equal(await page.locator('#trMau:visible').count(), 1, 'chọn người thì hiện màu của người đó');
-await page.fill('#trND', 'Kiểm tra bơm nước khu xử lý nước thải'); await wait();
+await page.selectOption('.trNg', u16); await wait(400);
+assert.equal(await page.locator('.trleg:visible').count(), 1, 'chọn người thì hiện màu của người đó');
+await page.fill('.trND', 'Kiểm tra bơm nước khu xử lý nước thải'); await wait();
 await page.click('#trOk'); await wait(1400);
-const d16 = await page.evaluate((d) => { const x = trucNgay(d); return { uid: x.uid, ten: x.ten, nd: x.noiDung, dich: !!x.noiDungDich }; }, lich16.trong);
+const d16 = await page.evaluate((d) => { const x = trucNgayDS(d)[0]; return { uid: x.uid, ten: x.ten, nd: x.noiDung, dich: !!x.noiDungDich }; }, lich16.trong);
 assert.equal(d16.uid, u16);
 assert.equal(d16.nd, 'Kiểm tra bơm nước khu xử lý nước thải');
 assert.equal(d16.dich, true, 'máy chủ vẫn tự dịch nội dung trực sang tiếng Trung');
+// Hai người trực cùng một ngày: mỗi người một nội dung riêng, ô lịch chia màu
+await page.click(`[data-act="trucXep"][data-d="${lich16.trong}"]`); await wait(600);
+await page.click('[data-act="trThemNguoi"]'); await wait(400);
+assert.equal(await page.locator('.trNg').count(), 2, 'thêm được người trực thứ hai');
+const u16b = await page.evaluate(() => S.V.nv.find((n) => n.maNV === 'NV006').id);
+await page.selectOption('.trNg >> nth=1', u16b); await wait(400);
+assert.equal(await page.locator('.trNg >> nth=1 >> option[value="' + u16 + '"]').count(), 0,
+  'người đã xếp ở dòng trên không chọn lại được');
+await page.click('[data-act="trChepND"]'); await wait(400);
+assert.equal(await page.inputValue('.trND >> nth=1'), 'Kiểm tra bơm nước khu xử lý nước thải', 'chép được nội dung của người đầu');
+await page.fill('.trND >> nth=1', 'Trực cơ khí, hỗ trợ chuyền 5'); await wait();
+await page.click('#trOk'); await wait(1500);
+const hai16 = await page.evaluate((d) => trucNgayDS(d).map((x) => ({ uid: x.uid, nd: x.noiDung, zh: !!x.noiDungDich })), lich16.trong);
+assert.equal(hai16.length, 2, 'một ngày giữ được hai người');
+assert.deepEqual(hai16.map((x) => x.uid), [u16, u16b]);
+assert.equal(hai16[1].nd, 'Trực cơ khí, hỗ trợ chuyền 5', 'người thứ hai có nội dung riêng');
+assert.equal(hai16[1].zh, true, 'người thứ hai cũng được dịch');
+const oHai = await page.evaluate((d) => {
+  const el = document.querySelector(`.trcal [data-d="${d}"]`);
+  return { nen: el.style.background, ten: Array.from(el.querySelectorAll('.nm')).map((x) => x.textContent) };
+}, lich16.trong);
+assert.match(oHai.nen, /linear-gradient/, 'ô lịch chia màu cho hai người');
+assert.equal(oHai.ten.length, 2, 'ô lịch hiện tên cả hai người');
+// Bảng chi tiết tuần ghi rõ hai người và nội dung của từng người
+await page.click('[data-act="trucChe"][data-m="tuan"]'); await wait(700);
+await page.evaluate((d) => { S.f.trucTuan = tcThuHai(d); render(); }, lich16.trong); await wait(500);
+const bangTuan16 = await text('#main');
+assert.match(bangTuan16, /2 người/, 'ngày hai người có chip đếm');
+assert.match(bangTuan16, /Trực cơ khí, hỗ trợ chuyền 5/, 'hiện nội dung của người thứ hai');
+await shot('24c-lich-truc-hai-nguoi');
+// Bỏ người thứ hai: ngày đó quay về một người
+await page.click(`[data-act="trucXep"][data-d="${lich16.trong}"]`); await wait(600);
+await page.click('[data-act="trBoNguoi"] >> nth=1'); await wait(400);
+await page.click('#trOk'); await wait(1500);
+assert.equal(await page.evaluate((d) => trucNgayDS(d).length, lich16.trong), 1, 'bỏ được người thứ hai');
+await page.click('[data-act="trucChe"][data-m="thang"]'); await wait(600);
+await page.evaluate((m) => { S.f.trucThang = m; render(); }, ymMau); await wait(400);
 const sau16 = await page.evaluate((m) => trucThangDS(m).ds.filter(trucCoNguoi).length, ymMau);
 assert.equal(sau16, lich16.co + 1, 'xếp thêm một ngày thì lịch tháng đếm thêm một');
 // Tổng số ca: số ngày trực và số ngày Chủ nhật
@@ -842,13 +879,13 @@ await page.click('[data-act="trucChep"]'); await wait(400);
 await page.click('[data-act="trucChepN"][data-n="2"]'); await wait(400);
 await page.click('[data-act="trucChepOk"][data-de="1"]'); await wait(1500);
 const chep16 = await page.evaluate((tu) => {
-  const g = (d) => { const x = trucNgay(d); return x ? { uid: x.uid } : null; };
+  const g = (d) => trucNgayDS(d).map((x) => x.uid);
   return { goc: g(tu), t1: g(addD(tu, 7)), t2: g(addD(tu, 14)), t3: g(addD(tu, 21)) };
 }, tuan16);
-assert.ok(chep16.goc && chep16.goc.uid, 'tuần nguồn có người trực');
-assert.deepEqual(chep16.t1, chep16.goc, 'chép sang tuần sau');
+assert.ok(chep16.goc.length >= 2, 'ngày nguồn có hai người trực: ' + JSON.stringify(chep16.goc));
+assert.deepEqual(chep16.t1, chep16.goc, 'chép sang tuần sau, đủ cả hai người');
 assert.deepEqual(chep16.t2, chep16.goc, 'chép sang tuần thứ hai');
-assert.equal(chep16.t3, null, 'không chép quá số tuần đã chọn');
+assert.deepEqual(chep16.t3, [], 'không chép quá số tuần đã chọn');
 // Cặp trực: sản xuất xếp theo cặp, hiện trong thứ tự luân phiên
 await page.evaluate(() => go('phanCaTuan')); await wait(700);
 assert.match(await text('#main'), /Cặp 1/, 'panel thứ tự luân phiên hiện theo cặp');
@@ -872,7 +909,7 @@ await page.evaluate(() => go('phanCaTuan')); await wait(600);
 assert.equal(await page.locator('[data-act="pcLP"]').count(), 0, 'kỹ thuật không có nút luân phiên');
 await page.evaluate(() => go('trucNguoi')); await wait(500);
 assert.match(await text('#barTitle'), /Chỉ Quản lý/);
-ok('Bản 2.17 + 2.31: lịch trực tháng điểm màu, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
+ok('Bản 2.17 + 2.33: lịch trực tháng điểm màu, một ngày nhiều người trực mỗi người một nội dung, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
 
 // 17. Bản 2.13: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng và gần hết hàng
 await logout(); await login('NV002', '222222');
@@ -1376,6 +1413,39 @@ const goiY21 = await page.evaluate(() => {
 assert.equal(goiY21.chon, 4);
 assert.equal(goiY21.bt, 1);
 assert.equal(goiY21.co, true, 'máy ít giờ nhất được xếp chạy');
+// Tính số máy cần bật theo lượng khí nén của các chuyền đang chạy
+const khi21 = await page.evaluate(() => mnkTinh(mnkChuyenTuan(tcThuHai(TODAY()))));
+assert.ok(khi21.soChuyen >= 10, 'đếm được các chuyền đang chạy: ' + khi21.soChuyen);
+assert.ok(khi21.tongKhi > 0, 'cộng được lượng khí nén từ danh mục chuyền');
+assert.equal(khi21.motMay, 27, 'một máy cấp 27 m³/phút');
+assert.equal(khi21.can, Math.ceil(khi21.tongKhi / 27), 'số máy cần = tổng khí ÷ công suất, làm tròn lên');
+assert.equal(khi21.tai, Math.round((khi21.tongKhi / (khi21.can * 27)) * 100), 'phần trăm tải khớp');
+const mTuan = await text('#main');
+assert.match(mTuan, /Chuyền sản xuất chạy tuần này/);
+assert.match(mTuan, /Số máy cần bật/);
+assert.match(mTuan, /chưa khai lượng khí nén/, 'chuyền chưa khai lượng khí thì báo rõ');
+// Hộp đổi máy: hiện phép tính và đánh dấu máy khuyến nghị
+await page.click('[data-act="mnkDoi"]'); await wait(600);
+const hopDoi = await text('#sheetBg');
+assert.match(hopDoi, new RegExp('Cần ' + khi21.can + ' máy'), 'hộp chọn máy nói rõ cần mấy máy');
+assert.match(hopDoi, /Khuyến nghị/, 'đánh dấu máy nên chạy');
+assert.equal(await page.locator('#sheetBg .pill.p-xong').count(), khi21.can, 'số máy khuyến nghị đúng bằng số cần');
+await page.click('#mkTheo'); await wait(300);
+assert.equal(await page.locator('#sheetBg .mkI:checked').count(), khi21.can, 'bấm tích theo khuyến nghị thì chọn đúng từng ấy máy');
+await page.click('#mkOk'); await wait(1300);
+if (await page.locator('[data-act="mnkNhacBo"]').count()) { await page.click('[data-act="mnkNhacBo"]'); await wait(400); }
+assert.equal(await page.evaluate(() => (mnkLichTuan(tcThuHai(TODAY())) || {}).dsChay.length), khi21.can);
+// Bỏ bớt chuyền thì số máy cần giảm theo
+await page.click('[data-act="mnkChonCh"]'); await wait(600);
+await page.click('#mcBo'); await wait(300);
+await page.evaluate(() => { const a = document.querySelectorAll('.mcI'); a[0].checked = true; a[0].dispatchEvent(new Event('change', { bubbles: true })); });
+await wait(300);
+assert.match(await text('#mcTong'), /1 chuyền chạy/, 'hộp chọn chuyền cộng lại ngay khi tích');
+await page.click('#mcOk'); await wait(1400);
+const itCh = await page.evaluate(() => mnkTinh(mnkChuyenTuan(tcThuHai(TODAY()))));
+assert.equal(itCh.soChuyen, 1, 'chỉ còn một chuyền chạy');
+assert.ok(itCh.can < khi21.can, 'ít chuyền thì cần ít máy hơn: ' + itCh.can + ' < ' + khi21.can);
+assert.match(await text('#main'), /chỉ cần|需/, 'lịch tuần đang xếp thừa máy thì báo để tắt bớt');
 await shot('42-may-nen-khi-lich-tuan');
 // Tổng hợp tháng + Excel hai sheet, máy quá hạn tô đỏ
 await page.click('[data-act="mnkSeg"][data-m="thang"]'); await wait(600);
@@ -1425,7 +1495,7 @@ assert.ok(await page.locator('[data-act="mnkGhiMay"]').count() >= 6, 'kỹ thu�
 await page.click('[data-act="mnkSeg"][data-m="tuan"]'); await wait(600);
 assert.equal(await page.locator('[data-act="mnkDoi"]').count(), 1, 'kỹ thuật tự đổi máy chạy được');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
-ok('Bản 2.32: máy nén khí — giờ chạy cộng dồn, mốc 3000 h và mốc phụ, lịch tuần 3 máy thường + 1 biến tần, gợi ý luân phiên, Excel tổng hợp');
+ok('Bản 2.32 + 2.33: máy nén khí — giờ chạy cộng dồn, mốc 3000 h và mốc phụ, số máy cần bật theo lượng khí nén của chuyền đang chạy, khuyến nghị chạy máy nào, lịch tuần và Excel tổng hợp');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
