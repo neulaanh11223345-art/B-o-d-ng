@@ -753,6 +753,37 @@ await page.evaluate((d) => { S.f.trucTuan = tcThuHai(d); render(); }, lich16.tro
 const bangTuan16 = await text('#main');
 assert.match(bangTuan16, /2 người/, 'ngày hai người có chip đếm');
 assert.match(bangTuan16, /Trực cơ khí, hỗ trợ chuyền 5/, 'hiện nội dung của người thứ hai');
+// Giờ trực: mỗi lượt một khung giờ riêng, Chủ nhật lấy khung giờ của Chủ nhật
+assert.match(await text('#main'), /Giờ mặc định/, 'đầu màn ghi giờ mặc định ngày thường và Chủ nhật');
+const gioMD = await page.evaluate(() => ({ thuong: trucGioMacDinh('2026-01-05'), cn: trucGioMacDinh('2026-01-04') }));
+assert.deepEqual(gioMD.thuong, { tu: '17:00', den: '19:30' });
+assert.deepEqual(gioMD.cn, { tu: '07:30', den: '17:00' }, 'Chủ nhật mặc định 07:30 – 17:00');
+const cnNay = await page.evaluate(() => addD(tcThuHai(TODAY()), 6));
+await page.click(`[data-act="trucXep"][data-d="${lich16.trong}"]`); await wait(600);
+assert.equal(await page.locator('.trTu, .trDen').count(), 4, 'hai lượt trực, mỗi lượt có ô Từ và Đến');
+await page.fill('.trTu >> nth=0', '17:30'); await wait(400);
+await page.fill('.trDen >> nth=0', '21:00'); await wait(400);
+assert.match(await text('#main'), /3[.,]5 giờ/, 'app tính luôn số giờ của lượt đó');
+await page.click('#trOk'); await wait(1500);
+const gio16 = await page.evaluate((d) => trucNgayDS(d).map((x) => ({ tu: x.tu, den: x.den, txt: trucGioTxt(x, d), gio: trucSoGio(x, d) })), lich16.trong);
+assert.equal(gio16[0].txt, '17:30 – 21:00', 'giờ riêng được lưu');
+assert.equal(gio16[0].gio, 3.5);
+// Ngày để trống giờ thì theo mặc định của ngày đó, Chủ nhật khác ngày thường
+const cnTxt = await page.evaluate((d) => trucGioTxt({ tu: '', den: '' }, d), cnNay);
+assert.equal(cnTxt, '07:30 – 17:00', 'Chủ nhật lấy khung giờ Chủ nhật');
+// Sửa giờ mặc định
+await page.click('[data-act="trucGioCfg"]'); await wait(600);
+await page.fill('#gcTu', '17:00'); await page.fill('#gcDen', '19:00');
+await page.fill('#gcCnTu', '07:30'); await page.fill('#gcCnDen', '17:00');
+await page.click('#gcOk'); await wait(1400);
+assert.deepEqual(await page.evaluate(() => trucGioMacDinh('2026-01-05')), { tu: '17:00', den: '19:00' }, 'giờ mặc định ngày thường đã đổi');
+assert.equal(await page.evaluate((d) => trucNgayDS(d)[0].tu, lich16.trong), '17:30', 'lượt đã ghi giờ riêng không bị đổi theo');
+// Tổng số ca cộng cả số giờ
+await page.evaluate(() => go('trucTong')); await wait(700);
+assert.match(await text('.dt thead'), /Số giờ trực/, 'bảng tổng có cột số giờ');
+const tongGio = await page.evaluate((m) => trucTongDS(m).map((x) => x.gio), ymMau);
+assert.ok(tongGio.every((g) => g > 0), 'mỗi người có số giờ trực: ' + JSON.stringify(tongGio));
+await page.evaluate(() => back()); await wait(500);
 await shot('24c-lich-truc-hai-nguoi');
 // Bỏ người thứ hai: ngày đó quay về một người
 await page.click(`[data-act="trucXep"][data-d="${lich16.trong}"]`); await wait(600);
@@ -909,7 +940,7 @@ await page.evaluate(() => go('phanCaTuan')); await wait(600);
 assert.equal(await page.locator('[data-act="pcLP"]').count(), 0, 'kỹ thuật không có nút luân phiên');
 await page.evaluate(() => go('trucNguoi')); await wait(500);
 assert.match(await text('#barTitle'), /Chỉ Quản lý/);
-ok('Bản 2.17 + 2.33: lịch trực tháng điểm màu, một ngày nhiều người trực mỗi người một nội dung, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
+ok('Bản 2.17 + 2.34: lịch trực tháng điểm màu, một ngày nhiều người trực, mỗi lượt một giờ và một nội dung riêng, Chủ nhật khung giờ riêng, tổng số giờ trực, chép tuần, phân ca theo cặp; kỹ thuật chỉ xem');
 
 // 17. Bản 2.13: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng và gần hết hàng
 await logout(); await login('NV002', '222222');
