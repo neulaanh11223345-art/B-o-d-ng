@@ -99,19 +99,21 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 
 ## Điểm mới của v2.34.0: đơn tăng ca in đúng mẫu giấy mới
 
-Mẫu đơn công ty đổi sang **ĐƠN XIN TỰ NGUYỆN TĂNG CA · 自愿加班申请表**, khác hẳn mẫu cũ: trước là *một người — cả tuần*, nay là **một tờ — nhiều người**, mỗi dòng một lượt tăng ca.
+Mẫu đơn công ty đổi sang **ĐƠN XIN TỰ NGUYỆN TĂNG CA · 自愿加班申请表**. Vẫn **mỗi người một đơn cho cả tuần** như trước — Tiến một đơn, Hồng một đơn — nhưng bố cục và các cột theo mẫu mới, mỗi dòng là một lượt tăng ca của người đó.
 
 Đơn in ra đúng mẫu giấy:
 
 - Đầu tờ: logo + tên công ty, *Ngày tăng ca 加班日期* ghi khoảng ngày (vd *Từ ngày 02/11 - 08/11*), *Bộ phận 部门：Sản xuất ( VKY........ - Ca... ....)* để điền tay, và đoạn cam kết tự nguyện song ngữ.
-- Bảng **đúng 15 dòng** như giấy, 9 cột: TT · Mã số thẻ · Họ và tên · **KÝ TÊN** (để trống cho người ký) · Vị trí - Chức vụ · Từ · Đến · Số tiếng thực tế tăng ca · Ghi chú.
+- Bảng **đúng 15 dòng** như giấy, 9 cột: TT · Mã số thẻ · Họ và tên (kèm **tên tiếng Trung**) · **KÝ TÊN** (để trống cho người ký) · Vị trí - Chức vụ · Từ · Đến · Số tiếng thực tế tăng ca · Ghi chú.
 - Giờ viết kiểu **17h00**, số tiếng số nguyên viết **01 / 02**, cột Ghi chú ghi **ngày** của lượt đó (02/11).
 - Cuối tờ: *Lý do xin tăng ca 申请加班原因* gom các lý do trong tờ, và **năm ô ký**: Lập biểu 制表 · Người xác nhận 审核人 · Trưởng bộ phận 部门经理 · Hành chính nhân sự 行政人事 · Phê duyệt 核准.
-- Quá 15 lượt thì sang tờ sau, đánh *Tờ 1/2*.
+- Một người tăng ca quá 15 lượt trong tuần thì sang tờ sau, đánh *Tờ 1/2*.
 
-**Quản lý in cả nhà máy** trong một tờ (đúng tinh thần mẫu giấy), có thanh chọn **Chỉ mình tôi** khi cần trình ký lẻ. Nhân viên chỉ in được của chính mình.
+**Quản lý bấm in một lần ra cả xấp**: mỗi người một tờ, xếp theo tên, ai tăng ca mấy ngày thì gom hết vào tờ của người đó. Có thanh chọn **Chỉ mình tôi** khi cần in lẻ. Nhân viên chỉ in được đơn của chính mình.
 
 Vừa đúng một trang A4 dọc, in trực tiếp từ điện thoại hoặc máy tính.
+
+**Logo công ty** lấy từ chính file mẫu đơn (vòng xoắn cam + chữ *Credible 可悦*), nhúng thẳng vào app dưới dạng ảnh nền nên in được cả khi mất mạng. Dấu hiệu vòng xoắn thay luôn biểu tượng cũ của app: màn đăng nhập, sidebar, và **icon ngoài màn hình chính điện thoại** (`src/icons/`). Logo trong file mẫu chỉ 439 × 140 px nên icon 512 px hơi mờ — có file logo to hơn thì thay vào `src/icons/` rồi build lại là nét.
 
 ## Điểm mới của v2.34.0: đối chiếu giờ trực với giờ tăng ca
 

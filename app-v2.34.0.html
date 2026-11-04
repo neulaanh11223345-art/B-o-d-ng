@@ -72,6 +72,8 @@ button{cursor:pointer}
 .bar{position:sticky;top:0;z-index:30;background:var(--card);color:var(--ink);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
 .bar-in{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:10px;height:var(--bar-h);padding:0 12px}
 .bar .logo{width:38px;height:38px;border:0;padding:0;background:none;border-radius:10px;flex:none}
+.lgo{display:inline-flex;align-items:center;justify-content:center;background:#fff;border-radius:22%;overflow:hidden;width:100%;height:100%}
+.lgo img{width:76%;height:76%;object-fit:contain;display:block}
 .bar .logo svg{width:38px;height:38px;display:block}
 .bar .back{width:40px;height:40px;border:0;background:var(--brand-bg);color:var(--brand);border-radius:12px;display:grid;place-items:center;flex:none}
 .bar .ttl{flex:1;min-width:0;line-height:1.15}
@@ -355,7 +357,7 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 @media (min-width:1024px){
   .side{display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;width:var(--side-w);background:#0F2A5C;color:#DCE6FA;z-index:45;padding:14px 12px;overflow-y:auto}
   .side .brandrow{display:flex;align-items:center;gap:10px;padding:4px 6px 14px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:10px}
-  .side .brandrow svg{width:40px;height:40px;flex:none}
+  .side .brandrow svg,.side .brandrow .lgo{width:40px;height:40px;flex:none}
   .side .brandrow b{display:block;font-size:15px;line-height:1.2;color:#fff}
   .side .brandrow small{display:block;font-family:var(--f-zh);font-size:12px;color:#AFC3EE}
   .side .nav{display:flex;align-items:center;gap:11px;width:100%;border:0;background:none;color:#DCE6FA;text-align:left;padding:10px 12px;border-radius:11px;font-size:14.5px;font-weight:600;line-height:1.2}
@@ -382,7 +384,7 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 /* ---------- đăng nhập ---------- */
 .login{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:calc(36px + env(safe-area-inset-top,0px)) 16px 24px;background:linear-gradient(180deg,#E9F0FE 0%,var(--bg) 46%);color:var(--ink)}
 .login .brand{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
-.login .brand svg{width:76px;height:76px}
+.login .brand svg,.login .brand .lgo{width:76px;height:76px}
 .login h1{margin:4px 0 0;font-size:23px;letter-spacing:-.01em;color:var(--brand2)}
 .login h1 small{display:block;font-family:var(--f-zh);font-size:16px;font-weight:500;color:var(--ink2);margin-top:2px}
 .login .lbl{margin:22px 0 10px;color:var(--ink2);font-size:14px;text-align:center}
@@ -448,8 +450,8 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 /* ----- Đơn xin tự nguyện tăng ca: in đúng mẫu giấy của công ty ----- */
 .tcsheet.don{padding:14px 12px 16px}
 .tcsheet .dh{border-collapse:collapse;margin-bottom:2px}
-.tcsheet .dh .lg{width:92px;padding:0 6px 0 0}
-.tcsheet .dh .lg svg{width:46px;height:46px;display:block}
+.tcsheet .dh .lg{width:140px;padding:0 8px 0 0}
+.tcsheet .dh .lg img{width:100%;max-width:132px;display:block}
 .tcsheet .dh .co{text-align:center;font-weight:700;font-size:clamp(12px,3vw,15px);line-height:1.3}
 .tcsheet.don .tt{margin-top:4px;font-size:clamp(15px,4.2vw,20px)}
 .tcsheet.don .tt .zh{display:inline;font-size:.78em;margin-left:8px}
@@ -1747,7 +1749,11 @@ const IC = {
   list: `<svg ${ICP}><path d="M8 6.5h12M8 12h12M8 17.5h12"/><circle cx="4" cy="6.5" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="17.5" r="1"/></svg>`,
   keyb: `<svg ${ICP}><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M7 14h10"/></svg>`
 };
-const LOGO = '<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#1E5EEA"/><circle cx="32" cy="32" r="18" fill="none" stroke="#fff" stroke-width="6.5" stroke-dasharray="7.2 6.937" stroke-dashoffset="3.6"/><circle cx="32" cy="32" r="16" fill="#fff"/><circle cx="32" cy="32" r="10.8" fill="#1E5EEA"/><path d="M26.6 32.4l3.9 3.9 7.2-7.6" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// Logo công ty Credible 可悦, cắt từ chính mẫu đơn giấy. Dấu hiệu (vòng xoắn) dùng trong app,
+// logo đủ chữ dùng ở đầu các tờ in cho giống hệt mẫu giấy.
+const LOGO_MARK = 'data:image/png;base64,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';
+const LOGO_FULL = 'data:image/png;base64,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';
+const LOGO = `<span class="lgo"><img src="${LOGO_MARK}" alt="Credible"></span>`;
 
 // ===================== Trạng thái =====================
 const S = {
@@ -9286,8 +9292,8 @@ Object.assign(TX, {
   tcQuaThang: ['Vượt {g} giờ/tháng theo luật lao động — đang là {n} giờ', '超过法定每月{g}小时 — 当前{n}小时'],
   tcQuaNam: ['Vượt {g} giờ/năm theo luật lao động — đang là {n} giờ', '超过法定每年{g}小时 — 当前{n}小时'],
   tcXemDon: ['Xem trước & in đơn', '预览并打印申请单'], tcInPdf: ['In / Lưu PDF', '打印 / 保存PDF'],
-  tcDonCaNM: ['Cả nhà máy', '全厂'], tcDonMotNguoi: ['Chỉ mình tôi', '仅本人'],
-  tcDonSoLuot: ['Tuần này có {n} lượt tăng ca', '本周共 {n} 次加班'],
+  tcDonCaNM: ['Mỗi người một tờ', '每人一张'], tcDonMotNguoi: ['Chỉ mình tôi', '仅本人'],
+  tcDonSoLuot: ['Tuần này có {n} lượt tăng ca · {m} tờ đơn', '本周共 {n} 次加班 · {m} 张申请表'],
   tcInHelp: ['Trên iPhone: bấm nút này, Safari hiện trang in, chọn Chia sẻ → Lưu vào Tệp là ra PDF. Trên máy tính: chọn máy in "Save as PDF".', 'iPhone：点击后Safari显示打印页，选择"共享→存储到文件"即可生成PDF。电脑：打印机选择"Save as PDF"。'],
   tcXuatTuan: ['Xuất Excel tuần', '导出本周Excel'], tcXuatThang: ['Xuất Excel tổng hợp tháng', '导出月度汇总Excel'],
   tcMoThang: ['Tổng hợp theo tháng', '月度汇总'], tcNguoiXem: ['Đang xem', '正在查看'], tcCuaToi: ['Tăng ca của tôi', '我的加班'],
@@ -9478,8 +9484,9 @@ async function tcGui() {
 
 // ---------- Tờ đơn ----------
 // Đơn xin tự nguyện tăng ca — in đúng mẫu giấy của công ty (ĐƠN XIN TỰ NGUYỆN TĂNG CA · 自愿加班申请表).
-// Một tờ = một khoảng ngày (mặc định cả tuần), mỗi DÒNG là một lượt tăng ca của một người,
-// đúng 15 dòng một tờ như mẫu giấy; dư thì sang tờ sau. Cột Ghi chú ghi ngày của lượt đó.
+// MỖI NGƯỜI MỘT TỜ cho cả khoảng ngày (mặc định một tuần): Tiến một đơn, Hồng một đơn.
+// Mỗi DÒNG là một lượt tăng ca của người đó, đúng 15 dòng một tờ như mẫu giấy; dư thì sang tờ sau.
+// Cột Ghi chú ghi ngày của lượt đó.
 const TC_DON_DONG = 15;
 const tcGioDon = (t0) => String(t0 || '').replace(':', 'h');
 // Số tiếng viết như mẫu: số nguyên thì hai chữ số (01, 02), lẻ thì giữ phần thập phân (2,5)
@@ -9496,26 +9503,39 @@ function tcDonDS(tu, den, uid) {
 function tcDonHtml(uid, tu, den) {
   const d2 = den || addD(tu, 6);
   const ds = tcDonDS(tu, d2, uid);
-  const so = Math.max(1, Math.ceil(ds.length / TC_DON_DONG));
-  // Lý do in ở cuối tờ: gom các lý do khác nhau của những lượt trong tờ đó
+  // Gom theo người: mỗi người một tờ (hoặc nhiều tờ nếu quá 15 lượt)
+  const theoNg = [], viTri = {};
+  ds.forEach((x) => {
+    if (viTri[x.uid] === undefined) { viTri[x.uid] = theoNg.length; theoNg.push({ uid: x.uid, ds: [] }); }
+    theoNg[viTri[x.uid]].ds.push(x);
+  });
+  theoNg.sort((a, b) => (tcNguoi(a.uid).ten || '').localeCompare(tcNguoi(b.uid).ten || ''));
+  const to = [];
+  theoNg.forEach((g) => {
+    const n = Math.max(1, Math.ceil(g.ds.length / TC_DON_DONG));
+    for (let i = 0; i < n; i++) to.push({ uid: g.uid, a: g.ds.slice(i * TC_DON_DONG, (i + 1) * TC_DON_DONG), i, n });
+  });
+  if (!to.length) to.push({ uid: uid || (S.me || {}).id || '', a: [], i: 0, n: 1 });
   const khoang = tu === d2 ? fmtD(tu) : 'Từ ngày ' + fmtDM(tu) + ' - ' + fmtDM(d2);
   let o = '';
-  for (let k = 0; k < so; k++) {
-    const a = ds.slice(k * TC_DON_DONG, (k + 1) * TC_DON_DONG);
+  for (let k = 0; k < to.length; k++) {
+    const a = to[k].a, so = to[k].n;
     let tr = '';
     for (let i = 0; i < TC_DON_DONG; i++) {
-      const x = a[i], stt = k * TC_DON_DONG + i + 1;
+      const x = a[i], stt = to[k].i * TC_DON_DONG + i + 1;
       if (!x) { tr += `<tr><td>${stt}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`; continue; }
       const n = tcNguoi(x.uid);
+      // Họ tên in kèm tên tiếng Trung, đúng như sổ nhân sự song ngữ
+      const tenZh = n.tenZh && n.tenZh !== n.ten ? ` <span class="zh">${esc(n.tenZh)}</span>` : '';
       tr += `<tr><td>${stt}</td><td class="mono">${esc(n.maThe)}</td>
-        <td class="l">${esc(n.ten)}</td><td></td><td class="l">${esc(n.chucVu || n.boPhan)}</td>
+        <td class="l">${esc(n.ten)}${tenZh}</td><td></td><td class="l">${esc(n.chucVu || n.boPhan)}</td>
         <td class="mono">${esc(tcGioDon(x.tu))}</td><td class="mono">${esc(tcGioDon(x.den))}</td>
         <td class="mono">${tcSoDon(x.soGio)}</td><td class="mono">${fmtDM(x.ngay)}</td></tr>`;
     }
     const ly = [];
     a.forEach((x) => { const v = String(x.lyDo || '').trim(); if (v && ly.indexOf(v) < 0) ly.push(v); });
     o += `<div class="tcsheet don">
-      <table class="dh"><tr><td class="lg">${LOGO}</td>
+      <table class="dh"><tr><td class="lg"><img src="${LOGO_FULL}" alt="Credible 可悦"></td>
         <td class="co">CÔNG TY TNHH CREDIBLE VIỆT NAM <span class="zh">可悦（越南）有限公司</span></td></tr></table>
       <div class="tt">ĐƠN XIN TỰ NGUYỆN TĂNG CA<span class="zh">自愿加班申请表</span></div>
       <div class="d3"><span>Ngày tăng ca <span class="zh">加班日期</span>: <u>${esc(khoang)}</u></span>
@@ -9537,7 +9557,7 @@ function tcDonHtml(uid, tu, den) {
       <div class="ky5">${[['Lập biểu', '制表'], ['Người xác nhận', '审核人'], ['Trưởng bộ phận', '部门经理'],
         ['Hành chính nhân sự', '行政人事'], ['Phê duyệt', '核准']].map(([v, z]) => `<div>${v}<span class="zh">${z}</span>
         <em>Ngày<span class="zh">日期</span> : ................</em></div>`).join('')}</div>
-      ${so > 1 ? `<div class="tto">Tờ ${k + 1}/${so}</div>` : ''}</div>`;
+      ${so > 1 ? `<div class="tto">Tờ ${to[k].i + 1}/${so}</div>` : ''}</div>`;
   }
   return o;
 }
@@ -9546,14 +9566,15 @@ function tcDonHtml(uid, tu, den) {
 const tcDonUid = () => (xemHet() && !S.f.tcDonMot ? '' : tcUid());
 VIEWS.tcXem = {
   html() {
-    const tu = tcTuanHT(), uid = tcDonUid(), n = tcDonDS(tu, addD(tu, 6), uid).length;
+    const tu = tcTuanHT(), uid = tcDonUid(), ds0 = tcDonDS(tu, addD(tu, 6), uid);
+    const n = ds0.length, m = new Set(ds0.map((x) => x.uid)).size || 1;
     let o = '';
     if (xemHet()) {
       o += `<div class="seg" style="margin-bottom:12px">${[['', 'tcDonCaNM'], ['1', 'tcDonMotNguoi']].map(([k, lb]) =>
         `<button class="${(S.f.tcDonMot || '') === k ? 'on' : ''}" data-act="tcDonChe" data-m="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div>`;
     }
-    o += `<div class="help" style="margin-bottom:10px">${esc(tv('tcDonSoLuot', { n }))}
-      <span class="zi" lang="zh-CN">${esc(tz('tcDonSoLuot', { n }))}</span></div>`;
+    o += `<div class="help" style="margin-bottom:10px">${esc(tv('tcDonSoLuot', { n, m }))}
+      <span class="zi" lang="zh-CN">${esc(tz('tcDonSoLuot', { n, m }))}</span></div>`;
     o += `<div class="card" style="padding:10px"><div class="tcwrap">${tcDonHtml(uid, tu)}</div></div>
       <div class="btns" style="margin-top:13px"><button class="btn pri" data-act="tcIn">${IC.dl} ${t('tcInPdf')}</button>
         <button class="btn ghost" data-act="tcXuatTuan">${IC.dl} ${t('tcXuatTuan')}</button></div>

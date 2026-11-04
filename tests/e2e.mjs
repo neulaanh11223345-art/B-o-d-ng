@@ -526,6 +526,12 @@ await page.evaluate(() => go('tcXem')); await wait(500);
 const don = await text('.tcsheet.don');
 assert.match(don, /ĐƠN XIN TỰ NGUYỆN TĂNG CA/); assert.match(don, /自愿加班申请表/);
 assert.match(don, /CÔNG TY TNHH CREDIBLE VIỆT NAM/);
+// Logo công ty lấy từ chính mẫu đơn giấy, nhúng thẳng vào app nên in offline vẫn có
+assert.equal(await page.locator('.tcsheet.don .dh .lg img').count(), 1, 'đầu tờ có logo công ty');
+assert.ok(await page.evaluate(() => {
+  const i = document.querySelector('.tcsheet.don .dh .lg img');
+  return i.src.startsWith('data:image/png;base64,') && i.naturalWidth > 0;
+}), 'logo nhúng sẵn và tải được');
 ['Mã số thẻ', 'Họ và tên', 'KÝ TÊN', 'Vị trí - Chức vụ', 'Số tiếng thực tế tăng ca', 'Ghi chú']
   .forEach((k) => assert.ok(don.includes(k), 'đơn có cột ' + k));
 ['员工号', '签名', '职位', '加班实际小时数', '备注'].forEach((k) => assert.ok(don.includes(k), 'cột song ngữ ' + k));
@@ -547,6 +553,7 @@ assert.ok(hangDon.some((r) => r[5] === '22h00' && r[6] === '02h00'), 'lượt t�
 // Kỹ thuật chỉ in đơn của chính mình, không có thanh chọn cả nhà máy
 assert.equal(await page.locator('[data-act="tcDonChe"]').count(), 0, 'kỹ thuật không chọn in cả nhà máy');
 assert.equal(new Set(hangDon.map((r) => r[1])).size, 1, 'đơn của kỹ thuật chỉ có một người');
+assert.match(hangDon[0][2], /\s[\u4e00-\u9fff]/, 'họ tên in kèm tên tiếng Trung');
 await shot('18-tang-ca-don');
 assert.ok(await page.evaluate(() => XW.build([tcSheet(tcLoc(tcUid(), tcTuanHT(), addD(tcTuanHT(), 6)), 'x', 'y')]).size) > 2000, 'xuất được Excel tuần');
 // Kỹ thuật chỉ thấy tăng ca của mình.
@@ -558,18 +565,22 @@ assert.equal(await page.locator('.tcrow[data-act="tcNguoiMo"]').count(), 1, 'k�
 assert.equal(await page.locator('#tcNguoi').count(), 0, 'kỹ thuật không chọn được người khác');
 // Quản lý thấy cả nhà máy và sửa được ca làm việc
 await logout(); await login('NV002', '222222');
-// Đơn tăng ca của Quản lý gom cả nhà máy vào một tờ, chuyển được sang in riêng một người
+// Quản lý in cho cả nhà máy thì MỖI NGƯỜI MỘT TỜ: Tiến một đơn, Hồng một đơn
 await page.evaluate(() => { S.f.tcDonMot = ''; go('tcXem'); }); await wait(700);
-assert.equal(await page.locator('[data-act="tcDonChe"]').count(), 2, 'Quản lý chọn được cả nhà máy / chỉ mình tôi');
-const donQL = await page.evaluate(() => Array.from(document.querySelectorAll('.tcsheet.don .ot tr'))
-  .slice(2).map((tr) => tr.children[1].textContent.trim()).filter(Boolean));
-assert.ok(new Set(donQL).size > 1, 'một tờ gom nhiều người: ' + JSON.stringify(donQL));
-assert.ok(donQL.length >= 5, 'gom hết lượt tăng ca trong tuần: ' + donQL.length);
-await shot('18b-tang-ca-don-ca-nha-may');
+assert.equal(await page.locator('[data-act="tcDonChe"]').count(), 2, 'Quản lý chọn được mỗi người một tờ / chỉ mình tôi');
+const toQL = await page.evaluate(() => Array.from(document.querySelectorAll('.tcsheet.don')).map((sh) => {
+  const r = Array.from(sh.querySelectorAll('.ot tr')).slice(2)
+    .map((tr) => Array.from(tr.children).map((td) => td.textContent.trim())).filter((x) => x[1]);
+  return { the: Array.from(new Set(r.map((x) => x[1]))), ten: r[0] ? r[0][2] : '', dong: r.length };
+}));
+assert.ok(toQL.length >= 3, 'mỗi người một tờ: ' + toQL.length + ' tờ');
+assert.ok(toQL.every((t0) => t0.the.length === 1), 'mỗi tờ chỉ một người: ' + JSON.stringify(toQL.map((x) => x.the)));
+assert.equal(new Set(toQL.map((t0) => t0.the[0])).size, toQL.length, 'không tờ nào trùng người');
+assert.ok(toQL.some((t0) => t0.dong > 1), 'người tăng ca nhiều ngày thì gom hết vào một tờ');
+assert.ok(toQL.every((t0) => /\s[\u4e00-\u9fff]/.test(t0.ten)), 'họ tên in kèm tên tiếng Trung: ' + JSON.stringify(toQL.map((x) => x.ten)));
+await shot('18b-tang-ca-don-moi-nguoi-mot-to');
 await page.click('[data-act="tcDonChe"][data-m="1"]'); await wait(600);
-const donMot = await page.evaluate(() => Array.from(document.querySelectorAll('.tcsheet.don .ot tr'))
-  .slice(2).map((tr) => tr.children[1].textContent.trim()).filter(Boolean));
-assert.ok(donMot.length < donQL.length, 'chuyển sang chỉ in một người');
+assert.equal(await page.locator('.tcsheet.don').count(), 1, 'chuyển sang chỉ in đơn của mình');
 await page.evaluate(() => { S.f.tcDonMot = ''; }); await wait(200);
 await page.evaluate((m) => { S.f.tcThang = m; go('tcThang'); }, tcThangMau); await wait(600);
 assert.ok(await page.locator('.tcrow[data-act="tcNguoiMo"]').count() > 1, 'Quản lý thấy nhiều người');
