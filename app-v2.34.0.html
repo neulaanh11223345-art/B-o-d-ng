@@ -445,6 +445,26 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .tcsheet .ky{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:26px;text-align:center;font-size:clamp(10.5px,2.6vw,13px);font-weight:700}
 .tcsheet .ky span{display:block;font-family:var(--f-zh);font-weight:400;font-size:.88em;margin-top:2px}
 .tcsheet .tto{position:absolute;right:18px;bottom:7px;margin:0;text-align:right;font-size:6px;line-height:1.2;color:#666}
+/* ----- Đơn xin tự nguyện tăng ca: in đúng mẫu giấy của công ty ----- */
+.tcsheet.don{padding:14px 12px 16px}
+.tcsheet .dh{border-collapse:collapse;margin-bottom:2px}
+.tcsheet .dh .lg{width:92px;padding:0 6px 0 0}
+.tcsheet .dh .lg svg{width:46px;height:46px;display:block}
+.tcsheet .dh .co{text-align:center;font-weight:700;font-size:clamp(12px,3vw,15px);line-height:1.3}
+.tcsheet.don .tt{margin-top:4px;font-size:clamp(15px,4.2vw,20px)}
+.tcsheet.don .tt .zh{display:inline;font-size:.78em;margin-left:8px}
+.tcsheet .d3{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0 6px;font-size:clamp(10.5px,2.6vw,12.5px);font-weight:600}
+.tcsheet .d3 u{text-decoration:none;border-bottom:1px solid #333;min-width:120px;display:inline-block;font-weight:400;text-align:center}
+.tcsheet .cam{font-size:clamp(10px,2.5vw,12px);line-height:1.45;margin:4px 0 8px;font-style:italic}
+.tcsheet.don .ot td{height:26px;padding:4px 3px;font-size:clamp(10px,2.4vw,12px)}
+.tcsheet.don .ot th{padding:4px 3px;font-size:clamp(9.5px,2.3vw,11.5px);line-height:1.2}
+.tcsheet.don .ot td.l{text-align:left;padding-left:6px}
+.tcsheet .ly{margin-top:9px;font-size:clamp(10.5px,2.6vw,12.5px);font-weight:600}
+.tcsheet .ly u{text-decoration:none;border-bottom:1px solid #333;display:inline-block;min-width:60%;font-weight:400}
+.tcsheet .ky5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:20px;text-align:center;font-size:clamp(9.5px,2.3vw,11.5px);font-weight:700}
+.tcsheet .ky5 .zh{display:block;font-weight:400;font-size:.9em;margin-top:1px}
+.tcsheet .ky5 em{display:block;font-style:normal;font-weight:400;font-size:.92em;margin-top:48px}
+@media print{.tcsheet.don{padding:8px 6px}.tcsheet .ky5 em{margin-top:52px}}
 .tcrow{width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);color:var(--ink);display:flex;flex-direction:column;gap:8px;cursor:pointer;font:inherit}
 .navnhom{padding:14px 12px 5px;font:700 11px/1.3 var(--f);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .navnhom .zi{font-weight:600;letter-spacing:0}
@@ -9266,6 +9286,8 @@ Object.assign(TX, {
   tcQuaThang: ['Vượt {g} giờ/tháng theo luật lao động — đang là {n} giờ', '超过法定每月{g}小时 — 当前{n}小时'],
   tcQuaNam: ['Vượt {g} giờ/năm theo luật lao động — đang là {n} giờ', '超过法定每年{g}小时 — 当前{n}小时'],
   tcXemDon: ['Xem trước & in đơn', '预览并打印申请单'], tcInPdf: ['In / Lưu PDF', '打印 / 保存PDF'],
+  tcDonCaNM: ['Cả nhà máy', '全厂'], tcDonMotNguoi: ['Chỉ mình tôi', '仅本人'],
+  tcDonSoLuot: ['Tuần này có {n} lượt tăng ca', '本周共 {n} 次加班'],
   tcInHelp: ['Trên iPhone: bấm nút này, Safari hiện trang in, chọn Chia sẻ → Lưu vào Tệp là ra PDF. Trên máy tính: chọn máy in "Save as PDF".', 'iPhone：点击后Safari显示打印页，选择"共享→存储到文件"即可生成PDF。电脑：打印机选择"Save as PDF"。'],
   tcXuatTuan: ['Xuất Excel tuần', '导出本周Excel'], tcXuatThang: ['Xuất Excel tổng hợp tháng', '导出月度汇总Excel'],
   tcMoThang: ['Tổng hợp theo tháng', '月度汇总'], tcNguoiXem: ['Đang xem', '正在查看'], tcCuaToi: ['Tăng ca của tôi', '我的加班'],
@@ -9455,54 +9477,88 @@ async function tcGui() {
 }
 
 // ---------- Tờ đơn ----------
-function tcDonHtml(uid, tu) {
-  const n = tcNguoi(uid), den = addD(tu, 6), ds = tcLoc(uid, tu, den);
-  const so = Math.max(1, Math.ceil(ds.length / 6)), tongAll = tcCong(ds);
+// Đơn xin tự nguyện tăng ca — in đúng mẫu giấy của công ty (ĐƠN XIN TỰ NGUYỆN TĂNG CA · 自愿加班申请表).
+// Một tờ = một khoảng ngày (mặc định cả tuần), mỗi DÒNG là một lượt tăng ca của một người,
+// đúng 15 dòng một tờ như mẫu giấy; dư thì sang tờ sau. Cột Ghi chú ghi ngày của lượt đó.
+const TC_DON_DONG = 15;
+const tcGioDon = (t0) => String(t0 || '').replace(':', 'h');
+// Số tiếng viết như mẫu: số nguyên thì hai chữ số (01, 02), lẻ thì giữ phần thập phân (2,5)
+function tcSoDon(n) {
+  const v = Math.round((+n || 0) * 100) / 100;
+  return Number.isInteger(v) ? ('0' + v).slice(-2) : fmtNum(v, 'raw');
+}
+// Các lượt tăng ca của một khoảng ngày: Quản lý in cả nhà máy, nhân viên in của chính mình
+function tcDonDS(tu, den, uid) {
+  const ds = (S.V.tc || []).filter((x) => x.ngay >= tu && x.ngay <= den && (!uid || x.uid === uid));
+  return ds.sort((a, b) => (a.ngay < b.ngay ? -1 : a.ngay > b.ngay ? 1
+    : (tcNguoi(a.uid).ten || '').localeCompare(tcNguoi(b.uid).ten || '') || (a.tu < b.tu ? -1 : 1)));
+}
+function tcDonHtml(uid, tu, den) {
+  const d2 = den || addD(tu, 6);
+  const ds = tcDonDS(tu, d2, uid);
+  const so = Math.max(1, Math.ceil(ds.length / TC_DON_DONG));
+  // Lý do in ở cuối tờ: gom các lý do khác nhau của những lượt trong tờ đó
+  const khoang = tu === d2 ? fmtD(tu) : 'Từ ngày ' + fmtDM(tu) + ' - ' + fmtDM(d2);
   let o = '';
-  for (let t0 = 0; t0 < so; t0++) {
-    const a = ds.slice(t0 * 6, t0 * 6 + 6);
+  for (let k = 0; k < so; k++) {
+    const a = ds.slice(k * TC_DON_DONG, (k + 1) * TC_DON_DONG);
     let tr = '';
-    for (let i = 0; i < Math.max(6, a.length); i++) {
-      const x = a[i];
-      if (!x) { tr += `<tr><td>${t0 * 6 + i + 1}</td><td></td><td></td><td></td><td class="ct"></td></tr>`; continue; }
-      // Cột Chú thích 备注: ca làm việc và lý do đều in song ngữ Việt — Trung
-      const c = tcCaOf(x.ca);
-      let ct = esc(c.ten) + (c.zh ? ` <span class="zh">${esc(c.zh)}</span>` : '');
-      if (x.lyDo) {
-        ct += ' — ' + esc(x.lyDo);
-        if (x.lyDoDich && x.lyDoDich !== x.lyDo) ct += ` <span class="zh">${esc(x.lyDoDich)}</span>`;
-      }
-      tr += `<tr><td>${t0 * 6 + i + 1}</td><td>${fmtDM(x.ngay)}</td><td>${esc(x.tu)} - ${esc(x.den)}</td><td>${tcSo(x.soGio)}</td><td class="ct">${ct}</td></tr>`;
+    for (let i = 0; i < TC_DON_DONG; i++) {
+      const x = a[i], stt = k * TC_DON_DONG + i + 1;
+      if (!x) { tr += `<tr><td>${stt}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`; continue; }
+      const n = tcNguoi(x.uid);
+      tr += `<tr><td>${stt}</td><td class="mono">${esc(n.maThe)}</td>
+        <td class="l">${esc(n.ten)}</td><td></td><td class="l">${esc(n.chucVu || n.boPhan)}</td>
+        <td class="mono">${esc(tcGioDon(x.tu))}</td><td class="mono">${esc(tcGioDon(x.den))}</td>
+        <td class="mono">${tcSoDon(x.soGio)}</td><td class="mono">${fmtDM(x.ngay)}</td></tr>`;
     }
-    o += `<div class="tcsheet">
-      <div class="co">CÔNG TY TNHH CREDIBLE VIỆT NAM<br><span class="zh">可悦（越南）有限公司</span></div>
-      <div class="tt">ĐƠN XIN TĂNG CA<span class="zh">自愿加班申请单</span></div>
-      <div class="bo"><div>Bộ phận: <u>${esc(n.boPhan)}</u></div><div><span class="zh">部门</span>: <u class="zh">${esc(n.boPhanZh || n.boPhan)}</u></div></div>
-      <table class="ai"><tr>
-        <td style="width:42%"><b>Họ tên 姓名:</b><span class="vl">${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ` <span class="zh">${esc(n.tenZh)}</span>` : ''}</span></td>
-        <td style="width:28%"><b>Mã số thẻ 工号:</b><span class="vl">${esc(n.maThe)}</span></td>
-        <td><b>Chức vụ 职务/职称:</b><span class="vl">${esc(n.chucVu)}</span></td></tr></table>
-      <table class="ot">
-        <tr><th style="width:11%">STT</th><th style="width:17%">Ngày tháng<span class="zh">日期</span></th>
-          <th style="width:23%">Thời gian tăng ca<span class="zh">加班时间</span></th>
-          <th style="width:13%">Số tiếng TC<span class="zh">工时</span></th><th>Chú thích<span class="zh">备注</span></th></tr>
+    const ly = [];
+    a.forEach((x) => { const v = String(x.lyDo || '').trim(); if (v && ly.indexOf(v) < 0) ly.push(v); });
+    o += `<div class="tcsheet don">
+      <table class="dh"><tr><td class="lg">${LOGO}</td>
+        <td class="co">CÔNG TY TNHH CREDIBLE VIỆT NAM <span class="zh">可悦（越南）有限公司</span></td></tr></table>
+      <div class="tt">ĐƠN XIN TỰ NGUYỆN TĂNG CA<span class="zh">自愿加班申请表</span></div>
+      <div class="d3"><span>Ngày tăng ca <span class="zh">加班日期</span>: <u>${esc(khoang)}</u></span>
+        <span>Bộ phận <span class="zh">部门</span>：Sản xuất ( VKY........ - Ca... ....)</span></div>
+      <div class="cam">Căn cứ vào tình hình sản xuất, căn cứ vào thực tế, Tôi tự nguyện đăng ký xin làm thêm giờ và ký tên vào đơn tự nguyện xin tăng ca này, thông tin như sau:
+        <span class="zh">按照生产情况、按照实际情况，本人自愿申请加班和在自愿申请加班签名确认，申请加班如下信息：</span></div>
+      <table class="ot"><colgroup><col style="width:4.4%"><col style="width:13%"><col style="width:20.2%"><col style="width:12.5%">
+        <col style="width:13.5%"><col style="width:7.7%"><col style="width:7.2%"><col style="width:9.7%"><col style="width:11.8%"></colgroup>
+        <tr><th rowspan="2">TT<span class="zh">序号</span></th><th rowspan="2">Mã số thẻ<span class="zh">员工号</span></th>
+          <th rowspan="2">Họ và tên<span class="zh">姓名</span></th><th rowspan="2">KÝ TÊN<span class="zh">签名</span></th>
+          <th rowspan="2">Vị trí - Chức vụ<span class="zh">职位</span></th>
+          <th colspan="2">Thời gian xin tăng ca<span class="zh">申请加班时间</span></th>
+          <th rowspan="2">Số tiếng thực tế tăng ca<span class="zh">加班实际小时数</span></th>
+          <th rowspan="2">Ghi chú<span class="zh">备注</span></th></tr>
+        <tr><th>Từ<span class="zh">自</span></th><th>Đến<span class="zh">到</span></th></tr>
         ${tr}
-        <tr class="tg"><td colspan="3">TỔNG CỘNG</td><td>${tcSo(tcCong(a))}</td><td class="ct">${so > 1 && t0 === so - 1 ? 'Cả ' + so + ' tờ: ' + tcSo(tongAll) + ' giờ' : ''}</td></tr>
       </table>
-      <div class="gc"><b>Ghi chú / <span class="zh">备注</span>:</b> 1. CNV chú thích đầy đủ ca làm việc (hành chính, ca ngày, ca đêm, chủ nhật). <span class="zh">员工需完整注明工作班次（行政班、日班、夜班、周日班）。</span></div>
-      <div class="ky"><div>Người xin<span>申请人</span></div><div>Người xác nhận<span>审核人</span></div>
-        <div>Quản lý bộ phận<span>部门经理</span></div><div>Hành chính nhân sự<span>行政人事</span></div></div>
-      <div class="tto">Tuần ${fmtDM(tu)} – ${fmtDM(den)} · Tờ ${t0 + 1}/${so}</div></div>`;
+      <div class="ly">Lý do xin tăng ca <span class="zh">申请加班原因</span>: <u>${esc(ly.join(' · '))}</u></div>
+      <div class="ky5">${[['Lập biểu', '制表'], ['Người xác nhận', '审核人'], ['Trưởng bộ phận', '部门经理'],
+        ['Hành chính nhân sự', '行政人事'], ['Phê duyệt', '核准']].map(([v, z]) => `<div>${v}<span class="zh">${z}</span>
+        <em>Ngày<span class="zh">日期</span> : ................</em></div>`).join('')}</div>
+      ${so > 1 ? `<div class="tto">Tờ ${k + 1}/${so}</div>` : ''}</div>`;
   }
   return o;
 }
+// Mẫu giấy là một tờ nhiều người, nên Quản lý in cả nhà máy; nhân viên chỉ in của chính mình.
+// Bấm "Chỉ mình tôi" để in riêng một người khi cần trình ký lẻ.
+const tcDonUid = () => (xemHet() && !S.f.tcDonMot ? '' : tcUid());
 VIEWS.tcXem = {
   html() {
-    const uid = tcUid(), tu = tcTuanHT();
-    return `<div class="card" style="padding:10px"><div class="tcwrap">${tcDonHtml(uid, tu)}</div></div>
+    const tu = tcTuanHT(), uid = tcDonUid(), n = tcDonDS(tu, addD(tu, 6), uid).length;
+    let o = '';
+    if (xemHet()) {
+      o += `<div class="seg" style="margin-bottom:12px">${[['', 'tcDonCaNM'], ['1', 'tcDonMotNguoi']].map(([k, lb]) =>
+        `<button class="${(S.f.tcDonMot || '') === k ? 'on' : ''}" data-act="tcDonChe" data-m="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div>`;
+    }
+    o += `<div class="help" style="margin-bottom:10px">${esc(tv('tcDonSoLuot', { n }))}
+      <span class="zi" lang="zh-CN">${esc(tz('tcDonSoLuot', { n }))}</span></div>`;
+    o += `<div class="card" style="padding:10px"><div class="tcwrap">${tcDonHtml(uid, tu)}</div></div>
       <div class="btns" style="margin-top:13px"><button class="btn pri" data-act="tcIn">${IC.dl} ${t('tcInPdf')}</button>
         <button class="btn ghost" data-act="tcXuatTuan">${IC.dl} ${t('tcXuatTuan')}</button></div>
       <p class="help" style="margin-top:12px">${t('tcInHelp')}</p>`;
+    return o;
   }
 };
 
@@ -9681,9 +9737,10 @@ Object.assign(ACT, {
     render();
   },
   tcIn: () => {
-    $('#printArea').innerHTML = tcDonHtml(tcUid(), tcTuanHT());
+    $('#printArea').innerHTML = tcDonHtml(tcDonUid(), tcTuanHT());
     setTimeout(() => window.print(), 300);
   },
+  tcDonChe: (el) => { S.f.tcDonMot = el.dataset.m; render(); window.scrollTo(0, 0); },
   tcXuatTuan: async () => {
     const uid = tcUid(), tu = tcTuanHT(), ds = tcLoc(uid, tu, addD(tu, 6));
     if (!ds.length) { toast(t('tcTrong'), true); return; }

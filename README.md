@@ -97,6 +97,22 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
+## Điểm mới của v2.34.0: đơn tăng ca in đúng mẫu giấy mới
+
+Mẫu đơn công ty đổi sang **ĐƠN XIN TỰ NGUYỆN TĂNG CA · 自愿加班申请表**, khác hẳn mẫu cũ: trước là *một người — cả tuần*, nay là **một tờ — nhiều người**, mỗi dòng một lượt tăng ca.
+
+Đơn in ra đúng mẫu giấy:
+
+- Đầu tờ: logo + tên công ty, *Ngày tăng ca 加班日期* ghi khoảng ngày (vd *Từ ngày 02/11 - 08/11*), *Bộ phận 部门：Sản xuất ( VKY........ - Ca... ....)* để điền tay, và đoạn cam kết tự nguyện song ngữ.
+- Bảng **đúng 15 dòng** như giấy, 9 cột: TT · Mã số thẻ · Họ và tên · **KÝ TÊN** (để trống cho người ký) · Vị trí - Chức vụ · Từ · Đến · Số tiếng thực tế tăng ca · Ghi chú.
+- Giờ viết kiểu **17h00**, số tiếng số nguyên viết **01 / 02**, cột Ghi chú ghi **ngày** của lượt đó (02/11).
+- Cuối tờ: *Lý do xin tăng ca 申请加班原因* gom các lý do trong tờ, và **năm ô ký**: Lập biểu 制表 · Người xác nhận 审核人 · Trưởng bộ phận 部门经理 · Hành chính nhân sự 行政人事 · Phê duyệt 核准.
+- Quá 15 lượt thì sang tờ sau, đánh *Tờ 1/2*.
+
+**Quản lý in cả nhà máy** trong một tờ (đúng tinh thần mẫu giấy), có thanh chọn **Chỉ mình tôi** khi cần trình ký lẻ. Nhân viên chỉ in được của chính mình.
+
+Vừa đúng một trang A4 dọc, in trực tiếp từ điện thoại hoặc máy tính.
+
 ## Điểm mới của v2.34.0: đối chiếu giờ trực với giờ tăng ca
 
 Trực ca gần như toàn bộ là giờ tăng ca, nên **Tổng số ca** thêm bảng **Đối chiếu với tăng ca**: mỗi người một dòng, so **giờ trực** với **giờ tăng ca đã đăng ký của đúng những ngày có trực**.
