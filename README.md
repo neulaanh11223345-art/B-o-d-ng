@@ -97,7 +97,9 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
-## Điểm mới của v2.36.0: gia hạn việc quá hạn ngay ở dòng việc
+## Điểm mới của v2.36.0: gia hạn việc quá hạn, sửa nội dung việc đã xong
+
+### Gia hạn việc quá hạn ngay ở dòng việc
 
 Trước đây việc quá hạn mà muốn cho thêm thời gian thì phải mở việc → **Sửa việc** → tìm ô hạn → đổi ngày → lưu. Nay **Quản lý / Admin** có nút **Gia hạn 延期** hiện ngay dưới mỗi dòng việc quá hạn, và cả trong màn chi tiết việc.
 
@@ -114,6 +116,26 @@ Nguyên tắc:
 - **Nhật ký việc ghi rõ**: ai gia hạn, lúc nào, *từ 06/11/2026 sang 13/11/2026*, kèm lý do. Gia hạn nhiều lần thì nhật ký có nhiều dòng — cuối tháng soát lại biết việc nào bị dời mấy lần.
 - **Kỹ thuật không gia hạn được** — không thấy nút.
 - Mất mạng vẫn bấm được: việc vào hàng chờ gửi, hạn đổi ngay trên máy, có mạng thì tự gửi lên.
+
+### Quản lý sửa lại nội dung nhân viên đã ghi khi xong việc
+
+Trước đây việc đã đóng là **khoá hẳn** — nhân viên ghi thiếu, ghi sai máy hay sai chính tả thì không ai chữa được, muốn sửa chỉ còn cách xoá bản ghi rồi ghi lại. Nay **Quản lý / Admin** mở việc đã xong, bấm **Sửa nội dung đã xong 修改完成内容** là chữa được ngay:
+
+| Sửa được | Không sửa ở đây |
+|---|---|
+| Tên việc, mô tả, bản dịch tiếng Trung | Linh kiện đã thay |
+| Thiết bị, loại việc, mức ưu tiên | Ảnh trước / sau |
+| **Kết quả** và bản dịch | |
+| **Nguyên nhân hỏng** và bản dịch | |
+| **Thời gian dừng máy** (giờ) | |
+| Người làm, người phụ | |
+
+- **Việc vẫn đóng**, không mở lại, không quay về chờ kiểm tra — số liệu báo cáo tháng cập nhật theo nội dung mới.
+- **Nhật ký việc ghi ai sửa, sửa lúc nào** nên vẫn soát lại được.
+- Sửa tên việc hay kết quả thì **bản dịch tiếng Trung tự dịch lại**; muốn tự gõ bản dịch thì sửa ngay ô bên dưới.
+- **Để trống Kết quả thì không cho lưu** — bản ghi sửa chữa phải có kết quả.
+- **Kỹ thuật không thấy nút này.**
+- Riêng **linh kiện đã thay** thì không sửa ở đây, vì số lượng đã trừ vào kho. Muốn đổi linh kiện thì xoá bản ghi sửa chữa rồi ghi lại.
 
 Không có bảng dữ liệu mới. Dán `Code.gs-v2.36.0.txt` → **Lưu** → **Quản lý triển khai** → **Phiên bản mới** là xong.
 

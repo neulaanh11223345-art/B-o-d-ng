@@ -1904,7 +1904,9 @@ function luuCongViec(u, p, opId) {
     themDong('CongViec', cvThanhDong(x));
     return { congViec: sachCV(x) };
   }
-  if (x.trangThai === 'DONG' || x.trangThai === 'HUY') throw loiDL('SAI_TRANG_THAI', TEN_TT_CV[x.trangThai], { congViec: sachCV(x) });
+  // Việc đã huỷ thì không sửa nữa. Việc đã đóng chỉ Quản lý sửa được — để chữa lại nội dung
+  // nhân viên ghi khi xong (ghi thiếu, ghi sai máy, sai chính tả). Nhật ký vẫn giữ dấu vết người sửa.
+  if (x.trangThai === 'HUY' || (x.trangThai === 'DONG' && !quanLy)) throw loiDL('SAI_TRANG_THAI', TEN_TT_CV[x.trangThai], { congViec: sachCV(x) });
   if (!quanLy && !(x.uidTao === u.id && x.trangThai === 'CHO_GIAO')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
   var truoc = { tieuDe: x.tieuDe, han: x.han, uidLam: x.uidLam, uuTien: x.uuTien };
   var td = dichKhiSua(f.tieuDe, x.tieuDe, x.tieuDeDich, p.tieuDeDich), mt = dichKhiSua(f.moTa, x.moTa, x.moTaDich, p.moTaDich);
@@ -1912,6 +1914,25 @@ function luuCongViec(u, p, opId) {
   x.tieuDe = td[0]; x.tieuDeDich = td[1]; x.moTa = mt[0]; x.moTaDich = mt[1];
   x.han = han;
   x.anhTao = x.anhTao.concat(anhSC(p.anh, 'cv' + x.so, 'TRUOC')).slice(0, SC_ANH_TOI_DA);
+  // Quản lý chữa lại nội dung đã ghi khi xong việc: kết quả, nguyên nhân, giờ dừng máy.
+  // Chỉ nhận khi app gửi kèm, để màn sửa việc đang mở không xoá trắng mấy ô này.
+  var daXong = x.trangThai === 'XONG' || x.trangThai === 'DONG';
+  if (quanLy && daXong) {
+    if (p.ketQua !== undefined) {
+      var kqM = catNhieuDong(p.ketQua, 1000).trim();
+      if (!kqM) throw loi('CAN_KET_QUA', 'Cần ghi kết quả · 请填写工作结果');
+      var kqD = dichKhiSua(kqM, x.ketQua, x.ketQuaDich, p.ketQuaDich);
+      x.ketQua = kqD[0]; x.ketQuaDich = kqD[1];
+    }
+    if (p.nguyenNhan !== undefined) {
+      var nnD = dichKhiSua(catNhieuDong(p.nguyenNhan, 1000).trim(), x.nguyenNhan, x.nguyenNhanDich, p.nguyenNhanDich);
+      x.nguyenNhan = nnD[0]; x.nguyenNhanDich = nnD[1];
+    }
+    if (p.gioDung !== undefined) {
+      var gioM = soHoacRong(p.gioDung);
+      x.phutDung = gioM !== '' && gioM >= 0 && gioM <= 24 * 60 ? Math.round(gioM * 60) : '';
+    }
+  }
   x.nhatKy.push({ b: 'sua', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: opId });
   if (quanLy && p.uidLam !== undefined) {
     if (f.lam && (f.lam.id !== x.uidLam || f.phu.map(function (n) { return n.id; }).join() !== x.uidPhu.join())) {

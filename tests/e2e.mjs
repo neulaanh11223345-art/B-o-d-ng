@@ -1739,7 +1739,51 @@ await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(40
 await logout(); await login('NV003', '333333');
 await page.evaluate(() => ACT.cvLoc({ dataset: { v: 'toi' } })); await wait(900);
 assert.equal(await page.locator('[data-act="cvGiaHan"]').count(), 0, 'kỹ thuật không thấy nút Gia hạn');
-ok('Bản 2.36: Quản lý gia hạn việc quá hạn ngay ở dòng việc, nhật ký ghi rõ dời từ ngày nào sang ngày nào');
+// Quản lý sửa lại nội dung nhân viên đã ghi khi xong việc
+await logout(); await login('NV002', '222222'); await wait(1200);
+const idX = await page.evaluate(() => {
+  const x = S.V.cvAll.filter((o) => o.trangThai === 'DONG' && o.ketQua && o.nguon !== 'SC')[0];
+  return x ? x.id : '';
+});
+assert.ok(idX, 'dữ liệu mẫu có việc đã đóng kèm kết quả');
+await page.evaluate((id) => go('cvView', { id }), idX); await wait(900);
+assert.equal(await page.locator('[data-act="cvEdit"]').count(), 1, 'việc đã đóng vẫn có lối sửa nội dung');
+assert.match(await text('.scact2'), /Sửa nội dung đã xong/, 'ghi rõ là sửa nội dung đã xong');
+await page.click('[data-act="cvEdit"]'); await wait(900);
+assert.equal(await page.locator('#cvKQ').count(), 1, 'màn sửa có ô Kết quả');
+assert.equal(await page.locator('#cvNN').count(), 1, 'và ô Nguyên nhân');
+assert.equal(await page.locator('#cvGio').count(), 1, 'và ô Thời gian dừng máy');
+assert.equal(await page.locator('#cvKT').count(), 0, 'việc đã đóng thì bỏ ô "cần kiểm tra"');
+assert.match(await text('#main'), /Nội dung nhân viên ghi khi xong/, 'có đầu mục riêng cho phần này');
+const kqCu = await page.inputValue('#cvKQ');
+assert.ok(kqCu.trim(), 'ô Kết quả điền sẵn nội dung cũ: ' + kqCu);
+await shot('50-sua-noi-dung-viec-da-xong');
+// Xoá trắng kết quả thì không cho lưu
+await page.fill('#cvKQ', '   ');
+await page.click('#cvOk'); await wait(500);
+assert.match(await text('#cvErr'), /Cần ghi kết quả/, 'chặn xoá trắng kết quả');
+// Chữa lại rồi lưu: việc vẫn đóng, nhật ký ghi lần sửa
+await page.fill('#cvKQ', kqCu.trim() + '; siết lại bu lông chân máy');
+await page.fill('#cvNN', 'Bu lông chân máy lỏng');
+await page.fill('#cvGio', '2.5');
+await page.click('#cvOk'); await wait(1400);
+const sauX = await page.evaluate((id) => {
+  const x = S.V.cvById[id];
+  return { tt: x.trangThai, kq: x.ketQua, nn: x.nguyenNhan, phut: x.phutDung, sua: x.nhatKy.filter((n) => n.b === 'sua').length };
+}, idX);
+assert.equal(sauX.tt, 'DONG', 'sửa nội dung không mở lại việc');
+assert.match(sauX.kq, /siết lại bu lông chân máy/, 'kết quả đã lưu');
+assert.equal(sauX.nn, 'Bu lông chân máy lỏng', 'nguyên nhân đã lưu');
+assert.equal(sauX.phut, 150, 'giờ dừng máy đổi theo: ' + sauX.phut);
+assert.ok(sauX.sua >= 1, 'nhật ký có mốc Sửa việc');
+await shot('51-da-sua-noi-dung');
+// Kỹ thuật không có lối sửa việc đã đóng
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+await logout(); await login('NV003', '333333');
+await page.evaluate((id) => go('cvView', { id }), idX); await wait(900);
+assert.equal(await page.locator('[data-act="cvEdit"]').count(), 0, 'kỹ thuật không sửa được việc đã đóng');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Bản 2.36: Quản lý gia hạn việc quá hạn ngay ở dòng việc, nhật ký ghi rõ dời từ ngày nào sang ngày nào; Quản lý sửa lại nội dung nhân viên đã ghi khi xong');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
