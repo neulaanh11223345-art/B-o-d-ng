@@ -8323,7 +8323,8 @@ function render() {
   S.wideNow = isWide();
   $('#main').innerHTML = V.html(cur.p);
   if (V.after) V.after(cur.p);
-  const tk = !xemDuoc(cur.v) ? 't_khongQuyen' : cur.v === 'mayEdit' && !cur.p.ma ? 't_mayNew' : cur.v === 'dsEdit' && cur.p.k === 'lk' ? 't_dsLK' : cur.v === 'cv' && !xemHet() ? 't_cvSC' : TITLES[cur.v];
+  const tk = !xemDuoc(cur.v) ? 't_khongQuyen' : cur.v === 'mayEdit' && !cur.p.ma ? 't_mayNew' : cur.v === 'dsEdit' && cur.p.k === 'lk' ? 't_dsLK' : cur.v === 'cv' && !xemHet() ? 't_cvSC'
+    : cur.v === 'cvNew' && cur.p.xong ? 't_cvSuaXong' : cur.v === 'cvNew' && cur.p.sua ? 't_cvSuaViec' : TITLES[cur.v];
   $('#barTitle').textContent = tv(tk); $('#barSub').textContent = tz(tk);
   $('#barLead').innerHTML = S.stack.length > 1
     ? `<button class="back" data-act="back" aria-label="${tp('back')}">${IC.left}</button>`
@@ -14351,6 +14352,7 @@ Object.assign(ACT, {
 // Ghi việc → (Chờ giao) → Quản lý giao cho người có tài khoản (giao là bắt đầu luôn) → Xong → (Quản lý kiểm tra) → Đóng.
 Object.assign(TX, {
   navCV: ['Công việc', '工作'], t_cv: ['Công việc', '工作'], t_cvNew: ['Ghi việc', '记录工作'], t_cvView: ['Công việc', '工作详情'],
+  t_cvSuaViec: ['Sửa việc', '编辑工作'], t_cvSuaXong: ['Sửa nội dung', '修改内容'],
   t_cvGiao: ['Giao việc', '派工'], t_cvXong: ['Xong việc', '完成工作'], t_cvLap: ['Việc lặp lại', '重复工作'], t_cvLapEdit: ['Việc lặp lại', '重复工作'],
   cv_CHO_GIAO: ['Chờ giao', '待派工'], cv_DA_GIAO: ['Đã giao', '已派工'], cv_DANG_LAM: ['Đang làm', '进行中'], cv_TAM_HOAN: ['Tạm hoãn', '暂停'],
   cv_XONG: ['Chờ kiểm tra', '待检查'], cv_DONG: ['Đã xong', '已完成'], cv_HUY: ['Đã huỷ', '已取消'],
