@@ -1599,6 +1599,82 @@ assert.equal(await page.locator('[data-act="mnkDoi"]').count(), 1, 'kỹ thuật
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
 ok('Bản 2.32 + 2.33: máy nén khí — giờ chạy cộng dồn, mốc 3000 h và mốc phụ, số máy cần bật theo lượng khí nén của chuyền đang chạy, khuyến nghị chạy máy nào, lịch tuần và Excel tổng hợp');
 
+// 22. Bản 2.35: nút Cập nhật ở trang chủ, lọc hàng chưa có tồn an toàn, xuất Excel bảo dưỡng theo tuần / tháng / năm
+await logout(); await login('NV002', '222222');
+// Trang chủ có nút Cập nhật kèm giờ cập nhật gần nhất
+await page.click('.tabs .tab[data-v="home"]'); await wait(700);
+assert.equal(await page.locator('.hcapnhat [data-act="doRefresh"]').count(), 1, 'trang chủ có nút Cập nhật');
+const cn22 = (await page.textContent('.hcapnhat')).replace(/\s+/g, ' ');
+assert.match(cn22, /Cập nhật\s*更新/, 'nút song ngữ');
+assert.match(cn22, /Cập nhật lúc .*\d{2}:\d{2} \d{2}\/\d{2}/, 'ghi giờ cập nhật gần nhất: ' + cn22);
+await shot('44-trang-chu-cap-nhat');
+// Kho: lọc những hàng chưa khai tồn kho an toàn
+await page.evaluate(() => tab('kho')); await wait(1600);
+assert.equal(await page.locator('[data-act="khoF"][data-v="chuaAT"]').count(), 1, 'có chip Chưa có tồn an toàn');
+await page.click('[data-act="khoF"][data-v="chuaAT"]'); await wait(800);
+const k22 = await page.evaluate(() => ({
+  chua: S.kho.ds.filter(khoChuaAT).length,
+  co: S.kho.ds.filter((x) => !x.an && x.tonMin !== undefined && x.tonMin !== '').length,
+  hien: document.querySelectorAll('#khoBody .list .row').length,
+  dem: +(document.querySelector('#khoBody .sec .cnt') || {}).textContent.replace(/\D/g, '')
+}));
+assert.ok(k22.chua > 0, 'dữ liệu mẫu có hàng chưa khai tồn an toàn');
+assert.equal(k22.dem, k22.chua, 'đếm đúng số hàng chưa khai: ' + JSON.stringify(k22));
+assert.ok(k22.hien > 0 && k22.hien <= k22.chua);
+assert.match(await text('#khoBody'), /chưa khai tồn kho an toàn/, 'có lời giải thích');
+assert.equal(await page.locator('#khoBody [data-act="go"][data-v="khoMin"]').count(), 1, 'có lối nhập cả loạt bằng file');
+// Hàng nào đã khai thì không nằm trong danh sách này
+const maAT = await page.evaluate(() => {
+  const x = S.kho.ds.filter(khoChuaAT)[0];
+  x.tonMin = 5;
+  render();
+  return x.ma;
+});
+await wait(600);
+const sauAT = await page.evaluate((ma) => ({
+  conTrongLoc: S.kho.ds.filter(khoChuaAT).some((x) => x.ma === ma),
+  dem: +(document.querySelector('#khoBody .sec .cnt') || {}).textContent.replace(/\D/g, '')
+}), maAT);
+assert.equal(sauAT.conTrongLoc, false, 'khai tồn an toàn xong thì hàng đó rời danh sách');
+assert.equal(sauAT.dem, k22.chua - 1, 'số đếm giảm đúng một');
+await shot('45-kho-chua-ton-an-toan');
+// Bảo dưỡng: xuất Excel chọn tuần / tháng / năm
+await page.evaluate(() => { S.f.histMonth = TODAY().slice(0, 7); tab('hist'); }); await wait(900);
+await page.click('[data-act="export"]'); await wait(600);
+const hx = await text('#sheetBg');
+['Theo tuần', 'Theo tháng', 'Cả năm'].forEach((k) => assert.ok(hx.includes(k), 'hộp xuất có ' + k));
+assert.equal(await page.locator('#sheetBg [data-act="exportGo"]').count(), 3, 'ba lựa chọn khoảng');
+assert.match(hx, /lần đã làm/, 'mỗi lựa chọn ghi số lần đã làm');
+assert.match(hx, /kỳ trong lịch/, 'và số kỳ trong lịch');
+await shot('46-xuat-bao-duong-tuan-thang-nam');
+await page.evaluate(() => closeSheet()); await wait(300);
+// Ba khoảng ra ba file khác nhau: số cột ngày và lịch sử lọc đúng khoảng
+const xl22 = await page.evaluate(async () => {
+  const r = {};
+  for (const k of ['tuan', 'thang', 'nam']) {
+    const o = bdKhoang(k, +S.f.histMonth.slice(0, 4), S.f.histMonth);
+    const sh = await readXlsx(await buildWorkbook(o.tu, o.den, o.nhan).arrayBuffer());
+    const rows = await sh[0].rows();
+    const ls = (await sh[2].rows()).slice(3).filter((x) => x[0]);
+    // Ô ngày trong Excel là số sê-ri nên không so chuỗi được; đối chiếu số dòng với dữ liệu trong app
+    r[k] = { tu: o.tu, den: o.den, ten: sh.map((x) => x.name), cot: rows[5].length, soLS: ls.length,
+      mong: S.V.ls.filter((x) => x.ngay >= o.tu && x.ngay <= o.den).length };
+  }
+  return r;
+}).catch((e) => ({ loi: String(e) }));
+assert.ok(!xl22.loi, 'dựng được cả ba file: ' + xl22.loi);
+const ngay7 = (d) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + 6); return x.toISOString().slice(0, 10); };
+assert.equal(xl22.tuan.den, ngay7(xl22.tuan.tu), 'tuần đúng bảy ngày');
+assert.ok(xl22.tuan.cot < xl22.thang.cot && xl22.thang.cot < xl22.nam.cot,
+  'càng dài càng nhiều cột ngày: ' + JSON.stringify([xl22.tuan.cot, xl22.thang.cot, xl22.nam.cot]));
+assert.equal(xl22.nam.cot - 7, 365, 'năm 2026 có 365 cột ngày');
+assert.ok(xl22.nam.ten.includes('Lich 2026'), 'tên sheet cả năm: ' + xl22.nam.ten);
+assert.ok(xl22.thang.ten.some((n) => /^Lich T\d{2}-\d{4}$/.test(n)), 'tên sheet theo tháng: ' + xl22.thang.ten);
+assert.ok(xl22.nam.soLS >= xl22.thang.soLS && xl22.thang.soLS >= xl22.tuan.soLS, 'lịch sử lọc theo khoảng');
+['tuan', 'thang', 'nam'].forEach((k) => assert.equal(xl22[k].soLS, xl22[k].mong,
+  'sheet lịch sử ' + k + ' đúng số dòng của khoảng: ' + JSON.stringify(xl22[k])));
+ok('Bản 2.35: nút Cập nhật ở trang chủ, kho lọc hàng chưa khai tồn an toàn, xuất Excel bảo dưỡng theo tuần / tháng / năm');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
