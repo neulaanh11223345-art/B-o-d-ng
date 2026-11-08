@@ -1608,6 +1608,18 @@ const cn22 = (await page.textContent('.hcapnhat')).replace(/\s+/g, ' ');
 assert.match(cn22, /Cập nhật\s*更新/, 'nút song ngữ');
 assert.match(cn22, /Cập nhật lúc .*\d{2}:\d{2} \d{2}\/\d{2}/, 'ghi giờ cập nhật gần nhất: ' + cn22);
 await shot('44-trang-chu-cap-nhat');
+// Bấm Cập nhật thì biểu tượng quay vòng trong lúc tải, xong thì thôi
+await page.evaluate(() => { const g = window.api; window.api = async (...a) => { await new Promise((r) => setTimeout(r, 900)); return g(...a); }; });
+await page.click('.hcapnhat [data-act="doRefresh"]'); await wait(300);
+const quay22 = await page.evaluate(() => {
+  const el = document.querySelector('.hcapnhat [data-act="doRefresh"]');
+  return { quay: el.classList.contains('dangquay'), anim: getComputedStyle(el.querySelector('svg')).animationName, khoa: !!S.dangTai };
+});
+assert.equal(quay22.quay, true, 'đang tải thì nút quay');
+assert.equal(quay22.anim, 'quay', 'có hiệu ứng quay vòng thật');
+assert.equal(quay22.khoa, true, 'khoá lại để không bấm chồng');
+await wait(1800);
+assert.equal(await page.evaluate(() => !!S.dangTai), false, 'tải xong thì thôi quay');
 // Kho: lọc những hàng chưa khai tồn kho an toàn
 await page.evaluate(() => tab('kho')); await wait(1600);
 assert.equal(await page.locator('[data-act="khoF"][data-v="chuaAT"]').count(), 1, 'có chip Chưa có tồn an toàn');
