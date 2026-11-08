@@ -103,6 +103,8 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 
 Ngay dưới lời chào có nút **Cập nhật 更新** kèm dòng *Cập nhật lúc · 更新于 10:03 08/11*. Trước đây muốn tải lại dữ liệu phải vào **Cá nhân → Tải lại dữ liệu**; nay bấm một cái ngay trang chủ, và nhìn là biết số liệu đang xem cũ hay mới.
 
+Bấm vào thì **biểu tượng quay vòng** suốt lúc đang tải và nút khoá lại để không bấm chồng, tải xong thì thôi — mạng xưởng chậm vẫn biết app đang làm việc chứ không phải đơ. Nút *Tải lại dữ liệu* trong Cá nhân và trong màn Đồng bộ cũng quay như vậy.
+
 ### Kho: lọc hàng chưa khai tồn kho an toàn
 
 Màn **Kho linh kiện** thêm chip lọc **Chưa có tồn an toàn 未设安全库存**. Đây là những hàng app *không nhắc được* khi sắp hết, nên cần khai cho đủ.
