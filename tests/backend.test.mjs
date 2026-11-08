@@ -2137,3 +2137,36 @@ test('lịch trực: mỗi lượt một khung giờ riêng, Chủ nhật giờ 
   assert.equal(sau[0].tu, '17:00');
   assert.equal(sau[0].den, '19:00');
 });
+
+test('công việc: Quản lý gia hạn việc quá hạn, chỉ nới ra chứ không rút lại', () => {
+  const b = setup();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien, kt3 = nv.find((x) => x.vaiTro === 'kythuat');
+  const v = ok(b.call('saveTask', { tieuDe: 'Sửa băng tải chuyền 3', loai: 'SUA', han: '2026-10-01', uidLam: kt3.id }, b.ql)).congViec;
+  assert.equal(v.han, '2026-10-01');
+
+  // Kỹ thuật không gia hạn được, kể cả việc của chính mình
+  err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-10-20' }, b.kt), 'KHONG_QUYEN');
+  // Hạn mới phải sau hạn cũ và không được lùi về trước hôm nay
+  err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-09-20' }, b.ql), 'HAN_SAI');
+  err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-10-01' }, b.ql), 'HAN_SAI');
+  err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: 'hôm nào đó' }, b.ql), 'NGAY_SAI');
+
+  const r = ok(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-10-20', ghiChu: 'Chờ linh kiện về' }, b.ql)).congViec;
+  assert.equal(r.han, '2026-10-20', 'hạn đã dời');
+  const g = r.nhatKy[r.nhatKy.length - 1];
+  assert.equal(g.b, 'giahan');
+  assert.equal(g.hanCu, '2026-10-01', 'nhật ký ghi hạn cũ');
+  assert.equal(g.hanMoi, '2026-10-20', 'và hạn mới');
+  assert.equal(g.gc, 'Chờ linh kiện về');
+  assert.ok(g.gcDich, 'lý do gia hạn được dịch sang tiếng Trung');
+  assert.equal(r.trangThai, v.trangThai, 'gia hạn không đổi trạng thái việc');
+
+  // Gia hạn tiếp lần nữa vẫn được, mỗi lần một dòng nhật ký
+  const r2 = ok(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-10-25' }, b.ql)).congViec;
+  assert.equal(r2.han, '2026-10-25');
+  assert.equal(r2.nhatKy.filter((n) => n.b === 'giahan').length, 2);
+
+  // Việc đã đóng thì không gia hạn
+  ok(b.call('updateTask', { id: v.id, buoc: 'xong', ketQua: 'Đã thay băng tải' }, b.ql));
+  err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-11-30' }, b.ql), 'SAI_TRANG_THAI');
+});

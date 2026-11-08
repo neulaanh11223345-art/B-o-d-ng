@@ -1037,6 +1037,7 @@ table.mtab tr.child th.nmc button{font-weight:500;padding-left:10px}
 .scbtn{margin:0 0 14px;min-height:54px}
 .scbtn .stk{align-items:center}
 .scrow{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:12px 14px;color:var(--ink)}
+.scwrap .scgh{display:block;padding:0 14px 12px;text-align:right}
 .list>.scrow:first-child{border-top:0}
 .scrow .scl{margin-top:6px}
 .scrow .scl>b{display:block;font-size:12px;color:var(--ink2);font-weight:700}
@@ -1140,7 +1141,7 @@ td .cellnm .zi{display:block;font-size:11.5px;color:var(--ink2)}
 .sctl{list-style:none;margin:0;padding:0}
 .sctl li{display:flex;gap:10px;padding:7px 0;font-size:14px}
 .sctl li i{width:10px;height:10px;border-radius:50%;background:var(--brand);margin-top:6px;flex:none}
-.sctl li.b-bao i{background:var(--red)} .sctl li.b-xong i,.sctl li.b-nghiemthu i{background:var(--green)} .sctl li.b-cholk i,.sctl li.b-tralai i{background:var(--orange)} .sctl li.b-huy i{background:var(--ink3)}
+.sctl li.b-bao i{background:var(--red)} .sctl li.b-xong i,.sctl li.b-nghiemthu i{background:var(--green)} .sctl li.b-cholk i,.sctl li.b-tralai i,.sctl li.b-giahan i{background:var(--orange)} .sctl li.b-huy i{background:var(--ink3)}
 .sctl .muted{color:var(--ink2);font-size:13px}
 .sctl .gc{font-size:13.5px;color:var(--ink2);margin-top:2px;white-space:pre-wrap;overflow-wrap:anywhere}
 .sclk{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
@@ -1443,7 +1444,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.35.0";
+const APP_VER = "2.36.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1842,7 +1843,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.35.0';
+var PHIEN_BAN = '2.36.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -3573,7 +3574,7 @@ function dichKhiSua(moi, cuGoc, cuDich, dichGui) {
   return songNgu(moi);
 }
 var DICH_TRUONG = [['tieuDe', 'tieuDeDich'], ['moTa', 'moTaDich'], ['ketQua', 'ketQuaDich'], ['nguyenNhan', 'nguyenNhanDich']];
-var DICH_GC = ['hoan', 'tralai', 'huy'];
+var DICH_GC = ['hoan', 'tralai', 'huy', 'giahan'];
 // Dịch bù những chỗ còn thiếu bản dịch (việc của 60 ngày gần đây + việc lặp lại). Trả số lần đã gọi dịch.
 function dichBu(max, khongCho) {
   var ps = PropertiesService.getScriptProperties(), dau = ps.getProperty('DICH_THIEU');
@@ -3784,7 +3785,7 @@ function capNhatCongViec(u, p, opId) {
   var x = ds.filter(function (r) { return r.id === id; })[0];
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy việc · 找不到工作');
   if (opId && x.nhatKy.some(function (n) { return n.op === opId; })) return { dup: true, congViec: sachCV(x) };
-  var b = s(p.buoc), bay = thoiGianStr(), gc = catChu(p.ghiChu, 300), tra = {};
+  var b = s(p.buoc), bay = thoiGianStr(), gc = catChu(p.ghiChu, 300), tra = {}, hanCu = null;
   var quanLy = coQuyen(u, 'giaoviec'), laNguoiLam = x.uidLam === u.id || x.uidPhu.indexOf(u.id) >= 0;
   function phai(tt) {
     if (tt.indexOf(x.trangThai) < 0) throw loiDL('SAI_TRANG_THAI', TEN_TT_CV[x.trangThai] || x.trangThai, { congViec: sachCV(x) });
@@ -3834,6 +3835,16 @@ function capNhatCongViec(u, p, opId) {
     x.capNhat = bay;
     suaDong('CongViec', x._r, cvThanhDong(x));
     return { congViec: sachCV(x) };
+  } else if (b === 'giahan') {
+    // Gia hạn việc quá hạn: Quản lý bấm thẳng ở dòng việc, khỏi phải mở màn sửa việc.
+    // Chỉ nới ra, không rút lại — rút hạn là sửa kế hoạch, làm trong màn sửa việc.
+    canQuyen(u, 'giaoviec'); phai(CV_MO);
+    var hanMoi = ngayStr(p.han);
+    if (!hopLeNgay(hanMoi)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+    if (hanMoi < homNayStr()) throw loi('HAN_SAI', 'Hạn mới không được trước hôm nay · 新期限不能早于今天');
+    if (x.han && hanMoi <= x.han) throw loi('HAN_SAI', 'Hạn mới phải sau hạn cũ · 新期限必须晚于原期限');
+    hanCu = x.han || '';
+    x.han = hanMoi;
   } else if (b === 'huy') {
     var cuaMinh = x.uidTao === u.id && x.trangThai === 'CHO_GIAO';
     if (!cuaMinh && !quanLy) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
@@ -3846,7 +3857,10 @@ function capNhatCongViec(u, p, opId) {
   }
   x.capNhat = bay;
   var gcD = gc && DICH_GC.indexOf(b) >= 0 ? songNgu(gc) : [gc, ''];
-  x.nhatKy.push({ b: b, luc: bay, uid: u.id, nguoi: u.ten, gc: gcD[0], gcDich: gcD[1], op: opId });
+  var ghi = { b: b, luc: bay, uid: u.id, nguoi: u.ten, gc: gcD[0], gcDich: gcD[1], op: opId };
+  // Gia hạn ghi rõ dời từ ngày nào sang ngày nào, để sau còn soát lại
+  if (hanCu !== null) { ghi.hanCu = hanCu; ghi.hanMoi = x.han; }
+  x.nhatKy.push(ghi);
   if (b === 'xong' && x.trangThai === 'DONG' && x.canKiemTra) x.nhatKy.push({ b: 'kiemtra', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: '' });
   suaDong('CongViec', x._r, cvThanhDong(x));
   tra.congViec = sachCV(x);
@@ -11174,7 +11188,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK'], ['mnkma', '2.32.1', 'srvMissMNK'], ['trucnhieu', '2.33.0', 'srvMissTrucNhieu'], ['khinen', '2.33.0', 'srvMissKhiNen'], ['trucgio', '2.34.0', 'srvMissTrucGio']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK'], ['mnkma', '2.32.1', 'srvMissMNK'], ['trucnhieu', '2.33.0', 'srvMissTrucNhieu'], ['khinen', '2.33.0', 'srvMissKhiNen'], ['trucgio', '2.34.0', 'srvMissTrucGio'], ['giahan', '2.36.0', 'srvMissGiaHan']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -14353,6 +14367,17 @@ Object.assign(TX, {
   cvViecMay: ['Việc đang mở của máy này', '此设备未完成的工作'],
   k_tao: ['Ghi việc', '记录'], k_giao: ['Giao việc', '派工'], k_batdau: ['Bắt đầu', '开始'], k_hoan: ['Tạm hoãn', '暂停'], k_xong: ['Xong', '完成'],
   k_kiemtra: ['Kiểm tra đạt', '检查合格'], k_tralai: ['Trả lại', '退回'], k_huy: ['Huỷ', '取消'], k_sua: ['Sửa việc', '编辑'], k_lap: ['Tự tạo từ việc lặp lại', '由重复工作自动创建'],
+  k_giahan: ['Gia hạn', '延期'],
+  cvGiaHan: ['Gia hạn', '延期'], cvGiaHanT: ['Gia hạn thêm thời gian', '延长期限'],
+  cvGiaHanHan: ['Hạn hiện tại', '当前期限'], cvGiaHanMoi: ['Hạn mới', '新期限'],
+  cvGiaHanThem: ['+{n} ngày', '+{n}天'], cvGiaHanTuan: ['Cuối tuần sau', '下周末'],
+  cvGiaHanLyDo: ['Lý do gia hạn', '延期原因'],
+  cvGiaHanHelp: ['Chỉ nới hạn ra, không rút lại. Mỗi lần gia hạn ghi vào nhật ký việc: ai gia hạn, từ ngày nào sang ngày nào. Muốn rút hạn thì vào Sửa việc.',
+    '只能延长，不能提前。每次延期都会记入工作日志：延期人、原期限和新期限。如需提前，请在编辑工作中修改。'],
+  cvGiaHanOk: ['Đã gia hạn đến {d}', '已延期至 {d}'],
+  cvGiaHanSai: ['Hạn mới phải sau hạn cũ và không được trước hôm nay', '新期限须晚于原期限且不早于今天'],
+  cvGiaHanVD: ['Chờ linh kiện về, máy đang chạy đơn gấp…', '等待配件到货、设备正赶急单…'],
+  cvGiaHanTu: ['từ {a} sang {b}', '{a} → {b}'],
   aCvCho: ['Việc chưa giao người làm', '未派工的工作'], aCvQua: ['Việc quá hạn', '逾期工作'], aCvKT: ['Việc xong chờ kiểm tra', '已完成待检查'], aCvToiQua: ['Việc của tôi quá hạn', '我的逾期工作'],
   mCongViec: ['Công việc', '工作'], mCvMo: ['đang mở', '未完成'], mCvQua: ['{n} quá hạn', '逾期{n}'], mCvCho: ['{n} chờ giao', '待派工{n}'], mCvOk: ['không có việc quá hạn', '无逾期'],
   lap_ngay: ['Hằng ngày', '每天'], lap_tuan: ['Hằng tuần', '每周'], lap_thang: ['Hằng tháng', '每月'], lapKieu: ['Lặp lại', '重复'],
@@ -14556,6 +14581,7 @@ function cvApDung(x, p, luc, nguoi, op) {
   } else if (b === 'kiemtra') { x.trangThai = 'DONG'; x.nguoiKiemTra = nguoi; x.lucKiemTra = luc; }
   else if (b === 'tralai') x.trangThai = 'DANG_LAM';
   else if (b === 'huy') x.trangThai = 'HUY';
+  else if (b === 'giahan') { const cu = x.han || ''; x.han = p.han; x.nhatKy.push({ b, luc, nguoi, gc: p.ghiChu || '', op, hanCu: cu, hanMoi: p.han }); return; }
   x.nhatKy.push({ b, luc, nguoi, gc: p.ghiChu || '', op });
 }
 const laSC = (x) => x.nguon === 'SC' || (x.loai === 'SUA' && x.nhatKy && x.nhatKy[0] && x.nhatKy[0].gc === 'Ghi sửa chữa');
@@ -14653,10 +14679,13 @@ function nvSelGan(sel, opt, sau) {
 
 // ---------- Dòng việc ----------
 function cvRow(x, nguoi) {
-  return `<button class="scrow" data-act="cvView" data-id="${esc(x.id)}">
+  // Việc quá hạn: Quản lý gia hạn ngay tại dòng, khỏi phải mở việc rồi vào Sửa việc
+  const gh = cvQua(x) && can('giaoviec') && !srvOld('giahan')
+    ? `<span class="scgh"><button type="button" class="btn ghost sm" data-act="cvGiaHan" data-id="${esc(x.id)}">${IC.clock} ${t('cvGiaHan')}</button></span>` : '';
+  return `<div class="scwrap"><button class="scrow" data-act="cvView" data-id="${esc(x.id)}">
     <div class="sch">${cvPill(x)}${uuTag(x)}${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}<span class="scno mono">${x.so ? '#' + x.so : ''}</span><span class="sct">${hanPill(x)}</span></div>
     <div class="nm">${svH(x.tieuDe, x.tieuDeDich)}</div>
-    <div class="scf"><span>${esc(tv('lv_' + x.loai))}</span>${x.ma ? `<span class="code">${esc(mh(x.ma))}</span>` : ''}${nguoi && x.nguoiLam ? `<span>${IC.user}${esc(x.nguoiLam)}${(x.uidPhu || []).length ? ' +' + x.uidPhu.length : ''}</span>` : ''}${x.lapLai ? `<span title="${esc(tp('cvLapTu'))}">${IC.refresh}</span>` : ''}</div></button>`;
+    <div class="scf"><span>${esc(tv('lv_' + x.loai))}</span>${x.ma ? `<span class="code">${esc(mh(x.ma))}</span>` : ''}${nguoi && x.nguoiLam ? `<span>${IC.user}${esc(x.nguoiLam)}${(x.uidPhu || []).length ? ' +' + x.uidPhu.length : ''}</span>` : ''}${x.lapLai ? `<span title="${esc(tp('cvLapTu'))}">${IC.refresh}</span>` : ''}</div></button>${gh}</div>`;
 }
 function cvAlert(x) {
   return `<button class="alert ${cvQua(x) ? 'a-red' : 'a-blue'}" data-act="cvView" data-id="${esc(x.id)}"><span class="aic">${IC.list}</span>
@@ -14874,7 +14903,7 @@ VIEWS.cvView = {
         ${x.anhXong.length ? anhGridHtml(x.anhXong, false, '') : ''}</div>`;
     }
     o += sec('scQuaTrinh') + `<div class="card pad"><ol class="sctl">${x.nhatKy.map((n) => `<li class="b-${esc(n.b === 'kiemtra' ? 'nghiemthu' : n.b === 'tao' || n.b === 'lap' ? 'tao' : n.b === 'hoan' ? 'cholk' : n.b)}"><i></i><div><b>${t('k_' + n.b)}</b>
-      <span class="muted">${esc(n.nguoi || '')} · <span class="mono">${esc(fmtTG(n.luc))}</span></span>${n.gc ? `<div class="gc">${svH(n.gc, n.gcDich)}</div>` : ''}</div></li>`).join('')}</ol></div>`;
+      <span class="muted">${esc(n.nguoi || '')} · <span class="mono">${esc(fmtTG(n.luc))}</span></span>${n.hanMoi ? `<div class="gc mono">${esc(tv('cvGiaHanTu', { a: fmtD(n.hanCu), b: fmtD(n.hanMoi) }))}</div>` : ''}${n.gc ? `<div class="gc">${svH(n.gc, n.gcDich)}</div>` : ''}</div></li>`).join('')}</ol></div>`;
     return o;
   }
 };
@@ -14895,6 +14924,7 @@ function cvActions(x) {
   let o = out.length ? `<div class="scact">${out.join('')}</div>` : '';
   if (st === 'XONG' && !ql) o += `<div class="note" style="margin-top:12px">${t('cvChoKT')}</div>`;
   const lnk = [];
+  if (ql && cvMo(x) && !srvOld('giahan')) lnk.push(`<button class="lnkbtn" data-act="cvGiaHan" data-id="${esc(x.id)}">${IC.clock} ${t('cvGiaHan')}</button>`);
   if (ql && CV_LAM.indexOf(st) >= 0) lnk.push(`<button class="lnkbtn" data-act="cvGiao1" data-id="${esc(x.id)}">${IC.user} ${t('cvGiaoLai')}</button>`);
   if (can('ghiviec') && (cvMo(x) || st === 'XONG')) lnk.push(`<button class="lnkbtn" data-act="cvEdit" data-id="${esc(x.id)}">${IC.edit} ${t('cvSua')}</button>`);
   if ((ql && (cvMo(x) || st === 'XONG')) || (x.uidTao === me.id && st === 'CHO_GIAO')) lnk.push(`<button class="lnkbtn red" data-act="cvB" data-id="${esc(x.id)}" data-b="huy">${IC.out} ${t('cvHuy')}</button>`);
@@ -14903,6 +14933,23 @@ function cvActions(x) {
   return o;
 }
 const cvCanLyDo = (x, b) => b === 'hoan' || b === 'tralai' || (b === 'huy' && !(x.uidTao === (S.me || {}).id && x.trangThai === 'CHO_GIAO'));
+// Gia hạn việc quá hạn: bấm nhanh +1/+3/+7 ngày hay cuối tuần sau, hoặc tự chọn ngày
+function cvGiaHanSheet(id) {
+  const x = S.V.cvById[id]; if (!x) return;
+  const goc = x.han && x.han > TODAY() ? x.han : TODAY();
+  const nhanh = [1, 3, 7].map((n) => ({ lb: tv('cvGiaHanThem', { n }), d: addD(goc, n) }))
+    .concat([{ lb: tv('cvGiaHanTuan'), d: addD(tcThuHai(TODAY()), 13) }])
+    .filter((o, i, a) => o.d > goc && a.findIndex((v) => v.d === o.d) === i);
+  openSheet(`<div class="grab"></div><h3>${tv('cvGiaHanT')}<span class="zi">${tz('cvGiaHanT')}</span></h3>
+    <div class="who"><b>${svH(x.tieuDe, x.tieuDeDich)}</b> ${x.so ? '<span class="mono">#' + x.so + '</span>' : ''}</div>
+    <dl class="kv" style="margin:10px 0 12px"><dt>${t('cvGiaHanHan')}</dt><dd>${esc(fmtD(x.han))} ${hanPill(x)}</dd></dl>
+    <div class="chips">${nhanh.map((o) => `<button type="button" class="chip" data-act="cvGiaHanChon" data-d="${esc(o.d)}">${esc(o.lb)}</button>`).join('')}</div>
+    <label class="fld" style="margin-top:12px"><span>${t('cvGiaHanMoi')}</span><input class="inp" id="ghNgay" type="date" value="${esc(nhanh[0].d)}" min="${esc(TODAY())}"></label>
+    <label class="fld" style="margin-top:10px"><span>${t('cvGiaHanLyDo')}</span><textarea class="inp" id="ghLy" rows="2" maxlength="300" placeholder="${esc(tp('cvGiaHanVD'))}"></textarea></label>
+    <div class="help">${t('cvGiaHanHelp')}</div>
+    <div class="err" id="ghErr" hidden></div>
+    <div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn" data-act="cvGiaHanGo" data-id="${esc(x.id)}">${IC.clock} ${t('cvGiaHan')}</button></div>`);
+}
 function cvBuocSheet(id, b) {
   const x = S.V.cvById[id]; if (!x) return;
   const ten = { hoan: 'cvHoan', tralai: 'cvTraLai', huy: 'cvHuy' }[b], ph = { hoan: 'cvHoanPh', tralai: 'cvTraLaiPh', huy: 'cvHuyPh' }[b];
@@ -15292,6 +15339,24 @@ Object.assign(ACT, {
     if (!x) return;
     if (cvCanLyDo(x, b) && !gc.trim()) { fe.innerHTML = t('CAN_LY_DO'); fe.hidden = false; return; }
     cvGuiBuoc({ id: x.id, buoc: b, ghiChu: gc.trim() }, el, fe);
+  },
+  cvGiaHan: (el) => cvGiaHanSheet(el.dataset.id),
+  cvGiaHanChon: (el) => {
+    const i = $('#ghNgay'); if (!i) return;
+    i.value = el.dataset.d;
+    $$('#sheetBg [data-act="cvGiaHanChon"]').forEach((b) => b.classList.toggle('on', b === el));
+  },
+  cvGiaHanGo: async (el) => {
+    const id = el.dataset.id, x = S.V.cvById[id], fe = $('#ghErr'), d = (($('#ghNgay') || {}).value || '');
+    if (!x) return;
+    fe.hidden = true;
+    if (!validD(d) || d < TODAY() || d <= (x.han || '')) { fe.hidden = false; fe.textContent = tp('cvGiaHanSai'); return; }
+    el.disabled = true;
+    const r = await send('updateTask', { id, buoc: 'giahan', han: d, ghiChu: ($('#ghLy') || {}).value.trim() });
+    if (r.err) { el.disabled = false; fe.hidden = false; fe.innerHTML = cvLoi(r.err); return; }
+    closeSheet();
+    toast(r.queued ? t('savedLocal') : tp('cvGiaHanOk', { d: fmtD(d) }));
+    render();
   },
   cvXong: (el) => go('cvXong', { id: el.dataset.id }),
   cvGiaoGo: (el) => cvGiaoGo(el),
@@ -19440,6 +19505,8 @@ Object.assign(TX, {
     '服务器尚不支持一天多人值班。请更新 Code.gs 后重新部署。'],
   srvMissTrucGio: ['Máy chủ chưa ghi được giờ trực riêng. Cập nhật Code.gs rồi Triển khai lại.',
     '服务器尚不支持单独的值班时间。请更新 Code.gs 后重新部署。'],
+  srvMissGiaHan: ['Máy chủ chưa gia hạn được việc quá hạn. Cập nhật Code.gs rồi Triển khai lại.',
+    '服务器尚不支持延长逾期工作的期限。请更新 Code.gs 后重新部署。'],
   xlMNKTen: ['Máy nén khí', '空压机'], xlMNKLoai: ['Loại', '类型'], xlMNKGio: ['Giờ trên đồng hồ', '表显小时'],
   xlMNKNgay: ['Ngày ghi', '记录日期'], xlMNKTuBD: ['Giờ từ lần bảo dưỡng', '上次保养后小时'],
   xlMNKConLai: ['Còn lại tới hạn', '距到期小时'], xlMNKTT: ['Tình trạng', '状态'],
