@@ -2100,6 +2100,8 @@ await logout(); await login('NV003', '333333');
 await page.evaluate(() => go('may', { ma: S.V.may[0].ma })); await wait(900);
 assert.equal(await page.locator('[data-act="mayXoa"]').count(), 0, 'kỹ thuật không xoá được thiết bị');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+// Phần trên vừa đăng nhập bằng kỹ thuật; quay lại Quản lý vì kỹ thuật không mở được Danh sách
+await logout(); await login('NV002', '222222'); await wait(1200);
 // Chuyền trong hộp chọn phải đủ mã + tên Việt + tên Trung, không thì rất dễ chọn nhầm chuyền
 await page.evaluate(() => go('scGhi', {})); await wait(1000);
 await page.click('.tbpick[data-for="scMa"]'); await wait(600);
