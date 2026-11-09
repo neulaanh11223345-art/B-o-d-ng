@@ -1042,6 +1042,14 @@ table.mtab tr.child th.nmc button{font-weight:500;padding-left:10px}
 .khoibtn.on .zi{color:#DCE7FC}
 .khoibtn.on .khoin{color:#fff}
 .kst.on{border:2px solid currentColor}
+/* Ô chọn thiết bị: trông như ô nhập, bấm mở hộp chọn có tìm và quét QR */
+.tbpick{display:flex;align-items:center;gap:8px;width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink3);font:inherit;font-size:15px;text-align:left}
+.tbpick.co{color:var(--ink);font-weight:600}
+.tbpick .tbpt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbpick svg{flex:none;color:var(--ink3)}
+.tbds{max-height:min(58vh,480px);overflow-y:auto;margin:0 -4px;padding:0 4px}
+.tbds .sec{margin-top:10px}
+.tbds .row{width:100%;text-align:left}
 .tsrow{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--soft);font-size:14px}
 .tsrow dt{flex:1;min-width:0;color:var(--ink2);overflow-wrap:anywhere}
 .tsrow dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
@@ -9036,6 +9044,113 @@ function thieuHtml(ds) {
   return `<div class="thieu"><b>${tv('chuaDayDu')}<span class="zi" lang="zh-CN">${tz('chuaDayDu')}</span></b>
     <ul>${ds.map(([vi, zh]) => `<li>${esc(vi)}<span class="zi" lang="zh-CN">${esc(zh)}</span></li>`).join('')}</ul></div>`;
 }
+// ---------- Hộp chọn thiết bị ----------
+// Thay danh sách xổ xuống: gần 240 dòng thì cuộn không nổi trên điện thoại.
+// Ô này có quét QR, gõ tìm không dấu và mục "Gần đây", dùng chung cho mọi màn cần chọn thiết bị.
+// Giá trị vẫn nằm trong một <input hidden> đúng id cũ, nên mọi chỗ đọc $('#...').value không phải sửa.
+function tbTen(ma) {
+  if (!ma) return '';
+  const c = S.V.chByMa[ma];
+  if (c) return mh(c.ma) + ' · ' + (c.tenZh || c.ten || '');
+  const m = S.V.byMa[ma];
+  return m ? mh(m.ma) + ' · ' + m.ten : ma;
+}
+// id = id ô ẩn giữ giá trị (giữ nguyên tên cũ); kc = nhãn khi chưa chọn; buoc = bắt buộc chọn
+function tbChon(id, cur, kc, buoc) {
+  cur = cur || '';
+  return `<input type="hidden" id="${esc(id)}" value="${esc(cur)}">
+    <button type="button" class="tbpick${cur ? ' co' : ''}" data-act="tbMo" data-for="${esc(id)}" data-kc="${esc(kc)}"${buoc ? ' data-buoc="1"' : ''}>
+      <span class="tbpt">${cur ? esc(tbTen(cur)) : esc(tp(kc))}</span>${IC.chev}</button>`;
+}
+// Đặt giá trị rồi báo cho form biết, để mọi xử lý cũ (đổi máy thì đổi danh sách linh kiện…) vẫn chạy
+function tbDat(id, ma) {
+  const el = $('#' + id); if (!el) return;
+  el.value = ma || '';
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  const b = $(`.tbpick[data-for="${id}"]`);
+  if (b) { b.classList.toggle('co', !!ma); const t0 = b.querySelector('.tbpt'); if (t0) t0.textContent = ma ? tbTen(ma) : tp(b.dataset.kc); }
+}
+// Thiết bị người này vừa ghi việc hoặc ghi sửa chữa — thực tế quanh đi quẩn lại chỉ vài máy
+function tbGanDay() {
+  const me = (S.me || {}).id, ra = [], them = (ma) => {
+    if (!ma || ra.indexOf(ma) >= 0 || ra.length >= 6) return;
+    if (S.V.byMa[ma] || S.V.chByMa[ma]) ra.push(ma);
+  };
+  (S.V.cvAll || []).filter((x) => x.uidLam === me || x.uidTao === me)
+    .sort((a, b) => String(b.lucTao || '').localeCompare(String(a.lucTao || ''))).forEach((x) => them(x.ma));
+  (S.V.ls || []).filter((x) => x.nguoi === (S.me || {}).ten)
+    .sort((a, b) => String(b.ngay || '').localeCompare(String(a.ngay || ''))).forEach((x) => them(x.ma));
+  return ra;
+}
+function tbDongHtml(ma, forId) {
+  const c = S.V.chByMa[ma], m = S.V.byMa[ma];
+  const ten = c ? (c.tenZh || c.ten || '') : (m ? m.ten : ma);
+  const phu = c ? tp('chuyenNgan') : [m && m.nhom, m && m.chuyen ? mh(m.chuyen) : '', m && m.viTri].filter(Boolean).join(' · ');
+  const qua = m && cvQuaMay(m);
+  return `<button type="button" class="row" data-act="tbPick" data-for="${esc(forId)}" data-ma="${esc(ma)}">
+    <div class="main"><div class="nm">${esc(ten)}${qua ? ` <span class="pill p-qua">${t('st_qua')}</span>` : ''}</div>
+    <div class="sub"><span class="code">${esc(mh(ma))}</span>${phu ? ' · ' + esc(phu) : ''}</div></div></button>`;
+}
+const cvQuaMay = (m) => m.hoatDong && m.chuKy > 0 && m.hanKeTiep && m.hanKeTiep < TODAY();
+function tbDsHtml(forId, q, kc, buoc) {
+  const loai = S.tbLoai || '', nq = norm(q);
+  let chs = (S.V.ch || []).filter((c) => c.hoatDong !== false);
+  let may = activeMay();
+  // Lọc theo loại trước, rồi mới tới chữ gõ vào
+  if (loai === 'CH') may = [];
+  else if (loai) { chs = []; may = may.filter((m) => khoiCua(m) + '|' + (m.nhom || '') === loai); }
+  if (nq) {
+    chs = chs.filter((c) => norm([c.ma, mh(c.ma), c.ten, c.tenZh].join(' ')).indexOf(nq) >= 0);
+    may = findMay(q, may);
+  }
+  let o = '';
+  if (!buoc) o += `<button type="button" class="row" data-act="tbPick" data-for="${esc(forId)}" data-ma=""><div class="main"><div class="nm muted">${esc(tp(kc))}</div></div></button>`;
+  // Chưa chọn loại và chưa gõ gì: đưa thiết bị vừa làm lên trước, đỡ phải tìm
+  if (!loai && !nq) {
+    const gd = tbGanDay();
+    if (gd.length) o += sec('tbGanDay', gd.length) + `<div class="list">${gd.map((ma) => tbDongHtml(ma, forId)).join('')}</div>`;
+    if (chs.length) o += sec('scNhomChuyen', chs.length) + `<div class="list">${chs.map((c) => tbDongHtml(c.ma, forId)).join('')}</div>`;
+    return o + `<p class="help" style="margin:12px 2px 0">${t('tbChonHelp')}</p>`;
+  }
+  if (!chs.length && !may.length) return o + `<div class="card empty">${t('notFound')}</div>`;
+  if (chs.length) o += sec('scNhomChuyen', chs.length) + `<div class="list">${chs.map((c) => tbDongHtml(c.ma, forId)).join('')}</div>`;
+  if (may.length) {
+    o += sec('machines', may.length) + `<div class="list">${may.slice(0, 120).map((m) => tbDongHtml(m.ma, forId)).join('')}</div>`;
+    if (may.length > 120) o += `<p class="help" style="margin:8px 2px 0">${t('tbConNua', { n: may.length - 120 })}</p>`;
+  }
+  return o;
+}
+// Ô chọn loại: gom theo hai khối thiết bị, thêm mục Chuyền sản xuất ở trên cùng
+function tbLoaiOptions() {
+  const dem = {};
+  activeMay().forEach((m) => { const k = khoiCua(m) + '|' + (m.nhom || ''); dem[k] = (dem[k] || 0) + 1; });
+  const chs = (S.V.ch || []).filter((c) => c.hoatDong !== false);
+  const o = (v, txt, n) => `<option value="${esc(v)}"${S.tbLoai === v ? ' selected' : ''}>${esc(txt)}${n ? ' (' + n + ')' : ''}</option>`;
+  let h = o('', tp('tbMoiLoai'), activeMay().length + chs.length);
+  if (chs.length) h += o('CH', tp('scNhomChuyen'), chs.length);
+  KHOI_DS.forEach((kh) => {
+    const gs = Object.keys(dem).filter((k) => k.indexOf(kh + '|') === 0).sort();
+    if (!gs.length) return;
+    h += `<optgroup label="${esc(tv('khoi_' + kh))}">${gs.map((k) => o(k, k.slice(kh.length + 1) || '—', dem[k])).join('')}</optgroup>`;
+  });
+  return h;
+}
+function tbMoSheet(forId, kc, buoc) {
+  const cur = ($('#' + forId) || {}).value || '';
+  S.tbQ = ''; S.tbLoai = '';
+  const d = `data-for="${esc(forId)}" data-kc="${esc(kc)}" data-buoc="${buoc ? 1 : 0}"`;
+  openSheet(`<div class="grab"></div><h3>${tv('tbChonTieuDe')}<span class="zi">${tz('tbChonTieuDe')}</span></h3>
+    <label class="fld" style="margin:10px 0 8px"><span>${t('tbLoaiTB')}</span>
+      <select class="inp" id="tbL" data-chg="tbLoai" ${d}>${tbLoaiOptions()}</select></label>
+    <label class="fld" style="margin:0 0 4px"><span class="vhid">${t('search')}</span>
+      <input class="inp" id="tbQ" type="search" placeholder="${esc(tp('tbTimPh'))}" autocomplete="off" enterkeyhint="search"></label>
+    ${cur ? `<div class="help" style="margin:0 2px 8px">${t('tbDangChon')}: <b>${esc(tbTen(cur))}</b></div>` : ''}
+    <div id="tbDs" class="tbds">${tbDsHtml(forId, '', kc, buoc)}</div>`, () => {
+    const i = $('#tbQ');
+    if (i) i.addEventListener('input', (e) => { S.tbQ = e.target.value; $('#tbDs').innerHTML = tbDsHtml(forId, S.tbQ, kc, buoc); });
+  });
+}
 // Danh sách máy / chuyền, bỏ lựa chọn "không gắn máy" khi mục này bắt buộc
 function tbOptionsBuoc(cur) { return tbOptions(cur, 'scChonMay').replace(/^<option value=""[^>]*>[^<]*<\/option>/, (m) => m.replace(' selected', '')); }
 function tbOptions(cur, khongChon) {
@@ -14822,6 +14937,19 @@ function scAnhHtml(arr, g) {
     anhGridHtml(arr.map((d) => ({ data: d })), true, g);
 }
 Object.assign(ACT, {
+  tbMo: (el) => {
+    const d = el.dataset;
+    if (d.cb) { S.tbCb = { cb: d.cb, i: d.i }; tbMoSheet('', d.kc, true); return; }
+    S.tbCb = null;
+    tbMoSheet(d.for, d.kc, d.buoc === '1');
+  },
+  tbPick: (el) => {
+    const ma = el.dataset.ma || '';
+    closeSheet();
+    if (S.tbCb) { const c = S.tbCb; S.tbCb = null; if (ma) ACT[c.cb]({ dataset: { i: c.i }, value: ma }); return; }
+    tbDat(el.dataset.for, ma);
+  },
+  tbLoai: (el) => { S.tbLoai = el.value; $('#tbDs').innerHTML = tbDsHtml(el.dataset.for, S.tbQ || '', el.dataset.kc, el.dataset.buoc === '1'); },
   qToggle: (el) => {
     const k = el.dataset.k, vai = ($('#uVai') || {}).value || 'kythuat';
     const md = !!(QUYEN_MD[vai] || {})[k], r = S.qTam || (S.qTam = {});
@@ -15026,6 +15154,13 @@ Object.assign(TX, {
   maHT: ['Mã hiển thị (tự đặt)', '显示编号（自定义）'], maHTTuDong: ['Để trống: dùng mã tự cấp', '留空：使用系统编号'],
   maHTHelp: ['Mã nhà máy hay dùng, vd H2506. Hiện ở bảng công việc, tem QR, Excel, tìm kiếm. Để trống thì dùng mã hệ thống. Tem QR đã in vẫn quét được.', '工厂常用编号，如H2506。显示在工作表、二维码标签、Excel和搜索中。留空则用系统编号。已打印的二维码仍可扫描。'],
   maHeThong: ['mã hệ thống', '系统编号'], chuyenNgan: ['Chuyền', '产线'],
+  tbChonTieuDe: ['Chọn thiết bị', '选择设备'], tbLoaiTB: ['Loại thiết bị', '设备类型'],
+  tbMoiLoai: ['Mọi loại', '全部类型'],
+  tbTimPh: ['Gõ tên, mã, chuyền…', '输入名称、编号、产线…'],
+  tbGanDay: ['Gần đây', '最近使用'], tbDangChon: ['Đang chọn', '当前选择'],
+  tbConNua: ['… còn {n} thiết bị nữa, chọn loại hoặc gõ thêm cho gọn', '…还有{n}台，请选择类型或继续输入'],
+  tbChonHelp: ['Chọn loại thiết bị ở trên cho gọn danh sách, hoặc gõ số chuyền (17), tên máy (quat gio), mã máy (M020) — gõ không dấu cũng ra.',
+    '先在上方选择设备类型可缩小范围，也可输入产线号（17）、设备名（风机）或编号（M020）。'],
   tabSC: ['Sự cố', '故障'], scLS: ['Lịch sử sự cố', '故障记录'], scLSCh: ['Lịch sử sự cố của chuyền', '产线故障记录'],
   scLanN: ['{n} lần sửa chữa', '维修{n}次'], scGanNhat: ['Gần nhất', '最近'], scChuaCo: ['Chưa có sự cố nào', '暂无故障记录'],
   scSoLan: ['Số lần sửa', '维修次数'], scTongDung: ['Tổng dừng máy', '累计停机'],
@@ -15410,7 +15545,7 @@ VIEWS.cvNew = {
       <div class="fld"><span>${t('cvLoai')}</span><div class="chips">${Object.keys(CV_LOAI).map((k) => `<button type="button" class="chip${p.loai === k ? ' on' : ''}" data-act="cvLoaiChon" data-v="${k}">${t('lv_' + k)}</button>`).join('')}</div></div>
       <div class="fld"><span>${t('cvUu')}</span><div class="seg uuseg">${CV_UU.map((k) => `<button type="button" class="${p.uu === k ? 'on' : ''} uu-${k}" data-act="cvUuChon" data-v="${k}">${tv('uu_' + k)} ${tz('uu_' + k)}</button>`).join('')}</div></div>
       <div class="fld"><span>${t('cvHan')}</span>${hanChips(p.han)}<input class="inp" type="date" id="cvHanD" style="margin-top:8px" value="${esc(p.han)}"></div>
-      <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="cvMa">${tbOptions(p.ma, 'cvKhongMay')}</select>${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</label>
+      <div class="fld"><span>${t('cvMay')}</span>${tbChon('cvMa', p.ma, 'cvKhongMay', false)}${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</div>
       <label class="fld"><span>${t('cvMoTa')}</span><textarea class="inp" id="cvMT" rows="3" maxlength="1000">${esc(p.moTa)}</textarea></label>
       ${p.sua && (p.moTa || p.dMT) ? `<label class="fld dichfld"><span>${t('cvBanDich')}</span><textarea class="inp" id="cvMTd" rows="2" maxlength="2000">${esc(p.dMT)}</textarea></label>` : ''}
       <div class="fld"><span>${t('cvAnh')}</span><div id="scAnh">${scAnhHtml(p.anh, 'scb')}</div></div>
@@ -15630,7 +15765,7 @@ VIEWS.scGhi = {
     const ta = (id, k, rows, ph) => `<label class="fld"><span>${t(k)}</span><textarea class="inp" id="${id}" rows="${rows}" maxlength="1000"${ph ? ` placeholder="${esc(tp(ph))}"` : ''}>${esc(p[id] || '')}</textarea></label>`;
     return `<form id="scF" class="card pad" autocomplete="off">
       <div class="help" style="margin-bottom:10px">${t('scGhiHelp')}</div>
-      <div class="row2f"><label class="fld"><span>${t('thMay')}</span><select class="inp" id="scMa">${tbOptionsBuoc(p.scMa)}</select>${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</label>
+      <div class="row2f"><div class="fld"><span>${t('thMay')}</span>${tbChon('scMa', p.scMa, 'scChonMay', true)}${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</div>
         <label class="fld"><span>${t('scNgay')}</span><input class="inp" id="scNgay" type="date" max="${esc(TODAY())}" value="${esc(p.ngay)}"></label></div>
       ${ta('scMT', 'scMT', 2, '')}
       <div id="scGoiY">${gyHtml(scGoiY(p.scMa, p.scMT), 'sc', p.scMa)}</div>
@@ -15848,7 +15983,7 @@ VIEWS.cvLapEdit = {
       <div class="fld"><span>${t('lapKieu')}</span><div class="seg">${['ngay', 'tuan', 'thang'].map((k) => `<button type="button" class="${p.kieu === k ? 'on' : ''}" data-act="vlSet" data-k="kieu" data-v="${k}">${tv('lap_' + k)} ${tz('lap_' + k)}</button>`).join('')}</div></div>
       ${p.kieu === 'tuan' ? `<div class="fld"><span>${t('lapThu')}</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<button type="button" class="chip${thu.indexOf(String(d)) >= 0 ? ' on' : ''}" data-act="vlThu" data-v="${d}">${WD_VI[d]} ${WD_ZH[d]}</button>`).join('')}</div></div>` : ''}
       ${p.kieu === 'thang' ? `<label class="fld"><span>${t('lapNgayThang')}</span><input class="inp" id="vlNgay" value="${esc(p.ngay)}" placeholder="${esc(tp('lapNgayPh'))}" inputmode="numeric"></label>` : ''}
-      <label class="fld"><span>${t('cvMay')}</span><select class="inp" id="vlMa">${tbOptions(p.ma, 'cvKhongMay')}</select></label>
+      <div class="fld"><span>${t('cvMay')}</span>${tbChon('vlMa', p.ma, 'cvKhongMay', false)}</div>
       ${srvOld('lapphu') ? '' : `<div class="fld"><span>${t('lapKieuGiao')}</span><div class="seg">
         ${[['chung', 'lapGiaoChung'], ['rieng', 'lapGiaoRieng']].map(([k, lb]) => `<button type="button" class="${p.kieuGiao === k ? 'on' : ''}" data-act="vlSet" data-k="kieuGiao" data-v="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div></div>`}
       ${p.kieuGiao === 'rieng' && !srvOld('lapphu') ? `<div class="fld"><span>${t('lapGiaoRieng')}</span>
@@ -15858,7 +15993,7 @@ VIEWS.cvLapEdit = {
           <div class="fld"><span>${t('lapMayCua')} ${g.ma.length ? `<b>(${g.ma.length})</b>` : ''}</span>
             ${g.ma.length ? `<div class="chips">${g.ma.map((ma) => `<button type="button" class="chip on" data-act="vlMayXoa" data-i="${i}" data-ma="${esc(ma)}">${esc(mh(ma))}${tbTen(ma) ? ' · ' + esc(tbTen(ma)) : ''} ×</button>`).join('')}</div>`
     : `<span class="help">${t('lapMayChung')}</span>`}
-            <select class="inp" data-chg="vlMayThem" data-i="${i}" style="margin-top:6px">${tbOptions('', 'lapMayThem')}</select></div>
+            <button type="button" class="tbpick" style="margin-top:6px" data-act="tbMo" data-cb="vlMayThem" data-i="${i}" data-kc="lapMayThem" data-buoc="1"><span class="tbpt">${esc(tp('lapMayThem'))}</span>${IC.chev}</button></div>
           <div class="btns"><button type="button" class="btn ghost sm" data-act="vlGiaoXoa" data-i="${i}">${t('del')}</button></div></div>`).join('')}</div>
         <button type="button" class="btn ghost" data-act="vlGiaoThem">${IC.plus} ${t('lapGiaoThem')}</button>
         <span class="help">${t('lapGiaoRiengHelp')} ${t('lapMayBoHelp')}</span></div>`
@@ -17314,7 +17449,7 @@ VIEWS.ngtGhi = {
       <form id="ngtF" autocomplete="off">
       <div class="card pad" style="margin-bottom:12px"><div class="row2f">
         <label class="fld"><span>${t('ngtNgay')}</span><input class="inp" id="ngtNgay" type="date" value="${esc(p.ngayNT)}"></label>
-        <label class="fld"><span>${t('ngtMay')}</span><select class="inp" id="ngtMa">${tbOptions(p.ma, 'ngtKhongMay')}</select></label></div>
+        <div class="fld"><span>${t('ngtMay')}</span>${tbChon('ngtMa', p.ma, 'ngtKhongMay', false)}</div></div>
         <div class="row2f"><label class="fld"><span>${t('ngtTenTB')}</span><input class="inp" id="ngtTen" maxlength="150" value="${esc(p.tenTB)}"></label>
         <label class="fld"><span>${t('ngtDonVi')}</span><input class="inp" id="ngtDV" maxlength="150" value="${esc(p.donVi)}"></label></div></div>`;
 
@@ -17806,7 +17941,7 @@ VIEWS.kdEdit = {
       <div class="row2f"><label class="fld"><span>${t('kdSoTem')}</span><input class="inp" id="kdTem" maxlength="60" value="${esc(p.soTem)}"></label>
         <label class="fld"><span>${t('kdThuoc')}</span><input class="inp" id="kdThuoc" maxlength="80" value="${esc(p.thuocTB)}"></label></div>
       <div class="help" style="margin:-4px 0 10px">${t('kdThuocHelp')}</div>
-      <label class="fld"><span>${t('kdMay')}</span><select class="inp" id="kdMa">${tbOptions(p.ma, 'kdKhongMay')}</select></label>
+      <div class="fld"><span>${t('kdMay')}</span>${tbChon('kdMa', p.ma, 'kdKhongMay', false)}</div>
       <div class="row2f"><label class="fld"><span>${t('kdNhaSX')}</span><input class="inp" id="kdNsx" maxlength="120" value="${esc(p.nhaSX)}"></label>
         <label class="fld"><span>${t('kdNamSX')}</span><input class="inp" id="kdNam" inputmode="numeric" maxlength="4" value="${esc(p.namSX)}"></label></div>
       <label class="fld"><span>${t('kdThongSo')}</span><input class="inp" id="kdTs" maxlength="200" value="${esc(p.thongSo)}"></label>

@@ -29,6 +29,15 @@ async function login(nv, pin) {
   await page.waitForSelector('#main', { timeout: 20000 });
   await wait(600);
 }
+// Chọn thiết bị qua hộp chọn mới (ô Loại thiết bị + ô gõ tìm) thay cho danh sách xổ xuống cũ
+async function chonTB(id, ma) {
+  await page.click(`.tbpick[data-for="${id}"]`);
+  await page.waitForSelector('#tbQ');
+  await page.fill('#tbQ', ma);
+  await page.waitForSelector(`#tbDs .row[data-ma="${ma}"]`);
+  await page.click(`#tbDs .row[data-ma="${ma}"]`);
+  await wait(400);
+}
 // Mở một mục qua màn "Thêm" — đúng đường người dùng bấm trên điện thoại
 async function moThem(v) {
   await page.click('.tabs .tab[data-v="them"]'); await wait(500);
@@ -192,13 +201,15 @@ await page.click('.tabs .tab[data-v="cv"]'); await wait(700);
 await page.click('[data-v="scGhi"]'); await wait(700);
 assert.match(await text('#barTitle'), /sửa chữa/i);
 // Chọn được cả chuyền, máy ngoài chuyền và máy thuộc chuyền
-assert.equal(await page.locator('#scMa option[value="VKY03"]').count(), 1, 'chọn được chuyền sản xuất');
-assert.equal(await page.locator('#scMa option[value="M038"]').count(), 1, 'chọn được máy ngoài chuyền');
-assert.equal(await page.locator('#scMa optgroup[label*="Máy của chuyền VKY03"] option[value="M020"]').count(), 1,
-  'máy thuộc chuyền gom đúng vào nhóm của chuyền đó');
-// Bỏ lựa chọn "không gắn thiết bị": phải chọn máy
-assert.equal(await page.locator('#scMa option[value=""]').count(), 1, 'ô trống chỉ còn là lời nhắc chọn máy');
-assert.match(await page.locator('#scMa option[value=""]').textContent(), /Chọn thiết bị/);
+await page.click('.tbpick[data-for="scMa"]'); await wait(600);
+// Bỏ lựa chọn "không gắn thiết bị": việc sửa chữa bắt buộc chọn máy
+assert.equal(await page.locator('#tbDs .row[data-ma=""]').count(), 0, 'không có dòng bỏ trống, phải chọn máy');
+assert.match(await page.locator('.tbpick[data-for="scMa"] .tbpt').textContent(), /Chọn thiết bị/);
+for (const [ma, nhan] of [['VKY03', 'chuyền sản xuất'], ['M038', 'máy ngoài chuyền'], ['M020', 'máy thuộc chuyền']]) {
+  await page.fill('#tbQ', ma); await wait(350);
+  assert.equal(await page.locator(`#tbDs .row[data-ma="${ma}"]`).count(), 1, 'chọn được ' + nhan);
+}
+await page.evaluate(() => closeSheet()); await wait(300);
 // Thiếu nội dung thì không lưu được; cảnh báo liệt kê đúng mục còn thiếu, song ngữ
 await page.fill('#scMT', 'Máy hút bụi VKY03 không chạy');
 await page.click('#scOk'); await wait(500);
@@ -210,7 +221,7 @@ assert.match(thieuSC, /Nguyên nhân/); assert.match(thieuSC, /原因/);
 assert.match(thieuSC, /Kết quả/); assert.match(thieuSC, /处理结果/);
 assert.doesNotMatch(thieuSC, /Mô tả sự cố/, 'mục đã điền thì không báo thiếu');
 assert.equal(await page.locator('#scF').count(), 1, 'vẫn ở lại form, chưa lưu gì');
-await page.selectOption('#scMa', 'VKY03'); await wait(400);
+await chonTB('scMa', 'VKY03');
 await page.fill('#scMT', 'Máy hút bụi VKY03 không chạy');
 await page.click('[data-act="scNNChon"][data-k="nn_mon"]'); await wait(300);
 await page.fill('#scKQ', 'Thay chổi than motor');
@@ -235,7 +246,7 @@ await page.click('.tabs .tab[data-v="cv"]'); await wait(700);
 await page.click('#main [data-act="tab"][data-v="ngt"]'); await wait(800);
 assert.match(await text('#barTitle'), /Nghiệm thu/);
 await page.click('[data-act="ngtNew"]'); await wait(800);
-await page.selectOption('#ngtMa', 'M001'); await wait(400);
+await chonTB('ngtMa', 'M001');
 await page.fill('#ngtTen', 'Quạt hút bụi xưởng 2');
 await page.fill('#ngtDV', 'Cơ điện Minh Phát');
 await page.fill('[data-c="congSuat"]', '7,5');
@@ -425,9 +436,17 @@ await page.selectOption('[data-gf="0:uid"]', nvId10[0]);
 await page.selectOption('[data-gf="1:uid"]', nvId10[1]); await wait(300);
 // Người đầu check sheet hai máy, người sau một máy → ba việc
 const may10 = await page.evaluate(() => S.V.may.filter((m) => m.hoatDong).slice(0, 3).map((m) => m.ma));
-await page.selectOption('[data-chg="vlMayThem"][data-i="0"]', may10[0]); await wait(300);
-await page.selectOption('[data-chg="vlMayThem"][data-i="0"]', may10[1]); await wait(300);
-await page.selectOption('[data-chg="vlMayThem"][data-i="1"]', may10[2]); await wait(300);
+async function themMay(i, ma) {
+  await page.click(`.tbpick[data-cb="vlMayThem"][data-i="${i}"]`);
+  await page.waitForSelector('#tbQ');
+  await page.fill('#tbQ', ma);
+  await page.waitForSelector(`#tbDs .row[data-ma="${ma}"]`);
+  await page.click(`#tbDs .row[data-ma="${ma}"]`);
+  await wait(400);
+}
+await themMay(0, may10[0]);
+await themMay(0, may10[1]);
+await themMay(1, may10[2]);
 assert.equal(await page.locator('[data-act="vlMayXoa"]').count(), 3, 'thẻ máy của từng người');
 await page.click('#vlOk'); await wait(1600);
 const lapId = await page.evaluate(() => (S.V.vl.find((x) => x.tieuDe === 'Kiểm tra máy đầu ca') || {}).id);
@@ -499,7 +518,7 @@ await page.evaluate(() => { S.f.dTab = 'tien'; tab('dien'); }); await wait(600);
 assert.match(await text('#main'), /Tiền điện tháng/);
 await shot('15-tien-dien');
 await page.evaluate(() => go('scGhi')); await wait();
-await page.selectOption('#scMa', 'M038'); await page.fill('#scMT', 'Máy nén khí báo nhiệt độ cao'); await wait(800);
+await chonTB('scMa', 'M038'); await page.fill('#scMT', 'Máy nén khí báo nhiệt độ cao'); await wait(800);
 assert.match(await text('#scGoiY'), /Két làm mát/, 'gợi ý lần sửa tương tự của cùng máy');
 await page.click('#scGoiY [data-act="gyDung"]'); await wait();
 assert.equal(await page.inputValue('#scNN'), 'Két làm mát bám bụi dày');
@@ -1949,6 +1968,57 @@ await logout(); await login('NV003', '333333'); await wait(1400);
 assert.equal(await page.evaluate(() => S.quyen.xemhcd), true, 'về mặc định thì xem lại được cả hai khối');
 assert.equal(await page.evaluate(() => S.quyen.xuattb), false, 'và quyền xuất về lại đúng mặc định của vai trò');
 ok('Bản 2.38: phân quyền xem theo từng tài khoản, tám mục đè lên mặc định của vai trò, máy chủ lọc thật chứ không chỉ ẩn nút');
+
+// 26. Bản 2.38: ô chọn thiết bị có loại và ô tìm, thay danh sách xổ xuống
+await logout(); await login('NV002', '222222');
+await page.evaluate(() => go('scGhi', {})); await wait(1200);
+assert.equal(await page.locator('select#scMa').count(), 0, 'không còn danh sách xổ xuống');
+assert.equal(await page.locator('.tbpick[data-for="scMa"]').count(), 1, 'có ô chọn thiết bị mới');
+await page.click('.tbpick[data-for="scMa"]'); await wait(700);
+assert.equal(await page.locator('#tbL').count(), 1, 'hộp chọn có ô Loại thiết bị');
+assert.equal(await page.locator('#tbQ').count(), 1, 'và ô gõ tìm');
+assert.match(await text('#tbDs'), /Gần đây/, 'đưa thiết bị vừa làm lên trước');
+await shot('57-chon-thiet-bi');
+// Chọn loại: danh sách rút còn đúng loại đó
+const loai26 = await page.evaluate(() => [...document.querySelectorAll('#tbL option')]
+  .map((o) => o.value).find((x) => x.indexOf('|Máy hút bụi') > 0) || '');
+assert.ok(loai26, 'ô loại có nhóm Máy hút bụi');
+await page.selectOption('#tbL', loai26); await wait(600);
+const n26 = await page.evaluate(() => ({
+  dong: document.querySelectorAll('#tbDs .row').length,
+  may: S.V.may.filter((m) => m.hoatDong && (m.nhom || '') === 'Máy hút bụi · 吸尘器').length
+}));
+assert.equal(n26.dong, n26.may, 'chọn loại thì chỉ còn thiết bị của loại đó: ' + JSON.stringify(n26));
+await shot('58-chon-theo-loai');
+await page.selectOption('#tbL', ''); await wait(400);
+// Gõ tìm: theo mã máy, theo số chuyền, không dấu và cả tiếng Trung
+for (const [q, it] of [['M020', 1], ['吸尘', 1], ['17', 1]]) {
+  await page.fill('#tbQ', q); await wait(400);
+  assert.ok(await page.evaluate(() => document.querySelectorAll('#tbDs .row').length) >= it,
+    'gõ "' + q + '" phải ra kết quả');
+}
+await page.fill('#tbQ', 'hut bui'); await wait(450);
+assert.ok(await page.evaluate(() => document.querySelectorAll('#tbDs .row').length) >= 5, 'gõ không dấu vẫn ra');
+// Chọn một thiết bị: điền vào form và các xử lý cũ vẫn chạy
+await page.click('#tbDs .row >> nth=0'); await wait(700);
+const chon26 = await page.evaluate(() => ({
+  val: ($('#scMa') || {}).value, p: topV().p.scMa,
+  nhan: (document.querySelector('.tbpick[data-for="scMa"] .tbpt') || {}).textContent,
+  dong: !!document.querySelector('#sheetBg')
+}));
+assert.match(chon26.val, /^M\d+$/, 'ô ẩn giữ đúng mã máy');
+assert.equal(chon26.p, chon26.val, 'form nhận được giá trị mới');
+assert.ok(chon26.nhan && chon26.nhan.indexOf('Chọn thiết bị') < 0, 'nút hiện tên thiết bị đã chọn');
+assert.equal(chon26.dong, false, 'chọn xong thì đóng hộp');
+// Ghi việc: vẫn bỏ trống thiết bị được
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+await page.evaluate(() => go('cvNew', {})); await wait(900);
+await page.click('.tbpick[data-for="cvMa"]'); await wait(600);
+assert.match(await page.evaluate(() => (document.querySelector('#tbDs .row .nm') || {}).textContent || ''),
+  /Không gắn thiết bị/, 'việc không bắt buộc thiết bị thì có dòng bỏ trống');
+await page.evaluate(() => closeSheet()); await wait(300);
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Bản 2.38: ô chọn thiết bị có lọc theo loại và gõ tìm không dấu, dùng chung cho mọi màn cần chọn máy');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
