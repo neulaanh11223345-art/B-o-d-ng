@@ -1892,7 +1892,8 @@ ok('Bản 2.37: Danh sách là sổ thiết bị hai khối, thông số theo t�
 // 25. Bản 2.38: phân quyền xem theo từng tài khoản
 await logout(); await login('NV001', '111111');
 await page.evaluate(() => go('users')); await wait(2000);
-await page.click('.row[data-act="userEdit"]:has-text("Nguyễn Tuấn")'); await wait(900);
+await page.click('.row[data-act="userEdit"]:has-text("NV003")'); await wait(900);
+assert.equal(await page.evaluate(() => ($('#uMaNV') || {}).value), 'NV003', 'mở đúng tài khoản NV003');
 const q25 = await page.evaluate(() => ({
   sw: document.querySelectorAll('.qsw').length,
   md: [...document.querySelectorAll('.qmd')].map((e) => e.textContent.trim())
@@ -1926,7 +1927,8 @@ await shot('56-ky-thuat-bi-khoa-khoi');
 // Trả lại mặc định để các bước sau không bị ảnh hưởng
 await logout(); await login('NV001', '111111');
 await page.evaluate(() => go('users')); await wait(2000);
-await page.click('.row[data-act="userEdit"]:has-text("Nguyễn Tuấn")'); await wait(900);
+await page.click('.row[data-act="userEdit"]:has-text("NV003")'); await wait(900);
+assert.equal(await page.evaluate(() => ($('#uMaNV') || {}).value), 'NV003', 'mở đúng tài khoản NV003');
 await page.click('[data-act="qReset"]'); await wait(400);
 await page.click('[data-act="saveUser"]'); await wait(2400);
 await logout(); await login('NV003', '333333'); await wait(1200);
