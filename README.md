@@ -97,7 +97,13 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
-## Điểm mới của v2.36.0: gia hạn việc quá hạn, sửa nội dung việc đã xong
+## Điểm mới của v2.36.0: nút đồng bộ trên thanh trên cùng, gia hạn việc quá hạn, sửa nội dung việc đã xong
+
+### Nút đồng bộ ở thanh trên cùng, màn nào cũng bấm được
+
+Cạnh chip trạng thái **Đã đồng bộ** nay có thêm **nút tròn mũi tên quay**. Trước đây muốn tải lại dữ liệu phải về trang chủ bấm *Cập nhật*, hoặc vào Cá nhân; nay đang ở màn nào — chi tiết việc, kho, lịch trực, máy nén khí — bấm một cái là cập nhật ngay tại chỗ.
+
+Bấm thì mũi tên quay suốt lúc đang tải và nút khoá lại để không bấm chồng. **Mũi tên đã sửa cho quay xuôi chiều kim đồng hồ** — biểu tượng cũ vẽ mũi tên ngược chiều nên nhìn như đang quay lùi.
 
 ### Gia hạn việc quá hạn ngay ở dòng việc
 
