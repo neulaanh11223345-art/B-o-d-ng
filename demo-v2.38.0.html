@@ -9137,7 +9137,7 @@ function tbLoaiOptions() {
   return h;
 }
 function tbMoSheet(forId, kc, buoc) {
-  const cur = ($('#' + forId) || {}).value || '';
+  const cur = forId ? (($('#' + forId) || {}).value || '') : '';   // nút 'thêm máy' không có ô ẩn nào
   S.tbQ = ''; S.tbLoai = '';
   const d = `data-for="${esc(forId)}" data-kc="${esc(kc)}" data-buoc="${buoc ? 1 : 0}"`;
   openSheet(`<div class="grab"></div><h3>${tv('tbChonTieuDe')}<span class="zi">${tz('tbChonTieuDe')}</span></h3>
