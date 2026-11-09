@@ -8364,8 +8364,13 @@ function rebuild() {
   const lsMa = {};
   ls.forEach((x) => { if (x.trangThai !== 'HUY') (lsMa[x.ma] = lsMa[x.ma] || []).push(x); });
   Object.values(lsMa).forEach((a) => a.sort((p, q) => (q.ngay > p.ngay ? 1 : q.ngay < p.ngay ? -1 : 0)));
+  // Sắp xếp một lần ở đây, để Danh sách, hộp chọn thiết bị và file Excel xuất ra đều cùng thứ tự.
+  // Trước đây máy xếp theo thứ tự dòng trong bảng tính nên nhập thêm máy là lộn xộn.
+  may.sort(sapMay);
   const groups = [];
   may.forEach((m) => { const g = m.nhom || ''; if (groups.indexOf(g) < 0) groups.push(g); });
+  // Nhóm chưa đặt tên xuống cuối, còn lại xếp theo vần tiếng Việt
+  groups.sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1) || a.localeCompare(b, 'vi'));
   const ch = (S.base.chuyen || []).slice().sort((a, b) => (a.ma > b.ma ? 1 : -1)), chByMa = {};
   ch.forEach((c) => { chByMa[c.ma] = c; });
   const htMa = {}; may.concat(ch).forEach((x) => { if (x.maHT) htMa[String(x.maHT).toUpperCase()] = x.ma; });
@@ -8376,6 +8381,14 @@ function rebuild() {
   rebuildMNK();
 }
 const activeMay = () => S.V.may.filter((m) => m.hoatDong);
+// "Quạt số 2" phải đứng trước "Quạt số 10", nên đệm số cho đủ chữ số rồi mới so
+const soTN = (v) => String(v || '').replace(/\d+/g, (d) => d.padStart(6, '0'));
+// Thứ tự chung cho mọi màn: theo chuyền (máy không thuộc chuyền xuống cuối), rồi tên, rồi mã
+function sapMay(a, b) {
+  return (a.chuyen || '\uffff').localeCompare(b.chuyen || '\uffff', 'vi')
+    || soTN(a.ten).localeCompare(soTN(b.ten), 'vi')
+    || String(a.ma).localeCompare(String(b.ma), 'vi');
+}
 const nhacTruoc = () => (S.base && S.base.caiDat && S.base.caiDat.nhacTruoc !== undefined ? S.base.caiDat.nhacTruoc : 3);
 function stOf(m, today) {
   if (!m.hoatDong) return { k: 'ngung', d: 0 };
@@ -10059,7 +10072,7 @@ VIEWS.tbNhap = {
 };
 // ---------- Xuất: mỗi loại thiết bị một file ----------
 function tbXuatNhom(nhom) {
-  const ds = activeMay().filter((m) => (m.nhom || '') === nhom).sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
+  const ds = activeMay().filter((m) => (m.nhom || '') === nhom).sort(sapMay);
   const nhan = [];
   ds.forEach((m) => (m.thongSo || []).forEach(([k]) => { if (nhan.indexOf(k) < 0) nhan.push(k); }));
   const cot = ['Mã máy', 'Mã thiết bị (nhà máy)', 'Tên thiết bị', 'Tên tiếng Trung', 'Khối', 'Nhóm',
