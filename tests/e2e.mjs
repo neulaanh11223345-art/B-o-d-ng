@@ -1620,6 +1620,28 @@ assert.equal(quay22.anim, 'quay', 'có hiệu ứng quay vòng thật');
 assert.equal(quay22.khoa, true, 'khoá lại để không bấm chồng');
 await wait(1800);
 assert.equal(await page.evaluate(() => !!S.dangTai), false, 'tải xong thì thôi quay');
+// Nút đồng bộ trên thanh trên cùng: màn nào cũng bấm cập nhật được
+assert.equal(await page.locator('header.bar #rfBtn').count(), 1, 'thanh trên cùng có nút đồng bộ');
+// Mũi tên phải quay xuôi chiều kim đồng hồ: đầu mũi tên ở trên bên phải, dưới bên trái
+const mui22 = await page.evaluate(() => [...document.querySelectorAll('#rfBtn svg path')].map((e) => e.getAttribute('d')).join(' '));
+assert.match(mui22, /M19 3v4h-4/, 'đầu mũi tên trên nằm bên phải (xuôi chiều kim đồng hồ): ' + mui22);
+assert.match(mui22, /M5 21v-4h4/, 'đầu mũi tên dưới nằm bên trái: ' + mui22);
+// Vào một màn con rồi vẫn thấy nút, bấm thì quay và khoá lại
+await page.evaluate(() => { const x = S.V.cv[0]; go('cvView', { id: x.id }); }); await wait(900);
+assert.equal(await page.locator('header.bar #rfBtn').count(), 1, 'vào màn con vẫn còn nút đồng bộ');
+await page.click('#rfBtn'); await wait(300);
+const rf22 = await page.evaluate(() => {
+  const el = document.querySelector('#rfBtn');
+  return { quay: el.classList.contains('dangquay'), anim: getComputedStyle(el.querySelector('svg')).animationName, khoa: !!S.dangTai };
+});
+assert.equal(rf22.quay, true, 'bấm thì nút quay');
+assert.equal(rf22.anim, 'quay', 'có hiệu ứng quay thật');
+assert.equal(rf22.khoa, true, 'khoá lại để không bấm chồng');
+await wait(2200);
+assert.equal(await page.evaluate(() => !!S.dangTai), false, 'tải xong thì thôi quay');
+// Thanh trên cùng không bị tràn ngang khi thêm nút
+assert.equal(await page.evaluate(() => { const b = document.querySelector('.bar-in'); return b.scrollWidth > b.clientWidth + 1; }), false, 'thanh trên cùng không tràn ngang');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
 // Kho: lọc những hàng chưa khai tồn kho an toàn
 await page.evaluate(() => tab('kho')); await wait(1600);
 assert.equal(await page.locator('[data-act="khoF"][data-v="chuaAT"]').count(), 1, 'có chip Chưa có tồn an toàn');
@@ -1685,7 +1707,7 @@ assert.ok(xl22.thang.ten.some((n) => /^Lich T\d{2}-\d{4}$/.test(n)), 'tên sheet
 assert.ok(xl22.nam.soLS >= xl22.thang.soLS && xl22.thang.soLS >= xl22.tuan.soLS, 'lịch sử lọc theo khoảng');
 ['tuan', 'thang', 'nam'].forEach((k) => assert.equal(xl22[k].soLS, xl22[k].mong,
   'sheet lịch sử ' + k + ' đúng số dòng của khoảng: ' + JSON.stringify(xl22[k])));
-ok('Bản 2.35: nút Cập nhật ở trang chủ, kho lọc hàng chưa khai tồn an toàn, xuất Excel bảo dưỡng theo tuần / tháng / năm');
+ok('Bản 2.35 + 2.36: nút Cập nhật ở trang chủ và nút đồng bộ trên thanh trên cùng (mũi tên quay xuôi chiều kim đồng hồ), kho lọc hàng chưa khai tồn an toàn, xuất Excel bảo dưỡng theo tuần / tháng / năm');
 
 // 23. Bản 2.36: Quản lý gia hạn việc quá hạn ngay ở dòng việc
 await page.evaluate(() => ACT.cvLoc({ dataset: { v: 'qua' } })); await wait(900);
