@@ -2059,7 +2059,14 @@ await page.click('[data-act="listGrp"][data-g="__trung"]'); await wait(700);
 assert.equal(await page.evaluate(() => document.querySelectorAll('#listBody .row, #listBody .scrow, #listBody tbody tr').length), 1,
   'chip lọc ra đúng một máy trùng');
 await shot('60-trung-voi-chuyen');
-await page.evaluate(() => { S.f.grp = ''; render(); }); await wait(500);
+// Máy giả chỉ nằm trong bộ nhớ màn hình; dọn đi để bước sau đếm số máy cho đúng
+await page.evaluate(() => {
+  const i = S.V.may.findIndex((m) => m.ma === 'MTRUNG');
+  if (i >= 0) S.V.may.splice(i, 1);
+  delete S.V.byMa.MTRUNG;
+  S.f.grp = ''; render();
+}); await wait(500);
+assert.deepEqual(await page.evaluate(() => mayTrungChuyen().map((m) => m.ma)), [], 'dọn xong máy giả');
 ok('Bản 2.38: máy chỉ ghi sổ thì tắt theo dõi bảo dưỡng, và chuyền bị nhập thành máy thì có chip cảnh báo để dọn');
 
 // 28. Bản 2.39: xoá hẳn thiết bị nhập nhầm, máy đã có lịch sử thì máy chủ giữ lại
