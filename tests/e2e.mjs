@@ -453,10 +453,27 @@ ok('Công việc: ghi và giao, giao nhiều việc, nhân viên làm xong, Qu�
 // 11. Máy tính: sidebar, bảng có tiêu đề, phân trang
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.click('.side .nav[data-v="list"]'); await wait(600);
-await page.click('.stchips .chip[data-st="qua"]'); await wait(600);
-assert.ok(await page.isVisible('table.dt thead'), 'bảng thiết bị trên máy tính');
+// Danh sách nay là sổ thiết bị: hai khối, không còn chip trạng thái bảo dưỡng
+assert.equal(await page.locator('.stchips').count(), 0, 'Danh sách không còn chip Quá hạn / Hôm nay / Sắp đến');
+assert.equal(await page.locator('.khoibtn').count(), 2, 'có hai nút khối thiết bị');
+await page.click('.khoibtn[data-k="HCD"]'); await wait(700);
+assert.ok(await page.isVisible('table.dt thead'), 'bảng sổ thiết bị trên máy tính');
 assert.match(await text('.pager'), /kết quả/);
+const cot11 = await page.evaluate(() => [...document.querySelectorAll('#listBody table thead th')].map((e) => e.textContent));
+assert.ok(!cot11.some((c) => /Chu kỳ|Hạn kế tiếp|Xác nhận/.test(c)),
+  'sổ thiết bị không còn cột bảo dưỡng: ' + JSON.stringify(cot11));
+assert.ok(cot11.some((c) => /Vị trí/.test(c)) && cot11.some((c) => /Thông số/.test(c)), 'có cột Vị trí và Thông số');
 await shot('07-desktop-list');
+// Trạng thái bảo dưỡng chuyển hẳn sang tab Bảo dưỡng, bấm ô đếm là hiện ngay danh sách
+await page.evaluate(() => { S.f.khoi = ''; S.f.grp = ''; tab('cal'); }); await wait(900);
+await page.click('.kst.k-red'); await wait(800);
+assert.equal(await page.evaluate(() => S.f.calSt), 'qua');
+assert.equal(await page.evaluate(() => topV().v), 'cal', 'vẫn ở tab Bảo dưỡng, không nhảy sang Danh sách');
+assert.ok(await page.evaluate(() => document.querySelectorAll('#main table tbody tr').length > 0),
+  'hiện danh sách máy quá hạn ngay trong Bảo dưỡng');
+await page.click('[data-act="calSt"][data-st="qua"]'); await wait(700);
+assert.equal(await page.evaluate(() => S.f.calSt), '', 'bấm lại thì về lịch');
+await page.click('.side .nav[data-v="list"]'); await wait(600);
 await page.click('.side .nav[data-v="dien"]'); await wait(600);
 assert.ok(await page.isVisible('table.dt'), 'bảng công tơ trên máy tính');
 await page.click('.side .nav[data-v="list"]'); await wait(600);
@@ -1806,6 +1823,71 @@ await page.evaluate((id) => go('cvView', { id }), idX); await wait(900);
 assert.equal(await page.locator('[data-act="cvEdit"]').count(), 0, 'kỹ thuật không sửa được việc đã đóng');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
 ok('Bản 2.36: Quản lý gia hạn việc quá hạn ngay ở dòng việc, nhật ký ghi rõ dời từ ngày nào sang ngày nào; Quản lý sửa lại nội dung nhân viên đã ghi khi xong');
+
+// 24. Bản 2.37: sổ thiết bị, thông số, vị trí sửa tại chỗ, nhập / xuất Excel theo từng loại
+await logout(); await login('NV002', '222222');
+await page.evaluate(() => tab('list')); await wait(1400);
+// Xuất: mỗi loại một file, cột đúng như bảng của nhà máy
+await page.click('[data-act="go"][data-v="tbXuat"]'); await wait(900);
+const nut24 = await page.locator('[data-act="tbXuat1"]').count();
+assert.ok(nut24 >= 5, 'mỗi loại thiết bị một nút xuất: ' + nut24);
+const xl24 = await page.evaluate(async () => {
+  const g = [...document.querySelectorAll('[data-act="tbXuat1"]')].map((e) => e.dataset.g);
+  const f = tbXuatNhom(g[0]);
+  const sh = await readXlsx(await f.blob.arrayBuffer());
+  const rows = await sh[0].rows();
+  return { nhom: g[0], ten: f.ten, soSheet: sh.length, cot: rows[1], dong: rows.length - 2 };
+}).catch((e) => ({ loi: String(e) }));
+assert.ok(!xl24.loi, 'dựng được file: ' + xl24.loi);
+assert.equal(xl24.soSheet, 1, 'một loại một file, không gộp nhiều sheet');
+assert.match(xl24.ten, /^Thiet-bi_.+\.xlsx$/, 'tên file theo loại: ' + xl24.ten);
+['Mã máy', 'Tên thiết bị', 'Khối', 'Nhóm', 'Chuyền', 'Vị trí'].forEach((c) =>
+  assert.ok(xl24.cot.includes(c), 'file có cột ' + c + ': ' + JSON.stringify(xl24.cot)));
+assert.ok(xl24.dong >= 1, 'file có dòng thiết bị');
+await shot('52-xuat-theo-loai');
+// Xuất ra rồi đọc lại: khớp đúng, cột app tự điền không biến thành thông số rác
+const vong24 = await page.evaluate(async (nhom) => {
+  const f = tbXuatNhom(nhom);
+  const ds = await tbDocFile(new File([await f.blob.arrayBuffer()], f.ten));
+  const co = S.V.may.filter((m) => m.hoatDong && (m.nhom || '') === nhom);
+  return { doc: ds.length, co: co.length, ma: ds[0].ma, ten: ds[0].ten,
+    rac: ds.some((x) => x.thongSo.some(([k]) => /Hạn kế tiếp|Lần gần nhất/.test(k))) };
+}, xl24.nhom).catch((e) => ({ loi: String(e) }));
+assert.ok(!vong24.loi, 'đọc lại được file vừa xuất: ' + vong24.loi);
+assert.equal(vong24.doc, vong24.co, 'đọc lại đủ số thiết bị');
+assert.match(vong24.ma, /^M\d+$/, 'giữ nguyên mã máy để nhập lại là cập nhật');
+assert.equal(vong24.rac, false, 'cột app tự điền không thành thông số');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+// Nhập: màn nhập có lối chọn file và lời giải thích
+await page.evaluate(() => go('tbNhap')); await wait(800);
+assert.equal(await page.locator('#tbFile').count(), 1, 'có ô chọn file Excel');
+assert.match(await text('#main'), /Tên thiết bị/, 'ghi rõ cột bắt buộc');
+await shot('53-nhap-tu-file');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+// Hồ sơ máy: thông số kỹ thuật và sửa vị trí tại chỗ
+await page.evaluate(() => {
+  const m = S.V.may[0];
+  S.V.byMa[m.ma].thongSo = [['Model động cơ', 'YE3-160M2-2'], ['Công suất', '15 kW']];
+  go('may', { ma: m.ma, tab: 'tt' });
+}); await wait(900);
+assert.match(await text('#main'), /Thông số kỹ thuật/, 'hồ sơ máy có bảng thông số');
+assert.match(await text('#main'), /YE3-160M2-2/, 'hiện đúng thông số');
+assert.match(await text('#main'), /Khối thiết bị/, 'hiện khối thiết bị');
+assert.equal(await page.locator('[data-act="tbViTri"]').count(), 1, 'có nút Sửa vị trí');
+await shot('54-ho-so-may-thong-so');
+await page.click('[data-act="tbViTri"]'); await wait(600);
+await page.fill('#vtNew', 'Xưởng 2 — cạnh cửa số 3');
+await page.click('[data-act="tbViTriGo"]'); await wait(1200);
+const vt24 = await page.evaluate(() => S.V.byMa[topV().p.ma].viTri);
+assert.equal(vt24, 'Xưởng 2 — cạnh cửa số 3', 'vị trí đã lưu');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+// Kỹ thuật cũng sửa được vị trí, nhưng không nhập / xuất được
+await logout(); await login('NV003', '333333');
+await page.evaluate(() => go('may', { ma: S.V.may[0].ma, tab: 'tt' })); await wait(900);
+assert.equal(await page.locator('[data-act="tbViTri"]').count(), 1, 'kỹ thuật vẫn sửa được vị trí');
+assert.equal(await page.locator('[data-act="go"][data-v="tbNhap"]').count(), 0, 'kỹ thuật không thấy nút nhập');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Bản 2.37: Danh sách là sổ thiết bị hai khối, thông số theo từng loại, vị trí sửa tại chỗ, nhập / xuất Excel mỗi loại một file');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
