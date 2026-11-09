@@ -2100,7 +2100,39 @@ await logout(); await login('NV003', '333333');
 await page.evaluate(() => go('may', { ma: S.V.may[0].ma })); await wait(900);
 assert.equal(await page.locator('[data-act="mayXoa"]').count(), 0, 'kỹ thuật không xoá được thiết bị');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
-ok('Bản 2.39: xoá hẳn thiết bị nhập nhầm, máy còn lịch sử thì máy chủ giữ lại và báo rõ');
+// Chuyền trong hộp chọn phải đủ mã + tên Việt + tên Trung, không thì rất dễ chọn nhầm chuyền
+await page.evaluate(() => go('scGhi', {})); await wait(1000);
+await page.click('.tbpick[data-for="scMa"]'); await wait(600);
+await page.fill('#tbQ', 'VKY01'); await wait(400);
+const dongCh = (await page.locator('#tbDs .row[data-ma="VKY01"]').textContent()).replace(/\s+/g, ' ');
+const ch28 = await page.evaluate(() => S.V.chByMa.VKY01);
+assert.ok(dongCh.includes(ch28.ten), 'dòng chuyền có tên tiếng Việt: ' + dongCh);
+assert.ok(dongCh.includes(ch28.tenZh), 'và tên tiếng Trung');
+assert.ok(dongCh.includes('VKY01'), 'và mã chuyền');
+await page.click('#tbDs .row[data-ma="VKY01"]'); await wait(600);
+const nhan28 = await page.locator('.tbpick[data-for="scMa"] .tbpt').textContent();
+assert.ok(nhan28.includes('VKY01') && nhan28.includes(ch28.ten) && nhan28.includes(ch28.tenZh),
+  'nút chọn cũng hiện đủ ba thứ: ' + nhan28);
+await shot('62-chon-chuyen-du-ten');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+// Thiết bị còn chỗ chưa chắc: để riêng một chip, không đoán bừa
+await page.evaluate(() => {
+  const m = S.V.may.find((x) => x.hoatDong);
+  m.thongSo = (m.thongSo || []).concat([['Cần kiểm tra', 'File ghi máy số 05, chưa rõ chuyền']]);
+  tab('list');
+}); await wait(1300);
+assert.equal(await page.evaluate(() => mayCanKiemTra().length), 1, 'nhận ra thiết bị cần kiểm tra');
+assert.equal(await page.locator('[data-act="listGrp"][data-g="__ktra"]').count(), 1, 'có chip Cần kiểm tra');
+await page.click('[data-act="listGrp"][data-g="__ktra"]'); await wait(700);
+assert.match(await text('#main'), /chưa chắc/, 'nói rõ vì sao để riêng');
+assert.match(await text('#listBody'), /máy số 05/, 'dòng ghi luôn lý do cần kiểm tra');
+await shot('63-can-kiem-tra');
+await page.evaluate(() => {
+  const m = S.V.may.find((x) => (x.thongSo || []).some(([k]) => k === 'Cần kiểm tra'));
+  if (m) m.thongSo = m.thongSo.filter(([k]) => k !== 'Cần kiểm tra');
+  S.f.grp = ''; render();
+}); await wait(500);
+ok('Bản 2.39: xoá hẳn thiết bị nhập nhầm, máy còn lịch sử thì máy chủ giữ lại; chuyền hiện đủ mã và hai thứ tiếng; thiết bị chưa chắc để riêng chip Cần kiểm tra');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
