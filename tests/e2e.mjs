@@ -1919,20 +1919,35 @@ assert.equal(sau25.q.xemhcd, false, 'máy chủ trả về đúng quyền đã k
 assert.equal(sau25.q.xuattb, true, 'và đúng quyền đã mở riêng');
 assert.equal(sau25.hcd, 0, 'máy hậu công đoạn không rời máy chủ, không chỉ ẩn nút');
 assert.ok(sau25.sx > 0, 'khối còn lại vẫn xem được');
-await page.evaluate(() => tab('list')); await wait(1400);
-assert.equal(await page.locator('.khoibtn').count(), 1, 'chỉ còn một nút khối');
-assert.equal(await page.locator('[data-act="go"][data-v="tbXuat"]').count(), 1, 'mở riêng thì thấy nút Xuất Excel');
-assert.equal(await page.locator('[data-act="go"][data-v="tbNhap"]').count(), 0, 'vẫn không được nhập vì không có quyền sửa hồ sơ');
-await shot('56-ky-thuat-bi-khoa-khoi');
-// Trả lại mặc định để các bước sau không bị ảnh hưởng
+// Kỹ thuật vốn không mở được tab Thiết bị, nên phần giao diện kiểm bằng tài khoản Quản lý
 await logout(); await login('NV001', '111111');
 await page.evaluate(() => go('users')); await wait(2000);
-await page.click('.row[data-act="userEdit"]:has-text("NV003")'); await wait(900);
-assert.equal(await page.evaluate(() => ($('#uMaNV') || {}).value), 'NV003', 'mở đúng tài khoản NV003');
-await page.click('[data-act="qReset"]'); await wait(400);
+await page.click('.row[data-act="userEdit"]:has-text("NV002")'); await wait(900);
+assert.equal(await page.evaluate(() => ($('#uMaNV') || {}).value), 'NV002', 'mở đúng tài khoản NV002');
+await page.click('.qsw[data-k="xemhcd"]'); await wait(300);
+await page.click('.qsw[data-k="xuattb"]'); await wait(300);
+assert.deepEqual(await page.evaluate(() => S.qTam), { xemhcd: false, xuattb: false }, 'khoá riêng hai mục của Quản lý');
 await page.click('[data-act="saveUser"]'); await wait(2400);
-await logout(); await login('NV003', '333333'); await wait(1200);
+await logout(); await login('NV002', '222222'); await wait(1400);
+await page.evaluate(() => tab('list')); await wait(1400);
+assert.equal(await page.locator('.khoibtn').count(), 1, 'khối bị khoá thì không còn nút khối đó');
+assert.match(await text('.khoibtn'), /chuyền sản xuất/i, 'còn lại đúng khối được xem');
+assert.equal(await page.locator('[data-act="go"][data-v="tbXuat"]').count(), 0, 'khoá quyền thì mất nút Xuất Excel');
+assert.equal(await page.evaluate(() => S.V.may.filter((m) => khoiCua(m) === 'HCD').length), 0,
+  'máy khối bị khoá không rời máy chủ');
+await shot('56-quan-ly-bi-khoa-khoi');
+// Trả lại mặc định cho cả hai tài khoản để các bước sau không bị ảnh hưởng
+await logout(); await login('NV001', '111111');
+for (const ma of ['NV002', 'NV003']) {
+  await page.evaluate(() => go('users')); await wait(1800);
+  await page.click(`.row[data-act="userEdit"]:has-text("${ma}")`); await wait(900);
+  assert.equal(await page.evaluate(() => ($('#uMaNV') || {}).value), ma, 'mở đúng tài khoản ' + ma);
+  await page.click('[data-act="qReset"]'); await wait(400);
+  await page.click('[data-act="saveUser"]'); await wait(2400);
+}
+await logout(); await login('NV003', '333333'); await wait(1400);
 assert.equal(await page.evaluate(() => S.quyen.xemhcd), true, 'về mặc định thì xem lại được cả hai khối');
+assert.equal(await page.evaluate(() => S.quyen.xuattb), false, 'và quyền xuất về lại đúng mặc định của vai trò');
 ok('Bản 2.38: phân quyền xem theo từng tài khoản, tám mục đè lên mặc định của vai trò, máy chủ lọc thật chứ không chỉ ẩn nút');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
