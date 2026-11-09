@@ -2289,6 +2289,52 @@ test('thiết bị: máy không theo dõi bảo dưỡng, và chuyền không b�
   assert.equal(ok(b.call('data', {}, b.ql)).may.length, truoc + 1, 'không sinh máy trùng với chuyền');
 });
 
+test('thiết bị: xoá hẳn máy nhập nhầm, máy còn dính dữ liệu thì giữ lại', () => {
+  const b = setup();
+  const moi = ok(b.call('importMachines', {
+    rows: [{ ten: 'Máy nhập nhầm 1', khoi: 'HCD', nhom: 'Thử' }, { ten: 'Máy nhập nhầm 2', khoi: 'HCD', nhom: 'Thử' }]
+  }, b.ql));
+  assert.equal(moi.them, 2);
+  const ds = ok(b.call('data', {}, b.ql)).may;
+  const a1 = ds.find((m) => m.ten === 'Máy nhập nhầm 1');
+  const a2 = ds.find((m) => m.ten === 'Máy nhập nhầm 2');
+  const truoc = ds.length;
+
+  const r = ok(b.call('deleteMachines', { ma: [a1.ma, a2.ma] }, b.ql));
+  assert.equal(r.xoa, 2, 'xoá được cả hai');
+  assert.deepEqual(r.giu, []);
+  assert.deepEqual(r.mayXoa.sort(), [a1.ma, a2.ma].sort(), 'trả về mã đã xoá để app bỏ khỏi danh sách');
+  const sau = ok(b.call('data', {}, b.ql)).may;
+  assert.equal(sau.length, truoc - 2, 'biến khỏi danh sách');
+  assert.equal(sau.some((m) => m.ma === a1.ma), false);
+
+  // Mã đã xoá không bị cấp lại cho máy mới (dòng vẫn nằm trong sheet)
+  const them = ok(b.call('importMachines', { rows: [{ ten: 'Máy mới sau khi xoá', khoi: 'HCD', nhom: 'Thử' }] }, b.ql));
+  assert.equal(them.them, 1);
+  const m3 = ok(b.call('data', {}, b.ql)).may.find((m) => m.ten === 'Máy mới sau khi xoá');
+  assert.ok(m3.ma !== a1.ma && m3.ma !== a2.ma, 'không dùng lại mã cũ: ' + m3.ma);
+
+  // Máy đã có lịch sử bảo dưỡng thì giữ lại, nói rõ lý do
+  const coLS = ok(b.call('data', {}, b.ql)).lichSu[0].ma;
+  const r2 = b.call('deleteMachines', { ma: [coLS] }, b.ql);
+  assert.equal(r2.ok, false, 'một máy duy nhất mà không xoá được thì báo lỗi');
+  assert.match(r2.message, /lịch sử/i);
+  assert.equal(ok(b.call('data', {}, b.ql)).may.some((m) => m.ma === coLS), true, 'máy vẫn còn');
+
+  // Xoá cả loạt: cái nào được thì xoá, cái nào vướng thì liệt kê
+  const m4 = ok(b.call('importMachines', { rows: [{ ten: 'Máy nhập nhầm 3', khoi: 'HCD', nhom: 'Thử' }] }, b.ql));
+  assert.equal(m4.them, 1);
+  const a4 = ok(b.call('data', {}, b.ql)).may.find((m) => m.ten === 'Máy nhập nhầm 3');
+  const r3 = ok(b.call('deleteMachines', { ma: [a4.ma, coLS] }, b.ql));
+  assert.equal(r3.xoa, 1);
+  assert.equal(r3.giu.length, 1);
+  assert.equal(r3.giu[0].ma, coLS);
+
+  // Kỹ thuật không xoá được
+  err(b.call('deleteMachines', { ma: [m3.ma] }, b.kt), 'KHONG_QUYEN');
+  err(b.call('deleteMachines', { ma: [] }, b.ql), 'KHONG_CO');
+});
+
 test('thiết bị: kỹ thuật sửa được vị trí máy, không sửa được thứ khác', () => {
   const b = setup();
   const m0 = ok(b.call('data', {}, b.kt)).may[0];

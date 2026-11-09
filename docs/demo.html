@@ -1041,6 +1041,10 @@ table.mtab tr.child th.nmc button{font-weight:500;padding-left:10px}
 .khoibtn.on{background:var(--brand);border-color:var(--brand2);color:var(--onbrand)}
 .khoibtn.on .zi{color:#DCE7FC}
 .khoibtn.on .khoin{color:#fff}
+.dh2.chighi{display:block;padding-top:4px}
+table.ctbang{font-size:13px}
+table.ctbang td,table.ctbang th{white-space:nowrap}
+table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-width:120px}
 .chip.warnchip{border-color:var(--orange);color:var(--orange);background:var(--orange-bg)}
 .chip.warnchip.on{background:var(--orange);border-color:var(--orange);color:#fff}
 .kst.on{border:2px solid currentColor}
@@ -1486,7 +1490,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.38.0";
+const APP_VER = "2.39.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1885,7 +1889,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.38.0';
+var PHIEN_BAN = '2.39.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1895,7 +1899,7 @@ var BANG = {
   // Chuyen: mã chuyền sản xuất máy này thuộc về (vd VKY01), để trống nếu không thuộc chuyền nào
   // MaHT: mã hiển thị do nhà máy tự đặt (vd QTN-16). Ma là mã hệ thống, không đổi, tem QR in theo Ma
   May: ['Ma', 'Ten', 'TenPhu', 'Nhom', 'ViTri', 'ChuKy', 'HanKeTiep', 'NoiDung', 'HoatDong', 'CapNhat', 'HangMuc', 'LinhKien',
-    'PhuTrach', 'NgayDuaVao', 'Chuyen', 'MaHT', 'Khoi', 'ThongSo'],
+    'PhuTrach', 'NgayDuaVao', 'Chuyen', 'MaHT', 'Khoi', 'ThongSo', 'Xoa', 'ChiTiet'],
   // Chuyền sản xuất (theo Sổ cái quản lý cơ sở vật chất VKY-PR-E01-03). Sửa trực tiếp trên sheet hoặc trong app (Quản lý)
   // KhiNen: lượng khí nén chuyền đó dùng, m³/phút — để tính cần bật mấy máy nén khí
   Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
@@ -2045,7 +2049,7 @@ function quyenSach(v) {
   QUYEN_RIENG.forEach(function (k) { if (n[k] === true || n[k] === false) o[k] = n[k]; });
   return o;
 }
-var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'importMachines', 'saveSpot', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
+var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'importMachines', 'deleteMachines', 'saveSpot', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
   'saveOT', 'deleteOT', 'saveProfile', 'saveOTCfg',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
   'saveReading', 'deleteReading', 'saveMeter', 'saveParams', 'saveLists', 'importKho', 'saveKho', 'saveKhoCfg', 'importMin',
@@ -2203,6 +2207,7 @@ function dieuHuong(a, p, req) {
     case 'undo': return huyXacNhan(u, p);
     case 'saveMachine': canQuyen(u, 'may'); return luuMay(u, p);
     case 'importMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return nhapThietBi(u, p);
+    case 'deleteMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return xoaThietBi(u, p);
     case 'saveSpot': canQuyen(u, 'xacnhan'); return luuViTriMay(u, p);
     case 'saveLine': canQuyen(u, 'may'); return luuChuyen(u, p);
     case 'saveLists': canQuyen(u, 'may'); return luuDanhSach(u, p);
@@ -2298,6 +2303,8 @@ function dsIdCo(ds) { var o = {}; ds.forEach(function (x) { o[x.id] = 1; }); ret
 function s(v) { return v === null || v === undefined ? '' : String(v).trim(); }
 function pad2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
 function hd(v) { return !(v === 0 || v === '0' || v === false || String(v).toUpperCase() === 'FALSE'); }
+// Ngược với hd: ô trống nghĩa là chưa bật. Dùng cho cờ Xoa, vì mặc định phải là chưa xoá.
+function co(v) { return v === 1 || v === '1' || v === true || String(v).toUpperCase() === 'TRUE'; }
 function catChu(v, n) { return s(v).replace(/\s+/g, ' ').slice(0, n); }
 function catNhieuDong(v, n) { return s(v).replace(/\r/g, '').slice(0, n); }
 // Chặn chữ bắt đầu bằng = + - @ bị Google Sheets hiểu là công thức
@@ -2391,13 +2398,25 @@ function thongSoSach(v) {
   }
   return out;
 }
+// Chi tiết: bản ghi gộp (quạt gió của một chuyền, máy keo của một chuyền) giữ danh sách
+// từng đơn vị con ở đây — [{cot: [[nhãn, giá trị], ...]}] — để mở ra xem được từng cái.
+function chiTietSach(v) {
+  if (!Array.isArray(v)) return [];
+  var out = [];
+  for (var i = 0; i < v.length && out.length < 200; i++) {
+    var hang = thongSoSach(Array.isArray(v[i]) ? v[i] : (v[i] && v[i].cot));
+    if (hang.length) out.push({ cot: hang });
+  }
+  return out;
+}
 function mayTuDong(r, i) {
   return {
     ma: s(r[0]), ten: s(r[1]), tenPhu: s(r[2]), nhom: s(r[3]), viTri: s(r[4]),
     chuKy: Math.round(Number(r[5])) || 0, hanKeTiep: ngayStr(r[6]), noiDung: s(r[7]),
     hoatDong: hd(r[8]), capNhat: tgStr(r[9]), hangMuc: docJson(r[10], []), linhKien: docJson(r[11], []),
     phuTrach: s(r[12]), ngayDuaVao: ngayStr(r[13]), chuyen: s(r[14]).toUpperCase(), maHT: s(r[15]),
-    khoi: khoiHopLe(r[16]), thongSo: docJson(r[17], []), _r: i + 2
+    khoi: khoiHopLe(r[16]), thongSo: docJson(r[17], []), xoa: co(r[18]),
+    chiTiet: docJson(r[19], []), _r: i + 2
   };
 }
 function mayThanhDong(m) {
@@ -2405,13 +2424,16 @@ function mayThanhDong(m) {
     anToan(m.noiDung), m.hoatDong ? 1 : 0, m.capNhat,
     m.hangMuc && m.hangMuc.length ? JSON.stringify(m.hangMuc) : '', m.linhKien && m.linhKien.length ? JSON.stringify(m.linhKien) : '',
     anToan(m.phuTrach || ''), m.ngayDuaVao || '', m.chuyen || '', anToan(m.maHT || ''),
-    m.khoi || '', m.thongSo && m.thongSo.length ? JSON.stringify(m.thongSo) : ''];
+    m.khoi || '', m.thongSo && m.thongSo.length ? JSON.stringify(m.thongSo) : '', m.xoa ? 1 : 0,
+    m.chiTiet && m.chiTiet.length ? JSON.stringify(m.chiTiet) : ''];
 }
 function docJson(v, macDinh) {
   var t = s(v); if (!t) return macDinh;
   try { var o = JSON.parse(t); return o === null || o === undefined ? macDinh : o; } catch (e) { return macDinh; }
 }
-function dsMay() { return docTho('May').map(mayTuDong).filter(function (m) { return m.ma; }); }
+function dsMay() { return docTho('May').map(mayTuDong).filter(function (m) { return m.ma && !m.xoa; }); }
+// Kể cả máy đã xoá — chỉ dùng khi cần tìm lại đúng dòng trong sheet
+function dsMayHet() { return docTho('May').map(mayTuDong).filter(function (m) { return m.ma; }); }
 // Máy mà tài khoản này được xem. Khối nào bị tắt thì máy khối đó không rời máy chủ,
 // và không có quyền xem thông số thì bảng thông số cũng không được gửi đi.
 function mayChoXem(u) {
@@ -2421,7 +2443,7 @@ function mayChoXem(u) {
     return k === 'SX' ? sx : hcd;
   }).map(function (m) {
     var o = sachMay(m);
-    if (!ts) o.thongSo = [];
+    if (!ts) { o.thongSo = []; o.chiTiet = []; }
     return o;
   });
 }
@@ -2441,7 +2463,7 @@ function sachMay(m) {
   return { ma: m.ma, ten: m.ten, tenPhu: m.tenPhu, nhom: m.nhom, viTri: m.viTri, chuKy: m.chuKy,
     hanKeTiep: m.hanKeTiep, noiDung: m.noiDung, hoatDong: m.hoatDong, capNhat: m.capNhat,
     hangMuc: m.hangMuc || [], linhKien: m.linhKien || [], phuTrach: m.phuTrach || '', ngayDuaVao: m.ngayDuaVao || '', chuyen: m.chuyen || '',
-    maHT: m.maHT || '', khoi: m.khoi || '', thongSo: m.thongSo || [] };
+    maHT: m.maHT || '', khoi: m.khoi || '', thongSo: m.thongSo || [], chiTiet: m.chiTiet || [] };
 }
 // Mã hiển thị: tối đa 30 ký tự, không trùng mã hệ thống hay mã hiển thị của máy/chuyền khác (không phân biệt hoa thường)
 function kiemMaHT(v, maGoc) {
@@ -4672,7 +4694,7 @@ function luuMay(u, p) {
   if (trung && hoatDong) throw loi('TEN_TRUNG', trung.ma);
   var moi = !m;
   capNhatTieuDe('May');
-  if (moi) m = { ma: maMoi(ds), hangMuc: [], linhKien: [] };
+  if (moi) m = { ma: maMoi(dsMayHet()), hangMuc: [], linhKien: [] };
   m.ten = ten; m.tenPhu = catChu(p.tenPhu, 120); m.nhom = catChu(p.nhom, 60); m.viTri = catChu(p.viTri, 120);
   m.chuKy = chuKy; m.hanKeTiep = han; m.noiDung = catNhieuDong(p.noiDung, 1000); m.hoatDong = hoatDong;
   if (p.phuTrach !== undefined) m.phuTrach = catChu(p.phuTrach, 120);
@@ -4685,6 +4707,7 @@ function luuMay(u, p) {
   if (p.maHT !== undefined) m.maHT = kiemMaHT(p.maHT, m ? m.ma : '');
   if (p.khoi !== undefined) m.khoi = khoiHopLe(p.khoi);
   if (p.thongSo !== undefined) m.thongSo = thongSoSach(p.thongSo);
+  if (p.chiTiet !== undefined) m.chiTiet = chiTietSach(p.chiTiet);
   m.capNhat = thoiGianStr();
   if (moi) themDong('May', mayThanhDong(m)); else suaDong('May', m._r, mayThanhDong(m));
   return { may: sachMay(m), moi: moi };
@@ -4703,6 +4726,34 @@ function luuViTriMay(u, p) {
   suaDong('May', m._r, mayThanhDong(m));
   ghiNhatKy(u, 'sua', 'May', m.ma, { viTri: cu }, { viTri: m.viTri }, 'Sửa vị trí · 修改位置');
   return { may: sachMay(m) };
+}
+
+// Xoá hẳn thiết bị khỏi danh sách. Chỉ cho xoá máy chưa dính gì tới dữ liệu đã ghi:
+// còn lịch sử bảo dưỡng, công việc, chỉ số công tơ hay bản ghi kiểm định thì giữ lại,
+// vì xoá đi là mất dấu những bản ghi đó trỏ về đâu — trường hợp ấy dùng "Ngừng theo dõi".
+function xoaThietBi(u, p) {
+  var ds = Array.isArray(p.ma) ? p.ma : [p.ma];
+  ds = ds.map(function (x) { return s(x).toUpperCase(); }).filter(Boolean).slice(0, 100);
+  if (!ds.length) throw loi('KHONG_CO', 'Chưa chọn máy nào · 未选择设备');
+  var may = dsMayHet(), bay = thoiGianStr();
+  var dungLS = {}, dungCV = {}, dungKD = {};
+  docLichSu().forEach(function (x) { if (x.trangThai !== 'HUY') dungLS[s(x.ma).toUpperCase()] = 1; });
+  docCongViec().forEach(function (x) { if (x.ma) dungCV[s(x.ma).toUpperCase()] = 1; });
+  docKiemDinh().forEach(function (x) { if (x.ma) dungKD[s(x.ma).toUpperCase()] = 1; });
+  var xong = [], giu = [];
+  ds.forEach(function (ma) {
+    var m = may.filter(function (x) { return x.ma === ma && !x.xoa; })[0];
+    if (!m) { giu.push({ ma: ma, vi: 'Không tìm thấy máy', zh: '找不到设备' }); return; }
+    if (dungLS[ma]) { giu.push({ ma: ma, ten: m.ten, vi: 'Còn lịch sử bảo dưỡng — dùng Ngừng theo dõi', zh: '仍有保养记录——请改用停用' }); return; }
+    if (dungCV[ma]) { giu.push({ ma: ma, ten: m.ten, vi: 'Còn công việc gắn với máy này — dùng Ngừng theo dõi', zh: '仍有关联工作——请改用停用' }); return; }
+    if (dungKD[ma]) { giu.push({ ma: ma, ten: m.ten, vi: 'Còn bản ghi kiểm định — dùng Ngừng theo dõi', zh: '仍有检验记录——请改用停用' }); return; }
+    m.xoa = true; m.hoatDong = false; m.capNhat = bay;
+    suaDong('May', m._r, mayThanhDong(m));
+    ghiNhatKy(u, 'xoa', 'May', m.ma, { ten: m.ten, nhom: m.nhom }, {}, 'Xoá thiết bị · 删除设备');
+    xong.push({ ma: m.ma, ten: m.ten });
+  });
+  if (!xong.length && giu.length === 1) throw loi('XOA_DUOC_KHONG', giu[0].vi + ' · ' + giu[0].zh);
+  return { xoa: xong.length, giu: giu, mayXoa: xong.map(function (x) { return x.ma; }), dsMay: mayChoXem(u) };
 }
 
 // Nhập thiết bị từ file Excel, mỗi loại một file. Khớp theo Mã máy, không có thì khớp theo
@@ -4725,7 +4776,8 @@ function nhapThietBi(u, p) {
     theoMa[x.ma] = x;
     if (x.maHT) theoHT[x.maHT.toUpperCase()] = x;
   });
-  var them = [], sua = [], loi1 = [], maCap = ds.slice();
+  // Đánh mã mới dựa trên cả máy đã xoá, để không cấp lại mã của dòng cũ còn nằm trong sheet
+  var them = [], sua = [], loi1 = [], maCap = dsMayHet();
   for (var i = 0; i < dong.length; i++) {
     var r = dong[i] || {}, stt = i + 1;
     var ten = catChu(r.ten, 120);
@@ -4759,6 +4811,7 @@ function nhapThietBi(u, p) {
     m.chuyen = ch;
     m.khoi = khoiHopLe(r.khoi);
     m.thongSo = thongSoSach(r.thongSo);
+    m.chiTiet = chiTietSach(r.chiTiet);
     // Có chu kỳ thì đặt lại; để trống thì máy cũ giữ nguyên chu kỳ đang chạy,
     // còn máy mới coi như thiết bị chỉ ghi sổ (cáp điện, bình chứa khí) — không nhắc bảo dưỡng.
     if (ck) {
@@ -4780,7 +4833,7 @@ function nhapThietBi(u, p) {
   if (them.length) themNhieu("May", them.map(mayThanhDong));
   sua.forEach(function (m) { suaDong('May', m._r, mayThanhDong(m)); });
   ghiNhatKy(u, 'nhap', 'May', '', {}, { them: them.length, capNhat: sua.length }, 'Nhập thiết bị từ file · 从文件导入设备');
-  return { them: them.length, capNhat: sua.length, loi: loi1, may: mayChoXem(u) };
+  return { them: them.length, capNhat: sua.length, loi: loi1, dsMay: mayChoXem(u) };
 }
 
 // ===================== Mục kiểm tra, linh kiện của máy =====================
@@ -8303,6 +8356,11 @@ function mergeResult(d) {
     const i = S.base.may.findIndex((x) => x.ma === mm.ma);
     if (i >= 0) S.base.may[i] = mm; else S.base.may.push(mm);
   });
+  // Máy bị xoá hẳn thì bỏ khỏi danh sách đang giữ trên máy, khỏi phải tải lại từ đầu
+  (d.mayXoa || []).forEach((ma) => {
+    const i = S.base.may.findIndex((x) => x.ma === ma);
+    if (i >= 0) S.base.may.splice(i, 1);
+  });
   (d.chiSo ? [d.chiSo] : []).concat(d.dsChiSo || []).forEach((cs) => {
     const L = S.base.chiSo = S.base.chiSo || [];
     const i = L.findIndex((x) => x.id === cs.id);
@@ -9075,9 +9133,10 @@ function mayHead(m) {
   const sc = scCuaMay(m.ma), sc0 = sc[0];
   return `<div class="card devhead"><div class="dh1"><span class="dhc"><span class="code">${esc(mh(m.ma))}</span>${m.chuyen && S.V.chByMa[m.chuyen] ? `<button class="code lnkcode" data-act="chuyen" data-ma="${esc(m.chuyen)}">${esc(tv('chuyenNgan'))} ${esc(mh(m.chuyen))}</button>` : ''}</span>${tt}</div>
     <div class="dhn">${tlDaiDien(m.ma) ? `<button type="button" class="dhimg" data-act="tlMo" data-id="${esc(tlDaiDien(m.ma).id)}" aria-label="${esc(tp('tlDaiDien'))}">${anhImg({ id: tlDaiDien(m.ma).anhNho })}</button>` : ''}<div class="dht"><h1>${esc(m.ten)}</h1>${m.tenPhu ? `<div class="p2" lang="zh-CN">${esc(m.tenPhu)}</div>` : ''}</div></div>
-    <div class="dh2"><div><div class="lbl">${t('nextDue')}</div><div class="big">${m.hoatDong ? fmtD(m.hanKeTiep) : '—'}</div></div>
+    ${m.chuKy > 0 ? `<div class="dh2"><div><div class="lbl">${t('nextDue')}</div><div class="big">${m.hoatDong ? fmtD(m.hanKeTiep) : '—'}</div></div>
       <div><div class="lbl">${t('lastDone')}</div><div class="mid">${last ? fmtD(last.ngay) : t('never')}</div></div>
-      <div><div class="lbl">${t('cycle')}</div><div class="mid">${t('days', { n: m.chuKy })}</div></div>${m.hoatDong ? pill(st) : ''}</div>
+      <div><div class="lbl">${t('cycle')}</div><div class="mid">${t('days', { n: m.chuKy })}</div></div>${m.hoatDong ? pill(st) : ''}</div>`
+      : `<div class="dh2 chighi"><span class="pill p-ok">${t('tbChiGhiSo')}</span></div>`}
     <button class="scstrip${sc.length ? '' : ' none'}" data-act="mayTab" data-t="sc">${IC.wrench}<span><b>${esc(tv('scLS'))}</b> <span class="zi">${esc(tz('scLS'))}</span><br>
       <small>${sc.length ? esc(tv('scLanN', { n: sc.length })) + ' · ' + esc(tv('scGanNhat')) + ' ' + esc(fmtD(scNgay(sc0))) + ' · ' + esc(tz('scLanN', { n: sc.length })) : esc(tv('scChuaCo')) + ' · ' + esc(tz('scChuaCo'))}</small></span>${IC.chev}</button></div>`;
 }
@@ -9276,7 +9335,8 @@ VIEWS.may = {
     }
     const tabs = [['tt', 'tabTT', ''], ['sc', 'tabSC', scCuaMay(m.ma).length || ''], ['tl', 'tabTL', tlCua(m.ma).length + (m.chuyen ? tlCua(m.chuyen).length : 0) || ''], ['lk', 'tabLK', lkOf(m).length || ''], ['bd', 'tabBD', hmOf(m).length || ''],
       ['ls', 'tabLS', h.filter((x) => x.trangThai !== 'HUY').length + cvDs.length || '']]
-      .filter(([k]) => (k !== 'lk' || xemHet()) && (k !== 'tl' || can('tailieu')));
+      // Máy chỉ ghi sổ (cáp điện, bình chứa khí): không có mục bảo dưỡng
+      .filter(([k]) => (k !== 'lk' || xemHet()) && (k !== 'tl' || can('tailieu')) && (k !== 'bd' || m.chuKy > 0));
     o += `<div class="ptabs" role="tablist">${tabs.map(([k, l, n]) => `<button role="tab" aria-selected="${tb === k}" class="${tb === k ? 'on' : ''}" data-act="mayTab" data-t="${k}">${tv(l)}${n !== '' ? ` <span class="n">${n}</span>` : ''}<small>${tz(l)}</small></button>`).join('')}</div>`;
     if (tb === 'tt') {
       o += `<div class="card pad"><dl class="kv kvwide">
@@ -9296,10 +9356,24 @@ VIEWS.may = {
         o += sec('tbThongSo', ts.length) + `<div class="card pad"><dl style="margin:0">${ts.map(([k, v]) =>
           `<div class="tsrow"><dt>${esc(k)}</dt><dd>${esc(String(v))}</dd></div>`).join('')}</dl></div>`;
       }
+      // Bản ghi gộp (quạt gió của một chuyền, máy keo của một chuyền): mở ra xem từng cái
+      const ct = m.chiTiet || [];
+      if (ct.length) {
+        const nhan = [];
+        ct.forEach((x) => (x.cot || []).forEach(([k]) => { if (nhan.indexOf(k) < 0) nhan.push(k); }));
+        const tr = ct.map((x) => {
+          const o2 = {};
+          (x.cot || []).forEach(([k, v]) => { o2[k] = v; });
+          return `<tr>${nhan.map((k, i) => `<td class="${i ? 'mono' : ''}"${i ? '' : ' style="font-weight:600"'}>${esc(o2[k] === undefined ? '' : o2[k])}</td>`).join('')}</tr>`;
+        }).join('');
+        o += sec('tbChiTiet', ct.length) + `<div class="card"><div class="tblwrap"><table class="dt ctbang">
+          <thead><tr>${nhan.map((k) => `<th>${esc(k)}</th>`).join('')}</tr></thead><tbody>${tr}</tbody></table></div></div>`;
+      }
       if (m.noiDung) o += sec('content') + `<div class="card pad"><p class="pre">${esc(m.noiDung)}</p></div>`;
       if (can('may') && can('suatb')) {
         o += `<div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="editMay" data-ma="${esc(m.ma)}">${IC.edit} ${t('edit')}</button>
-          <button class="btn ghost" data-act="labelsOne" data-ma="${esc(m.ma)}">${IC.qr} ${t('printQR')}</button></div>`;
+          <button class="btn ghost" data-act="labelsOne" data-ma="${esc(m.ma)}">${IC.qr} ${t('printQR')}</button>
+          ${srvOld('xoamay') ? '' : `<button class="btn danger" data-act="mayXoa" data-ma="${esc(m.ma)}">${IC.out} ${t('mXoaHan')}</button>`}</div>`;
       }
     } else if (tb === 'tl') {
       o += sec('tlSec', tlCua(m.ma).length) + tlSection(m.ma);
@@ -9839,6 +9913,16 @@ Object.assign(TX, {
   bdTheoDoiHelp: ['Tắt với máy chỉ cần ghi vào sổ thiết bị, không nhắc bảo dưỡng — máy đóng gói, cáp điện, bình chứa khí… Máy tắt sẽ không hiện ở tab Bảo dưỡng.',
     '对只需登记、不做定期保养的设备关闭，如包装机、电缆、储气罐。关闭后不出现在保养页。'],
   mTrungCh: ['Trùng với chuyền', '与产线重复'],
+  tbChiTiet: ['Danh sách chi tiết', '明细清单'], tbCtN: ['{n} cái', '{n}台'],
+  tbChiGhiSo: ['Chỉ ghi sổ, không theo dõi bảo dưỡng', '仅登记，不做保养管理'],
+  mXoaHan: ['Xoá hẳn thiết bị', '彻底删除设备'],
+  mXoaHoi: ['Xoá hẳn là thiết bị biến khỏi mọi danh sách, không lấy lại được. Chỉ dùng cho máy nhập nhầm. Máy đã có lịch sử bảo dưỡng, công việc hay kiểm định thì máy chủ giữ lại — khi đó dùng "Còn theo dõi" để ngừng thay vì xoá.',
+    '彻底删除后设备将从所有列表中消失，且无法恢复，仅用于误导入的设备。若设备已有保养、工作或检验记录，服务器会保留——此时请改用"停用"。'],
+  mXoaXong: ['Đã xoá {n} thiết bị', '已删除{n}台设备'],
+  mXoaGiu: ['giữ lại {n}', '保留{n}台'],
+  mXoaGiuTieuDe: ['Những máy máy chủ giữ lại', '服务器保留的设备'],
+  mXoaTrungN: ['Xoá hẳn {n} máy trùng chuyền', '彻底删除{n}台与产线重复的设备'],
+  XOA_DUOC_KHONG: ['{m}', '{m}'],
   mTrungChHelp: ['Những máy này trùng tên hoặc trùng mã với một chuyền sản xuất. Chuyền đã là bản ghi riêng rồi, nên các máy này là thừa — mở từng máy rồi tắt "Còn theo dõi" hoặc sửa lại cho đúng.',
     '这些设备与某条产线同名或同编号。产线本身已有独立记录，这些设备是多余的——请逐台打开后停用或改正。'],
   qSec: ['Quyền xem dữ liệu thiết bị', '设备数据查看权限'],
@@ -9948,6 +10032,13 @@ VIEWS.list = {
     if (can('xuattb')) nut.push(`<button class="btn ghost sm" data-act="go" data-v="tbXuat">${IC.share} ${t('tbXuatBtn')}</button>`);
     if (can('may')) nut.push(`<button class="btn ghost sm" data-act="labels">${IC.qr} ${t('printQR')}</button>`);
     if (nut.length) o += `<div class="btns" style="margin-bottom:14px">${nut.join('')}</div>`;
+    if (f.grp === '__trung') {
+      const tr = mayTrungChuyen();
+      o += `<div class="note srvwarn" style="margin-bottom:12px">${t('mTrungChHelp')}</div>`;
+      if (tr.length && can('may') && can('suatb') && !srvOld('xoamay')) {
+        o += `<div class="btns" style="margin-bottom:14px"><button class="btn danger" data-act="mayXoaTrung">${IC.out} ${tv('mXoaTrungN', { n: tr.length })}</button></div>`;
+      }
+    }
     o += '<div id="listBody">' + listBody() + '</div>';
     return o;
   },
@@ -10008,6 +10099,10 @@ function mayBangSo(rows) {
 // Thông số đáng xem nhất của máy, gộp thành một dòng cho bảng và cho dòng trên điện thoại
 function tsChinh(m) {
   const ts = m.thongSo || [];
+  if ((m.chiTiet || []).length) {
+    const kw = ts.find((x) => x[0] === 'Tổng công suất');
+    return tv('tbCtN', { n: m.chiTiet.length }) + (kw && kw[1] ? ' · ' + kw[1] : '');
+  }
   if (!ts.length) return '';
   const uu = ['Model', 'Tổng công suất', 'Công suất', 'Số quạt', 'Số máy keo', 'Quy cách', 'Thông số', 'Tiết diện'];
   const lay = [];
@@ -10043,9 +10138,11 @@ async function tbDocFile(file) {
   if (/\.xls$/i.test(file.name || '')) throw { code: 'FILE_XLS' };
   let sheets;
   try { sheets = await readXlsx(await file.arrayBuffer()); } catch (e) { if (e && e.code) throw e; throw { code: 'FILE_SAI' }; }
-  const out = [];
+  const out = [], ctSheets = [];
   for (const sh of sheets) {
-    if (/huong dan|hướng dẫn|chi tiet|chi tiết|说明/i.test(sh.name || '')) continue;
+    if (/huong dan|hướng dẫn|说明/i.test(sh.name || '')) continue;
+    // Sheet "chi tiet": mỗi dòng là một đơn vị con (từng quạt, từng máy keo) của một bản ghi gộp
+    if (/chi tiet|chi tiết/i.test(sh.name || '')) { ctSheets.push(sh); continue; }
     const rows = await sh.rows();
     for (let hi = 0; hi < Math.min(rows.length, 10); hi++) {
       const cot = {}, nhanRieng = {};
@@ -10068,7 +10165,7 @@ async function tbDocFile(file) {
           const v = row[i] === undefined || row[i] === null ? '' : String(row[i]).trim();
           if (v) ts.push([nhanRieng[i], v.slice(0, 2000)]);
         });
-        out.push({ dong: r + 1, sheet: sh.name, ma: g('ma').toUpperCase(), maHT: g('maHT'),
+        out.push({ dong: r + 1, sheet: sh.name, chiTiet: [], ma: g('ma').toUpperCase(), maHT: g('maHT'),
           ten: ten.slice(0, 120), tenPhu: g('tenPhu').slice(0, 120), khoi: khoiTuChu(g('khoi')),
           nhom: g('nhom').slice(0, 60), chuyen: g('chuyen').toUpperCase(), viTri: g('viTri').slice(0, 120),
           chuKy: parseSo(g('chuKy')) || 0, thongSo: ts });
@@ -10076,7 +10173,37 @@ async function tbDocFile(file) {
       break;
     }
   }
+  await tbDocChiTiet(ctSheets, out);
   return out;
+}
+// Gắn các dòng chi tiết vào bản ghi gộp tương ứng, khớp theo cột "Thuộc bản ghi" rồi tới "Chuyền"
+async function tbDocChiTiet(sheets, ds) {
+  if (!sheets.length || !ds.length) return;
+  const theoTen = {}, theoCh = {};
+  ds.forEach((x) => { theoTen[norm(x.ten)] = x; if (x.chuyen) theoCh[x.chuyen.toUpperCase()] = x; });
+  for (const sh of sheets) {
+    const rows = await sh.rows();
+    for (let hi = 0; hi < Math.min(rows.length, 10); hi++) {
+      const head = (rows[hi] || []).map((v) => String(v || '').trim());
+      const iTen = head.findIndex((c) => /^thuộc bản ghi$/i.test(c));
+      const iCh = head.findIndex((c) => /^chuyền$/i.test(c));
+      if (iTen < 0 && iCh < 0) continue;
+      for (let r = hi + 1; r < rows.length; r++) {
+        const row = rows[r] || [];
+        const me = (iTen >= 0 && row[iTen] ? theoTen[norm(String(row[iTen]))] : null)
+          || (iCh >= 0 && row[iCh] ? theoCh[String(row[iCh]).trim().toUpperCase()] : null);
+        if (!me) continue;
+        const cot = [];
+        head.forEach((h, i) => {
+          if (!h || i === iTen || i === iCh) return;
+          const v = row[i] === undefined || row[i] === null ? '' : String(row[i]).trim();
+          if (v) cot.push([h.slice(0, 60), v.slice(0, 2000)]);
+        });
+        if (cot.length) (me.chiTiet = me.chiTiet || []).push({ cot });
+      }
+      break;
+    }
+  }
 }
 VIEWS.tbNhap = {
   html(p) {
@@ -10090,7 +10217,7 @@ VIEWS.tbNhap = {
     o += `<div class="kstrip" style="margin-top:12px">${kstHtml('k-green', 'tbNhapThem', { n: them.length }, them.length, '')}${kstHtml('k-blue', 'tbNhapSua', { n: sua.length }, sua.length, '')}</div>`;
     o += `<div class="card" style="margin-top:12px"><div class="list">${p.ds.slice(0, 60).map((x) => `<div class="row"><div class="main">
         <div class="nm">${esc(x.ten)}${x.tenPhu ? `<span class="zi">${esc(x.tenPhu)}</span>` : ''}</div>
-        <div class="sub"><span class="mono">${esc(x.cu ? x.cu.ma : t('tbMaMoi'))}</span> · ${esc(x.nhom || '—')}${x.chuyen ? ' · ' + esc(x.chuyen) : ''}${x.thongSo.length ? ' · ' + x.thongSo.length + ' thông số' : ''}</div></div>
+        <div class="sub"><span class="mono">${esc(x.cu ? x.cu.ma : t('tbMaMoi'))}</span> · ${esc(x.nhom || '—')}${x.chuyen ? ' · ' + esc(x.chuyen) : ''}${x.thongSo.length ? ' · ' + x.thongSo.length + ' thông số' : ''}${(x.chiTiet || []).length ? ' · ' + tv('tbCtN', { n: x.chiTiet.length }) : ''}</div></div>
         <span class="pill ${x.cu ? 'p-nay' : 'p-ok'}">${t(x.cu ? 'tbSua1' : 'tbThem1')}</span></div>`).join('')}</div>
       ${p.ds.length > 60 ? `<div class="pad help">… và ${p.ds.length - 60} dòng nữa</div>` : ''}</div>`;
     o += `<div class="btns" style="margin-top:14px"><button class="btn bigbtn" data-act="tbNhapGo">${IC.check} ${t('tbNhapGo')}</button></div>`;
@@ -11877,7 +12004,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK'], ['mnkma', '2.32.1', 'srvMissMNK'], ['trucnhieu', '2.33.0', 'srvMissTrucNhieu'], ['khinen', '2.33.0', 'srvMissKhiNen'], ['trucgio', '2.34.0', 'srvMissTrucGio'], ['giahan', '2.36.0', 'srvMissGiaHan'], ['suaxong', '2.36.0', 'srvMissSuaXong'], ['thietbi', '2.37.0', 'srvMissThietBi'], ['quyenrieng', '2.38.0', 'srvMissQuyenRieng']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK'], ['mnkma', '2.32.1', 'srvMissMNK'], ['trucnhieu', '2.33.0', 'srvMissTrucNhieu'], ['khinen', '2.33.0', 'srvMissKhiNen'], ['trucgio', '2.34.0', 'srvMissTrucGio'], ['giahan', '2.36.0', 'srvMissGiaHan'], ['suaxong', '2.36.0', 'srvMissSuaXong'], ['thietbi', '2.37.0', 'srvMissThietBi'], ['quyenrieng', '2.38.0', 'srvMissQuyenRieng'], ['xoamay', '2.39.0', 'srvMissXoaMay']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -15017,6 +15144,56 @@ Object.assign(ACT, {
     if (S.tbCb) { const c = S.tbCb; S.tbCb = null; if (ma) ACT[c.cb]({ dataset: { i: c.i }, value: ma }); return; }
     tbDat(el.dataset.for, ma);
   },
+
+  // Xoá hẳn: chỉ dùng cho máy nhập nhầm. Máy đã có lịch sử thì máy chủ giữ lại và báo rõ.
+  mayXoa: (el) => {
+    const m = S.V.byMa[el.dataset.ma]; if (!m) return;
+    openSheet(`<div class="grab"></div><h3>${tv('mXoaHan')}<span class="zi">${tz('mXoaHan')}</span></h3>
+      <div class="who"><b>${esc(m.ten)}</b> <span class="mono">${esc(mh(m.ma))}</span></div>
+      <div class="note srvwarn" style="margin-top:12px">${t('mXoaHoi')}</div>
+      <div class="err" id="xmErr" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+        <button class="btn danger" data-act="mayXoaGo" data-ma="${esc(m.ma)}">${IC.out} ${t('mXoaHan')}</button></div>`);
+  },
+  mayXoaGo: async (el) => {
+    const fe = $('#xmErr');
+    el.disabled = true;
+    const r = await send('deleteMachines', { ma: [el.dataset.ma] });
+    el.disabled = false;
+    if (r.err) { fe.innerHTML = errMsg(r.err); fe.hidden = false; return; }
+    closeSheet();
+    toast(t('mXoaXong', { n: r.xoa || 1 }));
+    if (topV().v === 'may') back(); else render();
+  },
+  mayXoaTrung: () => {
+    const ds = mayTrungChuyen();
+    if (!ds.length) return;
+    openSheet(`<div class="grab"></div><h3>${tv('mXoaTrungN', { n: ds.length })}<span class="zi">${tz('mXoaTrungN', { n: ds.length })}</span></h3>
+      <div class="note srvwarn" style="margin-top:10px">${t('mXoaHoi')}</div>
+      <div class="list" style="max-height:38vh;overflow-y:auto;margin-top:10px">${ds.map((m) => `<div class="row"><div class="main">
+        <div class="nm">${esc(m.ten)}</div><div class="sub"><span class="code">${esc(mh(m.ma))}</span>${m.chuyen ? ' · ' + esc(mh(m.chuyen)) : ''}</div></div></div>`).join('')}</div>
+      <div class="err" id="xmErr" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+        <button class="btn danger" data-act="mayXoaTrungGo">${IC.out} ${tv('mXoaTrungN', { n: ds.length })}</button></div>`);
+  },
+  mayXoaTrungGo: async (el) => {
+    const fe = $('#xmErr'), ds = mayTrungChuyen().map((m) => m.ma);
+    el.disabled = true;
+    const r = await send('deleteMachines', { ma: ds });
+    el.disabled = false;
+    if (r.err) { fe.innerHTML = errMsg(r.err); fe.hidden = false; return; }
+    closeSheet();
+    const giu = (r.giu || []).length;
+    toast(t('mXoaXong', { n: r.xoa || 0 }) + (giu ? ' · ' + tv('mXoaGiu', { n: giu }) : ''), !r.xoa);
+    if (giu) {
+      const ds2 = (r.giu || []).map((x) => `<div class="row"><div class="main"><div class="nm">${esc(x.ten || x.ma)}</div><div class="sub">${esc(x.vi || '')}</div></div></div>`).join('');
+      openSheet(`<div class="grab"></div><h3>${tv('mXoaGiuTieuDe')}<span class="zi">${tz('mXoaGiuTieuDe')}</span></h3>
+        <div class="list" style="max-height:48vh;overflow-y:auto;margin-top:10px">${ds2}</div>
+        <div class="btns" style="margin-top:14px"><button class="btn" data-act="closeSheet">${t('close')}</button></div>`);
+    }
+    S.f.grp = '';
+    render();
+  },
   tbLoai: (el) => { S.tbLoai = el.value; $('#tbDs').innerHTML = tbDsHtml(el.dataset.for, S.tbQ || '', el.dataset.kc, el.dataset.buoc === '1'); },
   qToggle: (el) => {
     const k = el.dataset.k, vai = ($('#uVai') || {}).value || 'kythuat';
@@ -15054,7 +15231,8 @@ Object.assign(ACT, {
     el.disabled = true;
     const r = await send('importMachines', {
       rows: p.ds.map((x) => ({ ma: x.cu ? x.cu.ma : '', maHT: x.maHT, ten: x.ten, tenPhu: x.tenPhu,
-        khoi: x.khoi, nhom: x.nhom, chuyen: x.chuyen, viTri: x.viTri, chuKy: x.chuKy, thongSo: x.thongSo }))
+        khoi: x.khoi, nhom: x.nhom, chuyen: x.chuyen, viTri: x.viTri, chuKy: x.chuKy,
+        thongSo: x.thongSo, chiTiet: x.chiTiet || [] }))
     });
     el.disabled = false;
     if (r.err) { fe.innerHTML = errMsg(r.err); fe.hidden = false; return; }
@@ -20316,6 +20494,8 @@ Object.assign(TX, {
     '服务器尚不支持设备参数与现场修改位置。请更新 Code.gs 后重新部署。'],
   srvMissQuyenRieng: ['Máy chủ chưa đặt được quyền xem riêng cho từng tài khoản. Cập nhật Code.gs rồi Triển khai lại.',
     '服务器尚不支持按账号单独设置查看权限。请更新 Code.gs 后重新部署。'],
+  srvMissXoaMay: ['Máy chủ chưa xoá hẳn được thiết bị. Cập nhật Code.gs rồi Triển khai lại.',
+    '服务器尚不支持彻底删除设备。请更新 Code.gs 后重新部署。'],
   xlMNKTen: ['Máy nén khí', '空压机'], xlMNKLoai: ['Loại', '类型'], xlMNKGio: ['Giờ trên đồng hồ', '表显小时'],
   xlMNKNgay: ['Ngày ghi', '记录日期'], xlMNKTuBD: ['Giờ từ lần bảo dưỡng', '上次保养后小时'],
   xlMNKConLai: ['Còn lại tới hạn', '距到期小时'], xlMNKTT: ['Tình trạng', '状态'],
