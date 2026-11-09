@@ -97,6 +97,17 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
+## Điểm mới của v2.38.0: ô chọn thiết bị mới và phân quyền theo từng tài khoản
+
+### Chọn thiết bị: lọc theo loại và gõ tìm
+
+Nhập xong bộ thiết bị thì danh sách xổ xuống lên gần 240 dòng, trên điện thoại cuộn không nổi. Nay mọi chỗ cần chọn máy — **ghi việc, ghi sửa chữa, việc lặp lại, nghiệm thu, kiểm định** — đều dùng chung một hộp chọn:
+
+- **Ô Loại thiết bị**: xổ ra từng loại kèm số lượng, gom theo hai khối *Chuyền sản xuất* / *Hậu công đoạn*, thêm mục *Chuyền sản xuất (máy chính)* ở đầu. Chọn "Máy hút bụi (13)" là danh sách rút còn 13 máy.
+- **Ô gõ tìm**: gõ `17` ra chuyền 17, `M020` ra đúng máy, `hut bui` không dấu vẫn ra, gõ `吸尘` tiếng Trung cũng ra. Tìm được cả mã nhà máy (`VKY-BZ-17`) và vị trí.
+- **Mục Gần đây**: thiết bị người đó vừa ghi việc hoặc vừa bảo dưỡng, hiện sẵn khi chưa chọn gì.
+- Dòng nào **quá hạn bảo dưỡng** có thẻ đỏ ngay trong danh sách chọn.
+
 ## Điểm mới của v2.38.0: phân quyền xem theo từng tài khoản
 
 Trước đây quyền gắn cứng theo ba vai trò (Quản trị / Quản lý / Kỹ thuật), không đặt riêng cho ai được. Nay **Quản trị → Người dùng → chọn một người** có thêm mục **Quyền xem dữ liệu thiết bị** với tám công tắc:
