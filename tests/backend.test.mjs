@@ -2138,6 +2138,139 @@ test('lịch trực: mỗi lượt một khung giờ riêng, Chủ nhật giờ 
   assert.equal(sau[0].den, '19:00');
 });
 
+test('phân quyền: đặt riêng cho từng tài khoản, đè lên mặc định của vai trò', () => {
+  const b = setup();
+  const nv = ok(b.call('users', {}, b.ad)).users;
+  const kt3 = nv.find((x) => x.vaiTro === 'kythuat');
+  assert.deepEqual(kt3.quyen, {}, 'chưa đặt riêng thì rỗng, chạy theo vai trò');
+
+  // Mặc định của kỹ thuật: xem được hai khối, không xuất được bảng tổng hợp
+  const q0 = ok(b.call('data', {}, b.kt)).quyen;
+  assert.equal(q0.xemsx, true);
+  assert.equal(q0.xemhcd, true);
+  assert.equal(q0.xuattb, false);
+  assert.equal(q0.baocao, false);
+
+  // Mở riêng quyền xuất, khoá riêng quyền xem hậu công đoạn
+  ok(b.call('saveUser', { id: kt3.id, ten: kt3.ten, vaiTro: 'kythuat', maNV: kt3.maNV,
+    quyen: { xuattb: true, xemhcd: false, batBa: true } }, b.ad));
+  const sau = ok(b.call('users', {}, b.ad)).users.find((x) => x.id === kt3.id);
+  assert.deepEqual(sau.quyen, { xuattb: true, xemhcd: false }, 'chỉ nhận 8 khoá đã khai, bỏ khoá lạ');
+
+  const q1 = ok(b.call('data', {}, b.kt)).quyen;
+  assert.equal(q1.xuattb, true, 'mở riêng thì được xuất dù vai trò không cho');
+  assert.equal(q1.xemhcd, false, 'khoá riêng thì không xem được dù vai trò cho');
+  assert.equal(q1.xemsx, true, 'mục không đặt riêng vẫn theo vai trò');
+
+  // Khoá khối nào thì máy khối đó không rời máy chủ, chứ không phải chỉ ẩn nút
+  const dsKT = ok(b.call('data', {}, b.kt)).may;
+  const dsQL = ok(b.call('data', {}, b.ql)).may;
+  assert.ok(dsKT.length < dsQL.length, 'kỹ thuật thấy ít máy hơn: ' + dsKT.length + ' < ' + dsQL.length);
+  assert.ok(dsKT.every((m) => m.nhom !== 'Máy hút bụi · 吸尘器'), 'không còn máy hậu công đoạn trong dữ liệu gửi về');
+  assert.ok(dsQL.some((m) => m.nhom === 'Máy hút bụi · 吸尘器'), 'quản lý vẫn thấy đủ');
+
+  // Khoá quyền xem thông số thì bảng thông số cũng không được gửi đi
+  const m0 = dsQL.find((m) => m.nhom === 'Máy in phun · 喷印机');
+  ok(b.call('importMachines', { rows: [{ ma: m0.ma, ten: m0.ten, khoi: 'SX', nhom: m0.nhom,
+    chuKy: m0.chuKy, thongSo: [['Model', 'MERDLIN D-CE']] }] }, b.ql));
+  assert.deepEqual(ok(b.call('data', {}, b.ql)).may.find((m) => m.ma === m0.ma).thongSo,
+    [['Model', 'MERDLIN D-CE']], 'quản lý xem được thông số');
+  ok(b.call('saveUser', { id: kt3.id, ten: kt3.ten, vaiTro: 'kythuat', maNV: kt3.maNV,
+    quyen: { tsmay: false } }, b.ad));
+  assert.deepEqual(ok(b.call('data', {}, b.kt)).may.find((m) => m.ma === m0.ma).thongSo,
+    [], 'khoá quyền thì thông số không rời máy chủ');
+
+  // Về đúng mặc định của vai trò
+  ok(b.call('saveUser', { id: kt3.id, ten: kt3.ten, vaiTro: 'kythuat', maNV: kt3.maNV, quyen: {} }, b.ad));
+  const q2 = ok(b.call('data', {}, b.kt)).quyen;
+  assert.equal(q2.xuattb, false);
+  assert.equal(q2.xemhcd, true);
+  assert.equal(q2.tsmay, true);
+
+  // Chỉ Quản trị đặt được quyền
+  err(b.call('saveUser', { id: kt3.id, ten: kt3.ten, vaiTro: 'kythuat', quyen: { xuattb: true } }, b.ql), 'KHONG_QUYEN');
+});
+
+test('thiết bị: nhập từ file theo loại, khớp mã cũ thì cập nhật chứ không tạo trùng', () => {
+  const b = setup();
+  const truoc = ok(b.call('data', {}, b.ql)).may.length;
+  const rows = [
+    { ten: 'Quạt gió chuyền VKY17 (6 quạt)', tenPhu: 'VKY17风机', khoi: 'HCD', nhom: 'Quạt gió',
+      chuyen: 'VKY17', viTri: 'Xưởng 1', chuKy: 45,
+      thongSo: [['Số quạt', '6'], ['Tổng công suất', '141 kW'], ['Model động cơ hay gặp', 'YE3-160M2-2']] },
+    { ten: 'Máy biến áp 3000 kVA', khoi: 'HCD', nhom: 'Trạm điện, biến áp', viTri: 'Trạm biến áp',
+      chuKy: 90, thongSo: [['Quy cách', '3000-35-22/0.4'], ['Điện áp', '22/0,4 kV']] },
+    { ten: 'Cáp điện VKY17', khoi: 'HCD', nhom: 'Cáp điện', chuKy: 0,
+      thongSo: [['Độ dài', '155M'], ['Tiết diện', '4X120+1X70']] }
+  ];
+
+  // Xem trước: chỉ đếm, chưa ghi gì
+  const xt = ok(b.call('importMachines', { rows, xemTruoc: true }, b.ql));
+  assert.equal(xt.them, 3, 'ba thiết bị mới');
+  assert.equal(xt.capNhat, 0);
+  assert.deepEqual(xt.loi, []);
+  assert.equal(ok(b.call('data', {}, b.ql)).may.length, truoc, 'xem trước không ghi vào bảng');
+
+  const r = ok(b.call('importMachines', { rows }, b.ql));
+  assert.equal(r.them, 3);
+  const ds = ok(b.call('data', {}, b.ql)).may;
+  assert.equal(ds.length, truoc + 3);
+  const quat = ds.find((m) => m.ten.indexOf('Quạt gió chuyền VKY17') === 0);
+  assert.equal(quat.khoi, 'HCD', 'nhớ khối thiết bị');
+  assert.equal(quat.nhom, 'Quạt gió');
+  assert.equal(quat.chuyen, 'VKY17');
+  assert.deepEqual(quat.thongSo[0], ['Số quạt', '6'], 'giữ nguyên thứ tự thông số để xuất lại đúng cột');
+  assert.equal(quat.chuKy, 45);
+  const cap = ds.find((m) => m.ten === 'Cáp điện VKY17');
+  assert.equal(cap.chuKy, 0, 'thiết bị chỉ ghi sổ thì không có chu kỳ');
+  assert.equal(cap.hanKeTiep, '', 'và không có hạn bảo dưỡng');
+
+  // Nhập lại cùng mã máy: cập nhật, không tạo thêm
+  const lai = ok(b.call('importMachines', {
+    rows: [{ ma: quat.ma, ten: 'Quạt gió chuyền VKY17 (7 quạt)', khoi: 'HCD', nhom: 'Quạt gió',
+      chuyen: 'VKY17', viTri: 'Xưởng 1 — khu máy in', chuKy: 45,
+      thongSo: [['Số quạt', '7'], ['Tổng công suất', '163 kW']] }]
+  }, b.ql));
+  assert.equal(lai.them, 0);
+  assert.equal(lai.capNhat, 1);
+  const ds2 = ok(b.call('data', {}, b.ql)).may;
+  assert.equal(ds2.length, truoc + 3, 'không sinh máy trùng');
+  const q2 = ds2.find((m) => m.ma === quat.ma);
+  assert.match(q2.ten, /7 quạt/, 'tên đã cập nhật');
+  assert.equal(q2.viTri, 'Xưởng 1 — khu máy in');
+  assert.deepEqual(q2.thongSo[0], ['Số quạt', '7']);
+
+  // Dòng hỏng thì báo đúng dòng, các dòng còn lại vẫn nhập
+  const hon = ok(b.call('importMachines', {
+    rows: [{ ten: '', nhom: 'Quạt gió' },
+      { ten: 'Máy sấy khí số 9', khoi: 'HCD', nhom: 'Máy sấy khí', chuKy: 30 },
+      { ten: 'Máy lạ', nhom: 'Khác', chuyen: 'VKY99' }]
+  }, b.ql));
+  assert.equal(hon.them, 1, 'chỉ dòng hợp lệ được nhập');
+  assert.equal(hon.loi.length, 2);
+  assert.equal(hon.loi[0].dong, 1);
+  assert.match(hon.loi[0].vi, /Thiếu tên/);
+  assert.equal(hon.loi[1].dong, 3);
+  assert.match(hon.loi[1].vi, /VKY99/);
+
+  // Kỹ thuật không nhập được
+  err(b.call('importMachines', { rows }, b.kt), 'KHONG_QUYEN');
+});
+
+test('thiết bị: kỹ thuật sửa được vị trí máy, không sửa được thứ khác', () => {
+  const b = setup();
+  const m0 = ok(b.call('data', {}, b.kt)).may[0];
+  const r = ok(b.call('saveSpot', { ma: m0.ma, viTri: 'Xưởng 2 — cạnh cửa số 3' }, b.kt));
+  assert.equal(r.may.viTri, 'Xưởng 2 — cạnh cửa số 3');
+  const sau = ok(b.call('data', {}, b.kt)).may.find((m) => m.ma === m0.ma);
+  assert.equal(sau.viTri, 'Xưởng 2 — cạnh cửa số 3', 'vị trí đã lưu');
+  assert.equal(sau.ten, m0.ten, 'tên máy không đổi');
+  assert.equal(sau.chuKy, m0.chuKy, 'chu kỳ không đổi');
+  // Vẫn không được sửa hồ sơ máy
+  err(b.call('saveMachine', { ma: m0.ma, ten: 'Đổi tên', chuKy: 30, hanKeTiep: '2026-12-01' }, b.kt), 'KHONG_QUYEN');
+  err(b.call('saveSpot', { ma: 'M999', viTri: 'x' }, b.kt), 'KHONG_CO_MAY');
+});
+
 test('công việc: Quản lý sửa lại nội dung nhân viên đã ghi khi xong, việc vẫn đóng', () => {
   const b = setup();
   const nv = ok(b.call('data', {}, b.ql)).nhanVien, kt3 = nv.find((x) => x.vaiTro === 'kythuat');
