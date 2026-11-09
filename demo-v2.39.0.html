@@ -8467,6 +8467,14 @@ function rebuild() {
 const activeMay = () => S.V.may.filter((m) => m.hoatDong);
 // Máy bị nhập trùng với một chuyền sản xuất: chuyền đã là bản ghi riêng, không nên có thêm
 // một máy cùng tên hay cùng mã nhà máy, vì khi đó chuyền hiện trong danh sách máy của chính nó.
+const CAN_KT = /^(c[aầ]n ki[eể]m tra|待确认|需确认)$/i;
+const ghiChuKT = (m) => {
+  const o = (m.thongSo || []).find(([k, v]) => CAN_KT.test(String(k).trim()) && String(v || '').trim());
+  return o ? String(o[1]) : '';
+};
+// Máy nhập từ file nhưng còn chỗ chưa chắc (vd file ghi "máy số 05" mà không có chuyền nào tên vậy).
+// Để riêng ra cho người quản lý xác nhận, thay vì đoán bừa rồi xếp nhầm chuyền.
+function mayCanKiemTra() { return activeMay().filter((m) => ghiChuKT(m)); }
 function mayTrungChuyen() {
   const chs = S.V.ch || [];
   if (!chs.length) return [];
@@ -8777,10 +8785,16 @@ Object.assign(TX, {
 
 // ---------- Trang chủ: việc cần làm ở trên, tổng quan ở dưới ----------
 function mRow(m, st, withOk, xn) {
+  // Máy chỉ ghi sổ không có hạn bảo dưỡng: thay dòng "Hạn … · N ngày" bằng nhóm, chuyền, vị trí
+  const bd = m.chuKy > 0;
+  const phu = bd ? `${t('due')} ${fmtDM(m.hanKeTiep)} · ${t('days', { n: m.chuKy })}`
+    : [m.nhom, m.chuyen ? mh(m.chuyen) : '', m.viTri].filter(Boolean).join(' · ');
+  const kt = ghiChuKT(m);
   return `<div class="row" data-act="may" data-ma="${esc(m.ma)}"${xn ? ' data-xn="1"' : ''} role="button" tabindex="0">
     <div class="main"><div class="nm">${esc(m.ten)}</div>
-      <div class="sub"><span class="code">${esc(mh(m.ma))}</span> · ${t('due')} ${fmtDM(m.hanKeTiep)} · ${t('days', { n: m.chuKy })}</div></div>
-    <div class="end">${pill(st)}${withOk && can('confirm') && m.hoatDong ? `<button class="okbtn" data-act="xn" data-ma="${esc(m.ma)}" aria-label="${esc(tp('confirmDone'))}">${IC.check}</button>` : ''}</div></div>`;
+      <div class="sub"><span class="code">${esc(mh(m.ma))}</span>${phu ? ' · ' + esc(phu) : ''}</div>
+      ${kt ? `<div class="sub warnx">${esc(kt)}</div>` : ''}</div>
+    <div class="end">${bd ? pill(st) : ''}${withOk && bd && can('confirm') && m.hoatDong ? `<button class="okbtn" data-act="xn" data-ma="${esc(m.ma)}" aria-label="${esc(tp('confirmDone'))}">${IC.check}</button>` : ''}</div></div>`;
 }
 // Các cảnh báo cần hành động, sắp theo mức khẩn: đỏ → cam → xanh
 function homeAlerts(g) {
@@ -9158,19 +9172,21 @@ function thieuHtml(ds) {
 // Thay danh sách xổ xuống: gần 240 dòng thì cuộn không nổi trên điện thoại.
 // Ô này có quét QR, gõ tìm không dấu và mục "Gần đây", dùng chung cho mọi màn cần chọn thiết bị.
 // Giá trị vẫn nằm trong một <input hidden> đúng id cũ, nên mọi chỗ đọc $('#...').value không phải sửa.
-function tbTen(ma) {
+// Nhãn trên nút chọn thiết bị: đủ mã + tên Việt + tên Trung, để không nhầm chuyền này với chuyền kia.
+// (Tên khác hàm tbTen có sẵn bên dưới — hàm đó chỉ trả tên ngắn cho bảng chuyền.)
+function tbNhanChon(ma) {
   if (!ma) return '';
   const c = S.V.chByMa[ma];
-  if (c) return mh(c.ma) + ' · ' + (c.tenZh || c.ten || '');
+  if (c) return [mh(c.ma), c.ten, c.tenZh].filter(Boolean).join(' · ');
   const m = S.V.byMa[ma];
-  return m ? mh(m.ma) + ' · ' + m.ten : ma;
+  return m ? [mh(m.ma), m.ten, m.tenPhu].filter(Boolean).join(' · ') : ma;
 }
 // id = id ô ẩn giữ giá trị (giữ nguyên tên cũ); kc = nhãn khi chưa chọn; buoc = bắt buộc chọn
 function tbChon(id, cur, kc, buoc) {
   cur = cur || '';
   return `<input type="hidden" id="${esc(id)}" value="${esc(cur)}">
     <button type="button" class="tbpick${cur ? ' co' : ''}" data-act="tbMo" data-for="${esc(id)}" data-kc="${esc(kc)}"${buoc ? ' data-buoc="1"' : ''}>
-      <span class="tbpt">${cur ? esc(tbTen(cur)) : esc(tp(kc))}</span>${IC.chev}</button>`;
+      <span class="tbpt">${cur ? esc(tbNhanChon(cur)) : esc(tp(kc))}</span>${IC.chev}</button>`;
 }
 // Đặt giá trị rồi báo cho form biết, để mọi xử lý cũ (đổi máy thì đổi danh sách linh kiện…) vẫn chạy
 function tbDat(id, ma) {
@@ -9179,7 +9195,7 @@ function tbDat(id, ma) {
   el.dispatchEvent(new Event('input', { bubbles: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
   const b = $(`.tbpick[data-for="${id}"]`);
-  if (b) { b.classList.toggle('co', !!ma); const t0 = b.querySelector('.tbpt'); if (t0) t0.textContent = ma ? tbTen(ma) : tp(b.dataset.kc); }
+  if (b) { b.classList.toggle('co', !!ma); const t0 = b.querySelector('.tbpt'); if (t0) t0.textContent = ma ? tbNhanChon(ma) : tp(b.dataset.kc); }
 }
 // Thiết bị người này vừa ghi việc hoặc ghi sửa chữa — thực tế quanh đi quẩn lại chỉ vài máy
 function tbGanDay() {
@@ -9195,11 +9211,13 @@ function tbGanDay() {
 }
 function tbDongHtml(ma, forId) {
   const c = S.V.chByMa[ma], m = S.V.byMa[ma];
-  const ten = c ? (c.tenZh || c.ten || '') : (m ? m.ten : ma);
+  // Chuyền: mã + tên Việt + tên Trung, cả ba đều hiện để không chọn nhầm chuyền này với chuyền kia
+  const ten = c ? (c.ten || c.tenZh || ma) : (m ? m.ten : ma);
+  const zh = c ? (c.ten ? c.tenZh : '') : (m ? m.tenPhu : '');
   const phu = c ? tp('chuyenNgan') : [m && m.nhom, m && m.chuyen ? mh(m.chuyen) : '', m && m.viTri].filter(Boolean).join(' · ');
   const qua = m && cvQuaMay(m);
   return `<button type="button" class="row" data-act="tbPick" data-for="${esc(forId)}" data-ma="${esc(ma)}">
-    <div class="main"><div class="nm">${esc(ten)}${qua ? ` <span class="pill p-qua">${t('st_qua')}</span>` : ''}</div>
+    <div class="main"><div class="nm">${esc(ten)}${qua ? ` <span class="pill p-qua">${t('st_qua')}</span>` : ''}${zh ? `<span class="zi" lang="zh-CN">${esc(zh)}</span>` : ''}</div>
     <div class="sub"><span class="code">${esc(mh(ma))}</span>${phu ? ' · ' + esc(phu) : ''}</div></div></button>`;
 }
 const cvQuaMay = (m) => m.hoatDong && m.chuKy > 0 && m.hanKeTiep && m.hanKeTiep < TODAY();
@@ -9255,7 +9273,7 @@ function tbMoSheet(forId, kc, buoc) {
       <select class="inp" id="tbL" data-chg="tbLoai" ${d}>${tbLoaiOptions()}</select></label>
     <label class="fld" style="margin:0 0 4px"><span class="vhid">${t('search')}</span>
       <input class="inp" id="tbQ" type="search" placeholder="${esc(tp('tbTimPh'))}" autocomplete="off" enterkeyhint="search"></label>
-    ${cur ? `<div class="help" style="margin:0 2px 8px">${t('tbDangChon')}: <b>${esc(tbTen(cur))}</b></div>` : ''}
+    ${cur ? `<div class="help" style="margin:0 2px 8px">${t('tbDangChon')}: <b>${esc(tbNhanChon(cur))}</b></div>` : ''}
     <div id="tbDs" class="tbds">${tbDsHtml(forId, '', kc, buoc)}</div>`, () => {
     const i = $('#tbQ');
     if (i) i.addEventListener('input', (e) => { S.tbQ = e.target.value; $('#tbDs').innerHTML = tbDsHtml(forId, S.tbQ, kc, buoc); });
@@ -9913,6 +9931,9 @@ Object.assign(TX, {
   bdTheoDoiHelp: ['Tắt với máy chỉ cần ghi vào sổ thiết bị, không nhắc bảo dưỡng — máy đóng gói, cáp điện, bình chứa khí… Máy tắt sẽ không hiện ở tab Bảo dưỡng.',
     '对只需登记、不做定期保养的设备关闭，如包装机、电缆、储气罐。关闭后不出现在保养页。'],
   mTrungCh: ['Trùng với chuyền', '与产线重复'],
+  mCanKT: ['Cần kiểm tra', '待确认'],
+  mCanKTHelp: ['Những thiết bị này nhập từ file nhưng còn chỗ chưa chắc — thường là chưa rõ thuộc chuyền nào. App để riêng ra chứ không đoán bừa. Mở từng cái, sửa lại cho đúng rồi xoá dòng thông số "Cần kiểm tra" là hết hiện ở đây.',
+    '这些设备从文件导入但仍有不确定之处，通常是不清楚属于哪条产线。应用单独列出而不臆测。请逐台打开改正，并删除"待确认"参数行即可。'],
   tbChiTiet: ['Danh sách chi tiết', '明细清单'], tbCtN: ['{n} cái', '{n}台'],
   tbChiGhiSo: ['Chỉ ghi sổ, không theo dõi bảo dưỡng', '仅登记，不做保养管理'],
   mXoaHan: ['Xoá hẳn thiết bị', '彻底删除设备'],
@@ -10021,10 +10042,11 @@ VIEWS.list = {
     const stopped = S.V.may.filter((m) => !m.hoatDong);
     let o = listSeg('list') + `<div class="tools"><div class="searchbox">${IC.search}<input class="inp" id="listQ" type="search" value="${esc(f.q)}" placeholder="${esc(tp('search'))}" autocomplete="off"></div></div>
       <div style="margin-top:10px">${khoiChips(f, 'listKhoi', 'listGrp')}</div>`;
-    const trung = mayTrungChuyen();
-    if ((stopped.length || trung.length) && can('may')) {
+    const trung = mayTrungChuyen(), ktra = mayCanKiemTra();
+    if ((stopped.length || trung.length || ktra.length) && can('may')) {
       o += `<div class="hscroll" style="margin:-4px 0 12px">${stopped.length ? `<button class="chip${f.grp === '__stop' ? ' on' : ''}" data-act="listGrp" data-g="__stop">${t('stopped')} (${stopped.length})</button>` : ''}${
-        trung.length ? `<button class="chip warnchip${f.grp === '__trung' ? ' on' : ''}" data-act="listGrp" data-g="__trung">${t('mTrungCh')} (${trung.length})</button>` : ''}</div>`;
+        trung.length ? `<button class="chip warnchip${f.grp === '__trung' ? ' on' : ''}" data-act="listGrp" data-g="__trung">${t('mTrungCh')} (${trung.length})</button>` : ''}${
+        ktra.length ? `<button class="chip warnchip${f.grp === '__ktra' ? ' on' : ''}" data-act="listGrp" data-g="__ktra">${t('mCanKT')} (${ktra.length})</button>` : ''}</div>`;
     }
     const nut = [];
     if (can('may') && can('suatb')) nut.push(`<button class="btn sm" data-act="newMay">${IC.plus} ${t('addMachine')}</button>`,
@@ -10032,6 +10054,7 @@ VIEWS.list = {
     if (can('xuattb')) nut.push(`<button class="btn ghost sm" data-act="go" data-v="tbXuat">${IC.share} ${t('tbXuatBtn')}</button>`);
     if (can('may')) nut.push(`<button class="btn ghost sm" data-act="labels">${IC.qr} ${t('printQR')}</button>`);
     if (nut.length) o += `<div class="btns" style="margin-bottom:14px">${nut.join('')}</div>`;
+    if (f.grp === '__ktra') o += `<div class="note srvwarn" style="margin-bottom:12px">${t('mCanKTHelp')}</div>`;
     if (f.grp === '__trung') {
       const tr = mayTrungChuyen();
       o += `<div class="note srvwarn" style="margin-bottom:12px">${t('mTrungChHelp')}</div>`;
@@ -10050,6 +10073,7 @@ function listBody() {
   const f = S.f, today = TODAY();
   let list = f.grp === '__stop' ? S.V.may.filter((m) => !m.hoatDong)
     : f.grp === '__trung' ? mayTrungChuyen()
+      : f.grp === '__ktra' ? mayCanKiemTra()
       : activeMay().filter((m) => (!f.khoi || khoiCua(m) === f.khoi) && (!f.grp || m.nhom === f.grp));
   list = findMay(f.q, list);
   if (!list.length) return `<div class="card empty">${t('notFound')}</div>`;
@@ -10098,6 +10122,8 @@ function mayBangSo(rows) {
 }
 // Thông số đáng xem nhất của máy, gộp thành một dòng cho bảng và cho dòng trên điện thoại
 function tsChinh(m) {
+  const kt = ghiChuKT(m);
+  if (kt) return kt.slice(0, 70);
   const ts = m.thongSo || [];
   if ((m.chiTiet || []).length) {
     const kw = ts.find((x) => x[0] === 'Tổng công suất');
