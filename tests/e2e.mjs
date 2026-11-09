@@ -2020,6 +2020,47 @@ await page.evaluate(() => closeSheet()); await wait(300);
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
 ok('Bản 2.38: ô chọn thiết bị có lọc theo loại và gõ tìm không dấu, dùng chung cho mọi màn cần chọn máy');
 
+// 27. Máy không theo dõi bảo dưỡng, và chuyền không bị nhập thành máy
+await logout(); await login('NV002', '222222');
+const ma27 = await page.evaluate(() => S.V.may.find((m) => m.hoatDong && m.chuKy > 0).ma);
+await page.evaluate((x) => go('mayEdit', { ma: x }), ma27); await wait(1000);
+assert.equal(await page.locator('#eBD').count(), 1, 'hồ sơ máy có công tắc Theo dõi bảo dưỡng');
+assert.equal(await page.evaluate(() => $('#bdBox').hidden), false, 'đang bật thì hiện ô chu kỳ');
+await page.uncheck('#eBD'); await wait(400);
+assert.equal(await page.evaluate(() => $('#bdBox').hidden), true, 'tắt thì ẩn ô chu kỳ và hạn');
+await shot('59-khong-theo-doi-bao-duong');
+await page.click('#eSave'); await wait(1800);
+const sau27 = await page.evaluate((x) => {
+  const m = S.V.byMa[x];
+  return { ck: m.chuKy, han: m.hanKeTiep, hd: m.hoatDong, st: stOf(m).k, lich: planFor(m, +TODAY().slice(0, 4), TODAY()).size };
+}, ma27);
+assert.equal(sau27.ck, 0, 'lưu với chu kỳ 0');
+assert.equal(sau27.han, '', 'và không còn hạn kế tiếp');
+assert.equal(sau27.hd, true, 'máy vẫn nằm trong sổ thiết bị');
+assert.equal(sau27.st, 'ok', 'không bị tính là quá hạn');
+assert.equal(sau27.lich, 0, 'không còn trong lịch bảo dưỡng');
+await page.evaluate((x) => go('mayEdit', { ma: x }), ma27); await wait(900);
+assert.equal(await page.isChecked('#eBD'), false, 'mở lại vẫn nhớ là đang tắt');
+await page.check('#eBD'); await wait(300);
+await page.click('#eSave'); await wait(1800);
+assert.ok(await page.evaluate((x) => S.V.byMa[x].chuKy > 0, ma27), 'bật lại thì có chu kỳ');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+// Chuyền bị nhập thành máy: Danh sách có chip cảnh báo để dọn
+await page.evaluate(() => {
+  const c = S.V.ch[0];
+  S.V.may.push({ ma: 'MTRUNG', ten: c.tenZh || c.ten, tenPhu: '', nhom: 'Dây chuyền sản xuất', viTri: '',
+    chuKy: 0, hanKeTiep: '', hoatDong: true, maHT: '', chuyen: c.ma, thongSo: [], hangMuc: [], linhKien: [] });
+  S.V.byMa.MTRUNG = S.V.may[S.V.may.length - 1];
+  tab('list');
+}); await wait(1400);
+assert.deepEqual(await page.evaluate(() => mayTrungChuyen().map((m) => m.ma)), ['MTRUNG'], 'nhận ra máy trùng với chuyền');
+assert.equal(await page.locator('[data-act="listGrp"][data-g="__trung"]').count(), 1, 'có chip Trùng với chuyền');
+await page.click('[data-act="listGrp"][data-g="__trung"]'); await wait(700);
+assert.match(await text('#listBody'), /MTRUNG|Dây chuyền|生产线/, 'chip lọc ra đúng máy trùng');
+await shot('60-trung-voi-chuyen');
+await page.evaluate(() => { S.f.grp = ''; render(); }); await wait(500);
+ok('Bản 2.38: máy chỉ ghi sổ thì tắt theo dõi bảo dưỡng, và chuyền bị nhập thành máy thì có chip cảnh báo để dọn');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

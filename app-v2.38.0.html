@@ -1041,6 +1041,8 @@ table.mtab tr.child th.nmc button{font-weight:500;padding-left:10px}
 .khoibtn.on{background:var(--brand);border-color:var(--brand2);color:var(--onbrand)}
 .khoibtn.on .zi{color:#DCE7FC}
 .khoibtn.on .khoin{color:#fff}
+.chip.warnchip{border-color:var(--orange);color:var(--orange);background:var(--orange-bg)}
+.chip.warnchip.on{background:var(--orange);border-color:var(--orange);color:#fff}
 .kst.on{border:2px solid currentColor}
 /* Ô chọn thiết bị: trông như ô nhập, bấm mở hộp chọn có tìm và quét QR */
 .tbpick{display:flex;align-items:center;gap:8px;width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink3);font:inherit;font-size:15px;text-align:left}
@@ -2065,6 +2067,18 @@ function rebuild() {
   rebuildMNK();
 }
 const activeMay = () => S.V.may.filter((m) => m.hoatDong);
+// Máy bị nhập trùng với một chuyền sản xuất: chuyền đã là bản ghi riêng, không nên có thêm
+// một máy cùng tên hay cùng mã nhà máy, vì khi đó chuyền hiện trong danh sách máy của chính nó.
+function mayTrungChuyen() {
+  const chs = S.V.ch || [];
+  if (!chs.length) return [];
+  const ht = {}, ten = {};
+  chs.forEach((c) => {
+    if (c.maHT) ht[String(c.maHT).toUpperCase()] = 1;
+    [c.ten, c.tenZh].forEach((t0) => { if (t0) ten[norm(t0).replace(/\s/g, '')] = 1; });
+  });
+  return activeMay().filter((m) => (m.maHT && ht[String(m.maHT).toUpperCase()]) || ten[norm(m.ten).replace(/\s/g, '')]);
+}
 // "Quạt số 2" phải đứng trước "Quạt số 10", nên đệm số cho đủ chữ số rồi mới so
 const soTN = (v) => String(v || '').replace(/\d+/g, (d) => d.padStart(6, '0'));
 // Thứ tự chung cho mọi màn: theo chuyền (máy không thuộc chuyền xuống cuối), rồi tên, rồi mã
@@ -2916,7 +2930,7 @@ VIEWS.may = {
     let o = mayHead(m);
     const cvM = cvDs.filter(cvMo);
     if (cvM.length) o += `<div class="alerts" style="margin-top:10px">${cvM.map(cvAlert).join('')}</div>`;
-    if (can('confirm') && m.hoatDong) {
+    if (can('confirm') && m.hoatDong && m.chuKy > 0) {
       o += `<div class="btn2">${can('ghiviec') ? `<button class="btn ghost bigbtn" data-act="cvNew" data-ma="${esc(m.ma)}">${IC.plus}<span class="stk">${tv('cvChoMay')}<span class="zi">${tz('cvChoMay')}</span></span></button>` : ''}
         <button class="btn g bigbtn" data-act="xn" data-ma="${esc(m.ma)}">${IC.check}<span class="stk">${tv('confirmBD')}<span class="zi">${tz('confirmBD')}</span></span></button></div>`;
     }
@@ -3481,6 +3495,12 @@ Object.assign(TX, {
   tsChinh: ['Thông số', '参数'], dangDung: ['Đang dùng', '在使用'], tsKhong: ['Chưa khai thông số', '未填写参数'],
   quayLaiLich: ['Về lịch bảo dưỡng', '返回保养日历'],
   khoiTB: ['Khối thiết bị', '设备大类'], tbKhongBD: ['Không theo chu kỳ (chỉ ghi sổ)', '不定期（仅登记）'],
+  bdTheoDoi: ['Theo dõi bảo dưỡng', '纳入保养管理'],
+  bdTheoDoiHelp: ['Tắt với máy chỉ cần ghi vào sổ thiết bị, không nhắc bảo dưỡng — máy đóng gói, cáp điện, bình chứa khí… Máy tắt sẽ không hiện ở tab Bảo dưỡng.',
+    '对只需登记、不做定期保养的设备关闭，如包装机、电缆、储气罐。关闭后不出现在保养页。'],
+  mTrungCh: ['Trùng với chuyền', '与产线重复'],
+  mTrungChHelp: ['Những máy này trùng tên hoặc trùng mã với một chuyền sản xuất. Chuyền đã là bản ghi riêng rồi, nên các máy này là thừa — mở từng máy rồi tắt "Còn theo dõi" hoặc sửa lại cho đúng.',
+    '这些设备与某条产线同名或同编号。产线本身已有独立记录，这些设备是多余的——请逐台打开后停用或改正。'],
   qSec: ['Quyền xem dữ liệu thiết bị', '设备数据查看权限'],
   qTheoVai: ['Theo vai trò', '按角色'], qTheoVaiHet: ['Đang theo mặc định của vai trò', '按角色默认'],
   qMo: ['Mở riêng', '单独开放'], qKhoa: ['Khoá riêng', '单独关闭'],
@@ -3577,7 +3597,11 @@ VIEWS.list = {
     const stopped = S.V.may.filter((m) => !m.hoatDong);
     let o = listSeg('list') + `<div class="tools"><div class="searchbox">${IC.search}<input class="inp" id="listQ" type="search" value="${esc(f.q)}" placeholder="${esc(tp('search'))}" autocomplete="off"></div></div>
       <div style="margin-top:10px">${khoiChips(f, 'listKhoi', 'listGrp')}</div>`;
-    if (stopped.length && can('may')) o += `<div class="hscroll" style="margin:-4px 0 12px"><button class="chip${f.grp === '__stop' ? ' on' : ''}" data-act="listGrp" data-g="__stop">${t('stopped')} (${stopped.length})</button></div>`;
+    const trung = mayTrungChuyen();
+    if ((stopped.length || trung.length) && can('may')) {
+      o += `<div class="hscroll" style="margin:-4px 0 12px">${stopped.length ? `<button class="chip${f.grp === '__stop' ? ' on' : ''}" data-act="listGrp" data-g="__stop">${t('stopped')} (${stopped.length})</button>` : ''}${
+        trung.length ? `<button class="chip warnchip${f.grp === '__trung' ? ' on' : ''}" data-act="listGrp" data-g="__trung">${t('mTrungCh')} (${trung.length})</button>` : ''}</div>`;
+    }
     const nut = [];
     if (can('may') && can('suatb')) nut.push(`<button class="btn sm" data-act="newMay">${IC.plus} ${t('addMachine')}</button>`,
       `<button class="btn ghost sm" data-act="go" data-v="tbNhap">${IC.dl} ${t('tbNhapBtn')}</button>`);
@@ -3594,7 +3618,8 @@ VIEWS.list = {
 function listBody() {
   const f = S.f, today = TODAY();
   let list = f.grp === '__stop' ? S.V.may.filter((m) => !m.hoatDong)
-    : activeMay().filter((m) => (!f.khoi || khoiCua(m) === f.khoi) && (!f.grp || m.nhom === f.grp));
+    : f.grp === '__trung' ? mayTrungChuyen()
+      : activeMay().filter((m) => (!f.khoi || khoiCua(m) === f.khoi) && (!f.grp || m.nhom === f.grp));
   list = findMay(f.q, list);
   if (!list.length) return `<div class="card empty">${t('notFound')}</div>`;
   const gon = !f.q && !f.grp && !f.khoi;
@@ -3797,6 +3822,7 @@ VIEWS.mayEdit = {
   html(p) {
     const m = p.ma ? S.V.byMa[p.ma] : null;
     const v = m || { ten: '', tenPhu: '', nhom: S.f.grp && S.f.grp !== '__stop' ? S.f.grp : '', viTri: '', chuKy: 30, hanKeTiep: TODAY(), noiDung: '', hoatDong: true, phuTrach: '', ngayDuaVao: '', chuyen: p.chuyen || '' };
+    if (p.bdOff === undefined) p.bdOff = !!(m && !(m.chuKy > 0));
     const chOpt = (S.V.ch || []).length ? `<label class="fld"><span>${t('chuyen')}</span><select class="inp" id="eCh"><option value="">${esc(tp('chKhong'))}</option>${S.V.ch.map((c) => `<option value="${esc(c.ma)}"${(v.chuyen || '') === c.ma ? ' selected' : ''}>${esc(mh(c.ma) + (c.tenZh ? ' · ' + c.tenZh : ''))}</option>`).join('')}</select></label>` : '';
     return `<form id="mayForm" class="card pad" autocomplete="off">
       ${m ? `<p style="margin:0 0 12px"><span class="code">${esc(m.ma)}</span></p>` : ''}
@@ -3808,8 +3834,10 @@ VIEWS.mayEdit = {
       <label class="fld"><span>${t('location')}</span><input class="inp" id="eViTri" value="${esc(v.viTri)}" maxlength="120"></label>
       <div class="tsgrid"><label class="fld"><span>${t('phuTrach')}</span><input class="inp" id="ePT" value="${esc(v.phuTrach || '')}" maxlength="120" list="ptList"><datalist id="ptList">${(S.base.nguoiDung || []).map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist></label>
       <label class="fld"><span>${t('ngayDuaVao')}</span><input class="inp" id="eNDV" type="date" value="${esc(v.ngayDuaVao || '')}"></label></div>
-      <label class="fld"><span>${t('cycle')} (${tv('days', { n: '' }).trim()} · ${tz('days', { n: '' })})</span><input class="inp" id="eChuKy" type="number" inputmode="numeric" min="1" max="3650" value="${esc(v.chuKy)}"></label>
-      <label class="fld"><span>${t('nextDue')}</span><div style="display:flex;gap:8px"><input class="inp" id="eHan" type="date" value="${esc(v.hanKeTiep)}"><button type="button" class="btn ghost sm" data-act="recalc">${t('recalc')}</button></div><div class="help">${t('hanHelp')}</div></label>
+<label class="switch"><span class="t">${t('bdTheoDoi')}<div class="help">${t('bdTheoDoiHelp')}</div></span><input type="checkbox" id="eBD" ${p.bdOff ? '' : 'checked'}></label>
+      <div id="bdBox"${p.bdOff ? ' hidden' : ''}>
+      <label class="fld"><span>${t('cycle')} (${tv('days', { n: '' }).trim()} · ${tz('days', { n: '' })})</span><input class="inp" id="eChuKy" type="number" inputmode="numeric" min="1" max="3650" value="${esc(v.chuKy || 30)}"></label>
+      <label class="fld"><span>${t('nextDue')}</span><div style="display:flex;gap:8px"><input class="inp" id="eHan" type="date" value="${esc(v.hanKeTiep || TODAY())}"><button type="button" class="btn ghost sm" data-act="recalc">${t('recalc')}</button></div><div class="help">${t('hanHelp')}</div></label></div>
       <label class="fld"><span>${t('content')}</span><textarea class="inp" id="eNoiDung" rows="4" maxlength="1000">${esc(v.noiDung)}</textarea></label>
       ${m ? `<label class="switch"><span class="t">${t('active')}<div class="help">${t('activeHelp')}</div></span><input type="checkbox" id="eHD" ${v.hoatDong ? 'checked' : ''}></label>` : ''}
       <div class="err" id="eErr" hidden></div>
@@ -3817,6 +3845,8 @@ VIEWS.mayEdit = {
   },
   after(p) {
     S.hanTouched = false;
+    const bd = $('#eBD');
+    if (bd) bd.addEventListener('change', () => { topV().p.bdOff = !bd.checked; $('#bdBox').hidden = !bd.checked; });
     $('#eHan').addEventListener('input', () => { S.hanTouched = true; });
     $('#eChuKy').addEventListener('input', () => { if (!S.hanTouched && p.ma) recalcHan(p.ma); });
     $('#mayForm').addEventListener('submit', (e) => { e.preventDefault(); saveMay(p.ma); });
@@ -3830,14 +3860,15 @@ function recalcHan(ma) {
 }
 async function saveMay(ma) {
   const p = { ma: ma || '', ten: $('#eTen').value.trim(), tenPhu: $('#eTenPhu').value.trim(), nhom: $('#eNhom').value.trim(),
-    viTri: $('#eViTri').value.trim(), chuKy: Math.round(+$('#eChuKy').value), hanKeTiep: $('#eHan').value, noiDung: $('#eNoiDung').value.trim(),
+    viTri: $('#eViTri').value.trim(), chuKy: $('#eBD') && !$('#eBD').checked ? 0 : Math.round(+$('#eChuKy').value),
+    hanKeTiep: $('#eBD') && !$('#eBD').checked ? '' : $('#eHan').value, noiDung: $('#eNoiDung').value.trim(),
     hoatDong: $('#eHD') ? $('#eHD').checked : true, phuTrach: $('#ePT').value.trim(), ngayDuaVao: $('#eNDV').value };
   if ($('#eCh')) p.chuyen = $('#eCh').value;
   if ($('#eMaHT')) p.maHT = $('#eMaHT').value.trim();
   const fe = $('#eErr'), show = (h) => { fe.innerHTML = h; fe.hidden = false; };
   if (!p.ten) return show(t('THIEU_TEN'));
-  if (!(p.chuKy >= 1 && p.chuKy <= 3650)) return show(t('CHU_KY_SAI'));
-  if (!validD(p.hanKeTiep)) return show(t('NGAY_SAI'));
+  if (p.chuKy && !(p.chuKy >= 1 && p.chuKy <= 3650)) return show(t('CHU_KY_SAI'));
+  if (p.chuKy && !validD(p.hanKeTiep)) return show(t('NGAY_SAI'));
   const b = $('#eSave'); b.disabled = true;
   try {
     const d = await api('saveMachine', p);

@@ -504,6 +504,12 @@ function suaDong(ten, r, arr) {
 // Để trống với máy cũ chưa phân khối; app tự đoán theo nhóm khi hiển thị.
 var KHOI_MAY = { SX: 'Thiết bị chuyền sản xuất · 生产线设备', HCD: 'Thiết bị hậu công đoạn · 后道设备' };
 function khoiHopLe(v) { var k = s(v).toUpperCase(); return KHOI_MAY[k] ? k : ''; }
+// So tên bỏ dấu, bỏ khoảng trắng thừa — để nhận ra chuyền bị nhập lại thành máy dù gõ khác nhau
+function chuanTen(v) {
+  return s(v).toLowerCase().replace(/[àáảãạăằắẳẵặâầấẩẫậ]/g, 'a').replace(/[èéẻẽẹêềếểễệ]/g, 'e')
+    .replace(/[ìíỉĩị]/g, 'i').replace(/[òóỏõọôồốổỗộơờớởỡợ]/g, 'o').replace(/[ùúủũụưừứửữự]/g, 'u')
+    .replace(/[ỳýỷỹỵ]/g, 'y').replace(/đ/g, 'd').replace(/[^a-z0-9\u4e00-\u9fff]+/g, '');
+}
 // Thông số kỹ thuật: [[nhãn, giá trị], ...] — mỗi loại máy một bộ nhãn riêng, không ép vào khuôn chung.
 // Giữ nguyên thứ tự người nhập để xuất Excel ra đúng cột như bảng gốc của nhà máy.
 function thongSoSach(v) {
@@ -2780,10 +2786,12 @@ function xoaNghiemThu(u, p) {
 function luuMay(u, p) {
   var ten = catChu(p.ten, 120);
   if (!ten) throw loi('THIEU_TEN', 'Chưa nhập tên · 请输入名称');
-  var chuKy = Math.round(Number(p.chuKy));
-  if (!(chuKy >= 1 && chuKy <= 3650)) throw loi('CHU_KY_SAI', 'Chu kỳ 1–3650 ngày');
-  var han = ngayStr(p.hanKeTiep);
-  if (!hopLeNgay(han)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  // Chu kỳ 0 = không theo dõi bảo dưỡng. Máy loại này chỉ nằm trong sổ thiết bị,
+  // không vào lịch bảo dưỡng và không bị nhắc quá hạn.
+  var chuKy = Math.round(Number(p.chuKy)) || 0;
+  if (chuKy && !(chuKy >= 1 && chuKy <= 3650)) throw loi('CHU_KY_SAI', 'Chu kỳ 1–3650 ngày');
+  var han = chuKy ? ngayStr(p.hanKeTiep) : '';
+  if (chuKy && !hopLeNgay(han)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
   var ds = dsMay(), m = null;
   if (p.ma) {
     m = ds.filter(function (x) { return x.ma === s(p.ma).toUpperCase(); })[0];
@@ -2836,6 +2844,14 @@ function nhapThietBi(u, p) {
   if (!dong.length) throw loi('KHONG_CO', 'File không có dòng thiết bị nào · 文件中没有设备行');
   if (dong.length > 500) throw loi('QUA_NHIEU', 'Mỗi lần nhập tối đa 500 thiết bị · 每次最多导入500台');
   var ds = dsMay(), bay = thoiGianStr(), chs = dsChuyen();
+  // Chuyền sản xuất đã là một bản ghi riêng trong app; nhập lại thành máy sẽ thành hai thứ
+  // trùng nhau, và chuyền hiện cả trong danh sách máy của chính nó.
+  var laChuyen = {};
+  chs.forEach(function (c) {
+    laChuyen[s(c.ma).toUpperCase()] = c;
+    if (c.maHT) laChuyen[s(c.maHT).toUpperCase()] = c;
+    [c.ten, c.tenZh].forEach(function (t) { if (s(t)) laChuyen['T:' + chuanTen(t)] = c; });
+  });
   var theoMa = {}, theoHT = {};
   ds.forEach(function (x) {
     theoMa[x.ma] = x;
@@ -2847,6 +2863,14 @@ function nhapThietBi(u, p) {
     var ten = catChu(r.ten, 120);
     if (!ten) { loi1.push({ dong: stt, vi: 'Thiếu tên thiết bị', zh: '缺少设备名称' }); continue; }
     var cu = (r.ma && theoMa[s(r.ma).toUpperCase()]) || (r.maHT && theoHT[s(r.maHT).toUpperCase()]) || null;
+    if (!cu) {
+      var ch0 = laChuyen[s(r.maHT).toUpperCase()] || laChuyen['T:' + chuanTen(ten)];
+      if (ch0) {
+        loi1.push({ dong: stt, vi: 'Đây là chuyền ' + ch0.ma + ', đã có sẵn trong app — không nhập thành máy',
+          zh: '这是产线 ' + ch0.ma + '，应用中已有，不作为设备导入' });
+        continue;
+      }
+    }
     var ch = s(r.chuyen).toUpperCase();
     if (ch && !chs.some(function (c) { return c.ma === ch; })) {
       loi1.push({ dong: stt, vi: 'Không có chuyền ' + ch, zh: '找不到产线 ' + ch });

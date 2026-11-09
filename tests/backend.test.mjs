@@ -2257,6 +2257,38 @@ test('thiết bị: nhập từ file theo loại, khớp mã cũ thì cập nh�
   err(b.call('importMachines', { rows }, b.kt), 'KHONG_QUYEN');
 });
 
+test('thiết bị: máy không theo dõi bảo dưỡng, và chuyền không bị nhập thành máy', () => {
+  const b = setup();
+  const m0 = ok(b.call('data', {}, b.ql)).may.find((m) => m.chuKy > 0);
+
+  // Tắt theo dõi: chu kỳ 0, không còn hạn kế tiếp
+  const r = ok(b.call('saveMachine', { ma: m0.ma, ten: m0.ten, nhom: m0.nhom, chuKy: 0, hanKeTiep: '' }, b.ql)).may;
+  assert.equal(r.chuKy, 0, 'chu kỳ 0 là không theo dõi bảo dưỡng');
+  assert.equal(r.hanKeTiep, '', 'và bỏ luôn hạn kế tiếp');
+  const sau = ok(b.call('data', {}, b.ql)).may.find((m) => m.ma === m0.ma);
+  assert.equal(sau.chuKy, 0);
+  assert.equal(sau.hoatDong, true, 'máy vẫn nằm trong sổ thiết bị, chỉ là không nhắc bảo dưỡng');
+
+  // Bật lại thì phải có chu kỳ hợp lệ và hạn
+  ok(b.call('saveMachine', { ma: m0.ma, ten: m0.ten, nhom: m0.nhom, chuKy: 45, hanKeTiep: '2026-12-01' }, b.ql));
+  assert.equal(ok(b.call('data', {}, b.ql)).may.find((m) => m.ma === m0.ma).chuKy, 45);
+  err(b.call('saveMachine', { ma: m0.ma, ten: m0.ten, chuKy: 5000, hanKeTiep: '2026-12-01' }, b.ql), 'CHU_KY_SAI');
+  err(b.call('saveMachine', { ma: m0.ma, ten: m0.ten, chuKy: 45, hanKeTiep: 'hôm nào đó' }, b.ql), 'NGAY_SAI');
+
+  // Nhập thiết bị: dòng nào chính là một chuyền thì bỏ qua, không tạo máy trùng
+  const ch = ok(b.call('data', {}, b.ql)).chuyen[0];
+  const truoc = ok(b.call('data', {}, b.ql)).may.length;
+  const nh = ok(b.call('importMachines', {
+    rows: [{ ten: ch.tenZh || ch.ten, maHT: ch.maHT || '', khoi: 'SX', nhom: 'Dây chuyền sản xuất' },
+      { maHT: ch.maHT || ch.ma, ten: 'Tên khác hẳn', khoi: 'SX', nhom: 'Dây chuyền sản xuất' },
+      { ten: 'Máy dán thùng VKY99', khoi: 'SX', nhom: 'Máy dán thùng' }]
+  }, b.ql));
+  assert.equal(nh.them, 1, 'chỉ máy thật được nhập');
+  assert.equal(nh.loi.length, 2, 'hai dòng chuyền bị bỏ qua');
+  nh.loi.forEach((x) => assert.match(x.vi, /chuyền/i, 'nói rõ vì sao bỏ: ' + x.vi));
+  assert.equal(ok(b.call('data', {}, b.ql)).may.length, truoc + 1, 'không sinh máy trùng với chuyền');
+});
+
 test('thiết bị: kỹ thuật sửa được vị trí máy, không sửa được thứ khác', () => {
   const b = setup();
   const m0 = ok(b.call('data', {}, b.kt)).may[0];
