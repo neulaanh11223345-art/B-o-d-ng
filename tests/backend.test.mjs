@@ -2137,3 +2137,74 @@ test('lịch trực: mỗi lượt một khung giờ riêng, Chủ nhật giờ 
   assert.equal(sau[0].tu, '17:00');
   assert.equal(sau[0].den, '19:00');
 });
+
+test('công việc: Quản lý sửa lại nội dung nhân viên đã ghi khi xong, việc vẫn đóng', () => {
+  const b = setup();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien, kt3 = nv.find((x) => x.vaiTro === 'kythuat');
+  const v = ok(b.call('saveTask', { tieuDe: 'Sửa băng tải chuyền 5', loai: 'SUA', han: '2026-10-01', uidLam: kt3.id, canKiemTra: false }, b.ql)).congViec;
+  const xong = ok(b.call('updateTask', { id: v.id, buoc: 'xong', ketQua: 'Thay bạc đạn', nguyenNhan: 'Bạc đạn kêu', gioDung: 2 }, b.kt)).congViec;
+  assert.equal(xong.trangThai, 'DONG');
+  assert.equal(xong.phutDung, 120);
+
+  // Kỹ thuật không sửa việc được (kể cả việc đã đóng của chính mình)
+  err(b.call('saveTask', { id: v.id, tieuDe: 'Sửa băng tải chuyền 5', loai: 'SUA', ketQua: 'Gì cũng được' }, b.kt), 'KHONG_QUYEN');
+
+  // Quản lý chữa lại kết quả, nguyên nhân, giờ dừng máy
+  const r = ok(b.call('saveTask', { id: v.id, tieuDe: 'Thay bạc đạn băng tải chuyền 5', loai: 'SUA', uuTien: 'TB', ma: '', han: '2026-10-01',
+    ketQua: 'Thay bạc đạn 6204 đầu trục, căng lại băng, chạy thử 30 phút ổn', nguyenNhan: 'Bạc đạn đầu trục vỡ vòng trong', gioDung: 3.5 }, b.ql)).congViec;
+  assert.equal(r.trangThai, 'DONG', 'sửa nội dung không mở lại việc');
+  assert.match(r.ketQua, /chạy thử 30 phút/, 'kết quả đã chữa lại');
+  assert.match(r.nguyenNhan, /vỡ vòng trong/, 'nguyên nhân đã chữa lại');
+  assert.equal(r.phutDung, 210, 'giờ dừng máy đổi theo');
+  assert.ok(r.ketQuaDich, 'kết quả mới được dịch lại');
+  assert.ok(r.nguyenNhanDich, 'nguyên nhân mới được dịch lại');
+  assert.equal(r.nhatKy[r.nhatKy.length - 1].b, 'sua', 'nhật ký ghi lần sửa');
+  assert.match(r.nhatKy[r.nhatKy.length - 1].nguoi, /Quản lý/, 'và ghi ai sửa');
+
+  // Không được xoá trắng kết quả
+  err(b.call('saveTask', { id: v.id, tieuDe: 'Thay bạc đạn băng tải chuyền 5', loai: 'SUA', ketQua: '   ' }, b.ql), 'CAN_KET_QUA');
+
+  // Sửa việc đang mở thì không gửi mấy ô này, nội dung cũ phải còn nguyên
+  const v2 = ok(b.call('saveTask', { tieuDe: 'Vệ sinh tủ điện chuyền 5', loai: 'VS', uidLam: kt3.id, canKiemTra: false }, b.ql)).congViec;
+  ok(b.call('updateTask', { id: v2.id, buoc: 'xong', ketQua: 'Đã thổi bụi' }, b.kt));
+  const r2 = ok(b.call('saveTask', { id: v2.id, tieuDe: 'Vệ sinh tủ điện chuyền 5 (tháng 10)', loai: 'VS' }, b.ql)).congViec;
+  assert.equal(r2.ketQua, 'Đã thổi bụi', 'không gửi kết quả thì giữ nguyên');
+
+  // Việc đã huỷ thì Quản lý cũng không sửa
+  const v3 = ok(b.call('saveTask', { tieuDe: 'Việc bỏ', loai: 'KHAC' }, b.ql)).congViec;
+  ok(b.call('updateTask', { id: v3.id, buoc: 'huy', ghiChu: 'Không cần nữa' }, b.ql));
+  err(b.call('saveTask', { id: v3.id, tieuDe: 'Việc bỏ sửa lại', loai: 'KHAC' }, b.ql), 'SAI_TRANG_THAI');
+});
+
+test('công việc: Quản lý gia hạn việc quá hạn, chỉ nới ra chứ không rút lại', () => {
+  const b = setup();
+  const nv = ok(b.call('data', {}, b.ql)).nhanVien, kt3 = nv.find((x) => x.vaiTro === 'kythuat');
+  const v = ok(b.call('saveTask', { tieuDe: 'Sửa băng tải chuyền 3', loai: 'SUA', han: '2026-10-01', uidLam: kt3.id }, b.ql)).congViec;
+  assert.equal(v.han, '2026-10-01');
+
+  // Kỹ thuật không gia hạn được, kể cả việc của chính mình
+  err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-10-20' }, b.kt), 'KHONG_QUYEN');
+  // Hạn mới phải sau hạn cũ và không được lùi về trước hôm nay
+  err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-09-20' }, b.ql), 'HAN_SAI');
+  err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-10-01' }, b.ql), 'HAN_SAI');
+  err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: 'hôm nào đó' }, b.ql), 'NGAY_SAI');
+
+  const r = ok(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-10-20', ghiChu: 'Chờ linh kiện về' }, b.ql)).congViec;
+  assert.equal(r.han, '2026-10-20', 'hạn đã dời');
+  const g = r.nhatKy[r.nhatKy.length - 1];
+  assert.equal(g.b, 'giahan');
+  assert.equal(g.hanCu, '2026-10-01', 'nhật ký ghi hạn cũ');
+  assert.equal(g.hanMoi, '2026-10-20', 'và hạn mới');
+  assert.equal(g.gc, 'Chờ linh kiện về');
+  assert.ok(g.gcDich, 'lý do gia hạn được dịch sang tiếng Trung');
+  assert.equal(r.trangThai, v.trangThai, 'gia hạn không đổi trạng thái việc');
+
+  // Gia hạn tiếp lần nữa vẫn được, mỗi lần một dòng nhật ký
+  const r2 = ok(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-10-25' }, b.ql)).congViec;
+  assert.equal(r2.han, '2026-10-25');
+  assert.equal(r2.nhatKy.filter((n) => n.b === 'giahan').length, 2);
+
+  // Việc đã đóng thì không gia hạn
+  ok(b.call('updateTask', { id: v.id, buoc: 'xong', ketQua: 'Đã thay băng tải' }, b.ql));
+  err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-11-30' }, b.ql), 'SAI_TRANG_THAI');
+});

@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.35.0';
+var PHIEN_BAN = '2.36.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1748,7 +1748,7 @@ function dichKhiSua(moi, cuGoc, cuDich, dichGui) {
   return songNgu(moi);
 }
 var DICH_TRUONG = [['tieuDe', 'tieuDeDich'], ['moTa', 'moTaDich'], ['ketQua', 'ketQuaDich'], ['nguyenNhan', 'nguyenNhanDich']];
-var DICH_GC = ['hoan', 'tralai', 'huy'];
+var DICH_GC = ['hoan', 'tralai', 'huy', 'giahan'];
 // Dịch bù những chỗ còn thiếu bản dịch (việc của 60 ngày gần đây + việc lặp lại). Trả số lần đã gọi dịch.
 function dichBu(max, khongCho) {
   var ps = PropertiesService.getScriptProperties(), dau = ps.getProperty('DICH_THIEU');
@@ -1904,7 +1904,9 @@ function luuCongViec(u, p, opId) {
     themDong('CongViec', cvThanhDong(x));
     return { congViec: sachCV(x) };
   }
-  if (x.trangThai === 'DONG' || x.trangThai === 'HUY') throw loiDL('SAI_TRANG_THAI', TEN_TT_CV[x.trangThai], { congViec: sachCV(x) });
+  // Việc đã huỷ thì không sửa nữa. Việc đã đóng chỉ Quản lý sửa được — để chữa lại nội dung
+  // nhân viên ghi khi xong (ghi thiếu, ghi sai máy, sai chính tả). Nhật ký vẫn giữ dấu vết người sửa.
+  if (x.trangThai === 'HUY' || (x.trangThai === 'DONG' && !quanLy)) throw loiDL('SAI_TRANG_THAI', TEN_TT_CV[x.trangThai], { congViec: sachCV(x) });
   if (!quanLy && !(x.uidTao === u.id && x.trangThai === 'CHO_GIAO')) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
   var truoc = { tieuDe: x.tieuDe, han: x.han, uidLam: x.uidLam, uuTien: x.uuTien };
   var td = dichKhiSua(f.tieuDe, x.tieuDe, x.tieuDeDich, p.tieuDeDich), mt = dichKhiSua(f.moTa, x.moTa, x.moTaDich, p.moTaDich);
@@ -1912,6 +1914,25 @@ function luuCongViec(u, p, opId) {
   x.tieuDe = td[0]; x.tieuDeDich = td[1]; x.moTa = mt[0]; x.moTaDich = mt[1];
   x.han = han;
   x.anhTao = x.anhTao.concat(anhSC(p.anh, 'cv' + x.so, 'TRUOC')).slice(0, SC_ANH_TOI_DA);
+  // Quản lý chữa lại nội dung đã ghi khi xong việc: kết quả, nguyên nhân, giờ dừng máy.
+  // Chỉ nhận khi app gửi kèm, để màn sửa việc đang mở không xoá trắng mấy ô này.
+  var daXong = x.trangThai === 'XONG' || x.trangThai === 'DONG';
+  if (quanLy && daXong) {
+    if (p.ketQua !== undefined) {
+      var kqM = catNhieuDong(p.ketQua, 1000).trim();
+      if (!kqM) throw loi('CAN_KET_QUA', 'Cần ghi kết quả · 请填写工作结果');
+      var kqD = dichKhiSua(kqM, x.ketQua, x.ketQuaDich, p.ketQuaDich);
+      x.ketQua = kqD[0]; x.ketQuaDich = kqD[1];
+    }
+    if (p.nguyenNhan !== undefined) {
+      var nnD = dichKhiSua(catNhieuDong(p.nguyenNhan, 1000).trim(), x.nguyenNhan, x.nguyenNhanDich, p.nguyenNhanDich);
+      x.nguyenNhan = nnD[0]; x.nguyenNhanDich = nnD[1];
+    }
+    if (p.gioDung !== undefined) {
+      var gioM = soHoacRong(p.gioDung);
+      x.phutDung = gioM !== '' && gioM >= 0 && gioM <= 24 * 60 ? Math.round(gioM * 60) : '';
+    }
+  }
   x.nhatKy.push({ b: 'sua', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: opId });
   if (quanLy && p.uidLam !== undefined) {
     if (f.lam && (f.lam.id !== x.uidLam || f.phu.map(function (n) { return n.id; }).join() !== x.uidPhu.join())) {
@@ -1959,7 +1980,7 @@ function capNhatCongViec(u, p, opId) {
   var x = ds.filter(function (r) { return r.id === id; })[0];
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy việc · 找不到工作');
   if (opId && x.nhatKy.some(function (n) { return n.op === opId; })) return { dup: true, congViec: sachCV(x) };
-  var b = s(p.buoc), bay = thoiGianStr(), gc = catChu(p.ghiChu, 300), tra = {};
+  var b = s(p.buoc), bay = thoiGianStr(), gc = catChu(p.ghiChu, 300), tra = {}, hanCu = null;
   var quanLy = coQuyen(u, 'giaoviec'), laNguoiLam = x.uidLam === u.id || x.uidPhu.indexOf(u.id) >= 0;
   function phai(tt) {
     if (tt.indexOf(x.trangThai) < 0) throw loiDL('SAI_TRANG_THAI', TEN_TT_CV[x.trangThai] || x.trangThai, { congViec: sachCV(x) });
@@ -2009,6 +2030,16 @@ function capNhatCongViec(u, p, opId) {
     x.capNhat = bay;
     suaDong('CongViec', x._r, cvThanhDong(x));
     return { congViec: sachCV(x) };
+  } else if (b === 'giahan') {
+    // Gia hạn việc quá hạn: Quản lý bấm thẳng ở dòng việc, khỏi phải mở màn sửa việc.
+    // Chỉ nới ra, không rút lại — rút hạn là sửa kế hoạch, làm trong màn sửa việc.
+    canQuyen(u, 'giaoviec'); phai(CV_MO);
+    var hanMoi = ngayStr(p.han);
+    if (!hopLeNgay(hanMoi)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+    if (hanMoi < homNayStr()) throw loi('HAN_SAI', 'Hạn mới không được trước hôm nay · 新期限不能早于今天');
+    if (x.han && hanMoi <= x.han) throw loi('HAN_SAI', 'Hạn mới phải sau hạn cũ · 新期限必须晚于原期限');
+    hanCu = x.han || '';
+    x.han = hanMoi;
   } else if (b === 'huy') {
     var cuaMinh = x.uidTao === u.id && x.trangThai === 'CHO_GIAO';
     if (!cuaMinh && !quanLy) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限');
@@ -2021,7 +2052,10 @@ function capNhatCongViec(u, p, opId) {
   }
   x.capNhat = bay;
   var gcD = gc && DICH_GC.indexOf(b) >= 0 ? songNgu(gc) : [gc, ''];
-  x.nhatKy.push({ b: b, luc: bay, uid: u.id, nguoi: u.ten, gc: gcD[0], gcDich: gcD[1], op: opId });
+  var ghi = { b: b, luc: bay, uid: u.id, nguoi: u.ten, gc: gcD[0], gcDich: gcD[1], op: opId };
+  // Gia hạn ghi rõ dời từ ngày nào sang ngày nào, để sau còn soát lại
+  if (hanCu !== null) { ghi.hanCu = hanCu; ghi.hanMoi = x.han; }
+  x.nhatKy.push(ghi);
   if (b === 'xong' && x.trangThai === 'DONG' && x.canKiemTra) x.nhatKy.push({ b: 'kiemtra', luc: bay, uid: u.id, nguoi: u.ten, gc: '', op: '' });
   suaDong('CongViec', x._r, cvThanhDong(x));
   tra.congViec = sachCV(x);
