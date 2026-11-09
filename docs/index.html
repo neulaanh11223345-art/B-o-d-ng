@@ -1046,6 +1046,21 @@ table.mtab tr.child th.nmc button{font-weight:500;padding-left:10px}
 .tsrow dt{flex:1;min-width:0;color:var(--ink2);overflow-wrap:anywhere}
 .tsrow dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
 .xuatrow{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line)}
+/* Tám công tắc quyền xem trong hồ sơ tài khoản */
+.qbox{padding-top:4px}
+.qrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--soft)}
+.qrow:last-of-type{border-bottom:0}
+.qnm{flex:1;min-width:0}
+.qnm b{display:block;font-size:14px}
+.qnm .zi{display:block;font-size:12.5px}
+.qnm small{display:block;font-size:12px;color:var(--ink3);margin-top:1px}
+.qmd{font-size:11.5px;font-weight:700;border-radius:999px;padding:4px 9px;white-space:nowrap;flex:none;background:var(--soft);color:var(--ink3)}
+.qmd.rieng{background:var(--purple-bg);color:var(--purple)}
+.qsw{position:relative;width:52px;height:30px;border-radius:999px;border:0;padding:0;flex:none;background:#C6CEDC}
+.qsw i{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .15s}
+.qsw.on{background:var(--green)}
+.qsw.on i{left:25px}
+.vhid{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 .kst b{font-size:23px;line-height:1.1;font-variant-numeric:tabular-nums;font-family:var(--f-mono)}
 .kst b small{font-size:14px;color:var(--ink2)}
 .kst span{font-size:12.5px;font-weight:600;color:var(--ink2);line-height:1.25}
@@ -1461,7 +1476,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.37.0";
+const APP_VER = "2.38.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -1801,7 +1816,21 @@ function apiUrl() { return (typeof API_URL === 'string' && API_URL) || store.get
 const ROLE_OK = { confirm: ['admin', 'quanly', 'kythuat'], may: ['admin', 'quanly'], huy: ['admin', 'quanly'], admin: ['admin'], giaoviec: ['admin', 'quanly'], xemhet: ['admin', 'quanly'], tailieu: ['admin', 'quanly'],
   ghiviec: ['admin', 'quanly'] };   // ghi việc mới: chỉ Quản lý, Quản trị
 // Khoá quyền lạ thì coi như không có quyền, không để vỡ cả màn hình
-const can = (q) => !!(S.me && (ROLE_OK[q] || []).indexOf(S.me.vaiTro) >= 0);
+// Tám quyền xem dữ liệu thiết bị: máy chủ tính sẵn theo vai trò + phần đặt riêng cho tài khoản,
+// gửi về trong S.quyen. Máy chủ cũ chưa gửi thì quay về mặc định của vai trò.
+const QUYEN_RIENG = ['xemsx', 'xemhcd', 'tsmay', 'xuattb', 'suatb', 'xemkho', 'baocao', 'kiemdinh'];
+const ROLE_RIENG = {
+  xemsx: ['admin', 'quanly', 'kythuat'], xemhcd: ['admin', 'quanly', 'kythuat'],
+  tsmay: ['admin', 'quanly', 'kythuat'], xuattb: ['admin', 'quanly'], suatb: ['admin', 'quanly'],
+  xemkho: ['admin', 'quanly', 'kythuat'], baocao: ['admin', 'quanly'], kiemdinh: ['admin', 'quanly']
+};
+const can = (q) => {
+  if (QUYEN_RIENG.indexOf(q) >= 0) {
+    if (S.quyen && typeof S.quyen[q] === 'boolean') return S.quyen[q];
+    return !!(S.me && (ROLE_RIENG[q] || []).indexOf(S.me.vaiTro) >= 0);
+  }
+  return !!(S.me && (ROLE_OK[q] || []).indexOf(S.me.vaiTro) >= 0);
+};
 function errMsg(e) {
   const c = (e && e.code) || 'LOI';
   if (c === 'DA_XAC_NHAN' || c === 'TEN_TRUNG') return t(c, { m: e.message || '' });
@@ -1860,6 +1889,7 @@ async function refresh(silent) {
     // Cập nhật người dùng trước khi dựng lại dữ liệu: vai trò quyết định phần được xem
     const vtCu = S.me && S.me.vaiTro;
     if (d.me) { S.me = d.me; store.set('bd_me', d.me); }
+    if (d.quyen) { S.quyen = d.quyen; store.set('bd_quyen', d.quyen); }
     S.base = d; S.lastLoad = Date.now(); saveSnap(); rebuild();
     khoSync();
     if (vtCu && S.me && vtCu !== S.me.vaiTro && $('#main')) { shell(); render(); }
@@ -1978,6 +2008,7 @@ function mergeResult(d) {
     if (i >= 0) L[i] = c; else L.push(c);
   });
   if (d.me) { S.me = Object.assign({}, S.me, d.me); store.set('bd_me', S.me); S.base.me = S.me; }
+  if (d.quyen) { S.quyen = d.quyen; store.set('bd_quyen', d.quyen); }
   if (d.kho) khoApply(d.kho);
   if (d.tlFull) S.base.taiLieu = d.taiLieu || [];
   else if (d.taiLieu && d.ma) S.base.taiLieu = (S.base.taiLieu || []).filter((x) => x.ma !== d.ma).concat(d.taiLieu);
@@ -2784,7 +2815,7 @@ VIEWS.may = {
           `<div class="tsrow"><dt>${esc(k)}</dt><dd>${esc(String(v))}</dd></div>`).join('')}</dl></div>`;
       }
       if (m.noiDung) o += sec('content') + `<div class="card pad"><p class="pre">${esc(m.noiDung)}</p></div>`;
-      if (can('may')) {
+      if (can('may') && can('suatb')) {
         o += `<div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="editMay" data-ma="${esc(m.ma)}">${IC.edit} ${t('edit')}</button>
           <button class="btn ghost" data-act="labelsOne" data-ma="${esc(m.ma)}">${IC.qr} ${t('printQR')}</button></div>`;
       }
@@ -3322,6 +3353,26 @@ Object.assign(TX, {
   tsChinh: ['Thông số', '参数'], dangDung: ['Đang dùng', '在使用'], tsKhong: ['Chưa khai thông số', '未填写参数'],
   quayLaiLich: ['Về lịch bảo dưỡng', '返回保养日历'],
   khoiTB: ['Khối thiết bị', '设备大类'], tbKhongBD: ['Không theo chu kỳ (chỉ ghi sổ)', '不定期（仅登记）'],
+  qSec: ['Quyền xem dữ liệu thiết bị', '设备数据查看权限'],
+  qTheoVai: ['Theo vai trò', '按角色'], qTheoVaiHet: ['Đang theo mặc định của vai trò', '按角色默认'],
+  qMo: ['Mở riêng', '单独开放'], qKhoa: ['Khoá riêng', '单独关闭'],
+  qDemRieng: ['{n} mục đặt riêng', '单独设置{n}项'], qVeMacDinh: ['Về đúng mặc định của vai trò', '恢复角色默认'],
+  q_xemsx: ['Xem thiết bị chuyền sản xuất', '生产线设备'],
+  qm_xemsx: ['Dây chuyền, đóng gói, in phun, keo, dán thùng', '生产线、包装、喷印、胶机、封箱'],
+  q_xemhcd: ['Xem thiết bị hậu công đoạn', '后道设备'],
+  qm_xemhcd: ['Quạt gió, hút bụi, khí nén, trạm điện, bơm', '风机、吸尘、空压、变电站、水泵'],
+  q_tsmay: ['Xem thông số kỹ thuật', '技术参数'],
+  qm_tsmay: ['kW, A, rpm, lưu lượng, model động cơ', '功率、电流、转速、风量、电机型号'],
+  q_xuattb: ['Xuất bảng tổng hợp thiết bị', '导出设备台帐'],
+  qm_xuattb: ['Tải file Excel thiết bị theo từng loại', '按类型导出设备 Excel'],
+  q_suatb: ['Sửa hồ sơ thiết bị', '编辑设备档案'],
+  qm_suatb: ['Thêm máy, sửa thông số, nhập từ file', '添加设备、修改参数、从文件导入'],
+  q_xemkho: ['Xem kho linh kiện và tồn', '备件库存'],
+  qm_xemkho: ['Số tồn, vị trí để, ngưỡng an toàn', '库存数量、存放位置、安全库存'],
+  q_baocao: ['Xem báo cáo tháng', '月度报表'],
+  qm_baocao: ['Thống kê việc, giờ dừng máy, tiền điện', '工作统计、停机时长、电费'],
+  q_kiemdinh: ['Xem sổ kiểm định', '检验台帐'],
+  qm_kiemdinh: ['Bình chịu áp, thiết bị nghiêm ngặt', '压力容器、特种设备'],
   tbThongSo: ['Thông số kỹ thuật', '技术参数'], tbSuaViTri: ['Sửa vị trí', '修改位置'],
   tbViTriMoi: ['Vị trí mới', '新位置'], tbViTriOk: ['Đã cập nhật vị trí', '位置已更新'],
   tbViTriHelp: ['Ai cũng sửa được vị trí máy — đứng tại máy thấy sai thì sửa ngay, khỏi báo Quản lý.',
@@ -3365,9 +3416,10 @@ const ST_CHIP = [['', 'stAll'], ['qua', 'st_qua'], ['nay', 'st_nay'], ['sap', 's
 // ---------- Khối thiết bị: gom các nhóm rời thành hai khối cho dễ tìm ----------
 const KHOI_DS = ['SX', 'HCD'];
 // Máy nhập trước khi có cột Khối thì đoán theo tên nhóm, để danh sách không có ô trống
+// Quạt gió, hút bụi… tuy gắn theo chuyền nhưng là hậu công đoạn, nên so khối này trước
 const KHOI_DOAN = [
-  [/chuy[eề]n|d[aâ]y chuy|đ[oó]ng g[oó]i|in phun|keo|d[aá]n th[uù]ng|kim lo[aạ]i|c[aâ]n|mi[eệ]ng t[uú]i|生产线|包装|喷印|胶机|封箱|封口|金属/i, 'SX'],
-  [/qu[aạ]t|h[uú]t b[uụ]i|đ[oó]ng bao|[eé]p ki[eệ]n|n[eé]n kh[ií]|s[aấ]y kh[ií]|b[ìi]nh ch[uứ]a|đi[eề]u h[oò]a|tr[aạ]m đi[eệ]n|bi[eế]n [aá]p|c[aá]p đi[eệ]n|b[oơ]m|pccc|b[aă]m|ph[eế]|th[oổ]i b[uụ]i|đi[eệ]n|kh[ií] n[eé]n|风机|吸尘|打包|空压|干燥|储气|空调|变电|变压|电缆|水泵|消防|废料|风淋/i, 'HCD']
+  [/qu[aạ]t|h[uú]t b[uụ]i|đ[oó]ng bao|[eé]p ki[eệ]n|n[eé]n kh[ií]|kh[ií] n[eé]n|s[aấ]y kh[ií]|b[ìi]nh ch[uứ]a|đi[eề]u h[oò]a|tr[aạ]m đi[eệ]n|bi[eế]n [aá]p|c[aá]p đi[eệ]n|b[oơ]m|pccc|b[aă]m|ph[eế]|th[oổ]i b[uụ]i|đi[eệ]n|风机|吸尘|打包|空压|干燥|储气|空调|变电|变压|电缆|水泵|消防|废料|风淋|电力/i, 'HCD'],
+  [/chuy[eề]n|d[aâ]y chuy|đ[oó]ng g[oó]i|in phun|keo|d[aá]n th[uù]ng|kim lo[aạ]i|mi[eệ]ng t[uú]i|生产线|包装|喷印|胶机|封箱|封口|金属/i, 'SX']
 ];
 function khoiCua(m) {
   if (m.khoi === 'SX' || m.khoi === 'HCD') return m.khoi;
@@ -3384,7 +3436,7 @@ const khoiNhoms = (k) => {
 function khoiChips(f, actK, actG) {
   const dem = { SX: 0, HCD: 0 };
   activeMay().forEach((m) => { dem[khoiCua(m)]++; });
-  const nut = KHOI_DS.map((k) => `<button class="khoibtn${f.khoi === k ? ' on' : ''}" data-act="${actK}" data-k="${k}">
+  const nut = KHOI_DS.filter((k) => can(k === 'SX' ? 'xemsx' : 'xemhcd')).map((k) => `<button class="khoibtn${f.khoi === k ? ' on' : ''}" data-act="${actK}" data-k="${k}">
     <span><b>${esc(tv('khoi_' + k))}</b><span class="zi">${esc(tz('khoi_' + k))}</span></span><span class="khoin">${dem[k]}</span></button>`).join('');
   const gs = f.khoi ? khoiNhoms(f.khoi) : [];
   const chip = !f.khoi ? '' : `<div class="hscroll" style="margin:10px 0 12px"><button class="chip${!f.grp ? ' on' : ''}" data-act="${actG}" data-g="">${t('all')}</button>${
@@ -3398,9 +3450,12 @@ VIEWS.list = {
     let o = listSeg('list') + `<div class="tools"><div class="searchbox">${IC.search}<input class="inp" id="listQ" type="search" value="${esc(f.q)}" placeholder="${esc(tp('search'))}" autocomplete="off"></div></div>
       <div style="margin-top:10px">${khoiChips(f, 'listKhoi', 'listGrp')}</div>`;
     if (stopped.length && can('may')) o += `<div class="hscroll" style="margin:-4px 0 12px"><button class="chip${f.grp === '__stop' ? ' on' : ''}" data-act="listGrp" data-g="__stop">${t('stopped')} (${stopped.length})</button></div>`;
-    if (can('may')) o += `<div class="btns" style="margin-bottom:14px"><button class="btn sm" data-act="newMay">${IC.plus} ${t('addMachine')}</button><button class="btn ghost sm" data-act="go" data-v="tbNhap">${IC.dl} ${t('tbNhapBtn')}</button>
-<button class="btn ghost sm" data-act="go" data-v="tbXuat">${IC.share} ${t('tbXuatBtn')}</button><button class="btn ghost sm" data-act="labels">${IC.qr} ${t('printQR')}</button>
-</div>`;
+    const nut = [];
+    if (can('may') && can('suatb')) nut.push(`<button class="btn sm" data-act="newMay">${IC.plus} ${t('addMachine')}</button>`,
+      `<button class="btn ghost sm" data-act="go" data-v="tbNhap">${IC.dl} ${t('tbNhapBtn')}</button>`);
+    if (can('xuattb')) nut.push(`<button class="btn ghost sm" data-act="go" data-v="tbXuat">${IC.share} ${t('tbXuatBtn')}</button>`);
+    if (can('may')) nut.push(`<button class="btn ghost sm" data-act="labels">${IC.qr} ${t('printQR')}</button>`);
+    if (nut.length) o += `<div class="btns" style="margin-bottom:14px">${nut.join('')}</div>`;
     o += '<div id="listBody">' + listBody() + '</div>';
     return o;
   },
@@ -3882,7 +3937,8 @@ VIEWS.users = {
   }
 };
 function openUser(id) {
-  const p = topV().p, u = id ? p.list.find((x) => x.id === id) : { ten: '', vaiTro: 'kythuat', email: '', hoatDong: true, maNV: '', tenZh: '' };
+  const p = topV().p, u = id ? p.list.find((x) => x.id === id) : { ten: '', vaiTro: 'kythuat', email: '', hoatDong: true, maNV: '', tenZh: '', quyen: {} };
+  S.qTam = Object.assign({}, u.quyen || {});
   openSheet(`<div class="grab"></div><h3>${id ? esc(u.ten) : t('addUser')}</h3><div style="height:10px"></div>
     <div class="tsgrid"><label class="fld"><span>${t('maNV')}</span><input class="inp mono" id="uMaNV" value="${esc(u.maNV || '')}" maxlength="20" autocapitalize="characters" placeholder="${id ? '' : esc(tp('tuDong'))}"></label>
     <label class="fld"><span>${t('tenZh')}</span><input class="inp" id="uTenZh" value="${esc(u.tenZh || '')}" maxlength="60" lang="zh-CN"></label></div>
@@ -3891,13 +3947,35 @@ function openUser(id) {
     <label class="fld"><span>${t(id ? 'pinReset' : 'pinSet')}</span><input class="inp mono" id="uPin" inputmode="numeric" maxlength="6" autocomplete="off"></label>
     <label class="fld"><span>${t('email')}</span><input class="inp" id="uMail" type="email" value="${esc(u.email)}" maxlength="120"></label>
     ${id ? `<label class="switch"><span class="t">${t('userActive')}</span><input type="checkbox" id="uHD" ${u.hoatDong ? 'checked' : ''}></label>` : ''}
+    <div id="qBox">${srvOld('quyenrieng') ? '' : qHtml(u.vaiTro, Object.assign({}, u.quyen || {}))}</div>
     <div class="err" id="fErr" hidden></div>
     <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn" data-act="saveUser" data-id="${esc(id || '')}">${t('save')}</button></div>`);
+}
+// Tám công tắc quyền xem; để trống thì theo mặc định của vai trò
+const QUYEN_MD = {
+  admin: { xemsx: 1, xemhcd: 1, tsmay: 1, xuattb: 1, suatb: 1, xemkho: 1, baocao: 1, kiemdinh: 1 },
+  quanly: { xemsx: 1, xemhcd: 1, tsmay: 1, xuattb: 1, suatb: 1, xemkho: 1, baocao: 1, kiemdinh: 1 },
+  kythuat: { xemsx: 1, xemhcd: 1, tsmay: 1, xuattb: 0, suatb: 0, xemkho: 1, baocao: 0, kiemdinh: 0 }
+};
+function qRow(k, vai, rieng) {
+  const md = !!(QUYEN_MD[vai] || {})[k], co = typeof rieng[k] === 'boolean', on = co ? rieng[k] : md;
+  return `<div class="qrow"><span class="qnm"><b>${esc(tv('q_' + k))}</b><span class="zi">${esc(tz('q_' + k))}</span>
+      <small>${esc(tp('qm_' + k))}</small></span>
+    <span class="qmd ${co ? 'rieng' : ''}">${t(co ? (on ? 'qMo' : 'qKhoa') : 'qTheoVai')}</span>
+    <button type="button" class="qsw${on ? ' on' : ''}" data-act="qToggle" data-k="${k}" aria-pressed="${on}"><i></i>
+      <span class="vhid">${esc(tv('q_' + k))}</span></button></div>`;
+}
+function qHtml(vai, rieng) {
+  const n = Object.keys(rieng).length;
+  return `<div class="sec"><h2>${tv('qSec')}<span class="cnt">${n ? tv('qDemRieng', { n }) : t('qTheoVaiHet')}</span></h2></div>
+    <div class="card pad qbox">${QUYEN_RIENG.map((k) => qRow(k, vai, rieng)).join('')}
+    ${n ? `<div class="btns" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="qReset">${t('qVeMacDinh')}</button></div>` : ''}</div>`;
 }
 async function saveUser(el) {
   const id = el.dataset.id, fe = $('#fErr');
   const p = { id, ten: $('#uTen').value.trim(), vaiTro: $('#uVai').value, pin: $('#uPin').value.trim(), email: $('#uMail').value.trim(), hoatDong: $('#uHD') ? $('#uHD').checked : true,
     maNV: $('#uMaNV').value.trim().toUpperCase(), tenZh: $('#uTenZh').value.trim() };
+  if (!srvOld('quyenrieng')) p.quyen = S.qTam || {};
   if (p.pin && !/^\d{6}$/.test(p.pin)) { fe.innerHTML = t('PIN_6_SO'); fe.hidden = false; return; }
   el.disabled = true;
   try {
@@ -4182,9 +4260,9 @@ async function doPin(el) {
 }
 function logout(expired) {
   closeSheet(); stopScan();
-  S.tk = null; S.me = null; S.base = null; S.V = null; S.stack = [];
+  S.tk = null; S.me = null; S.quyen = null; S.base = null; S.V = null; S.stack = [];
   Object.assign(S.f, { dTab: 'ghi', dKy: '', dCT: '', dYear: 0, q: '', histQ: '', tcUid: '', tcTuan: '', tcThang: '' });
-  store.del('bd_tk'); store.del('bd_me'); store.del('bd_snap');
+  store.del('bd_tk'); store.del('bd_me'); store.del('bd_snap'); store.del('bd_quyen');
   renderLogin(expired ? t('HET_PHIEN') : '');
 }
 
@@ -4221,6 +4299,7 @@ async function doLogin() {
   try {
     const d = await api('login', { maNV, pin: S.pin });
     S.tk = d.token; S.me = d.me; store.set('bd_tk', d.token); store.set('bd_me', d.me);
+    S.quyen = d.quyen || null; if (d.quyen) store.set('bd_quyen', d.quyen); else store.del('bd_quyen');
     store.set('bd_manv', d.me.maNV || maNV);
     const snap = store.get('bd_snap', null);
     if (snap && snap.me && snap.me.id !== d.me.id) store.del('bd_snap');
@@ -5299,7 +5378,7 @@ function verLt(a, b) {
   return false;
 }
 // Mỗi phần cần máy chủ từ bản nào
-const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK'], ['mnkma', '2.32.1', 'srvMissMNK'], ['trucnhieu', '2.33.0', 'srvMissTrucNhieu'], ['khinen', '2.33.0', 'srvMissKhiNen'], ['trucgio', '2.34.0', 'srvMissTrucGio'], ['giahan', '2.36.0', 'srvMissGiaHan'], ['suaxong', '2.36.0', 'srvMissSuaXong'], ['thietbi', '2.37.0', 'srvMissThietBi']];
+const SRV_PHAN = [['dien', '1.3.0', 'srvMissDien'], ['kt', '1.4.0', 'srvMissKT'], ['v2', '2.0.0', 'srvMissV2'], ['cv', '2.4.0', 'srvMissCV'], ['ch', '2.5.1', 'srvMissCh'], ['sc', '2.6.0', 'srvMissSC'], ['maht', '2.7.0', 'srvMissMaHT'], ['scxoa', '2.8.0', 'srvMissSCXoa'], ['saoluu', '2.9.0', 'srvMissSaoLuu'], ['scch', '2.9.1', 'srvMissSCCh'], ['quyen', '2.10.0', 'srvMissQuyen'], ['tc', '2.11.0', 'srvMissTC'], ['tldr', '2.11.0', 'srvMissTLDr'], ['truc', '2.12.0', 'srvMissTruc'], ['khonhac', '2.13.0', 'srvMissKhoNhac'], ['tonat', '2.14.0', 'srvMissTonAT'], ['khopct', '2.15.0', 'srvMissKhoPct'], ['khobo', '2.16.0', 'srvMissKhoBo'], ['cap', '2.17.0', 'srvMissCap'], ['lapphu', '2.18.0', 'srvMissLapPhu'], ['lapmay', '2.19.0', 'srvMissLapMay'], ['wecom', '2.21.0', 'srvMissWeCom'], ['tckhoa', '2.22.0', 'srvMissTcKhoa'], ['kd', '2.23.0', 'srvMissKD'], ['maloi', '2.24.0', 'srvMissML'], ['ngt', '2.29.0', 'srvMissNGT'], ['mnk', '2.32.0', 'srvMissMNK'], ['mnkma', '2.32.1', 'srvMissMNK'], ['trucnhieu', '2.33.0', 'srvMissTrucNhieu'], ['khinen', '2.33.0', 'srvMissKhiNen'], ['trucgio', '2.34.0', 'srvMissTrucGio'], ['giahan', '2.36.0', 'srvMissGiaHan'], ['suaxong', '2.36.0', 'srvMissSuaXong'], ['thietbi', '2.37.0', 'srvMissThietBi'], ['quyenrieng', '2.38.0', 'srvMissQuyenRieng']];
 const srvOld = (k) => !!(S.base && SRV_PHAN.some((x) => (!k || x[0] === k) && verLt(S.base.phienBan, x[1])));
 // k: 'dien' / 'kt' chỉ báo khi phần đó bị ảnh hưởng; bỏ trống: báo mọi phần
 function srvWarn(k) {
@@ -8427,6 +8506,17 @@ function scAnhHtml(arr, g) {
     anhGridHtml(arr.map((d) => ({ data: d })), true, g);
 }
 Object.assign(ACT, {
+  qToggle: (el) => {
+    const k = el.dataset.k, vai = ($('#uVai') || {}).value || 'kythuat';
+    const md = !!(QUYEN_MD[vai] || {})[k], r = S.qTam || (S.qTam = {});
+    const co = typeof r[k] === 'boolean', moi = !(co ? r[k] : md);
+    if (moi === md) delete r[k]; else r[k] = moi;
+    const box = $('#qBox'); if (box) box.innerHTML = qHtml(vai, r);
+  },
+  qReset: () => {
+    S.qTam = {};
+    const box = $('#qBox'); if (box) box.innerHTML = qHtml(($('#uVai') || {}).value || 'kythuat', S.qTam);
+  },
   // Ai đứng tại máy cũng sửa được vị trí — không cần quyền sửa hồ sơ máy
   tbViTri: (el) => {
     const m = S.V.byMa[el.dataset.ma]; if (!m) return;
@@ -13705,6 +13795,8 @@ Object.assign(TX, {
     '服务器尚不支持修改已完成工作的内容。请更新 Code.gs 后重新部署。'],
   srvMissThietBi: ['Máy chủ chưa nhận được thông số thiết bị và vị trí sửa tại chỗ. Cập nhật Code.gs rồi Triển khai lại.',
     '服务器尚不支持设备参数与现场修改位置。请更新 Code.gs 后重新部署。'],
+  srvMissQuyenRieng: ['Máy chủ chưa đặt được quyền xem riêng cho từng tài khoản. Cập nhật Code.gs rồi Triển khai lại.',
+    '服务器尚不支持按账号单独设置查看权限。请更新 Code.gs 后重新部署。'],
   xlMNKTen: ['Máy nén khí', '空压机'], xlMNKLoai: ['Loại', '类型'], xlMNKGio: ['Giờ trên đồng hồ', '表显小时'],
   xlMNKNgay: ['Ngày ghi', '记录日期'], xlMNKTuBD: ['Giờ từ lần bảo dưỡng', '上次保养后小时'],
   xlMNKConLai: ['Còn lại tới hạn', '距到期小时'], xlMNKTT: ['Tình trạng', '状态'],

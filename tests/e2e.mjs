@@ -1889,6 +1889,50 @@ assert.equal(await page.locator('[data-act="go"][data-v="tbNhap"]').count(), 0, 
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
 ok('Bản 2.37: Danh sách là sổ thiết bị hai khối, thông số theo từng loại, vị trí sửa tại chỗ, nhập / xuất Excel mỗi loại một file');
 
+// 25. Bản 2.38: phân quyền xem theo từng tài khoản
+await logout(); await login('NV001', '111111');
+await page.evaluate(() => go('users')); await wait(2000);
+await page.click('.row[data-act="userEdit"]:has-text("Nguyễn Tuấn")'); await wait(900);
+const q25 = await page.evaluate(() => ({
+  sw: document.querySelectorAll('.qsw').length,
+  md: [...document.querySelectorAll('.qmd')].map((e) => e.textContent.trim())
+}));
+assert.equal(q25.sw, 8, 'có đủ tám công tắc quyền');
+assert.ok(q25.md.every((x) => /Theo vai trò/.test(x)), 'chưa đặt riêng thì tất cả theo vai trò');
+await shot('55-phan-quyen');
+// Mở riêng quyền xuất, khoá riêng quyền xem hậu công đoạn
+await page.click('.qsw[data-k="xuattb"]'); await wait(300);
+await page.click('.qsw[data-k="xemhcd"]'); await wait(300);
+assert.deepEqual(await page.evaluate(() => S.qTam), { xuattb: true, xemhcd: false });
+assert.equal(await page.locator('[data-act="qReset"]').count(), 1, 'có nút về mặc định');
+await page.click('[data-act="saveUser"]'); await wait(2400);
+// Kỹ thuật đăng nhập: khối bị khoá không còn trong dữ liệu, nút xuất thì hiện
+await logout(); await login('NV003', '333333');
+await wait(1200);
+const sau25 = await page.evaluate(() => ({
+  q: S.quyen,
+  hcd: S.V.may.filter((m) => khoiCua(m) === 'HCD').length,
+  sx: S.V.may.filter((m) => khoiCua(m) === 'SX').length
+}));
+assert.equal(sau25.q.xemhcd, false, 'máy chủ trả về đúng quyền đã khoá');
+assert.equal(sau25.q.xuattb, true, 'và đúng quyền đã mở riêng');
+assert.equal(sau25.hcd, 0, 'máy hậu công đoạn không rời máy chủ, không chỉ ẩn nút');
+assert.ok(sau25.sx > 0, 'khối còn lại vẫn xem được');
+await page.evaluate(() => tab('list')); await wait(1400);
+assert.equal(await page.locator('.khoibtn').count(), 1, 'chỉ còn một nút khối');
+assert.equal(await page.locator('[data-act="go"][data-v="tbXuat"]').count(), 1, 'mở riêng thì thấy nút Xuất Excel');
+assert.equal(await page.locator('[data-act="go"][data-v="tbNhap"]').count(), 0, 'vẫn không được nhập vì không có quyền sửa hồ sơ');
+await shot('56-ky-thuat-bi-khoa-khoi');
+// Trả lại mặc định để các bước sau không bị ảnh hưởng
+await logout(); await login('NV001', '111111');
+await page.evaluate(() => go('users')); await wait(2000);
+await page.click('.row[data-act="userEdit"]:has-text("Nguyễn Tuấn")'); await wait(900);
+await page.click('[data-act="qReset"]'); await wait(400);
+await page.click('[data-act="saveUser"]'); await wait(2400);
+await logout(); await login('NV003', '333333'); await wait(1200);
+assert.equal(await page.evaluate(() => S.quyen.xemhcd), true, 'về mặc định thì xem lại được cả hai khối');
+ok('Bản 2.38: phân quyền xem theo từng tài khoản, tám mục đè lên mặc định của vai trò, máy chủ lọc thật chứ không chỉ ẩn nút');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

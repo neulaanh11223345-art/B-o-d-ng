@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.37.0';
+var PHIEN_BAN = '2.38.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -33,7 +33,7 @@ var BANG = {
   Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
     'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT', 'KhiNen'],
   LichSu: ['ID', 'Ma', 'TenMay', 'Ngay', 'DenHan', 'NguoiLam', 'GhiChu', 'NguoiXacNhan', 'ThoiGian', 'TrangThai', 'OpId', 'UID', 'Huy', 'ChiTiet'],
-  NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh', 'MaThe', 'BoPhan', 'BoPhanZh', 'ChucVu'],
+  NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh', 'MaThe', 'BoPhan', 'BoPhanZh', 'ChucVu', 'Quyen'],
   TangCa: ['ID', 'UID', 'Ngay', 'Ca', 'Tu', 'Den', 'SoGio', 'LyDo', 'LyDoDich', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat'],
   // Loai: cao (cao áp, nhiều mã OBIS) · ha (tủ tổng hạ áp) · nhanh (công tơ nhánh) · nuoc (đồng hồ nước, m³)
   // Cha: mã công tơ cấp trên (công tơ nhánh nằm sau công tơ nhánh khác thì không cộng lần nữa vào tổng nhánh)
@@ -158,8 +158,25 @@ var QUYEN = {
   nhatky: ['admin', 'quanly'],
   xemhet: ['admin', 'quanly'],      // xem mọi mục; tài khoản khác chỉ Điện/Nước, Sửa chữa, Bảo dưỡng
   giaoviec: ['admin', 'quanly'],    // giao việc, kiểm tra việc xong, việc lặp lại
-  tailieu: ['admin', 'quanly']      // xem, mở, sắp xếp tài liệu; tài khoản khác chỉ thấy ảnh đại diện của máy
+  tailieu: ['admin', 'quanly'],     // xem, mở, sắp xếp tài liệu; tài khoản khác chỉ thấy ảnh đại diện của máy
+  // Tám quyền xem dữ liệu thiết bị. Vai trò đặt mặc định, từng tài khoản bật / tắt đè lên được
+  // (cột Quyen trong trang NguoiDung). Thứ tự ở đây là thứ tự hiện trên màn phân quyền.
+  xemsx: ['admin', 'quanly', 'kythuat'],
+  xemhcd: ['admin', 'quanly', 'kythuat'],
+  tsmay: ['admin', 'quanly', 'kythuat'],
+  xuattb: ['admin', 'quanly'],
+  suatb: ['admin', 'quanly'],
+  xemkho: ['admin', 'quanly', 'kythuat'],
+  baocao: ['admin', 'quanly'],
+  kiemdinh: ['admin', 'quanly']
 };
+// Chỉ tám quyền này mới đặt riêng cho từng người; các quyền khác luôn theo vai trò
+var QUYEN_RIENG = ['xemsx', 'xemhcd', 'tsmay', 'xuattb', 'suatb', 'xemkho', 'baocao', 'kiemdinh'];
+function quyenSach(v) {
+  var o = {}, n = v && typeof v === 'object' ? v : {};
+  QUYEN_RIENG.forEach(function (k) { if (n[k] === true || n[k] === false) o[k] = n[k]; });
+  return o;
+}
 var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'importMachines', 'saveSpot', 'saveLine', 'saveRepair', 'deleteRepair', 'backupNow', 'backupCfg', 'backupRestore', 'archiveRun',
   'saveOT', 'deleteOT', 'saveProfile', 'saveOTCfg',
   'docUpload', 'docLink', 'docDelete', 'docCover', 'docFolder', 'docFolderMap', 'docScan', 'docAssign', 'docCurrent', 'saveGiaDien', 'saveSanLuong', 'saveUser', 'changePin', 'notifySave',
@@ -317,7 +334,7 @@ function dieuHuong(a, p, req) {
     case 'confirm': canQuyen(u, 'xacnhan'); return xacNhan(u, p, s(req.opId));
     case 'undo': return huyXacNhan(u, p);
     case 'saveMachine': canQuyen(u, 'may'); return luuMay(u, p);
-    case 'importMachines': canQuyen(u, 'may'); return nhapThietBi(u, p);
+    case 'importMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return nhapThietBi(u, p);
     case 'saveSpot': canQuyen(u, 'xacnhan'); return luuViTriMay(u, p);
     case 'saveLine': canQuyen(u, 'may'); return luuChuyen(u, p);
     case 'saveLists': canQuyen(u, 'may'); return luuDanhSach(u, p);
@@ -521,6 +538,30 @@ function docJson(v, macDinh) {
   try { var o = JSON.parse(t); return o === null || o === undefined ? macDinh : o; } catch (e) { return macDinh; }
 }
 function dsMay() { return docTho('May').map(mayTuDong).filter(function (m) { return m.ma; }); }
+// Máy mà tài khoản này được xem. Khối nào bị tắt thì máy khối đó không rời máy chủ,
+// và không có quyền xem thông số thì bảng thông số cũng không được gửi đi.
+function mayChoXem(u) {
+  var sx = coQuyen(u, 'xemsx'), hcd = coQuyen(u, 'xemhcd'), ts = coQuyen(u, 'tsmay');
+  return dsMay().filter(function (m) {
+    var k = khoiCuaMay(m);
+    return k === 'SX' ? sx : hcd;
+  }).map(function (m) {
+    var o = sachMay(m);
+    if (!ts) o.thongSo = [];
+    return o;
+  });
+}
+// Máy cũ chưa khai khối thì đoán theo tên nhóm, để việc phân quyền không bỏ sót máy nào
+var KHOI_DOAN_SX = /chuy[eề]n|d[aâ]y chuy|đ[oó]ng g[oó]i|in phun|keo|d[aá]n th[uù]ng|kim lo[aạ]i|mi[eệ]ng t[uú]i|生产线|包装|喷印|胶机|封箱|封口|金属/i;
+// Quạt gió, hút bụi… tuy gắn theo chuyền nhưng là hậu công đoạn, nên phải so khối này trước
+var KHOI_DOAN_HCD = /qu[aạ]t|h[uú]t b[uụ]i|đ[oó]ng bao|[eé]p ki[eệ]n|n[eé]n kh[ií]|kh[ií] n[eé]n|s[aấ]y kh[ií]|b[ìi]nh ch[uứ]a|đi[eề]u h[oò]a|tr[aạ]m đi[eệ]n|bi[eế]n [aá]p|c[aá]p đi[eệ]n|b[oơ]m|pccc|b[aă]m|ph[eế]|th[oổ]i b[uụ]i|đi[eệ]n|风机|吸尘|打包|空压|干燥|储气|空调|变电|变压|电缆|水泵|消防|废料|风淋|电力/i;
+function khoiCuaMay(m) {
+  if (m.khoi === 'SX' || m.khoi === 'HCD') return m.khoi;
+  var n = (m.nhom || '') + ' ' + (m.ten || '');
+  if (KHOI_DOAN_HCD.test(n)) return 'HCD';
+  if (KHOI_DOAN_SX.test(n)) return 'SX';
+  return m.chuyen ? 'SX' : 'HCD';
+}
 function timMay(ma) { ma = s(ma).toUpperCase(); return dsMay().filter(function (m) { return m.ma === ma; })[0] || null; }
 function sachMay(m) {
   return { ma: m.ma, ten: m.ten, tenPhu: m.tenPhu, nhom: m.nhom, viTri: m.viTri, chuKy: m.chuKy,
@@ -634,11 +675,13 @@ function ndTuDong(r, i) {
   var id = s(r[0]);
   return { id: id, ten: s(r[1]), vaiTro: s(r[2]), pinHash: s(r[3]), email: s(r[4]),
     hoatDong: hd(r[5]), ngayTao: tgStr(r[6]), maNV: maNVHopLe(r[7]) || id.toUpperCase(), tenZh: s(r[8]),
-    maThe: s(r[9]), boPhan: s(r[10]), boPhanZh: s(r[11]), chucVu: s(r[12]), _r: i + 2 };
+    maThe: s(r[9]), boPhan: s(r[10]), boPhanZh: s(r[11]), chucVu: s(r[12]),
+    quyen: quyenSach(docJson(r[13], {})), _r: i + 2 };
 }
 function ndThanhDong(x) {
   return [x.id, anToan(x.ten), x.vaiTro, x.pinHash, x.email, x.hoatDong ? 1 : 0, x.ngayTao, x.maNV || '', anToan(x.tenZh || ''),
-    anToan(x.maThe || ''), anToan(x.boPhan || ''), anToan(x.boPhanZh || ''), anToan(x.chucVu || '')];
+    anToan(x.maThe || ''), anToan(x.boPhan || ''), anToan(x.boPhanZh || ''), anToan(x.chucVu || ''),
+    x.quyen && Object.keys(x.quyen).length ? JSON.stringify(x.quyen) : ''];
 }
 // Thông tin in trên đơn tăng ca
 function hoSoTC(x) { return { maThe: x.maThe || '', boPhan: x.boPhan || '', boPhanZh: x.boPhanZh || '', chucVu: x.chucVu || '' }; }
@@ -648,7 +691,13 @@ function congKhai(u) {
 }
 function congKhaiAdmin(u) {
   return { id: u.id, ten: u.ten, vaiTro: u.vaiTro, email: u.email, hoatDong: u.hoatDong, ngayTao: u.ngayTao, maNV: u.maNV, tenZh: u.tenZh || '',
-    maThe: u.maThe || '', boPhan: u.boPhan || '', boPhanZh: u.boPhanZh || '', chucVu: u.chucVu || '' };
+    maThe: u.maThe || '', boPhan: u.boPhan || '', boPhanZh: u.boPhanZh || '', chucVu: u.chucVu || '', quyen: u.quyen || {} };
+}
+// Quyền thực tế của tài khoản đang đăng nhập, để app ẩn đúng những mục không được xem
+function quyenCua(u) {
+  var o = {};
+  QUYEN_RIENG.forEach(function (k) { o[k] = coQuyen(u, k); });
+  return o;
 }
 
 // ===================== Đăng nhập =====================
@@ -694,9 +743,14 @@ function dangNhap(p, device) {
     throw loi('PIN_SAI', 'Mã nhân viên hoặc PIN không đúng · 员工编号或PIN错误');
   }
   cache.remove(kMay); if (kNV) cache.remove(kNV);
-  return { token: taoToken(u), me: congKhai(u) };
+  return { token: taoToken(u), me: congKhai(u), quyen: quyenCua(u) };
 }
-function coQuyen(u, q) { return (QUYEN[q] || []).indexOf(u.vaiTro) >= 0; }
+function coQuyen(u, q) {
+  // Quyền riêng của tài khoản đè lên mặc định của vai trò; không khai thì theo vai trò
+  var r = u && u.quyen;
+  if (r && QUYEN_RIENG.indexOf(q) >= 0 && (r[q] === true || r[q] === false)) return r[q];
+  return (QUYEN[q] || []).indexOf(u.vaiTro) >= 0;
+}
 function canQuyen(u, q) { if (!coQuyen(u, q)) throw loi('KHONG_QUYEN', 'Không có quyền · 无权限'); }
 
 // ===================== Dữ liệu =====================
@@ -832,7 +886,7 @@ function layDuLieu(u) {
   return {
     homNay: homNay,
     thoiGian: thoiGianStr(),
-    may: dsMay().map(sachMay),
+    may: mayChoXem(u),
     chuyen: dsChuyen().map(sachCh),
     lichSu: docLichSu().filter(function (x) { return x.ngay >= tu; }).map(sachLS),
     nguoiDung: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) { return x.ten; }),
@@ -868,6 +922,7 @@ function layDuLieu(u) {
     gioChay: docGioChay().filter(function (x) { return x.ngayGhi >= tu; }).map(sachGC),
     lichMNK: docLichMNK().filter(function (x) { return x.tuNgay >= tu; }).map(sachLMNK),
     me: congKhai(u),
+    quyen: quyenCua(u),
     phienBan: PHIEN_BAN
   };
 }
@@ -2833,7 +2888,7 @@ function nhapThietBi(u, p) {
   if (them.length) themNhieu("May", them.map(mayThanhDong));
   sua.forEach(function (m) { suaDong('May', m._r, mayThanhDong(m)); });
   ghiNhatKy(u, 'nhap', 'May', '', {}, { them: them.length, capNhat: sua.length }, 'Nhập thiết bị từ file · 从文件导入设备');
-  return { them: them.length, capNhat: sua.length, loi: loi1, may: dsMay().map(sachMay) };
+  return { them: them.length, capNhat: sua.length, loi: loi1, may: mayChoXem(u) };
 }
 
 // ===================== Mục kiểm tra, linh kiện của máy =====================
@@ -3402,6 +3457,7 @@ function luuNguoiDung(u, p) {
   if (p.boPhan !== undefined) x.boPhan = catChu(p.boPhan, 60);
   if (p.boPhanZh !== undefined) x.boPhanZh = catChu(p.boPhanZh, 60);
   if (p.chucVu !== undefined) x.chucVu = catChu(p.chucVu, 60);
+  if (p.quyen !== undefined) x.quyen = quyenSach(p.quyen);
   if (moi) themDong('NguoiDung', ndThanhDong(x)); else suaDong('NguoiDung', x._r, ndThanhDong(x));
   return { user: congKhaiAdmin(x) };
 }

@@ -2138,6 +2138,59 @@ test('lịch trực: mỗi lượt một khung giờ riêng, Chủ nhật giờ 
   assert.equal(sau[0].den, '19:00');
 });
 
+test('phân quyền: đặt riêng cho từng tài khoản, đè lên mặc định của vai trò', () => {
+  const b = setup();
+  const nv = ok(b.call('users', {}, b.ad)).users;
+  const kt3 = nv.find((x) => x.vaiTro === 'kythuat');
+  assert.deepEqual(kt3.quyen, {}, 'chưa đặt riêng thì rỗng, chạy theo vai trò');
+
+  // Mặc định của kỹ thuật: xem được hai khối, không xuất được bảng tổng hợp
+  const q0 = ok(b.call('data', {}, b.kt)).quyen;
+  assert.equal(q0.xemsx, true);
+  assert.equal(q0.xemhcd, true);
+  assert.equal(q0.xuattb, false);
+  assert.equal(q0.baocao, false);
+
+  // Mở riêng quyền xuất, khoá riêng quyền xem hậu công đoạn
+  ok(b.call('saveUser', { id: kt3.id, ten: kt3.ten, vaiTro: 'kythuat', maNV: kt3.maNV,
+    quyen: { xuattb: true, xemhcd: false, batBa: true } }, b.ad));
+  const sau = ok(b.call('users', {}, b.ad)).users.find((x) => x.id === kt3.id);
+  assert.deepEqual(sau.quyen, { xuattb: true, xemhcd: false }, 'chỉ nhận 8 khoá đã khai, bỏ khoá lạ');
+
+  const q1 = ok(b.call('data', {}, b.kt)).quyen;
+  assert.equal(q1.xuattb, true, 'mở riêng thì được xuất dù vai trò không cho');
+  assert.equal(q1.xemhcd, false, 'khoá riêng thì không xem được dù vai trò cho');
+  assert.equal(q1.xemsx, true, 'mục không đặt riêng vẫn theo vai trò');
+
+  // Khoá khối nào thì máy khối đó không rời máy chủ, chứ không phải chỉ ẩn nút
+  const dsKT = ok(b.call('data', {}, b.kt)).may;
+  const dsQL = ok(b.call('data', {}, b.ql)).may;
+  assert.ok(dsKT.length < dsQL.length, 'kỹ thuật thấy ít máy hơn: ' + dsKT.length + ' < ' + dsQL.length);
+  assert.ok(dsKT.every((m) => m.nhom !== 'Máy hút bụi · 吸尘器'), 'không còn máy hậu công đoạn trong dữ liệu gửi về');
+  assert.ok(dsQL.some((m) => m.nhom === 'Máy hút bụi · 吸尘器'), 'quản lý vẫn thấy đủ');
+
+  // Khoá quyền xem thông số thì bảng thông số cũng không được gửi đi
+  const m0 = dsQL.find((m) => m.nhom === 'Máy in phun · 喷印机');
+  ok(b.call('importMachines', { rows: [{ ma: m0.ma, ten: m0.ten, khoi: 'SX', nhom: m0.nhom,
+    chuKy: m0.chuKy, thongSo: [['Model', 'MERDLIN D-CE']] }] }, b.ql));
+  assert.deepEqual(ok(b.call('data', {}, b.ql)).may.find((m) => m.ma === m0.ma).thongSo,
+    [['Model', 'MERDLIN D-CE']], 'quản lý xem được thông số');
+  ok(b.call('saveUser', { id: kt3.id, ten: kt3.ten, vaiTro: 'kythuat', maNV: kt3.maNV,
+    quyen: { tsmay: false } }, b.ad));
+  assert.deepEqual(ok(b.call('data', {}, b.kt)).may.find((m) => m.ma === m0.ma).thongSo,
+    [], 'khoá quyền thì thông số không rời máy chủ');
+
+  // Về đúng mặc định của vai trò
+  ok(b.call('saveUser', { id: kt3.id, ten: kt3.ten, vaiTro: 'kythuat', maNV: kt3.maNV, quyen: {} }, b.ad));
+  const q2 = ok(b.call('data', {}, b.kt)).quyen;
+  assert.equal(q2.xuattb, false);
+  assert.equal(q2.xemhcd, true);
+  assert.equal(q2.tsmay, true);
+
+  // Chỉ Quản trị đặt được quyền
+  err(b.call('saveUser', { id: kt3.id, ten: kt3.ten, vaiTro: 'kythuat', quyen: { xuattb: true } }, b.ql), 'KHONG_QUYEN');
+});
+
 test('thiết bị: nhập từ file theo loại, khớp mã cũ thì cập nhật chứ không tạo trùng', () => {
   const b = setup();
   const truoc = ok(b.call('data', {}, b.ql)).may.length;
