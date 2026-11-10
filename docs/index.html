@@ -208,6 +208,7 @@ textarea.inp{min-height:76px;resize:vertical}
 .chip.on .zi{color:#DCE6FA}
 .hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .hscroll::-webkit-scrollbar{display:none}
+@media (min-width:1024px){.hscroll{flex-wrap:wrap;overflow-x:visible;padding-bottom:0}}
 .searchbox{position:relative}
 .searchbox svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink3)}
 .searchbox .inp{padding-left:40px}
@@ -2398,12 +2399,12 @@ Object.assign(TX, {
 function mRow(m, st, withOk, xn) {
   // Máy chỉ ghi sổ không có hạn bảo dưỡng: thay dòng "Hạn … · N ngày" bằng nhóm, chuyền, vị trí
   const bd = m.chuKy > 0;
-  const phu = bd ? `${t('due')} ${fmtDM(m.hanKeTiep)} · ${t('days', { n: m.chuKy })}`
-    : [m.nhom, m.chuyen ? mh(m.chuyen) : '', m.viTri].filter(Boolean).join(' · ');
+  const phu = bd ? `${t('due')} ${esc(fmtDM(m.hanKeTiep))} · ${t('days', { n: m.chuKy })}`
+    : [m.nhom, m.chuyen ? mh(m.chuyen) : '', m.viTri].filter(Boolean).map(esc).join(' · ');
   const kt = ghiChuKT(m);
   return `<div class="row" data-act="may" data-ma="${esc(m.ma)}"${xn ? ' data-xn="1"' : ''} role="button" tabindex="0">
     <div class="main"><div class="nm">${esc(m.ten)}</div>
-      <div class="sub"><span class="code">${esc(mh(m.ma))}</span>${phu ? ' · ' + esc(phu) : ''}</div>
+      <div class="sub"><span class="code">${esc(mh(m.ma))}</span>${phu ? ' · ' + phu : ''}</div>
       ${kt ? `<div class="sub warnx">${esc(kt)}</div>` : ''}</div>
     <div class="end">${bd ? pill(st) : ''}${withOk && bd && can('confirm') && m.hoatDong ? `<button class="okbtn" data-act="xn" data-ma="${esc(m.ma)}" aria-label="${esc(tp('confirmDone'))}">${IC.check}</button>` : ''}</div></div>`;
 }
@@ -3854,7 +3855,7 @@ VIEWS.tbNhap = {
     o += `<div class="kstrip" style="margin-top:12px">${kstHtml('k-green', 'tbNhapThem', { n: them.length }, them.length, '')}${kstHtml('k-blue', 'tbNhapSua', { n: sua.length }, sua.length, '')}</div>`;
     o += `<div class="card" style="margin-top:12px"><div class="list">${p.ds.slice(0, 60).map((x) => `<div class="row"><div class="main">
         <div class="nm">${esc(x.ten)}${x.tenPhu ? `<span class="zi">${esc(x.tenPhu)}</span>` : ''}</div>
-        <div class="sub"><span class="mono">${esc(x.cu ? x.cu.ma : t('tbMaMoi'))}</span> · ${esc(x.nhom || '—')}${x.chuyen ? ' · ' + esc(x.chuyen) : ''}${x.thongSo.length ? ' · ' + x.thongSo.length + ' thông số' : ''}${(x.chiTiet || []).length ? ' · ' + tv('tbCtN', { n: x.chiTiet.length }) : ''}</div></div>
+        <div class="sub"><span class="mono">${x.cu ? esc(x.cu.ma) : t('tbMaMoi')}</span> · ${esc(x.nhom || '—')}${x.chuyen ? ' · ' + esc(x.chuyen) : ''}${x.thongSo.length ? ' · ' + x.thongSo.length + ' thông số' : ''}${(x.chiTiet || []).length ? ' · ' + tv('tbCtN', { n: x.chiTiet.length }) : ''}</div></div>
         <span class="pill ${x.cu ? 'p-nay' : 'p-ok'}">${t(x.cu ? 'tbSua1' : 'tbThem1')}</span></div>`).join('')}</div>
       ${p.ds.length > 60 ? `<div class="pad help">… và ${p.ds.length - 60} dòng nữa</div>` : ''}</div>`;
     o += `<div class="btns" style="margin-top:14px"><button class="btn bigbtn" data-act="tbNhapGo">${IC.check} ${t('tbNhapGo')}</button></div>`;
