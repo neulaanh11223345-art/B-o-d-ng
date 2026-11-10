@@ -472,16 +472,27 @@ ok('Công việc: ghi và giao, giao nhiều việc, nhân viên làm xong, Qu�
 // 11. Máy tính: sidebar, bảng có tiêu đề, phân trang
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.click('.side .nav[data-v="list"]'); await wait(600);
-// Danh sách nay là sổ thiết bị: hai khối, không còn chip trạng thái bảo dưỡng
+// Danh sách nay là sổ thiết bị xếp thành cây: khối → chuyền / nhóm → máy
 assert.equal(await page.locator('.stchips').count(), 0, 'Danh sách không còn chip Quá hạn / Hôm nay / Sắp đến');
 assert.equal(await page.locator('.khoibtn').count(), 2, 'có hai nút khối thiết bị');
+assert.equal(await page.locator('.hscroll .chip[data-act="listGrp"]').count(), 0, 'không còn dãy chip nhóm cuộn ngang');
+// Khối sản xuất: lưới chuyền; khối phụ trợ: các nhóm, bấm mới xổ máy
+assert.ok(await page.locator('.chgrid').count() > 0, 'khối sản xuất hiện lưới chuyền');
 await page.click('.khoibtn[data-k="HCD"]'); await wait(700);
-assert.ok(await page.isVisible('table.dt thead'), 'bảng sổ thiết bị trên máy tính');
-assert.match(await text('.pager'), /kết quả/);
-const cot11 = await page.evaluate(() => [...document.querySelectorAll('#listBody table thead th')].map((e) => e.textContent));
+assert.equal(await page.locator('.chgrid').count(), 0, 'chọn khối phụ trợ thì không còn lưới chuyền');
+const nhomPT = page.locator('#listBody .gap .gaph');
+assert.ok(await nhomPT.count() >= 3, 'khối phụ trợ xổ ra các nhóm thiết bị');
+await nhomPT.first().click(); await wait(700);
+assert.ok(await page.isVisible('#listBody .gap.mo table.dt thead'), 'mở một nhóm thì ra bảng sổ thiết bị');
+const cot11 = await page.evaluate(() => [...document.querySelectorAll('#listBody .gap.mo table thead th')].map((e) => e.textContent));
 assert.ok(!cot11.some((c) => /Chu kỳ|Hạn kế tiếp|Xác nhận/.test(c)),
   'sổ thiết bị không còn cột bảo dưỡng: ' + JSON.stringify(cot11));
 assert.ok(cot11.some((c) => /Vị trí/.test(c)) && cot11.some((c) => /Thông số/.test(c)), 'có cột Vị trí và Thông số');
+// Gõ tìm thì bỏ cây, ra thẳng bảng phẳng có phân trang
+await page.fill('#listQ', 'máy'); await wait(700);
+assert.equal(await page.locator('#listBody .gap').count(), 0, 'đang tìm thì không còn cây nhóm');
+assert.match(await text('.pager'), /kết quả/);
+await page.fill('#listQ', ''); await wait(500);
 await shot('07-desktop-list');
 // Trạng thái bảo dưỡng chuyển hẳn sang tab Bảo dưỡng, bấm ô đếm là hiện ngay danh sách
 await page.evaluate(() => { S.f.khoi = ''; S.f.grp = ''; tab('cal'); }); await wait(900);

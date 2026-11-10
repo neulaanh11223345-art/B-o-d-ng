@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.39.1';
+var PHIEN_BAN = '2.40.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -503,9 +503,9 @@ function suaDong(ten, r, arr) {
 }
 
 // ----- Máy -----
-// Khối thiết bị: SX = thiết bị chuyền sản xuất, HCD = thiết bị hậu công đoạn.
+// Khối thiết bị: SX = thiết bị sản xuất (nằm trong các chuyền), HCD = thiết bị phụ trợ.
 // Để trống với máy cũ chưa phân khối; app tự đoán theo nhóm khi hiển thị.
-var KHOI_MAY = { SX: 'Thiết bị chuyền sản xuất · 生产线设备', HCD: 'Thiết bị hậu công đoạn · 后道设备' };
+var KHOI_MAY = { SX: 'Thiết bị sản xuất · 生产设备', HCD: 'Thiết bị phụ trợ · 辅助设备' };
 function khoiHopLe(v) { var k = s(v).toUpperCase(); return KHOI_MAY[k] ? k : ''; }
 // So tên bỏ dấu, bỏ khoảng trắng thừa — để nhận ra chuyền bị nhập lại thành máy dù gõ khác nhau
 function chuanTen(v) {
@@ -577,7 +577,7 @@ function mayChoXem(u) {
 }
 // Máy cũ chưa khai khối thì đoán theo tên nhóm, để việc phân quyền không bỏ sót máy nào
 var KHOI_DOAN_SX = /chuy[eề]n|d[aâ]y chuy|đ[oó]ng g[oó]i|in phun|keo|d[aá]n th[uù]ng|kim lo[aạ]i|mi[eệ]ng t[uú]i|生产线|包装|喷印|胶机|封箱|封口|金属/i;
-// Quạt gió, hút bụi… tuy gắn theo chuyền nhưng là hậu công đoạn, nên phải so khối này trước
+// Quạt gió, hút bụi… tuy gắn theo chuyền nhưng là thiết bị phụ trợ, nên phải so khối này trước
 var KHOI_DOAN_HCD = /qu[aạ]t|h[uú]t b[uụ]i|đ[oó]ng bao|[eé]p ki[eệ]n|n[eé]n kh[ií]|kh[ií] n[eé]n|s[aấ]y kh[ií]|b[ìi]nh ch[uứ]a|đi[eề]u h[oò]a|tr[aạ]m đi[eệ]n|bi[eế]n [aá]p|c[aá]p đi[eệ]n|b[oơ]m|pccc|b[aă]m|ph[eế]|th[oổ]i b[uụ]i|đi[eệ]n|风机|吸尘|打包|空压|干燥|储气|空调|变电|变压|电缆|水泵|消防|废料|风淋|电力/i;
 function khoiCuaMay(m) {
   if (m.khoi === 'SX' || m.khoi === 'HCD') return m.khoi;

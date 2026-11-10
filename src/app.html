@@ -1046,6 +1046,8 @@ table.mtab tr.child th.nmc button{font-weight:500;padding-left:10px}
 table.ctbang{font-size:13px}
 table.ctbang td,table.ctbang th{white-space:nowrap}
 table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-width:120px}
+.nhomh{display:flex;align-items:center;gap:8px;margin:14px 2px 6px;font-size:13.5px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.3px}
+.nhomh .nhomn{font-weight:600;color:var(--ink3);background:var(--line2,#EDF1F7);border-radius:999px;padding:1px 8px;font-size:12.5px;letter-spacing:0}
 .chip.warnchip{border-color:var(--orange);color:var(--orange);background:var(--orange-bg)}
 .chip.warnchip.on{background:var(--orange);border-color:var(--orange);color:#fff}
 .kst.on{border:2px solid currentColor}
@@ -3396,7 +3398,15 @@ VIEWS.chuyen = {
     let o = `<div class="card pad chhead"><span class="code">${esc(mh(c.ma))}</span>${c.maHT ? ` <span class="code">${esc(c.ma)}</span>` : ''}${c.maTaiSan && c.maTaiSan !== c.ma ? ` <span class="code">${esc(c.maTaiSan)}</span>` : ''}
       <h1 class="cvh">${esc(c.ten || c.ma)}${c.tenZh ? `<span class="zh2" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}</h1>
       <div class="sub">${esc(c.viTri || '')}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}${s.qua ? ` · <b class="warnx">${tv('chQua', { n: s.qua })}</b>` : ''}</div></div>`;
-    o += sec('chMay', a.length) + (a.length ? dsMayRows(a, today) : `<div class="card empty">${t('chChuaMay')}</div>`);
+    o += sec('chMay', a.length);
+    if (!a.length) o += `<div class="card empty">${t('chChuaMay')}</div>`;
+    else {
+      // Trong chuyền còn một tầng nữa: máy đóng gói, máy in phun, tủ điện… mỗi nhóm một mục
+      const gs = byGroup(a);
+      o += gs.length > 1 && a.length >= 4
+        ? gs.map(([g, arr]) => `<div class="nhomh">${esc(grpLabel(g))}<span class="nhomn">${arr.length}</span></div>` + dsMayRows(arr, today)).join('')
+        : dsMayRows(a, today);
+    }
     if (can('may')) o += `<div class="btns" style="margin:10px 0 4px"><button class="btn ghost sm" data-act="chThemMay" data-ma="${esc(c.ma)}">${IC.plus} ${t('chThemMay')}</button><button class="btn ghost sm" data-act="chSua" data-ma="${esc(c.ma)}">${IC.edit} ${t('chSua')}</button><button class="btn ghost sm" data-act="labelsOne" data-ma="${esc(c.ma)}">${IC.qr} ${t('printQR')}</button></div>`;
     const tls = tlCua(c.ma);
     o += sec('tlSec', tls.length) + gap('tl:' + c.ma, tls.length ? esc(tls.slice(0, 3).map((x) => x.ten).join(' · ')) : t('tlChuaCo'), tls.length, '', () => tlSection(c.ma));
@@ -3532,7 +3542,9 @@ Object.assign(TX, {
   stAll: ['Mọi trạng thái', '全部状态'], tongN: ['{n} kết quả', '共{n}条'], trang: ['Trang', '页'],
   thCode: ['Mã', '编号'], thTen: ['Thiết bị', '设备'], thNhom: ['Nhóm', '类别'], thViTri: ['Vị trí', '位置'], thChuKy: ['Chu kỳ', '周期'],
   thGanNhat: ['Lần gần nhất', '上次'], thHan: ['Hạn kế tiếp', '下次到期'], thTT: ['Trạng thái', '状态'], segLich: ['Bảo dưỡng', '保养'],
-  khoi_SX: ['Thiết bị chuyền sản xuất', '生产线设备'], khoi_HCD: ['Thiết bị hậu công đoạn', '后道设备'],
+  khoi_SX: ['Thiết bị sản xuất', '生产设备'], khoi_HCD: ['Thiết bị phụ trợ', '辅助设备'],
+  khoiSXKhac: ['Chưa gán chuyền', '未指定产线'],
+  khoiTrong: ['Chưa có thiết bị nào trong khối này', '该大类暂无设备'],
   tsChinh: ['Thông số', '参数'], dangDung: ['Đang dùng', '在使用'], tsKhong: ['Chưa khai thông số', '未填写参数'],
   quayLaiLich: ['Về lịch bảo dưỡng', '返回保养日历'],
   khoiTB: ['Khối thiết bị', '设备大类'], tbKhongBD: ['Không theo chu kỳ (chỉ ghi sổ)', '不定期（仅登记）'],
@@ -3561,7 +3573,7 @@ Object.assign(TX, {
   qDemRieng: ['{n} mục đặt riêng', '单独设置{n}项'], qVeMacDinh: ['Về đúng mặc định của vai trò', '恢复角色默认'],
   q_xemsx: ['Xem thiết bị chuyền sản xuất', '生产线设备'],
   qm_xemsx: ['Dây chuyền, đóng gói, in phun, keo, dán thùng', '生产线、包装、喷印、胶机、封箱'],
-  q_xemhcd: ['Xem thiết bị hậu công đoạn', '后道设备'],
+  q_xemhcd: ['Xem thiết bị phụ trợ', '辅助设备'],
   qm_xemhcd: ['Quạt gió, hút bụi, khí nén, trạm điện, bơm', '风机、吸尘、空压、变电站、水泵'],
   q_tsmay: ['Xem thông số kỹ thuật', '技术参数'],
   qm_tsmay: ['kW, A, rpm, lưu lượng, model động cơ', '功率、电流、转速、风量、电机型号'],
@@ -3618,7 +3630,7 @@ const ST_CHIP = [['', 'stAll'], ['qua', 'st_qua'], ['nay', 'st_nay'], ['sap', 's
 // ---------- Khối thiết bị: gom các nhóm rời thành hai khối cho dễ tìm ----------
 const KHOI_DS = ['SX', 'HCD'];
 // Máy nhập trước khi có cột Khối thì đoán theo tên nhóm, để danh sách không có ô trống
-// Quạt gió, hút bụi… tuy gắn theo chuyền nhưng là hậu công đoạn, nên so khối này trước
+// Quạt gió, hút bụi… tuy gắn theo chuyền nhưng là thiết bị phụ trợ, nên so khối này trước
 const KHOI_DOAN = [
   [/qu[aạ]t|h[uú]t b[uụ]i|đ[oó]ng bao|[eé]p ki[eệ]n|n[eé]n kh[ií]|kh[ií] n[eé]n|s[aấ]y kh[ií]|b[ìi]nh ch[uứ]a|đi[eề]u h[oò]a|tr[aạ]m đi[eệ]n|bi[eế]n [aá]p|c[aá]p đi[eệ]n|b[oơ]m|pccc|b[aă]m|ph[eế]|th[oổ]i b[uụ]i|đi[eệ]n|风机|吸尘|打包|空压|干燥|储气|空调|变电|变压|电缆|水泵|消防|废料|风淋|电力/i, 'HCD'],
   [/chuy[eề]n|d[aâ]y chuy|đ[oó]ng g[oó]i|in phun|keo|d[aá]n th[uù]ng|kim lo[aạ]i|mi[eệ]ng t[uú]i|生产线|包装|喷印|胶机|封箱|封口|金属/i, 'SX']
@@ -3629,28 +3641,20 @@ function khoiCua(m) {
   for (const [re, k] of KHOI_DOAN) if (re.test(n)) return k;
   return m.chuyen ? 'SX' : 'HCD';
 }
-const khoiNhoms = (k) => {
-  const seen = [];
-  activeMay().forEach((m) => { if (khoiCua(m) === k && seen.indexOf(m.nhom || '') < 0) seen.push(m.nhom || ''); });
-  return seen.sort((a, b) => a.localeCompare(b, 'vi'));
-};
-// Hai nút khối + chip nhóm con của khối đang chọn
-function khoiChips(f, actK, actG) {
+// Hai nút khối. Nhóm con không còn làm chip nữa — nhóm đã là một tầng trong cây bên dưới.
+function khoiChips(f, actK) {
   const dem = { SX: 0, HCD: 0 };
   activeMay().forEach((m) => { dem[khoiCua(m)]++; });
   const nut = KHOI_DS.filter((k) => can(k === 'SX' ? 'xemsx' : 'xemhcd')).map((k) => `<button class="khoibtn${f.khoi === k ? ' on' : ''}" data-act="${actK}" data-k="${k}">
     <span><b>${esc(tv('khoi_' + k))}</b><span class="zi">${esc(tz('khoi_' + k))}</span></span><span class="khoin">${dem[k]}</span></button>`).join('');
-  const gs = f.khoi ? khoiNhoms(f.khoi) : [];
-  const chip = !f.khoi ? '' : `<div class="hscroll" style="margin:10px 0 12px"><button class="chip${!f.grp ? ' on' : ''}" data-act="${actG}" data-g="">${t('all')}</button>${
-    gs.map((g) => `<button class="chip${f.grp === g ? ' on' : ''}" data-act="${actG}" data-g="${esc(g)}">${esc(g || '—')} <span style="opacity:.72">${activeMay().filter((m) => khoiCua(m) === f.khoi && (m.nhom || '') === g).length}</span></button>`).join('')}</div>`;
-  return `<div class="khoirow">${nut}</div>${chip}`;
+  return `<div class="khoirow">${nut}</div>`;
 }
 VIEWS.list = {
   html() {
     const f = S.f;
     const stopped = S.V.may.filter((m) => !m.hoatDong);
     let o = listSeg('list') + `<div class="tools"><div class="searchbox">${IC.search}<input class="inp" id="listQ" type="search" value="${esc(f.q)}" placeholder="${esc(tp('search'))}" autocomplete="off"></div></div>
-      <div style="margin-top:10px">${khoiChips(f, 'listKhoi', 'listGrp')}</div>`;
+      <div style="margin-top:10px">${khoiChips(f, 'listKhoi')}</div>`;
     const trung = mayTrungChuyen(), ktra = mayCanKiemTra();
     if ((stopped.length || trung.length || ktra.length) && can('may')) {
       o += `<div class="hscroll" style="margin:-4px 0 12px">${stopped.length ? `<button class="chip${f.grp === '__stop' ? ' on' : ''}" data-act="listGrp" data-g="__stop">${t('stopped')} (${stopped.length})</button>` : ''}${
@@ -3678,31 +3682,54 @@ VIEWS.list = {
     $('#listQ').addEventListener('input', (e) => { S.f.q = e.target.value; S.f.pg = Object.assign(S.f.pg || {}, { may: 0 }); $('#listBody').innerHTML = listBody(); });
   }
 };
+// Sổ thiết bị xếp thành cây:
+//   Thiết bị sản xuất  → từng chuyền → (trong chuyền) từng nhóm máy → từng máy
+//   Thiết bị phụ trợ   → từng nhóm (cáp điện, quạt gió, khí nén…) → từng máy
+// Gõ tìm hoặc bấm chip cảnh báo thì bỏ cây, ra thẳng danh sách phẳng.
 function listBody() {
   const f = S.f, today = TODAY();
-  let list = f.grp === '__stop' ? S.V.may.filter((m) => !m.hoatDong)
+  const dac = f.grp === '__stop' ? S.V.may.filter((m) => !m.hoatDong)
     : f.grp === '__trung' ? mayTrungChuyen()
-      : f.grp === '__ktra' ? mayCanKiemTra()
-      : activeMay().filter((m) => (!f.khoi || khoiCua(m) === f.khoi) && (!f.grp || m.nhom === f.grp));
-  list = findMay(f.q, list);
-  if (!list.length) return `<div class="card empty">${t('notFound')}</div>`;
-  const gon = !f.q && !f.grp && !f.khoi;
-  if (isWide() && gon) {
-    const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
-    return chSecHtml(today) + (khac.length ? sec('chKhac', khac.length) + byGroup(khac).map(([g, a]) =>
-      gap('lg:' + g, esc(grpLabel(g)), String(a.length), '', () => mayBangSo(a))).join('') : '');
+      : f.grp === '__ktra' ? mayCanKiemTra() : null;
+  if (dac || f.q) {
+    const list = findMay(f.q, dac || activeMay().filter((m) => !f.khoi || khoiCua(m) === f.khoi));
+    if (!list.length) return `<div class="card empty">${t('notFound')}</div>`;
+    if (!isWide()) return soMayHtml(list);
+    const { p } = pageOf('may', list.length);
+    return mayBangSo(list.slice().sort(sapMay).slice(p * PER_PAGE, (p + 1) * PER_PAGE)) + pager('may', list.length);
   }
-  if (isWide()) {
-    const { p } = pageOf('may', list.length), rows = byGroup(list).flatMap(([, a]) => a).slice(p * PER_PAGE, (p + 1) * PER_PAGE);
-    return mayBangSo(rows) + pager('may', list.length);
+  const all = activeMay();
+  let o = '';
+  if ((!f.khoi || f.khoi === 'SX') && can('xemsx')) o += khoiSXHtml(all.filter((m) => khoiCua(m) === 'SX'), today);
+  if ((!f.khoi || f.khoi === 'HCD') && can('xemhcd')) o += khoiPTHtml(all.filter((m) => khoiCua(m) === 'HCD'));
+  return o || `<div class="card empty">${t('notFound')}</div>`;
+}
+// Máy ở tầng cuối: màn rộng ra bảng sổ thiết bị, điện thoại ra từng dòng
+function soMayHtml(a) {
+  const ds = a.slice().sort(sapMay);
+  return isWide() ? mayBangSo(ds) : `<div class="list">${ds.map((m) => mRow(m, stOf(m), false)).join('')}</div>`;
+}
+// Một tầng nhóm: mỗi nhóm một dòng gập, bấm mới xổ máy ra
+function nhomCayHtml(list, pre) {
+  return byGroup(list).map(([g, a]) => gap(pre + g, esc(grpLabel(g)), String(a.length), '', () => soMayHtml(a))).join('');
+}
+// Khối sản xuất: các chuyền trước, máy sản xuất chưa gán chuyền xếp sau
+function khoiSXHtml(list, today) {
+  const chs = chDangDung();
+  let o = sec('khoi_SX', list.length);
+  if (!chs.length && !list.length) return o + `<div class="card empty">${t('khoiTrong')}</div>`;
+  if (chs.length) {
+    o += sec('chSec', chs.length)
+      + `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div>`
+      + `<div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>`;
   }
-  // Mặc định (không tìm, không lọc): mỗi chuyền một dòng, thiết bị khác gom theo nhóm, bấm mới hiện máy
-  if (gon) {
-    const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
-    return chSecHtml(today) + (khac.length ? sec('chKhac', khac.length) + nhomGonHtml(khac, today, 'lg:') : '');
-  }
-  return byGroup(list).map(([g, arr]) => sec('group', arr.length).replace(t('group'), esc(g || '—')) +
-    `<div class="list">${arr.map((m) => mRow(m, stOf(m), false)).join('')}</div>`).join('');
+  const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
+  if (khac.length) o += sec('khoiSXKhac', khac.length) + nhomCayHtml(khac, 'lx:');
+  return o;
+}
+// Khối phụ trợ: thẳng xuống nhóm
+function khoiPTHtml(list) {
+  return sec('khoi_HCD', list.length) + (list.length ? nhomCayHtml(list, 'lp:') : `<div class="card empty">${t('khoiTrong')}</div>`);
 }
 // Bảng máy cho màn rộng
 function mayBang(rows) {
@@ -3764,7 +3791,7 @@ const TB_BOQUA = ['Lần gần nhất', 'Hạn kế tiếp', 'Trạng thái', 'S
 const khoiTuChu = (v) => {
   const n = norm(v);
   if (!n) return '';
-  if (/hau|后道|hcd/.test(n)) return 'HCD';
+  if (/hau|phu tro|后道|辅助|hcd|pt/.test(n)) return 'HCD';
   if (/chuyen|san xuat|生产|sx/.test(n)) return 'SX';
   return '';
 };
@@ -3899,8 +3926,24 @@ function tbXuatNhom(nhom) {
   });
   const w = [11, 20, 42, 24, 18, 20, 10, 22, 11, 13, 13].concat(nhan.map(() => 22));
   const slug = norm(nhom).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'thiet-bi';
-  return { ten: 'Thiet-bi_' + slug + '_' + TODAY() + '.xlsx',
-    blob: XW.build([{ name: slug.replace(/-/g, ' ').slice(0, 31), rows, cols: w, freeze: { r: 2, c: 0 }, heights: { 2: 28 } }]) };
+  const sheets = [{ name: slug.replace(/-/g, ' ').slice(0, 31), rows, cols: w, freeze: { r: 2, c: 0 }, heights: { 2: 28 } }];
+  // Bản ghi gộp (quạt gió, máy keo theo chuyền): thêm sheet "chi tiet" liệt kê từng đơn vị,
+  // đúng cột mà phần Nhập từ file đọc lại được, nên xuất ra rồi nhập lại là khớp.
+  const ctDs = ds.filter((m) => (m.chiTiet || []).length);
+  if (ctDs.length) {
+    const nhanCt = [];
+    ctDs.forEach((m) => m.chiTiet.forEach((x) => (x.cot || []).forEach(([k]) => { if (nhanCt.indexOf(k) < 0) nhanCt.push(k); })));
+    const cot2 = ['Chuyền', 'Thuộc bản ghi'].concat(nhanCt);
+    const rows2 = [[{ v: `${nhom} — chi tiết từng đơn vị · khớp theo cột "Thuộc bản ghi"`, s: { b: 1, sz: 13 } }],
+      cot2.map((c) => ({ v: c, s: { b: 1, bg: 'E7EFFE' } }))];
+    ctDs.forEach((m) => m.chiTiet.forEach((x) => {
+      const o = {};
+      (x.cot || []).forEach(([k, v]) => { o[k] = v; });
+      rows2.push([m.chuyen || '', m.ten].concat(nhanCt.map((k) => (o[k] === undefined ? '' : o[k]))));
+    }));
+    sheets.push({ name: 'chi tiet', rows: rows2, cols: [12, 34].concat(nhanCt.map(() => 19)), freeze: { r: 2, c: 2 }, heights: { 2: 28 } });
+  }
+  return { ten: 'Thiet-bi_' + slug + '_' + TODAY() + '.xlsx', blob: XW.build(sheets) };
 }
 VIEWS.tbXuat = {
   html() {
