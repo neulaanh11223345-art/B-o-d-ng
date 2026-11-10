@@ -10318,8 +10318,24 @@ function tbXuatNhom(nhom) {
   });
   const w = [11, 20, 42, 24, 18, 20, 10, 22, 11, 13, 13].concat(nhan.map(() => 22));
   const slug = norm(nhom).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'thiet-bi';
-  return { ten: 'Thiet-bi_' + slug + '_' + TODAY() + '.xlsx',
-    blob: XW.build([{ name: slug.replace(/-/g, ' ').slice(0, 31), rows, cols: w, freeze: { r: 2, c: 0 }, heights: { 2: 28 } }]) };
+  const sheets = [{ name: slug.replace(/-/g, ' ').slice(0, 31), rows, cols: w, freeze: { r: 2, c: 0 }, heights: { 2: 28 } }];
+  // Bản ghi gộp (quạt gió, máy keo theo chuyền): thêm sheet "chi tiet" liệt kê từng đơn vị,
+  // đúng cột mà phần Nhập từ file đọc lại được, nên xuất ra rồi nhập lại là khớp.
+  const ctDs = ds.filter((m) => (m.chiTiet || []).length);
+  if (ctDs.length) {
+    const nhanCt = [];
+    ctDs.forEach((m) => m.chiTiet.forEach((x) => (x.cot || []).forEach(([k]) => { if (nhanCt.indexOf(k) < 0) nhanCt.push(k); })));
+    const cot2 = ['Chuyền', 'Thuộc bản ghi'].concat(nhanCt);
+    const rows2 = [[{ v: `${nhom} — chi tiết từng đơn vị · khớp theo cột "Thuộc bản ghi"`, s: { b: 1, sz: 13 } }],
+      cot2.map((c) => ({ v: c, s: { b: 1, bg: 'E7EFFE' } }))];
+    ctDs.forEach((m) => m.chiTiet.forEach((x) => {
+      const o = {};
+      (x.cot || []).forEach(([k, v]) => { o[k] = v; });
+      rows2.push([m.chuyen || '', m.ten].concat(nhanCt.map((k) => (o[k] === undefined ? '' : o[k]))));
+    }));
+    sheets.push({ name: 'chi tiet', rows: rows2, cols: [12, 34].concat(nhanCt.map(() => 19)), freeze: { r: 2, c: 2 }, heights: { 2: 28 } });
+  }
+  return { ten: 'Thiet-bi_' + slug + '_' + TODAY() + '.xlsx', blob: XW.build(sheets) };
 }
 VIEWS.tbXuat = {
   html() {
