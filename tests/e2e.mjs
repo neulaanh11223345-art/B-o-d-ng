@@ -1931,7 +1931,7 @@ const q25 = await page.evaluate(() => ({
 assert.equal(q25.sw, 8, 'có đủ tám công tắc quyền');
 assert.ok(q25.md.every((x) => /Theo vai trò/.test(x)), 'chưa đặt riêng thì tất cả theo vai trò');
 await shot('55-phan-quyen');
-// Mở riêng quyền xuất, khoá riêng quyền xem hậu công đoạn
+// Mở riêng quyền xuất, khoá riêng quyền xem thiết bị phụ trợ
 await page.click('.qsw[data-k="xuattb"]'); await wait(300);
 await page.click('.qsw[data-k="xemhcd"]'); await wait(300);
 assert.deepEqual(await page.evaluate(() => S.qTam), { xuattb: true, xemhcd: false });
@@ -1947,7 +1947,7 @@ const sau25 = await page.evaluate(() => ({
 }));
 assert.equal(sau25.q.xemhcd, false, 'máy chủ trả về đúng quyền đã khoá');
 assert.equal(sau25.q.xuattb, true, 'và đúng quyền đã mở riêng');
-assert.equal(sau25.hcd, 0, 'máy hậu công đoạn không rời máy chủ, không chỉ ẩn nút');
+assert.equal(sau25.hcd, 0, 'máy phụ trợ không rời máy chủ, không chỉ ẩn nút');
 assert.ok(sau25.sx > 0, 'khối còn lại vẫn xem được');
 // Kỹ thuật vốn không mở được tab Thiết bị, nên phần giao diện kiểm bằng tài khoản Quản lý
 await logout(); await login('NV001', '111111');
@@ -1961,7 +1961,7 @@ await page.click('[data-act="saveUser"]'); await wait(2400);
 await logout(); await login('NV002', '222222'); await wait(1400);
 await page.evaluate(() => tab('list')); await wait(1400);
 assert.equal(await page.locator('.khoibtn').count(), 1, 'khối bị khoá thì không còn nút khối đó');
-assert.match(await text('.khoibtn'), /chuyền sản xuất/i, 'còn lại đúng khối được xem');
+assert.match(await text('.khoibtn'), /thiết bị sản xuất/i, 'còn lại đúng khối được xem');
 assert.equal(await page.locator('[data-act="go"][data-v="tbXuat"]').count(), 0, 'khoá quyền thì mất nút Xuất Excel');
 assert.equal(await page.evaluate(() => S.V.may.filter((m) => khoiCua(m) === 'HCD').length), 0,
   'máy khối bị khoá không rời máy chủ');
@@ -2146,6 +2146,39 @@ await page.evaluate(() => {
   S.f.grp = ''; render();
 }); await wait(500);
 ok('Bản 2.39: xoá hẳn thiết bị nhập nhầm, máy còn lịch sử thì máy chủ giữ lại; chuyền hiện đủ mã và hai thứ tiếng; thiết bị chưa chắc để riêng chip Cần kiểm tra');
+
+// 29. Bản 2.40: sổ thiết bị xếp thành cây — khối → chuyền / nhóm → máy
+await page.setViewportSize({ width: 390, height: 844 });
+await page.evaluate(() => { S.f.khoi = ''; S.f.grp = ''; S.f.q = ''; tab('list'); }); await wait(1200);
+const khoi29 = await page.locator('.khoibtn').allTextContents();
+assert.equal(khoi29.length, 2, 'hai khối thiết bị');
+assert.match(khoi29.join(' '), /Thiết bị sản xuất/, 'khối 1 là Thiết bị sản xuất');
+assert.match(khoi29.join(' '), /Thiết bị phụ trợ/, 'khối 2 là Thiết bị phụ trợ');
+const gChip29 = await page.$$eval('.chip[data-act="listGrp"]', (e) => e.map((x) => x.dataset.g));
+assert.ok(gChip29.every((g) => /^__/.test(g)), 'không còn chip nhóm, chỉ còn chip cảnh báo: ' + JSON.stringify(gChip29));
+// Khối sản xuất xổ ra lưới chuyền, khối phụ trợ xổ ra các nhóm
+assert.ok(await page.locator('.chgrid > *').count() >= 5, 'có lưới chuyền sản xuất');
+const nhom29 = await page.locator('#listBody .gap .gaph .gt').allTextContents();
+assert.ok(nhom29.length >= 3, 'khối phụ trợ xổ ra các nhóm: ' + JSON.stringify(nhom29));
+// Bấm một nhóm thì mới hiện máy của nhóm đó
+const iQuat = nhom29.findIndex((x) => /Quạt gió|Máy hút bụi/.test(x));
+assert.ok(iQuat >= 0, 'có nhóm quạt gió hoặc hút bụi trong khối phụ trợ');
+await page.locator('#listBody .gap .gaph').nth(iQuat).click(); await wait(700);
+assert.ok(await page.locator('#listBody .gap.mo .gapb .row').count() > 0, 'mở nhóm thì ra máy của nhóm');
+await shot('64-cay-thiet-bi');
+// Trong một chuyền, từ 4 máy trở lên thì máy gom theo nhóm
+const chNhieu = await page.evaluate(() => {
+  const d = {};
+  activeMay().forEach((m) => { if (m.chuyen) d[m.chuyen] = (d[m.chuyen] || 0) + 1; });
+  return Object.keys(d).sort((a, b) => d[b] - d[a])[0] || '';
+});
+await page.evaluate((ma) => go('chuyen', { ma }), chNhieu); await wait(900);
+const soMay29 = await page.evaluate((ma) => mayCuaCh(ma).length, chNhieu);
+const nhomCh = await page.locator('.nhomh').count();
+if (soMay29 >= 4) assert.ok(nhomCh > 0, 'chuyền nhiều máy thì gom theo nhóm');
+else assert.equal(nhomCh, 0, 'chuyền ít máy thì để phẳng cho gọn');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Bản 2.40: sổ thiết bị xếp thành cây — hai khối sản xuất / phụ trợ, chuyền và nhóm là từng tầng, bỏ dãy chip nhóm');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
