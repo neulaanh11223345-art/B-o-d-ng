@@ -2479,3 +2479,38 @@ test('đo tủ điện: gửi lại cùng opId không ghi hai lần; chỉ Quả
   ok(b.call('tuXoa', { id: r1.ban.id }, b.ql));
   assert.equal(ok(b.call('data', {}, b.kt)).doTu.length, 0, 'xoá xong thì không còn trong dữ liệu');
 });
+
+// ---------- Linh kiện của thân dây chuyền ----------
+function setupLKCh() {
+  const b = loadBackend({ now: '2026-11-11T03:00:00Z' });
+  b.ctx.PropertiesService.getScriptProperties().setProperty('NHAP_EXCEL', 'test');
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const ch = ok(b.call('data', {}, ql)).chuyen;
+  return Object.assign(b, { ql, kt, ch, ma: ch[0].ma });
+}
+
+test('linh kiện chuyền: lưu vào thân dây chuyền chứ không phải máy con', () => {
+  const b = setupLKCh();
+  const lk = [{ ten: 'Bộ điều khiển servo', quyCach: 'MR-J4-40B', sl: 8 },
+    { ten: 'Bộ điều khiển servo', quyCach: 'MR-J4-200B', sl: 9 },
+    { ten: 'Động cơ servo', quyCach: 'HG-SR702J', sl: 1 }];
+  const r = ok(b.call('saveLists', { ma: b.ma, linhKien: lk }, b.ql));
+  assert.equal(r.chuyen.ma, b.ma);
+  assert.equal(r.chuyen.linhKien.length, 3);
+  // Cùng tên khác quy cách là hai linh kiện khác nhau, không được gộp mất một
+  assert.deepEqual(r.chuyen.linhKien.map((x) => x.quyCach), ['MR-J4-40B', 'MR-J4-200B', 'HG-SR702J']);
+  const sau = ok(b.call('data', {}, b.kt)).chuyen.find((c) => c.ma === b.ma);
+  assert.equal(sau.linhKien.length, 3, 'tải dữ liệu về vẫn còn đủ');
+  assert.equal(ok(b.call('data', {}, b.ql)).may.filter((m) => (m.linhKien || []).length).length, 0,
+    'không máy con nào bị gán nhầm');
+});
+
+test('linh kiện chuyền: giữ được hơn 60 dòng, chuyền lạ thì báo lỗi, kỹ thuật không sửa', () => {
+  const b = setupLKCh();
+  const lk = [];
+  for (let i = 1; i <= 95; i++) lk.push({ ten: 'Xi lanh', quyCach: 'XL-' + i, sl: 1 });
+  const r = ok(b.call('saveLists', { ma: b.ma, linhKien: lk }, b.ql));
+  assert.equal(r.chuyen.linhKien.length, 95, 'thân dây chuyền chứa được quá 60 linh kiện');
+  err(b.call('saveLists', { ma: 'VKY-KHONG-CO', linhKien: lk }, b.ql), 'KHONG_CO_MAY');
+  err(b.call('saveLists', { ma: b.ma, linhKien: [] }, b.kt), 'KHONG_QUYEN');
+});

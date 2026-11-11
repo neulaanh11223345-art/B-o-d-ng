@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.41.0';
+var PHIEN_BAN = '2.42.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -30,8 +30,10 @@ var BANG = {
     'PhuTrach', 'NgayDuaVao', 'Chuyen', 'MaHT', 'Khoi', 'ThongSo', 'Xoa', 'ChiTiet'],
   // Chuyền sản xuất (theo Sổ cái quản lý cơ sở vật chất VKY-PR-E01-03). Sửa trực tiếp trên sheet hoặc trong app (Quản lý)
   // KhiNen: lượng khí nén chuyền đó dùng, m³/phút — để tính cần bật mấy máy nén khí
+  // LinhKien (JSON): linh kiện của THÂN dây chuyền — driver, servo, biến tần, module PLC, xi lanh…
+  // Những thứ này không thuộc máy con nào (máy in phun, hút bụi…) nên gắn thẳng vào chuyền.
   Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
-    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT', 'KhiNen'],
+    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT', 'KhiNen', 'LinhKien'],
   LichSu: ['ID', 'Ma', 'TenMay', 'Ngay', 'DenHan', 'NguoiLam', 'GhiChu', 'NguoiXacNhan', 'ThoiGian', 'TrangThai', 'OpId', 'UID', 'Huy', 'ChiTiet'],
   NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh', 'MaThe', 'BoPhan', 'BoPhanZh', 'ChucVu', 'Quyen'],
   TangCa: ['ID', 'UID', 'Ngay', 'Ca', 'Tu', 'Den', 'SoGio', 'LyDo', 'LyDoDich', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat'],
@@ -621,11 +623,14 @@ function chTuDong(r, i) {
   CH_KHOA.forEach(function (k, j) { o[k] = s(r[j]); });
   o.ma = o.ma.toUpperCase(); o.hoatDong = s(r[15]) === '' ? true : hd(r[15]); o.capNhat = tgStr(r[16]); o.maHT = s(r[17]);
   o.khiNen = s(r[18]) === '' ? '' : (Number(r[18]) || 0);
+  o.linhKien = docJson(r[19], []);
   return o;
 }
 function chThanhDong(o) {
   return CH_KHOA.map(function (k) { return anToan(o[k] || ''); })
-    .concat([o.hoatDong === false ? 0 : 1, o.capNhat || '', anToan(o.maHT || ''), o.khiNen === '' || o.khiNen === undefined ? '' : o.khiNen]);
+    .concat([o.hoatDong === false ? 0 : 1, o.capNhat || '', anToan(o.maHT || ''),
+      o.khiNen === '' || o.khiNen === undefined ? '' : o.khiNen,
+      o.linhKien && o.linhKien.length ? JSON.stringify(o.linhKien) : '']);
 }
 function dsChuyen() { return docTho('Chuyen').map(chTuDong).filter(function (x) { return x.ma; }); }
 function sachCh(o) {
@@ -633,6 +638,7 @@ function sachCh(o) {
   CH_KHOA.forEach(function (k) { x[k] = o[k] || ''; });
   x.hoatDong = o.hoatDong !== false; x.maHT = o.maHT || '';
   x.khiNen = o.khiNen === '' || o.khiNen === undefined ? '' : o.khiNen;
+  x.linhKien = o.linhKien || [];
   return x;
 }
 // Lần đầu: tạo 16 chuyền từ sổ cái, xếp máy in phun (喷印机 VKYxx) và máy hút bụi (Máy hút bụi VKYxx) vào chuyền cùng số. Chạy lại không trùng, không đè máy đã xếp.
@@ -1812,7 +1818,7 @@ function ganLKDaDung(m, lk, u, ngay, nguon, chiKhoCoSan) {
   m.linhKien.forEach(function (k) { co[k.id] = 1; });
   if (chiKhoCoSan && r.kho && r.kho.moi) r.kho.moi.forEach(function (it) { khoMoi[it.ma] = 1; });
   lk.forEach(function (k) {
-    if (co[k.id] || m.linhKien.length >= TOI_DA_DS) return;
+    if (co[k.id] || m.linhKien.length >= TOI_DA_LK) return;
     if (chiKhoCoSan && k.maKho && khoMoi[k.maKho]) return;
     co[k.id] = 1; r.doiMay = true;
     var o = { id: k.id, ten: k.ten, quyCach: k.quyCach, dv: k.dv, sl: '', ghiChu: nguon + ' ' + ngayVN(ngay) + ' · ' + u.ten };
@@ -3098,6 +3104,10 @@ function sachAnh(anh, tenGoc) {
   return out;
 }
 var TOI_DA_DS = 60;
+// Linh kiện được nhiều hơn hạng mục: thân một dây chuyền có thể tới hơn trăm món (driver, servo,
+// biến tần, module PLC, xi lanh). Cả danh sách nằm trong MỘT ô của Google Sheet, giới hạn 50 000 ký
+// tự, mỗi món khoảng 140 ký tự JSON nên 200 món vẫn còn xa mức đó.
+var TOI_DA_LK = 200;
 function idHopLe(v, tien) {
   v = s(v);
   return /^[A-Za-z0-9_-]{1,24}$/.test(v) ? v : tien + Utilities.getUuid().replace(/-/g, '').slice(0, 10);
@@ -3124,7 +3134,7 @@ function sachHangMuc(ds) {
 }
 function sachLinhKien(ds) {
   var out = [], thay = {};
-  (Array.isArray(ds) ? ds : []).slice(0, TOI_DA_DS).forEach(function (k) {
+  (Array.isArray(ds) ? ds : []).slice(0, TOI_DA_LK).forEach(function (k) {
     if (!k) return;
     var ten = catChu(k.ten, 120);
     if (!ten) return;
@@ -3193,7 +3203,13 @@ function chepTheoTen(nguon, dich, tien) {
   });
 }
 function luuDanhSach(u, p) {
-  var ds = dsMay(), m = ds.filter(function (x) { return x.ma === s(p.ma).toUpperCase(); })[0];
+  var ma = s(p.ma).toUpperCase();
+  var ds = dsMay(), m = ds.filter(function (x) { return x.ma === ma; })[0];
+  // Mã của một chuyền thì lưu vào chuyền: linh kiện thân dây chuyền không thuộc máy con nào
+  if (!m) {
+    var c = dsChuyen().filter(function (x) { return x.ma === ma || (x.maHT && x.maHT.toUpperCase() === ma); })[0];
+    if (c) return luuLKChuyen(u, p, c);
+  }
   if (!m) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
   capNhatTieuDe('May');
   var hm = p.hangMuc !== undefined ? sachHangMuc(p.hangMuc) : null;
@@ -3217,6 +3233,19 @@ function luuDanhSach(u, p) {
     ds.forEach(function (x) { if (x.ma !== m.ma && x.hoatDong && x.nhom === m.nhom) ghi(x, false); });
   }
   return { may: doi[0], dsMay: doi, kho: kho ? khoLuuMoi(kho) : null };
+}
+
+// Linh kiện của thân dây chuyền. Chuyền không có hạng mục bảo dưỡng nên chỉ nhận linhKien.
+function luuLKChuyen(u, p, c) {
+  if (p.linhKien === undefined) throw loi('CAN_LINH_KIEN', 'Chuyền chỉ nhận danh sách linh kiện · 产线仅支持零件清单');
+  capNhatTieuDe('Chuyen');
+  var lk = sachLinhKien(p.linhKien), kho = null;
+  if (lk.length) { kho = khoNap(); ganKho(lk, ghiChuThem(c.ma, u), kho); }
+  ghiNhatKyLienKet(u, c, c.linhKien || [], lk);
+  c.linhKien = lk;
+  c.capNhat = thoiGianStr();
+  suaDong('Chuyen', c._r, chThanhDong(c));
+  return { chuyen: sachCh(c), kho: kho ? khoLuuMoi(kho) : null };
 }
 
 // Linh kiện của máy đổi mã ERP (liên kết, bỏ liên kết, đổi sang mã khác): ghi nhật ký, lịch sử dùng giữ nguyên theo id linh kiện
