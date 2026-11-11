@@ -1046,6 +1046,13 @@ table.mtab tr.child th.nmc button{font-weight:500;padding-left:10px}
 table.ctbang{font-size:13px}
 table.ctbang td,table.ctbang th{white-space:nowrap}
 table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-width:120px}
+.dtchart{width:100%;height:190px;display:block}
+.dtlegs{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:6px}
+.dtleg{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink2)}
+.dtleg i{width:12px;height:3px;border-radius:2px;display:inline-block}
+.dtgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.nhomh{display:flex;align-items:center;gap:8px;margin:14px 2px 6px;font-size:13.5px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.3px}
+.nhomh .nhomn{font-weight:600;color:var(--ink3);background:var(--line2,#EDF1F7);border-radius:999px;padding:1px 8px;font-size:12.5px;letter-spacing:0}
 .chip.warnchip{border-color:var(--orange);color:var(--orange);background:var(--orange-bg)}
 .chip.warnchip.on{background:var(--orange);border-color:var(--orange);color:#fff}
 .kst.on{border:2px solid currentColor}
@@ -1324,7 +1331,10 @@ h1.cvh .zh2{font-size:.8em;margin-top:4px}
 <div id="printArea"></div>
 <script>
 // ===== XW: ghi file Excel .xlsx có màu, không cần thư viện ngoài =====
-// XW.build([{name, rows:[[cell]], cols:[width], merges:['A1:C1'], freeze:{r,c}, heights:{1:28}, landscape}])
+// XW.build([{name, rows:[[cell]], cols:[width], merges:['A1:C1'], freeze:{r,c}, heights:{1:28}, landscape, charts}])
+// charts: [{title, yTitle, cats:{c, r1, r2}, series:[{name, c, color}], at:{r, c, w, h}}]
+//   cột tính từ 0, dòng tính từ 1 (đúng như ô trên Excel). at = ô góc trên trái và cỡ biểu đồ tính bằng ô.
+//   Đây là biểu đồ Excel thật: mở file ra sửa được, không phải ảnh dán vào.
 // cell: null | 'chữ' | số | {v, s:{b, sz, color, fill, align, valign, wrap, border, fmt, i}}
 const XW = (() => {
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -1384,6 +1394,60 @@ const XW = (() => {
       '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
   };
 
+  // ----- Biểu đồ đường -----
+  const CH_MAU = ['1E5EEA', 'C8372D', '1B9E6F', 'B4690E', '7B4FD6', '0E8FA8'];
+  function vungF(ten, c, r1, r2) {
+    return esc("'" + String(ten).replace(/'/g, "''") + "'!$" + col(c) + '$' + r1 + ':$' + col(c) + '$' + r2);
+  }
+  function chuA(txt, sz, dam) {
+    return '<a:p><a:pPr><a:defRPr sz="' + sz + '" b="' + (dam ? 1 : 0) + '"/></a:pPr>'
+      + '<a:r><a:rPr lang="vi-VN" sz="' + sz + '" b="' + (dam ? 1 : 0) + '"/><a:t>' + esc(txt) + '</a:t></a:r></a:p>';
+  }
+  function chartXml(ch, tenSheet) {
+    const AX1 = 111111111, AX2 = 222222222;
+    const ser = (ch.series || []).map((sr, i) => '<c:ser><c:idx val="' + i + '"/><c:order val="' + i + '"/>'
+      + '<c:tx><c:v>' + esc(sr.name) + '</c:v></c:tx>'
+      + '<c:spPr><a:ln w="20000" cap="rnd"><a:solidFill><a:srgbClr val="' + (sr.color || CH_MAU[i % CH_MAU.length]) + '"/></a:solidFill><a:round/></a:ln></c:spPr>'
+      + '<c:marker><c:symbol val="circle"/><c:size val="5"/><c:spPr><a:solidFill><a:srgbClr val="' + (sr.color || CH_MAU[i % CH_MAU.length]) + '"/></a:solidFill></c:spPr></c:marker>'
+      + '<c:cat><c:numRef><c:f>' + vungF(tenSheet, ch.cats.c, ch.cats.r1, ch.cats.r2) + '</c:f></c:numRef></c:cat>'
+      + '<c:val><c:numRef><c:f>' + vungF(tenSheet, sr.c, ch.cats.r1, ch.cats.r2) + '</c:f></c:numRef></c:val>'
+      + '<c:smooth val="0"/></c:ser>').join('');
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+      + '<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"'
+      + ' xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"'
+      + ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+      + '<c:chart>'
+      + '<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/>' + chuA(ch.title || '', 1200, 1) + '</c:rich></c:tx><c:overlay val="0"/></c:title>'
+      + '<c:autoTitleDeleted val="0"/><c:plotArea><c:layout/>'
+      + '<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>' + ser
+      + '<c:marker val="1"/><c:axId val="' + AX1 + '"/><c:axId val="' + AX2 + '"/></c:lineChart>'
+      + '<c:catAx><c:axId val="' + AX1 + '"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/>'
+      + (ch.xTitle ? '<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/>' + chuA(ch.xTitle, 900, 0) + '</c:rich></c:tx><c:overlay val="0"/></c:title>' : '')
+      + '<c:crossAx val="' + AX2 + '"/></c:catAx>'
+      + '<c:valAx><c:axId val="' + AX2 + '"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:majorGridlines/>'
+      + (ch.yTitle ? '<c:title><c:tx><c:rich><a:bodyPr rot="-5400000" vert="horz"/><a:lstStyle/>' + chuA(ch.yTitle, 900, 0) + '</c:rich></c:tx><c:overlay val="0"/></c:title>' : '')
+      + '<c:crossAx val="' + AX1 + '"/></c:valAx>'
+      + '</c:plotArea><c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend>'
+      + '<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>';
+  }
+  function drawingXml(charts) {
+    const neo = (ch, i) => {
+      const a = ch.at || { r: 0, c: 0, w: 8, h: 15 };
+      return '<xdr:twoCellAnchor>'
+        + '<xdr:from><xdr:col>' + a.c + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + a.r + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>'
+        + '<xdr:to><xdr:col>' + (a.c + a.w) + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + (a.r + a.h) + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>'
+        + '<xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="' + (i + 2) + '" name="Chart ' + (i + 1) + '"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>'
+        + '<xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm>'
+        + '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">'
+        + '<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId' + (i + 1) + '"/>'
+        + '</a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>';
+    };
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+      + '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"'
+      + ' xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+      + charts.map(neo).join('') + '</xdr:wsDr>';
+  }
+
   function sheetXml(sh, S) {
     const out = [];
     out.push('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">');
@@ -1419,6 +1483,7 @@ const XW = (() => {
     out.push('<pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/>');
     const fit = sh.fit || { w: 1, h: 0 };
     out.push('<pageSetup paperSize="9" orientation="' + (sh.landscape ? 'landscape' : 'portrait') + '" fitToWidth="' + fit.w + '" fitToHeight="' + fit.h + '"/>');
+    if (sh._ve) out.push('<drawing r:id="rId1"/>');   // phải nằm sau pageSetup, đúng thứ tự của chuẩn
     out.push('</worksheet>');
     return out.join('');
   }
@@ -1466,8 +1531,21 @@ const XW = (() => {
     const S = new Styles(), used = new Set();
     const names = sheets.map((sh) => sheetName(sh.name, used));
     const files = [];
+    // Sheet nào có biểu đồ thì cần thêm một bản vẽ và mỗi biểu đồ một file chart
+    const ve = [];
+    let soChart = 0;
+    sheets.forEach((sh, i) => {
+      const ds = (sh.charts || []).filter((c) => c && c.cats && (c.series || []).length);
+      if (!ds.length) { sh._ve = 0; return; }
+      const ids = ds.map(() => ++soChart);
+      ve.push({ sheet: i, ids: ids, charts: ds });
+      sh._ve = ve.length;
+    });
     files.push({ name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
-      sheets.map((_, i) => '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('') + '</Types>' });
+      sheets.map((_, i) => '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('') +
+      ve.map((v, k) => '<Override PartName="/xl/drawings/drawing' + (k + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>').join('') +
+      ve.reduce((a, v) => a.concat(v.ids), []).map((n) => '<Override PartName="/xl/charts/chart' + n + '.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>').join('') +
+      '</Types>' });
     files.push({ name: '_rels/.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' });
     files.push({ name: 'xl/workbook.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets>' +
       names.map((n, i) => '<sheet name="' + esc(n) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join('') + '</sheets>' +
@@ -1482,6 +1560,18 @@ const XW = (() => {
       sheets.map((_, i) => '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>').join('') +
       '<Relationship Id="rId' + (sheets.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' });
     sheets.forEach((sh, i) => files.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: sheetXml(sh, S) }));
+    ve.forEach((v, k) => {
+      const d = k + 1;
+      files.push({ name: 'xl/worksheets/_rels/sheet' + (v.sheet + 1) + '.xml.rels',
+        data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+          + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing' + d + '.xml"/></Relationships>' });
+      files.push({ name: 'xl/drawings/drawing' + d + '.xml', data: drawingXml(v.charts) });
+      files.push({ name: 'xl/drawings/_rels/drawing' + d + '.xml.rels',
+        data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+          + v.ids.map((n, j) => '<Relationship Id="rId' + (j + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart' + n + '.xml"/>').join('')
+          + '</Relationships>' });
+      v.charts.forEach((ch, j) => files.push({ name: 'xl/charts/chart' + v.ids[j] + '.xml', data: chartXml(ch, names[v.sheet]) }));
+    });
     files.push({ name: 'xl/styles.xml', data: S.xml() });
     return new Blob([zip(files)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   }
@@ -1491,7 +1581,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.39.1";
+const APP_VER = "2.41.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -2017,6 +2107,12 @@ function mergeResult(d) {
     if (i >= 0) L[i] = g; else L.push(g);
   });
   if (d.xoa) S.base.gioChay = (S.base.gioChay || []).filter((x) => x.id !== d.xoa);
+  (d.doTu || []).forEach((x) => {
+    const L = S.base.doTu = S.base.doTu || [];
+    const i = L.findIndex((y) => y.maCT === x.maCT && y.ngay === x.ngay);
+    if (i >= 0) L[i] = x; else L.push(x);
+  });
+  if (d.xoaDoTu) S.base.doTu = (S.base.doTu || []).filter((x) => x.id !== d.xoaDoTu);
   (d.lichMNK || []).forEach((c) => {
     const L = S.base.lichMNK = S.base.lichMNK || [];
     const i = L.findIndex((x) => x.tuNgay === c.tuNgay);
@@ -3399,7 +3495,15 @@ VIEWS.chuyen = {
     let o = `<div class="card pad chhead"><span class="code">${esc(mh(c.ma))}</span>${c.maHT ? ` <span class="code">${esc(c.ma)}</span>` : ''}${c.maTaiSan && c.maTaiSan !== c.ma ? ` <span class="code">${esc(c.maTaiSan)}</span>` : ''}
       <h1 class="cvh">${esc(c.ten || c.ma)}${c.tenZh ? `<span class="zh2" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}</h1>
       <div class="sub">${esc(c.viTri || '')}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}${s.qua ? ` · <b class="warnx">${tv('chQua', { n: s.qua })}</b>` : ''}</div></div>`;
-    o += sec('chMay', a.length) + (a.length ? dsMayRows(a, today) : `<div class="card empty">${t('chChuaMay')}</div>`);
+    o += sec('chMay', a.length);
+    if (!a.length) o += `<div class="card empty">${t('chChuaMay')}</div>`;
+    else {
+      // Trong chuyền còn một tầng nữa: máy đóng gói, máy in phun, tủ điện… mỗi nhóm một mục
+      const gs = byGroup(a);
+      o += gs.length > 1 && a.length >= 4
+        ? gs.map(([g, arr]) => `<div class="nhomh">${esc(grpLabel(g))}<span class="nhomn">${arr.length}</span></div>` + dsMayRows(arr, today)).join('')
+        : dsMayRows(a, today);
+    }
     if (can('may')) o += `<div class="btns" style="margin:10px 0 4px"><button class="btn ghost sm" data-act="chThemMay" data-ma="${esc(c.ma)}">${IC.plus} ${t('chThemMay')}</button><button class="btn ghost sm" data-act="chSua" data-ma="${esc(c.ma)}">${IC.edit} ${t('chSua')}</button><button class="btn ghost sm" data-act="labelsOne" data-ma="${esc(c.ma)}">${IC.qr} ${t('printQR')}</button></div>`;
     const tls = tlCua(c.ma);
     o += sec('tlSec', tls.length) + gap('tl:' + c.ma, tls.length ? esc(tls.slice(0, 3).map((x) => x.ten).join(' · ')) : t('tlChuaCo'), tls.length, '', () => tlSection(c.ma));
@@ -3535,7 +3639,9 @@ Object.assign(TX, {
   stAll: ['Mọi trạng thái', '全部状态'], tongN: ['{n} kết quả', '共{n}条'], trang: ['Trang', '页'],
   thCode: ['Mã', '编号'], thTen: ['Thiết bị', '设备'], thNhom: ['Nhóm', '类别'], thViTri: ['Vị trí', '位置'], thChuKy: ['Chu kỳ', '周期'],
   thGanNhat: ['Lần gần nhất', '上次'], thHan: ['Hạn kế tiếp', '下次到期'], thTT: ['Trạng thái', '状态'], segLich: ['Bảo dưỡng', '保养'],
-  khoi_SX: ['Thiết bị chuyền sản xuất', '生产线设备'], khoi_HCD: ['Thiết bị hậu công đoạn', '后道设备'],
+  khoi_SX: ['Thiết bị sản xuất', '生产设备'], khoi_HCD: ['Thiết bị phụ trợ', '辅助设备'],
+  khoiSXKhac: ['Chưa gán chuyền', '未指定产线'],
+  khoiTrong: ['Chưa có thiết bị nào trong khối này', '该大类暂无设备'],
   tsChinh: ['Thông số', '参数'], dangDung: ['Đang dùng', '在使用'], tsKhong: ['Chưa khai thông số', '未填写参数'],
   quayLaiLich: ['Về lịch bảo dưỡng', '返回保养日历'],
   khoiTB: ['Khối thiết bị', '设备大类'], tbKhongBD: ['Không theo chu kỳ (chỉ ghi sổ)', '不定期（仅登记）'],
@@ -3564,7 +3670,7 @@ Object.assign(TX, {
   qDemRieng: ['{n} mục đặt riêng', '单独设置{n}项'], qVeMacDinh: ['Về đúng mặc định của vai trò', '恢复角色默认'],
   q_xemsx: ['Xem thiết bị chuyền sản xuất', '生产线设备'],
   qm_xemsx: ['Dây chuyền, đóng gói, in phun, keo, dán thùng', '生产线、包装、喷印、胶机、封箱'],
-  q_xemhcd: ['Xem thiết bị hậu công đoạn', '后道设备'],
+  q_xemhcd: ['Xem thiết bị phụ trợ', '辅助设备'],
   qm_xemhcd: ['Quạt gió, hút bụi, khí nén, trạm điện, bơm', '风机、吸尘、空压、变电站、水泵'],
   q_tsmay: ['Xem thông số kỹ thuật', '技术参数'],
   qm_tsmay: ['kW, A, rpm, lưu lượng, model động cơ', '功率、电流、转速、风量、电机型号'],
@@ -3621,7 +3727,7 @@ const ST_CHIP = [['', 'stAll'], ['qua', 'st_qua'], ['nay', 'st_nay'], ['sap', 's
 // ---------- Khối thiết bị: gom các nhóm rời thành hai khối cho dễ tìm ----------
 const KHOI_DS = ['SX', 'HCD'];
 // Máy nhập trước khi có cột Khối thì đoán theo tên nhóm, để danh sách không có ô trống
-// Quạt gió, hút bụi… tuy gắn theo chuyền nhưng là hậu công đoạn, nên so khối này trước
+// Quạt gió, hút bụi… tuy gắn theo chuyền nhưng là thiết bị phụ trợ, nên so khối này trước
 const KHOI_DOAN = [
   [/qu[aạ]t|h[uú]t b[uụ]i|đ[oó]ng bao|[eé]p ki[eệ]n|n[eé]n kh[ií]|kh[ií] n[eé]n|s[aấ]y kh[ií]|b[ìi]nh ch[uứ]a|đi[eề]u h[oò]a|tr[aạ]m đi[eệ]n|bi[eế]n [aá]p|c[aá]p đi[eệ]n|b[oơ]m|pccc|b[aă]m|ph[eế]|th[oổ]i b[uụ]i|đi[eệ]n|风机|吸尘|打包|空压|干燥|储气|空调|变电|变压|电缆|水泵|消防|废料|风淋|电力/i, 'HCD'],
   [/chuy[eề]n|d[aâ]y chuy|đ[oó]ng g[oó]i|in phun|keo|d[aá]n th[uù]ng|kim lo[aạ]i|mi[eệ]ng t[uú]i|生产线|包装|喷印|胶机|封箱|封口|金属/i, 'SX']
@@ -3632,28 +3738,20 @@ function khoiCua(m) {
   for (const [re, k] of KHOI_DOAN) if (re.test(n)) return k;
   return m.chuyen ? 'SX' : 'HCD';
 }
-const khoiNhoms = (k) => {
-  const seen = [];
-  activeMay().forEach((m) => { if (khoiCua(m) === k && seen.indexOf(m.nhom || '') < 0) seen.push(m.nhom || ''); });
-  return seen.sort((a, b) => a.localeCompare(b, 'vi'));
-};
-// Hai nút khối + chip nhóm con của khối đang chọn
-function khoiChips(f, actK, actG) {
+// Hai nút khối. Nhóm con không còn làm chip nữa — nhóm đã là một tầng trong cây bên dưới.
+function khoiChips(f, actK) {
   const dem = { SX: 0, HCD: 0 };
   activeMay().forEach((m) => { dem[khoiCua(m)]++; });
   const nut = KHOI_DS.filter((k) => can(k === 'SX' ? 'xemsx' : 'xemhcd')).map((k) => `<button class="khoibtn${f.khoi === k ? ' on' : ''}" data-act="${actK}" data-k="${k}">
     <span><b>${esc(tv('khoi_' + k))}</b><span class="zi">${esc(tz('khoi_' + k))}</span></span><span class="khoin">${dem[k]}</span></button>`).join('');
-  const gs = f.khoi ? khoiNhoms(f.khoi) : [];
-  const chip = !f.khoi ? '' : `<div class="hscroll" style="margin:10px 0 12px"><button class="chip${!f.grp ? ' on' : ''}" data-act="${actG}" data-g="">${t('all')}</button>${
-    gs.map((g) => `<button class="chip${f.grp === g ? ' on' : ''}" data-act="${actG}" data-g="${esc(g)}">${esc(g || '—')} <span style="opacity:.72">${activeMay().filter((m) => khoiCua(m) === f.khoi && (m.nhom || '') === g).length}</span></button>`).join('')}</div>`;
-  return `<div class="khoirow">${nut}</div>${chip}`;
+  return `<div class="khoirow">${nut}</div>`;
 }
 VIEWS.list = {
   html() {
     const f = S.f;
     const stopped = S.V.may.filter((m) => !m.hoatDong);
     let o = listSeg('list') + `<div class="tools"><div class="searchbox">${IC.search}<input class="inp" id="listQ" type="search" value="${esc(f.q)}" placeholder="${esc(tp('search'))}" autocomplete="off"></div></div>
-      <div style="margin-top:10px">${khoiChips(f, 'listKhoi', 'listGrp')}</div>`;
+      <div style="margin-top:10px">${khoiChips(f, 'listKhoi')}</div>`;
     const trung = mayTrungChuyen(), ktra = mayCanKiemTra();
     if ((stopped.length || trung.length || ktra.length) && can('may')) {
       o += `<div class="hscroll" style="margin:-4px 0 12px">${stopped.length ? `<button class="chip${f.grp === '__stop' ? ' on' : ''}" data-act="listGrp" data-g="__stop">${t('stopped')} (${stopped.length})</button>` : ''}${
@@ -3681,31 +3779,54 @@ VIEWS.list = {
     $('#listQ').addEventListener('input', (e) => { S.f.q = e.target.value; S.f.pg = Object.assign(S.f.pg || {}, { may: 0 }); $('#listBody').innerHTML = listBody(); });
   }
 };
+// Sổ thiết bị xếp thành cây:
+//   Thiết bị sản xuất  → từng chuyền → (trong chuyền) từng nhóm máy → từng máy
+//   Thiết bị phụ trợ   → từng nhóm (cáp điện, quạt gió, khí nén…) → từng máy
+// Gõ tìm hoặc bấm chip cảnh báo thì bỏ cây, ra thẳng danh sách phẳng.
 function listBody() {
   const f = S.f, today = TODAY();
-  let list = f.grp === '__stop' ? S.V.may.filter((m) => !m.hoatDong)
+  const dac = f.grp === '__stop' ? S.V.may.filter((m) => !m.hoatDong)
     : f.grp === '__trung' ? mayTrungChuyen()
-      : f.grp === '__ktra' ? mayCanKiemTra()
-      : activeMay().filter((m) => (!f.khoi || khoiCua(m) === f.khoi) && (!f.grp || m.nhom === f.grp));
-  list = findMay(f.q, list);
-  if (!list.length) return `<div class="card empty">${t('notFound')}</div>`;
-  const gon = !f.q && !f.grp && !f.khoi;
-  if (isWide() && gon) {
-    const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
-    return chSecHtml(today) + (khac.length ? sec('chKhac', khac.length) + byGroup(khac).map(([g, a]) =>
-      gap('lg:' + g, esc(grpLabel(g)), String(a.length), '', () => mayBangSo(a))).join('') : '');
+      : f.grp === '__ktra' ? mayCanKiemTra() : null;
+  if (dac || f.q) {
+    const list = findMay(f.q, dac || activeMay().filter((m) => !f.khoi || khoiCua(m) === f.khoi));
+    if (!list.length) return `<div class="card empty">${t('notFound')}</div>`;
+    if (!isWide()) return soMayHtml(list);
+    const { p } = pageOf('may', list.length);
+    return mayBangSo(list.slice().sort(sapMay).slice(p * PER_PAGE, (p + 1) * PER_PAGE)) + pager('may', list.length);
   }
-  if (isWide()) {
-    const { p } = pageOf('may', list.length), rows = byGroup(list).flatMap(([, a]) => a).slice(p * PER_PAGE, (p + 1) * PER_PAGE);
-    return mayBangSo(rows) + pager('may', list.length);
+  const all = activeMay();
+  let o = '';
+  if ((!f.khoi || f.khoi === 'SX') && can('xemsx')) o += khoiSXHtml(all.filter((m) => khoiCua(m) === 'SX'), today);
+  if ((!f.khoi || f.khoi === 'HCD') && can('xemhcd')) o += khoiPTHtml(all.filter((m) => khoiCua(m) === 'HCD'));
+  return o || `<div class="card empty">${t('notFound')}</div>`;
+}
+// Máy ở tầng cuối: màn rộng ra bảng sổ thiết bị, điện thoại ra từng dòng
+function soMayHtml(a) {
+  const ds = a.slice().sort(sapMay);
+  return isWide() ? mayBangSo(ds) : `<div class="list">${ds.map((m) => mRow(m, stOf(m), false)).join('')}</div>`;
+}
+// Một tầng nhóm: mỗi nhóm một dòng gập, bấm mới xổ máy ra
+function nhomCayHtml(list, pre) {
+  return byGroup(list).map(([g, a]) => gap(pre + g, esc(grpLabel(g)), String(a.length), '', () => soMayHtml(a))).join('');
+}
+// Khối sản xuất: các chuyền trước, máy sản xuất chưa gán chuyền xếp sau
+function khoiSXHtml(list, today) {
+  const chs = chDangDung();
+  let o = sec('khoi_SX', list.length);
+  if (!chs.length && !list.length) return o + `<div class="card empty">${t('khoiTrong')}</div>`;
+  if (chs.length) {
+    o += sec('chSec', chs.length)
+      + `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div>`
+      + `<div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>`;
   }
-  // Mặc định (không tìm, không lọc): mỗi chuyền một dòng, thiết bị khác gom theo nhóm, bấm mới hiện máy
-  if (gon) {
-    const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
-    return chSecHtml(today) + (khac.length ? sec('chKhac', khac.length) + nhomGonHtml(khac, today, 'lg:') : '');
-  }
-  return byGroup(list).map(([g, arr]) => sec('group', arr.length).replace(t('group'), esc(g || '—')) +
-    `<div class="list">${arr.map((m) => mRow(m, stOf(m), false)).join('')}</div>`).join('');
+  const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
+  if (khac.length) o += sec('khoiSXKhac', khac.length) + nhomCayHtml(khac, 'lx:');
+  return o;
+}
+// Khối phụ trợ: thẳng xuống nhóm
+function khoiPTHtml(list) {
+  return sec('khoi_HCD', list.length) + (list.length ? nhomCayHtml(list, 'lp:') : `<div class="card empty">${t('khoiTrong')}</div>`);
 }
 // Bảng máy cho màn rộng
 function mayBang(rows) {
@@ -3767,7 +3888,7 @@ const TB_BOQUA = ['Lần gần nhất', 'Hạn kế tiếp', 'Trạng thái', 'S
 const khoiTuChu = (v) => {
   const n = norm(v);
   if (!n) return '';
-  if (/hau|后道|hcd/.test(n)) return 'HCD';
+  if (/hau|phu tro|后道|辅助|hcd|pt/.test(n)) return 'HCD';
   if (/chuyen|san xuat|生产|sx/.test(n)) return 'SX';
   return '';
 };
@@ -3902,8 +4023,24 @@ function tbXuatNhom(nhom) {
   });
   const w = [11, 20, 42, 24, 18, 20, 10, 22, 11, 13, 13].concat(nhan.map(() => 22));
   const slug = norm(nhom).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'thiet-bi';
-  return { ten: 'Thiet-bi_' + slug + '_' + TODAY() + '.xlsx',
-    blob: XW.build([{ name: slug.replace(/-/g, ' ').slice(0, 31), rows, cols: w, freeze: { r: 2, c: 0 }, heights: { 2: 28 } }]) };
+  const sheets = [{ name: slug.replace(/-/g, ' ').slice(0, 31), rows, cols: w, freeze: { r: 2, c: 0 }, heights: { 2: 28 } }];
+  // Bản ghi gộp (quạt gió, máy keo theo chuyền): thêm sheet "chi tiet" liệt kê từng đơn vị,
+  // đúng cột mà phần Nhập từ file đọc lại được, nên xuất ra rồi nhập lại là khớp.
+  const ctDs = ds.filter((m) => (m.chiTiet || []).length);
+  if (ctDs.length) {
+    const nhanCt = [];
+    ctDs.forEach((m) => m.chiTiet.forEach((x) => (x.cot || []).forEach(([k]) => { if (nhanCt.indexOf(k) < 0) nhanCt.push(k); })));
+    const cot2 = ['Chuyền', 'Thuộc bản ghi'].concat(nhanCt);
+    const rows2 = [[{ v: `${nhom} — chi tiết từng đơn vị · khớp theo cột "Thuộc bản ghi"`, s: { b: 1, sz: 13 } }],
+      cot2.map((c) => ({ v: c, s: { b: 1, bg: 'E7EFFE' } }))];
+    ctDs.forEach((m) => m.chiTiet.forEach((x) => {
+      const o = {};
+      (x.cot || []).forEach(([k, v]) => { o[k] = v; });
+      rows2.push([m.chuyen || '', m.ten].concat(nhanCt.map((k) => (o[k] === undefined ? '' : o[k]))));
+    }));
+    sheets.push({ name: 'chi tiet', rows: rows2, cols: [12, 34].concat(nhanCt.map(() => 19)), freeze: { r: 2, c: 2 }, heights: { 2: 28 } });
+  }
+  return { ten: 'Thiet-bi_' + slug + '_' + TODAY() + '.xlsx', blob: XW.build(sheets) };
 }
 VIEWS.tbXuat = {
   html() {
@@ -5712,6 +5849,15 @@ function tsOfCT(ct) { if (ctLoai(ct) !== 'cao') return ['1.8.0']; const all = S.
 function tsName(code) { const x = S.V.tsByMa[code]; return x ? x.ten : code; }
 function rebuildDien() {
   const b = S.base, V = S.V;
+  V.doTu = (b.doTu || []).slice();
+  // Số đo ghi lúc mất mạng cũng hiện ngay, khỏi phải chờ gửi xong
+  S.Q.forEach((q) => {
+    if ((q.st !== 'cho' && q.st !== 'loi') || q.action !== 'tuGhi') return;
+    const row = { id: 'tmp-' + q.opId, ngay: q.p.ngay, maCT: q.p.maCT, nhietDo: q.p.nhietDo, dienAp: q.p.dienAp,
+      ia: q.p.ia, ib: q.p.ib, ic: q.p.ic, nguoi: (S.me || {}).ten || '', ghiChu: q.p.ghiChu || '', luc: q.t, cho: true };
+    const i = V.doTu.findIndex((x) => x.maCT === row.maCT && x.ngay === row.ngay);
+    if (i >= 0) V.doTu[i] = row; else V.doTu.push(row);
+  });
   V.ct = (b.congTo || []).slice();
   V.ctByMa = {}; V.ct.forEach((c) => { V.ctByMa[c.ma] = c; });
   V.ts = b.thongSo && b.thongSo.length ? b.thongSo : [];
@@ -14790,6 +14936,273 @@ Object.assign(ACT, {
   },
   mdXoa: (el) => { const p = topV().p; p.ds.splice(+el.dataset.i, 1); render(); }
 });
+
+
+// ===================== Số đo tủ điện nhánh: nhiệt độ, điện áp, dòng điện =====================
+// Mỗi tủ mỗi ngày một dòng, nhân viên ghi 5 số. App vẽ biểu đồ tháng ngay trên màn hình
+// và xuất ra Excel kèm biểu đồ Excel thật (mở file ra sửa được, không phải ảnh).
+Object.assign(TX, {
+  t_doTu: ['Đo tủ điện', '配电柜测量'], navDoTu: ['Đo tủ điện', '配电柜测量'],
+  dtTabGhi: ['Ghi số đo', '录入'], dtTabBD: ['Biểu đồ tháng', '月度曲线'],
+  dtNhiet: ['Nhiệt độ cao nhất', '最高温度'], dtU: ['Điện áp', '电压'], dtI: ['Dòng điện ba pha', '三相电流'],
+  dtIA: ['Pha A', 'A相'], dtIB: ['Pha B', 'B相'], dtIC: ['Pha C', 'C相'],
+  dtNgayDo: ['Ngày đo', '测量日期'], dtDaDo: ['Đã đo', '已测'], dtChuaDo: ['Chưa đo hôm nay', '今天未测'],
+  dtLanCuoi: ['Đo gần nhất {d}', '最近测量 {d}'], dtChuaCo: ['Chưa có số đo nào trong tháng này', '本月暂无测量数据'],
+  dtLuu: ['Lưu số đo', '保存'], dtDaLuu: ['Đã ghi số đo {m}', '已记录 {m}'],
+  dtCanSo: ['Nhập ít nhất một số đo', '请至少填写一项测量值'],
+  dtHelp: ['Đo khi tủ đang mang tải. Ô nào không đo được thì để trống, đừng ghi 0.',
+    '请在带载状态下测量。未测的格子留空，不要填 0。'],
+  dtKhongCoTu: ['Chưa có tủ nhánh nào của chuyền sản xuất trong danh sách công tơ',
+    '电表名单中还没有产线分路柜'],
+  dtDoN: ['Hôm nay đã đo {n}/{t} tủ', '今天已测 {n}/{t} 个柜'],
+  dtXuat: ['Xuất Excel có biểu đồ', '导出带图表的Excel'],
+  dtTong: ['Tổng hợp nhiệt độ', '温度汇总'],
+  dtSoLan: ['{n} ngày có số đo', '{n}天有数据'],
+  dtXoa: ['Xoá số đo ngày này', '删除当日测量'],
+  dtXoaHoi: ['Xoá số đo của tủ này trong ngày đã chọn. Xoá xong ghi lại được.', '删除该柜当日的测量记录，删除后可重新录入。'],
+  dtDaXoa: ['Đã xoá số đo', '已删除测量记录'],
+  srvMissDoTu: ['Máy chủ chưa ghi được số đo tủ điện. Cập nhật Code.gs rồi Triển khai lại.',
+    '服务器尚不支持配电柜测量记录。请更新 Code.gs 后重新部署。']
+});
+Object.assign(TITLES, { doTu: 't_doTu' });
+ROOTS.push('doTu');
+(NHOM.find((x) => x[0] === 'nhomDien') || [0, []])[1].push(['doTu', 'navDoTu', 'bolt']);
+SRV_PHAN.push(['dotu', '2.41.0', 'srvMissDoTu']);
+
+const DT_MAU = { nd: 'C8372D', u: '1E5EEA', ia: '1B9E6F', ib: 'B4690E', ic: '7B4FD6' };
+const dtSoNgay = (thang) => new Date(+thang.slice(0, 4), +thang.slice(5, 7), 0).getDate();
+const dtThangNay = () => TODAY().slice(0, 7);
+// Tủ nhánh của chuyền sản xuất = công tơ nhánh mà tên có mã một chuyền đang dùng.
+// Nhận ra tự động nên thêm chuyền mới là tủ hiện ngay, không phải khai lại danh sách.
+function tuChuyen() {
+  if (!S.V || !S.V.ct) return [];
+  const byMa = {};
+  (S.V.ch || []).filter((c) => c.hoatDong !== false).forEach((c) => { byMa[String(c.ma).toUpperCase()] = c; });
+  const ra = [];
+  S.V.ct.forEach((c) => {
+    if (!c.hoatDong || ctLoai(c) !== 'nhanh') return;
+    const ma = String(c.ten || '').toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).find((w) => byMa[w]);
+    if (ma) ra.push(Object.assign({}, c, { ch: byMa[ma], maCh: ma }));
+  });
+  return ra.sort((a, b) => a.maCh.localeCompare(b.maCh, 'vi'));
+}
+const dtTrongThang = (ma, thang) => (S.V.doTu || []).filter((x) => x.maCT === ma && String(x.ngay).slice(0, 7) === thang);
+const dtCuaNgay = (ma, ngay) => (S.V.doTu || []).find((x) => x.maCT === ma && x.ngay === ngay) || null;
+const dtGanNhat = (ma) => (S.V.doTu || []).filter((x) => x.maCT === ma).sort((a, b) => (a.ngay < b.ngay ? 1 : -1))[0] || null;
+const dtSo = (v) => (v === '' || v === null || v === undefined || isNaN(Number(v)) ? '' : Number(v));
+
+function dtState() {
+  const tu = tuChuyen();
+  S.dt = S.dt || { tab: 'ghi', thang: dtThangNay(), ma: '' };
+  if (!tu.some((c) => c.ma === S.dt.ma)) S.dt.ma = tu.length ? tu[0].ma : '';
+  return tu;
+}
+
+// ---------- Biểu đồ SVG trong app ----------
+function dtSvg(series, n) {
+  const W = 680, H = 190, L = 48, R = 10, T = 12, B = 26;
+  if (!series.some((x) => x.pts.length)) return `<div class="card empty">${t('dtChuaCo')}</div>`;
+  let lo = Infinity, hi = -Infinity;
+  series.forEach((x) => x.pts.forEach((o) => { if (o.v < lo) lo = o.v; if (o.v > hi) hi = o.v; }));
+  if (hi === lo) { hi = lo + 1; lo -= 1; }
+  const dem = (hi - lo) * 0.12;
+  lo -= dem; hi += dem;
+  const px = (d) => L + (W - L - R) * (n > 1 ? (d - 1) / (n - 1) : 0.5);
+  const py = (v) => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  const lam = (v) => (Math.abs(v) >= 100 ? Math.round(v) : Math.round(v * 10) / 10);
+  let g = '';
+  for (let i = 0; i <= 4; i++) {
+    const v = lo + (hi - lo) * i / 4, y = py(v);
+    g += `<line x1="${L}" y1="${y}" x2="${W - R}" y2="${y}" stroke="#E2E8F3" stroke-width="1"/>`
+      + `<text x="${L - 6}" y="${y + 3.5}" text-anchor="end" font-size="10" fill="#7C8DA8">${lam(v)}</text>`;
+  }
+  for (let d = 1; d <= n; d++) {
+    if (d !== 1 && d !== n && d % 5 !== 0) continue;
+    g += `<text x="${px(d)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#7C8DA8">${d}</text>`;
+  }
+  series.forEach((x) => {
+    if (!x.pts.length) return;
+    // Ngày không đo thì đứt nét, không nối thẳng qua cho khỏi hiểu nhầm
+    let doan = [], cuoi = -9;
+    const ve = [];
+    x.pts.slice().sort((a, b) => a.d - b.d).forEach((o) => {
+      if (o.d !== cuoi + 1 && doan.length) { ve.push(doan); doan = []; }
+      doan.push(o); cuoi = o.d;
+    });
+    if (doan.length) ve.push(doan);
+    ve.forEach((ds) => {
+      if (ds.length > 1) {
+        g += `<polyline fill="none" stroke="#${x.mau}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${
+          ds.map((o) => px(o.d).toFixed(1) + ',' + py(o.v).toFixed(1)).join(' ')}"/>`;
+      }
+      ds.forEach((o) => { g += `<circle cx="${px(o.d).toFixed(1)}" cy="${py(o.v).toFixed(1)}" r="${ds.length > 1 ? 2.6 : 3.4}" fill="#${x.mau}"/>`; });
+    });
+  });
+  const chu = series.filter((x) => x.pts.length).map((x) =>
+    `<span class="dtleg"><i style="background:#${x.mau}"></i>${esc(x.ten)}</span>`).join('');
+  return `<svg class="dtchart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(series.map((x) => x.ten).join(', '))}">${g}</svg>
+    <div class="dtlegs">${chu}</div>`;
+}
+function dtBieuDo(ma, thang) {
+  const n = dtSoNgay(thang), ds = dtTrongThang(ma, thang);
+  const lay = (k) => ds.map((x) => ({ d: +String(x.ngay).slice(8, 10), v: dtSo(x[k]) }))
+    .filter((o) => o.v !== '' && o.d >= 1 && o.d <= n);
+  const khoi = (nhan, dv, series) => `<div class="sec"><h2>${t(nhan)}<span class="cnt">${esc(dv)}</span></h2></div>
+    <div class="card pad">${dtSvg(series, n)}</div>`;
+  return khoi('dtNhiet', '°C', [{ ten: tv('dtNhiet'), mau: DT_MAU.nd, pts: lay('nhietDo') }])
+    + khoi('dtU', 'V', [{ ten: tv('dtU'), mau: DT_MAU.u, pts: lay('dienAp') }])
+    + khoi('dtI', 'A', [{ ten: tv('dtIA'), mau: DT_MAU.ia, pts: lay('ia') },
+      { ten: tv('dtIB'), mau: DT_MAU.ib, pts: lay('ib') },
+      { ten: tv('dtIC'), mau: DT_MAU.ic, pts: lay('ic') }]);
+}
+
+// ---------- Màn hình ----------
+VIEWS.doTu = {
+  html() {
+    const tu = dtState();
+    let o = srvWarn('dotu');
+    if (!tu.length) return o + `<div class="card empty">${t('dtKhongCoTu')}</div>`;
+    o += `<div class="seg" role="tablist">
+      <button class="${S.dt.tab === 'ghi' ? 'on' : ''}" data-act="dtTab" data-v="ghi" role="tab">${t('dtTabGhi')}</button>
+      <button class="${S.dt.tab === 'bd' ? 'on' : ''}" data-act="dtTab" data-v="bd" role="tab">${t('dtTabBD')}</button></div>`;
+    if (S.dt.tab === 'ghi') {
+      const nay = TODAY(), xong = tu.filter((c) => dtCuaNgay(c.ma, nay)).length;
+      o += `<div class="note" style="margin:12px 0">${t('dtDoN', { n: xong, t: tu.length })}</div>`;
+      o += `<div class="card"><div class="list">${tu.map((c) => {
+        const x = dtCuaNgay(c.ma, nay), gan = x || dtGanNhat(c.ma);
+        const phu = x ? `${t('dtNhiet')} ${dtSo(x.nhietDo) === '' ? '—' : dtSo(x.nhietDo) + ' °C'} · ${dtSo(x.dienAp) === '' ? '—' : dtSo(x.dienAp) + ' V'} · ${
+          [x.ia, x.ib, x.ic].map((v) => (dtSo(v) === '' ? '—' : dtSo(v))).join(' / ')} A`
+          : (gan ? t('dtLanCuoi', { d: fmtDM(gan.ngay) }) : t('never'));
+        return `<button class="row" data-act="dtMo" data-ma="${esc(c.ma)}">
+          <div class="main"><div class="nm">${esc(c.maCh)}<span class="zi" lang="zh-CN">${esc(c.ch.tenZh || '')}</span></div>
+          <div class="sub"><span class="code">${esc(c.ma)}</span> · ${phu}</div></div>
+          <div class="end">${x ? `<span class="pill p-ok">${t('dtDaDo')}</span>` : `<span class="pill p-nay">${t('dtChuaDo')}</span>`}${IC.chev}</div></button>`;
+      }).join('')}</div></div>`;
+      return o;
+    }
+    const c = tu.find((x) => x.ma === S.dt.ma) || tu[0];
+    const n = dtTrongThang(c.ma, S.dt.thang).length;
+    o += `<div class="tools" style="margin-top:12px">
+      <label class="fld"><span>${t('month')}</span><input class="inp" id="dtThang" type="month" value="${esc(S.dt.thang)}" max="${esc(dtThangNay())}"></label>
+      <label class="fld"><span>${t('congTo')}</span><select class="inp" id="dtTu">${tu.map((x) =>
+        `<option value="${esc(x.ma)}"${x.ma === c.ma ? ' selected' : ''}>${esc(x.maCh + ' · ' + x.ma)}</option>`).join('')}</select></label></div>
+      <div class="note" style="margin:10px 0">${t('dtSoLan', { n })}</div>`;
+    o += dtBieuDo(c.ma, S.dt.thang);
+    o += `<div class="btns" style="margin-top:14px"><button class="btn" data-act="dtXuat">${IC.dl} ${t('dtXuat')}</button></div>`;
+    return o;
+  },
+  after() {
+    const th = $('#dtThang'), tu = $('#dtTu');
+    if (th) th.addEventListener('change', (e) => { S.dt.thang = e.target.value || dtThangNay(); render(); });
+    if (tu) tu.addEventListener('change', (e) => { S.dt.ma = e.target.value; render(); });
+  }
+};
+
+Object.assign(ACT, {
+  dtTab: (el) => { S.dt.tab = el.dataset.v; render(); },
+  dtMo: (el) => dtForm(el.dataset.ma, TODAY()),
+  dtXuat: () => dtXuatExcel(S.dt.thang),
+  dtLuu: async (el) => {
+    const fe = $('#dtErr'), ma = el.dataset.ma;
+    const lay = (id) => { const e = $('#' + id); const v = e ? String(e.value).trim() : ''; return v === '' ? '' : Number(v); };
+    const p = { maCT: ma, ngay: $('#dtNgay').value, nhietDo: lay('dtND'), dienAp: lay('dtUU'),
+      ia: lay('dtIA'), ib: lay('dtIB'), ic: lay('dtIC'), ghiChu: $('#dtGC').value.trim() };
+    if (['nhietDo', 'dienAp', 'ia', 'ib', 'ic'].every((k) => p[k] === '')) {
+      fe.innerHTML = t('dtCanSo'); fe.hidden = false; return;
+    }
+    el.disabled = true;
+    const r = await send('tuGhi', p);
+    el.disabled = false;
+    if (r.err) { fe.innerHTML = errMsg(r.err); fe.hidden = false; return; }
+    closeSheet();
+    toast(t('dtDaLuu', { m: fmtDM(p.ngay) }));
+    render();
+  },
+  dtXoa: (el) => {
+    const id = el.dataset.id;
+    openSheet(`<div class="grab"></div><h3>${tv('dtXoa')}<span class="zi">${tz('dtXoa')}</span></h3>
+      <div class="note srvwarn" style="margin-top:10px">${t('dtXoaHoi')}</div>
+      <div class="err" id="dtXErr" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+      <button class="btn danger" data-act="dtXoaGo" data-id="${esc(id)}">${IC.out} ${t('del')}</button></div>`);
+  },
+  dtXoaGo: async (el) => {
+    const fe = $('#dtXErr');
+    el.disabled = true;
+    const r = await send('tuXoa', { id: el.dataset.id });
+    el.disabled = false;
+    if (r.err) { fe.innerHTML = errMsg(r.err); fe.hidden = false; return; }
+    closeSheet(); toast(t('dtDaXoa')); render();
+  }
+});
+
+function dtForm(ma, ngay) {
+  const tu = tuChuyen().find((x) => x.ma === ma);
+  if (!tu) return;
+  const x = dtCuaNgay(ma, ngay) || {};
+  const o = (id, nhan, dv, v) => `<label class="fld"><span>${t(nhan)}${dv ? ' (' + dv + ')' : ''}</span>
+    <input class="inp" id="${id}" type="number" step="0.1" inputmode="decimal" value="${v === '' || v === undefined ? '' : esc(String(v))}"></label>`;
+  openSheet(`<div class="grab"></div><h3>${esc(tu.maCh)}<span class="zi" lang="zh-CN">${esc(tu.ch.tenZh || '')}</span></h3>
+    <div class="who"><span class="code">${esc(tu.ma)}</span> ${esc(tu.ch.ten || '')}</div>
+    <label class="fld" style="margin-top:10px"><span>${t('dtNgayDo')}</span>
+      <input class="inp" id="dtNgay" type="date" value="${esc(ngay)}" max="${esc(TODAY())}"></label>
+    ${o('dtND', 'dtNhiet', '°C', dtSo(x.nhietDo))}
+    ${o('dtUU', 'dtU', 'V', dtSo(x.dienAp))}
+    <div class="dtgrid">${o('dtIA', 'dtIA', 'A', dtSo(x.ia))}${o('dtIB', 'dtIB', 'A', dtSo(x.ib))}${o('dtIC', 'dtIC', 'A', dtSo(x.ic))}</div>
+    <label class="fld"><span>${t('note')}</span><input class="inp" id="dtGC" value="${esc(x.ghiChu || '')}" maxlength="200"></label>
+    <p class="help" style="margin:-2px 0 12px">${t('dtHelp')}</p>
+    <div class="err" id="dtErr" hidden></div>
+    <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+      <button class="btn" data-act="dtLuu" data-ma="${esc(ma)}">${IC.check} ${t('dtLuu')}</button></div>
+    ${x.id && !x.cho && can('giaoviec') ? `<div class="btns" style="margin-top:8px"><button class="btn ghost red" data-act="dtXoa" data-id="${esc(x.id)}">${IC.out} ${t('dtXoa')}</button></div>` : ''}`,
+  (bg) => {
+    const nd = $('#dtNgay', bg);
+    if (nd) nd.addEventListener('change', () => { closeSheet(); dtForm(ma, nd.value || TODAY()); });
+  });
+}
+
+// ---------- Xuất Excel: mỗi tủ một sheet, mỗi sheet ba biểu đồ Excel thật ----------
+function dtXuatExcel(thang) {
+  const tu = tuChuyen(), n = dtSoNgay(thang);
+  const coSo = tu.filter((c) => dtTrongThang(c.ma, thang).length);
+  if (!coSo.length) { toast(t('dtChuaCo'), true); return; }
+  const TD = { b: 1, color: 'FFFFFF', fill: '1E5EEA', align: 'center', valign: 'center', wrap: 1, border: 1 };
+  const O = { border: 1, align: 'center' };
+  const sheets = [];
+  // Sheet đầu: nhiệt độ mọi tủ theo ngày, để nhìn một phát ra tủ nào nóng
+  const rT = [[{ v: tv('dtTong') + ' · ' + tz('dtTong') + ' — ' + thang, s: { b: 1, sz: 13 } }],
+    [{ v: 'Ngày · 日期', s: TD }].concat(coSo.map((c) => ({ v: c.maCh, s: TD })))];
+  for (let d = 1; d <= n; d++) {
+    const ng = thang + '-' + String(d).padStart(2, '0');
+    rT.push([{ v: d, s: O }].concat(coSo.map((c) => {
+      const x = dtCuaNgay(c.ma, ng), v = x ? dtSo(x.nhietDo) : '';
+      return { v: v === '' ? null : v, s: O };
+    })));
+  }
+  sheets.push({ name: 'Tong hop nhiet do', rows: rT, cols: [9].concat(coSo.map(() => 9)),
+    freeze: { r: 2, c: 1 }, landscape: 1 });
+  coSo.forEach((c) => {
+    const rows = [[{ v: c.maCh + ' · ' + (c.ch.ten || '') + ' · ' + (c.ch.tenZh || '') + ' — ' + thang, s: { b: 1, sz: 13 } }],
+      [{ v: 'Ngày · 日期', s: TD }, { v: 'Nhiệt độ · 温度 (°C)', s: TD }, { v: 'Điện áp · 电压 (V)', s: TD },
+        { v: 'Pha A · A相 (A)', s: TD }, { v: 'Pha B · B相 (A)', s: TD }, { v: 'Pha C · C相 (A)', s: TD }]];
+    for (let d = 1; d <= n; d++) {
+      const ng = thang + '-' + String(d).padStart(2, '0'), x = dtCuaNgay(c.ma, ng);
+      const v = (k) => { const z = x ? dtSo(x[k]) : ''; return { v: z === '' ? null : z, s: O }; };
+      rows.push([{ v: d, s: O }, v('nhietDo'), v('dienAp'), v('ia'), v('ib'), v('ic')]);
+    }
+    const r1 = 3, r2 = 2 + n;
+    const bd = (ten, yt, ser, hang) => ({ title: ten, yTitle: yt, xTitle: tv('dtNgayDo'),
+      cats: { c: 0, r1: r1, r2: r2 }, series: ser, at: { r: hang, c: 7, w: 9, h: 16 } });
+    sheets.push({ name: c.maCh, rows: rows, cols: [9, 13, 13, 12, 12, 12], freeze: { r: 2, c: 1 }, landscape: 1,
+      charts: [
+        bd(tv('dtNhiet') + ' (°C)', '°C', [{ name: tv('dtNhiet'), c: 1, color: DT_MAU.nd }], 1),
+        bd(tv('dtU') + ' (V)', 'V', [{ name: tv('dtU'), c: 2, color: DT_MAU.u }], 18),
+        bd(tv('dtI') + ' (A)', 'A', [{ name: tv('dtIA'), c: 3, color: DT_MAU.ia },
+          { name: tv('dtIB'), c: 4, color: DT_MAU.ib }, { name: tv('dtIC'), c: 5, color: DT_MAU.ic }], 35)
+      ] });
+  });
+  saveFile(XW.build(sheets), 'Do-tu-dien_' + thang + '.xlsx');
+}
 
 // Link từ tem QR: ...?m=M001
 try {

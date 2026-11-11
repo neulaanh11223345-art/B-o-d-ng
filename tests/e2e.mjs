@@ -146,11 +146,12 @@ await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.equal(await page.locator('.tabs .tab[data-v="list"]').count(), 0, 'kỹ thuật: không có tab Thiết bị');
 assert.match(await text('.tabs .tab[data-v="cal"]'), /Bảo dưỡng/, 'ô thứ tư của kỹ thuật là Bảo dưỡng');
 assert.match(await text('.tabs .tab[data-v="cv"]'), /Sửa chữa/);
-// Màn Thêm của kỹ thuật: không có Thiết bị, Kho, Kiểm định, Tính toán, Tài liệu
+// Màn Thêm của kỹ thuật: không có Thiết bị, Kho, Kiểm định, Tính toán, Tài liệu.
+// Đo tủ điện thì có, vì chính kỹ thuật là người đi đo.
 await page.click('.tabs .tab[data-v="them"]'); await wait(600);
 const them7 = await page.locator('#main .row .nm').allTextContents();
-assert.deepEqual(them7, ['Công việc', 'Nghiệm thu sửa chữa', 'Máy nén khí', 'Bảo dưỡng', 'Điện / Nước', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
-  'kỹ thuật chỉ thấy đúng tám mục: ' + JSON.stringify(them7));
+assert.deepEqual(them7, ['Công việc', 'Nghiệm thu sửa chữa', 'Máy nén khí', 'Bảo dưỡng', 'Điện / Nước', 'Đo tủ điện', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
+  'kỹ thuật thấy đúng chín mục: ' + JSON.stringify(them7));
 await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.match(await text('.mtiles'), /Sửa chữa/);
 assert.doesNotMatch(await text('.mtiles'), /Linh kiện|Thiết bị|Công việc/, 'Tổng quan chỉ còn Sửa chữa, Bảo dưỡng, Điện, Nước');
@@ -472,16 +473,27 @@ ok('Công việc: ghi và giao, giao nhiều việc, nhân viên làm xong, Qu�
 // 11. Máy tính: sidebar, bảng có tiêu đề, phân trang
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.click('.side .nav[data-v="list"]'); await wait(600);
-// Danh sách nay là sổ thiết bị: hai khối, không còn chip trạng thái bảo dưỡng
+// Danh sách nay là sổ thiết bị xếp thành cây: khối → chuyền / nhóm → máy
 assert.equal(await page.locator('.stchips').count(), 0, 'Danh sách không còn chip Quá hạn / Hôm nay / Sắp đến');
 assert.equal(await page.locator('.khoibtn').count(), 2, 'có hai nút khối thiết bị');
+assert.equal(await page.locator('.hscroll .chip[data-act="listGrp"]').count(), 0, 'không còn dãy chip nhóm cuộn ngang');
+// Khối sản xuất: lưới chuyền; khối phụ trợ: các nhóm, bấm mới xổ máy
+assert.ok(await page.locator('.chgrid').count() > 0, 'khối sản xuất hiện lưới chuyền');
 await page.click('.khoibtn[data-k="HCD"]'); await wait(700);
-assert.ok(await page.isVisible('table.dt thead'), 'bảng sổ thiết bị trên máy tính');
-assert.match(await text('.pager'), /kết quả/);
-const cot11 = await page.evaluate(() => [...document.querySelectorAll('#listBody table thead th')].map((e) => e.textContent));
+assert.equal(await page.locator('.chgrid').count(), 0, 'chọn khối phụ trợ thì không còn lưới chuyền');
+const nhomPT = page.locator('#listBody .gap .gaph');
+assert.ok(await nhomPT.count() >= 3, 'khối phụ trợ xổ ra các nhóm thiết bị');
+await nhomPT.first().click(); await wait(700);
+assert.ok(await page.isVisible('#listBody .gap.mo table.dt thead'), 'mở một nhóm thì ra bảng sổ thiết bị');
+const cot11 = await page.evaluate(() => [...document.querySelectorAll('#listBody .gap.mo table thead th')].map((e) => e.textContent));
 assert.ok(!cot11.some((c) => /Chu kỳ|Hạn kế tiếp|Xác nhận/.test(c)),
   'sổ thiết bị không còn cột bảo dưỡng: ' + JSON.stringify(cot11));
 assert.ok(cot11.some((c) => /Vị trí/.test(c)) && cot11.some((c) => /Thông số/.test(c)), 'có cột Vị trí và Thông số');
+// Gõ tìm thì bỏ cây, ra thẳng bảng phẳng có phân trang
+await page.fill('#listQ', 'máy'); await wait(700);
+assert.equal(await page.locator('#listBody .gap').count(), 0, 'đang tìm thì không còn cây nhóm');
+assert.match(await text('.pager'), /kết quả/);
+await page.fill('#listQ', ''); await wait(500);
 await shot('07-desktop-list');
 // Trạng thái bảo dưỡng chuyển hẳn sang tab Bảo dưỡng, bấm ô đếm là hiện ngay danh sách
 await page.evaluate(() => { S.f.khoi = ''; S.f.grp = ''; tab('cal'); }); await wait(900);
@@ -1920,7 +1932,7 @@ const q25 = await page.evaluate(() => ({
 assert.equal(q25.sw, 8, 'có đủ tám công tắc quyền');
 assert.ok(q25.md.every((x) => /Theo vai trò/.test(x)), 'chưa đặt riêng thì tất cả theo vai trò');
 await shot('55-phan-quyen');
-// Mở riêng quyền xuất, khoá riêng quyền xem hậu công đoạn
+// Mở riêng quyền xuất, khoá riêng quyền xem thiết bị phụ trợ
 await page.click('.qsw[data-k="xuattb"]'); await wait(300);
 await page.click('.qsw[data-k="xemhcd"]'); await wait(300);
 assert.deepEqual(await page.evaluate(() => S.qTam), { xuattb: true, xemhcd: false });
@@ -1936,7 +1948,7 @@ const sau25 = await page.evaluate(() => ({
 }));
 assert.equal(sau25.q.xemhcd, false, 'máy chủ trả về đúng quyền đã khoá');
 assert.equal(sau25.q.xuattb, true, 'và đúng quyền đã mở riêng');
-assert.equal(sau25.hcd, 0, 'máy hậu công đoạn không rời máy chủ, không chỉ ẩn nút');
+assert.equal(sau25.hcd, 0, 'máy phụ trợ không rời máy chủ, không chỉ ẩn nút');
 assert.ok(sau25.sx > 0, 'khối còn lại vẫn xem được');
 // Kỹ thuật vốn không mở được tab Thiết bị, nên phần giao diện kiểm bằng tài khoản Quản lý
 await logout(); await login('NV001', '111111');
@@ -1950,7 +1962,7 @@ await page.click('[data-act="saveUser"]'); await wait(2400);
 await logout(); await login('NV002', '222222'); await wait(1400);
 await page.evaluate(() => tab('list')); await wait(1400);
 assert.equal(await page.locator('.khoibtn').count(), 1, 'khối bị khoá thì không còn nút khối đó');
-assert.match(await text('.khoibtn'), /chuyền sản xuất/i, 'còn lại đúng khối được xem');
+assert.match(await text('.khoibtn'), /thiết bị sản xuất/i, 'còn lại đúng khối được xem');
 assert.equal(await page.locator('[data-act="go"][data-v="tbXuat"]').count(), 0, 'khoá quyền thì mất nút Xuất Excel');
 assert.equal(await page.evaluate(() => S.V.may.filter((m) => khoiCua(m) === 'HCD').length), 0,
   'máy khối bị khoá không rời máy chủ');
@@ -2135,6 +2147,98 @@ await page.evaluate(() => {
   S.f.grp = ''; render();
 }); await wait(500);
 ok('Bản 2.39: xoá hẳn thiết bị nhập nhầm, máy còn lịch sử thì máy chủ giữ lại; chuyền hiện đủ mã và hai thứ tiếng; thiết bị chưa chắc để riêng chip Cần kiểm tra');
+
+// 29. Bản 2.40: sổ thiết bị xếp thành cây — khối → chuyền / nhóm → máy
+await page.setViewportSize({ width: 390, height: 844 });
+await page.evaluate(() => { S.f.khoi = ''; S.f.grp = ''; S.f.q = ''; tab('list'); }); await wait(1200);
+const khoi29 = await page.locator('.khoibtn').allTextContents();
+assert.equal(khoi29.length, 2, 'hai khối thiết bị');
+assert.match(khoi29.join(' '), /Thiết bị sản xuất/, 'khối 1 là Thiết bị sản xuất');
+assert.match(khoi29.join(' '), /Thiết bị phụ trợ/, 'khối 2 là Thiết bị phụ trợ');
+const gChip29 = await page.$$eval('.chip[data-act="listGrp"]', (e) => e.map((x) => x.dataset.g));
+assert.ok(gChip29.every((g) => /^__/.test(g)), 'không còn chip nhóm, chỉ còn chip cảnh báo: ' + JSON.stringify(gChip29));
+// Khối sản xuất xổ ra lưới chuyền, khối phụ trợ xổ ra các nhóm
+assert.ok(await page.locator('.chgrid > *').count() >= 5, 'có lưới chuyền sản xuất');
+const nhom29 = await page.locator('#listBody .gap .gaph .gt').allTextContents();
+assert.ok(nhom29.length >= 3, 'khối phụ trợ xổ ra các nhóm: ' + JSON.stringify(nhom29));
+// Bấm một nhóm thì mới hiện máy của nhóm đó
+const iQuat = nhom29.findIndex((x) => /Quạt gió|Máy hút bụi/.test(x));
+assert.ok(iQuat >= 0, 'có nhóm quạt gió hoặc hút bụi trong khối phụ trợ');
+await page.locator('#listBody .gap .gaph').nth(iQuat).click(); await wait(700);
+assert.ok(await page.locator('#listBody .gap.mo .gapb .row').count() > 0, 'mở nhóm thì ra máy của nhóm');
+await shot('64-cay-thiet-bi');
+// Trong một chuyền, từ 4 máy trở lên thì máy gom theo nhóm
+const chNhieu = await page.evaluate(() => {
+  const d = {};
+  activeMay().forEach((m) => { if (m.chuyen) d[m.chuyen] = (d[m.chuyen] || 0) + 1; });
+  return Object.keys(d).sort((a, b) => d[b] - d[a])[0] || '';
+});
+await page.evaluate((ma) => go('chuyen', { ma }), chNhieu); await wait(900);
+const soMay29 = await page.evaluate((ma) => mayCuaCh(ma).length, chNhieu);
+const nhomCh = await page.locator('.nhomh').count();
+if (soMay29 >= 4) assert.ok(nhomCh > 0, 'chuyền nhiều máy thì gom theo nhóm');
+else assert.equal(nhomCh, 0, 'chuyền ít máy thì để phẳng cho gọn');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Bản 2.40: sổ thiết bị xếp thành cây — hai khối sản xuất / phụ trợ, chuyền và nhóm là từng tầng, bỏ dãy chip nhóm');
+
+// 30. Bản 2.41: đo tủ nhánh (nhiệt độ, điện áp, dòng điện), biểu đồ tháng và Excel có biểu đồ
+await page.setViewportSize({ width: 390, height: 844 });
+await moThem('doTu');
+assert.match(await text('#barTitle'), /Đo tủ điện/);
+const tu30 = await page.evaluate(() => tuChuyen().map((c) => c.maCh));
+assert.ok(tu30.length >= 10, 'nhận ra các tủ nhánh của chuyền sản xuất: ' + tu30.length);
+assert.equal(await page.locator('[data-act="dtMo"]').count(), tu30.length, 'mỗi tủ một dòng');
+assert.equal(await page.locator('#main .srvwarn').count(), 0, 'máy chủ đã đủ bản, không còn cảnh báo');
+// Ghi 5 số cho tủ đầu tiên
+await page.click('[data-act="dtMo"] >> nth=0'); await wait(700);
+await page.fill('#dtND', '52.4');
+await page.fill('#dtUU', '382');
+await page.fill('#dtIA', '128');
+await page.fill('#dtIB', '131');
+await page.fill('#dtIC', '126');
+await page.click('[data-act="dtLuu"]'); await wait(2200);
+const d30 = await page.evaluate(() => (S.V.doTu || []).map((x) => [x.maCT, x.nhietDo, x.dienAp, x.ia, x.ib, x.ic]));
+assert.equal(d30.length, 1, 'đã lưu một dòng');
+assert.deepEqual(d30[0].slice(1), [52.4, 382, 128, 131, 126], 'lưu đúng năm số');
+assert.equal(await page.locator('[data-act="dtMo"] .pill.p-ok').count(), 1, 'tủ đã đo đổi sang chip Đã đo');
+await shot('65-do-tu-dien');
+// Ghi thêm vài ngày rồi xem biểu đồ tháng
+const them30 = await page.evaluate(async () => {
+  const ma = tuChuyen()[0].ma, thang = TODAY().slice(0, 7);
+  let n = 0;
+  for (let d = 1; d <= 9; d++) {
+    const ng = thang + '-' + String(d).padStart(2, '0');
+    if (ng >= TODAY()) break;
+    const r = await send('tuGhi', { maCT: ma, ngay: ng, nhietDo: 44 + d, dienAp: 380 + (d % 4),
+      ia: 120 + d, ib: 118 + (d % 5), ic: 125 - (d % 3), ghiChu: '' });
+    if (r && r.err) return 'loi: ' + JSON.stringify(r.err);
+    n++;
+  }
+  return n;
+});
+assert.equal(typeof them30, 'number', 'ghi thêm được các ngày trước: ' + them30);
+await page.click('[data-act="dtTab"][data-v="bd"]'); await wait(900);
+assert.equal(await page.locator('svg.dtchart').count(), 3, 'ba biểu đồ: nhiệt độ, điện áp, dòng điện');
+assert.ok(await page.locator('svg.dtchart polyline').count() >= 5, 'có đủ đường nhiệt độ, điện áp và ba pha dòng');
+await shot('66-bieu-do-thang');
+// Xuất Excel: phải là biểu đồ Excel thật, tức trong file có phần chart
+const xl30 = await page.evaluate(async () => {
+  const goc = window.saveFile;
+  let got = null;
+  window.saveFile = async (blob, name) => { got = { blob, name }; };
+  try { await dtXuatExcel(S.dt.thang); } finally { window.saveFile = goc; }
+  if (!got) return null;
+  const buf = new Uint8Array(await got.blob.arrayBuffer());
+  let txt = '';
+  for (let i = 0; i < buf.length; i++) txt += String.fromCharCode(buf[i]);
+  return { name: got.name, size: buf.length, chart: txt.indexOf('xl/charts/chart1.xml') >= 0,
+    ve: txt.indexOf('xl/drawings/drawing1.xml') >= 0 };
+});
+assert.ok(xl30 && xl30.size > 3000, 'xuất ra file Excel');
+assert.match(xl30.name, /^Do-tu-dien_\d{4}-\d{2}\.xlsx$/, 'tên file theo tháng: ' + xl30.name);
+assert.ok(xl30.chart && xl30.ve, 'file có biểu đồ Excel thật, không phải ảnh');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Bản 2.41: đo tủ nhánh ghi nhiệt độ / điện áp / dòng điện ba pha, biểu đồ tháng trong app và Excel xuất ra có biểu đồ thật');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

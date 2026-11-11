@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.39.1';
+var PHIEN_BAN = '2.41.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -122,16 +122,22 @@ var BANG = {
   GioChay: ['ID', 'Ngay', 'MnkID', 'Gio', 'Nguon', 'UID', 'Nguoi', 'Luc', 'GhiChu', 'OpId', 'CapNhat', 'Xoa'],
   // Lịch luân phiên máy nén khí theo tuần: TuNgay = thứ Hai · DsChay (JSON) = danh sách ID máy chạy tuần đó
   // DsChuyen (JSON): các chuyền sản xuất chạy tuần đó — cộng lượng khí để biết cần mấy máy
-  LichMNK: ['TuNgay', 'DsChay', 'Nguoi', 'UID', 'GhiChu', 'CapNhat', 'DsChuyen']
+  LichMNK: ['TuNgay', 'DsChay', 'Nguoi', 'UID', 'GhiChu', 'CapNhat', 'DsChuyen'],
+  // Số đo tủ điện nhánh: mỗi tủ mỗi ngày một dòng. MaCT = mã công tơ của lộ đó (E10…E25).
+  // NhietDo = chỗ nóng nhất đo được (°C) · DienAp (V) · IA/IB/IC = dòng điện ba pha (A).
+  // Ô nào không đo thì để trống, không ghi 0, để biểu đồ không bị kéo xuống.
+  DoTu: ['ID', 'Ngay', 'MaCT', 'NhietDo', 'DienAp', 'IA', 'IB', 'IC', 'NguoiDo', 'UID', 'GhiChu', 'OpId', 'Luc', 'CapNhat', 'Xoa']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
   NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'], KiemDinh: ['NamSX', 'ChuKy', 'NghiemNgat', 'HoatDong'], MaLoi: ['HoatDong'], NghiemThu: ['STT', 'Xoa'],
   NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop'],
-  MayNen: ['BienTan', 'ChuKyGio', 'GioBD', 'ThuTu', 'HoatDong', 'CongSuat'], GioChay: ['Gio'], LichMNK: [] };
+  MayNen: ['BienTan', 'ChuKyGio', 'GioBD', 'ThuTu', 'HoatDong', 'CongSuat'], GioChay: ['Gio'], LichMNK: [],
+  DoTu: ['NhietDo', 'DienAp', 'IA', 'IB', 'IC'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' },
-  MayNen: { GioBD: '#,##0.#', CongSuat: '#,##0.##' }, GioChay: { Gio: '#,##0.#' }, Chuyen: { KhiNen: '#,##0.##' } };
+  MayNen: { GioBD: '#,##0.#', CongSuat: '#,##0.##' }, GioChay: { Gio: '#,##0.#' }, Chuyen: { KhiNen: '#,##0.##' },
+  DoTu: { NhietDo: '#,##0.#', DienAp: '#,##0.#', IA: '#,##0.#', IB: '#,##0.#', IC: '#,##0.#' } };
 
 // Thông số công tơ (mã OBIS). Quản trị sửa được trong app (lưu ở Script Properties THONG_SO).
 // tich = true: chỉ số cộng dồn → tiêu thụ = (kỳ này − kỳ trước) × hệ số nhân.
@@ -407,6 +413,8 @@ function dieuHuong(a, p, req) {
     case 'dutyCfg': canQuyen(u, 'giaoviec'); return luuGioTruc(u, p);
     // Máy nén khí: danh sách do Quản lý sửa; giờ chạy và đổi máy trong tuần thì kỹ thuật cũng ghi được
     case 'compSave': canQuyen(u, 'may'); return luuMayNen(u, p);
+    case 'tuGhi': canQuyen(u, 'xacnhan'); return ghiDoTu(u, p, s(req.opId));
+    case 'tuXoa': canQuyen(u, 'giaoviec'); return xoaDoTu(u, p);
     case 'compHour': canQuyen(u, 'xacnhan'); return ghiGioChay(u, p, s(req.opId));
     case 'compHourDel': canQuyen(u, 'giaoviec'); return xoaGioChay(u, p);
     case 'compWeek': canQuyen(u, 'xacnhan'); return luuLichMNK(u, p);
@@ -503,9 +511,9 @@ function suaDong(ten, r, arr) {
 }
 
 // ----- Máy -----
-// Khối thiết bị: SX = thiết bị chuyền sản xuất, HCD = thiết bị hậu công đoạn.
+// Khối thiết bị: SX = thiết bị sản xuất (nằm trong các chuyền), HCD = thiết bị phụ trợ.
 // Để trống với máy cũ chưa phân khối; app tự đoán theo nhóm khi hiển thị.
-var KHOI_MAY = { SX: 'Thiết bị chuyền sản xuất · 生产线设备', HCD: 'Thiết bị hậu công đoạn · 后道设备' };
+var KHOI_MAY = { SX: 'Thiết bị sản xuất · 生产设备', HCD: 'Thiết bị phụ trợ · 辅助设备' };
 function khoiHopLe(v) { var k = s(v).toUpperCase(); return KHOI_MAY[k] ? k : ''; }
 // So tên bỏ dấu, bỏ khoảng trắng thừa — để nhận ra chuyền bị nhập lại thành máy dù gõ khác nhau
 function chuanTen(v) {
@@ -577,7 +585,7 @@ function mayChoXem(u) {
 }
 // Máy cũ chưa khai khối thì đoán theo tên nhóm, để việc phân quyền không bỏ sót máy nào
 var KHOI_DOAN_SX = /chuy[eề]n|d[aâ]y chuy|đ[oó]ng g[oó]i|in phun|keo|d[aá]n th[uù]ng|kim lo[aạ]i|mi[eệ]ng t[uú]i|生产线|包装|喷印|胶机|封箱|封口|金属/i;
-// Quạt gió, hút bụi… tuy gắn theo chuyền nhưng là hậu công đoạn, nên phải so khối này trước
+// Quạt gió, hút bụi… tuy gắn theo chuyền nhưng là thiết bị phụ trợ, nên phải so khối này trước
 var KHOI_DOAN_HCD = /qu[aạ]t|h[uú]t b[uụ]i|đ[oó]ng bao|[eé]p ki[eệ]n|n[eé]n kh[ií]|kh[ií] n[eé]n|s[aấ]y kh[ií]|b[ìi]nh ch[uứ]a|đi[eề]u h[oò]a|tr[aạ]m đi[eệ]n|bi[eế]n [aá]p|c[aá]p đi[eệ]n|b[oơ]m|pccc|b[aă]m|ph[eế]|th[oổ]i b[uụ]i|đi[eệ]n|风机|吸尘|打包|空压|干燥|储气|空调|变电|变压|电缆|水泵|消防|废料|风淋|电力/i;
 function khoiCuaMay(m) {
   if (m.khoi === 'SX' || m.khoi === 'HCD') return m.khoi;
@@ -944,6 +952,7 @@ function layDuLieu(u) {
     nghiemThu: docNghiemThu().filter(function (x) { return !x.xoa && x.ngayNT >= tu; }).map(sachNGT),
     mayNen: docMayNen().map(sachMNK),
     gioChay: docGioChay().filter(function (x) { return x.ngayGhi >= tu; }).map(sachGC),
+    doTu: docDoTu().filter(function (x) { return x.ngayGhi >= tu; }).map(sachDT),
     lichMNK: docLichMNK().filter(function (x) { return x.tuNgay >= tu; }).map(sachLMNK),
     me: congKhai(u),
     quyen: quyenCua(u),
@@ -1377,6 +1386,77 @@ var MNK_KHOA = ['id', 'ten', 'tenZh', 'ma', 'maCT', 'bienTan', 'chuKyGio', 'gioB
   'hoatDong', 'ghiChu', 'nguoiTao', 'capNhat', 'congSuat'];
 var GC_KHOA = ['id', 'ngayGhi', 'mnkID', 'gio', 'nguon', 'uid', 'nguoi', 'luc', 'ghiChu', 'opId', 'capNhat', 'xoa'];
 var LMNK_KHOA = ['tuNgay', 'dsChay', 'nguoi', 'uid', 'ghiChu', 'capNhat', 'dsChuyen'];
+
+// ===================== Số đo tủ điện nhánh =====================
+var DT_KHOA = ['id', 'ngayGhi', 'maCT', 'nhietDo', 'dienAp', 'ia', 'ib', 'ic',
+  'nguoi', 'uid', 'ghiChu', 'opId', 'luc', 'capNhat', 'xoa'];
+var DT_SO = ['nhietDo', 'dienAp', 'ia', 'ib', 'ic'];
+// Ô để trống phải giữ nguyên là trống: Number('') ra 0, vẽ biểu đồ sẽ tụt xuống 0 sai hẳn.
+function soHoacRong(v) { return s(v) === '' ? '' : (isNaN(Number(v)) ? '' : Number(v)); }
+function docDoTu() {
+  return docTho('DoTu').map(function (r, i) {
+    var o = obTuDong(DT_KHOA, r, i);
+    DT_SO.forEach(function (k) { o[k] = soHoacRong(o[k]); });
+    return o;
+  }).filter(function (x) { return x.id && x.maCT && x.ngayGhi && !x.xoa; });
+}
+function sachDT(x) {
+  return { id: x.id, ngay: x.ngayGhi, maCT: x.maCT, nhietDo: x.nhietDo, dienAp: x.dienAp,
+    ia: x.ia, ib: x.ib, ic: x.ic, nguoi: x.nguoi, uid: x.uid, ghiChu: x.ghiChu, luc: x.luc };
+}
+function dtThanhDong(x) { return obThanhDong(DT_KHOA, x); }
+// Mỗi tủ mỗi ngày một dòng: ghi lại cùng ngày thì đè lên dòng cũ, không sinh dòng thứ hai.
+function ghiDoTu(u, p, opId) {
+  var ds = docDoTu();
+  if (opId) {
+    var cu = ds.filter(function (x) { return x.opId === opId; })[0];
+    if (cu) return { dup: true, ban: sachDT(cu), doTu: [sachDT(cu)] };
+  }
+  var maCT = s(p.maCT).toUpperCase();
+  if (!dsCongTo().filter(function (c) { return c.ma === maCT; })[0]) {
+    throw loi('KHONG_CO_CONG_TO', 'Không tìm thấy tủ / công tơ này · 找不到该配电柜/电表');
+  }
+  var ngay = ngayStr(p.ngay) || homNayStr();
+  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  if (ngay > homNayStr()) throw loi('NGAY_TUONG_LAI', 'Không ghi số đo cho ngày mai · 不能填写未来日期');
+  var so = {}, coSo = false;
+  DT_SO.forEach(function (k) {
+    var v = soHoacRong(p[k]);
+    if (v === '') { so[k] = ''; return; }
+    if (k === 'nhietDo' && (v < -20 || v > 300)) throw loi('ND_SAI', 'Nhiệt độ phải trong khoảng -20 đến 300 °C · 温度须在 -20 至 300 °C 之间');
+    if (k === 'dienAp' && (v < 0 || v > 1000)) throw loi('U_SAI', 'Điện áp phải trong khoảng 0 đến 1000 V · 电压须在 0 至 1000 V 之间');
+    if (k !== 'nhietDo' && k !== 'dienAp' && (v < 0 || v > 10000)) throw loi('I_SAI', 'Dòng điện phải trong khoảng 0 đến 10000 A · 电流须在 0 至 10000 A 之间');
+    so[k] = v; coSo = true;
+  });
+  if (!coSo) throw loi('CAN_SO_DO', 'Chưa nhập số đo nào · 未填写任何测量值');
+  capNhatTieuDe('DoTu');
+  var luc = thoiGianStr();
+  var x = ds.filter(function (r) { return r.maCT === maCT && r.ngayGhi === ngay; })[0];
+  var truoc = x ? sachDT(x) : null;
+  if (x) {
+    DT_SO.forEach(function (k) { x[k] = so[k]; });
+    x.nguoi = u.ten; x.uid = u.id; x.ghiChu = catChu(p.ghiChu, 200);
+    x.opId = s(opId); x.luc = luc; x.capNhat = luc;
+    suaDong('DoTu', x._r, dtThanhDong(x));
+    ghiNhatKy(u, 'SUA_DO_TU', 'DoTu', x.id, JSON.stringify(truoc), JSON.stringify(sachDT(x)), '');
+  } else {
+    x = { id: idMoi('DT', dsIdCo(ds)), ngayGhi: ngay, maCT: maCT, nguoi: u.ten, uid: u.id,
+      ghiChu: catChu(p.ghiChu, 200), opId: s(opId), luc: luc, capNhat: luc, xoa: '' };
+    DT_SO.forEach(function (k) { x[k] = so[k]; });
+    themDong('DoTu', dtThanhDong(x));
+  }
+  return { ban: sachDT(x), doTu: [sachDT(x)] };
+}
+function xoaDoTu(u, p) {
+  var ds = docDoTu(), id = s(p.id).toUpperCase();
+  var x = ds.filter(function (r) { return r.id === id; })[0];
+  if (!x) throw loi('KHONG_CO_GHI', 'Không tìm thấy lần đo này · 找不到该记录');
+  capNhatTieuDe('DoTu');
+  x.xoa = 1; x.capNhat = thoiGianStr();
+  suaDong('DoTu', x._r, dtThanhDong(x));
+  ghiNhatKy(u, 'XOA_DO_TU', 'DoTu', id, x.maCT + ' ' + x.ngayGhi, '', catChu(p.lyDo, 200));
+  return { xoaDoTu: id };
+}
 
 function docMayNen() {
   return docTho('MayNen').map(function (r, i) { return obTuDong(MNK_KHOA, r, i); }).filter(function (x) { return x.id && x.ten; });
