@@ -1581,7 +1581,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.41.0";
+const APP_VER = "2.42.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1980,7 +1980,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.41.0';
+var PHIEN_BAN = '2.42.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1993,8 +1993,10 @@ var BANG = {
     'PhuTrach', 'NgayDuaVao', 'Chuyen', 'MaHT', 'Khoi', 'ThongSo', 'Xoa', 'ChiTiet'],
   // Chuyền sản xuất (theo Sổ cái quản lý cơ sở vật chất VKY-PR-E01-03). Sửa trực tiếp trên sheet hoặc trong app (Quản lý)
   // KhiNen: lượng khí nén chuyền đó dùng, m³/phút — để tính cần bật mấy máy nén khí
+  // LinhKien (JSON): linh kiện của THÂN dây chuyền — driver, servo, biến tần, module PLC, xi lanh…
+  // Những thứ này không thuộc máy con nào (máy in phun, hút bụi…) nên gắn thẳng vào chuyền.
   Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
-    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT', 'KhiNen'],
+    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT', 'KhiNen', 'LinhKien'],
   LichSu: ['ID', 'Ma', 'TenMay', 'Ngay', 'DenHan', 'NguoiLam', 'GhiChu', 'NguoiXacNhan', 'ThoiGian', 'TrangThai', 'OpId', 'UID', 'Huy', 'ChiTiet'],
   NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh', 'MaThe', 'BoPhan', 'BoPhanZh', 'ChucVu', 'Quyen'],
   TangCa: ['ID', 'UID', 'Ngay', 'Ca', 'Tu', 'Den', 'SoGio', 'LyDo', 'LyDoDich', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat'],
@@ -2584,11 +2586,14 @@ function chTuDong(r, i) {
   CH_KHOA.forEach(function (k, j) { o[k] = s(r[j]); });
   o.ma = o.ma.toUpperCase(); o.hoatDong = s(r[15]) === '' ? true : hd(r[15]); o.capNhat = tgStr(r[16]); o.maHT = s(r[17]);
   o.khiNen = s(r[18]) === '' ? '' : (Number(r[18]) || 0);
+  o.linhKien = docJson(r[19], []);
   return o;
 }
 function chThanhDong(o) {
   return CH_KHOA.map(function (k) { return anToan(o[k] || ''); })
-    .concat([o.hoatDong === false ? 0 : 1, o.capNhat || '', anToan(o.maHT || ''), o.khiNen === '' || o.khiNen === undefined ? '' : o.khiNen]);
+    .concat([o.hoatDong === false ? 0 : 1, o.capNhat || '', anToan(o.maHT || ''),
+      o.khiNen === '' || o.khiNen === undefined ? '' : o.khiNen,
+      o.linhKien && o.linhKien.length ? JSON.stringify(o.linhKien) : '']);
 }
 function dsChuyen() { return docTho('Chuyen').map(chTuDong).filter(function (x) { return x.ma; }); }
 function sachCh(o) {
@@ -2596,6 +2601,7 @@ function sachCh(o) {
   CH_KHOA.forEach(function (k) { x[k] = o[k] || ''; });
   x.hoatDong = o.hoatDong !== false; x.maHT = o.maHT || '';
   x.khiNen = o.khiNen === '' || o.khiNen === undefined ? '' : o.khiNen;
+  x.linhKien = o.linhKien || [];
   return x;
 }
 // Lần đầu: tạo 16 chuyền từ sổ cái, xếp máy in phun (喷印机 VKYxx) và máy hút bụi (Máy hút bụi VKYxx) vào chuyền cùng số. Chạy lại không trùng, không đè máy đã xếp.
@@ -3775,7 +3781,7 @@ function ganLKDaDung(m, lk, u, ngay, nguon, chiKhoCoSan) {
   m.linhKien.forEach(function (k) { co[k.id] = 1; });
   if (chiKhoCoSan && r.kho && r.kho.moi) r.kho.moi.forEach(function (it) { khoMoi[it.ma] = 1; });
   lk.forEach(function (k) {
-    if (co[k.id] || m.linhKien.length >= TOI_DA_DS) return;
+    if (co[k.id] || m.linhKien.length >= TOI_DA_LK) return;
     if (chiKhoCoSan && k.maKho && khoMoi[k.maKho]) return;
     co[k.id] = 1; r.doiMay = true;
     var o = { id: k.id, ten: k.ten, quyCach: k.quyCach, dv: k.dv, sl: '', ghiChu: nguon + ' ' + ngayVN(ngay) + ' · ' + u.ten };
@@ -5061,6 +5067,10 @@ function sachAnh(anh, tenGoc) {
   return out;
 }
 var TOI_DA_DS = 60;
+// Linh kiện được nhiều hơn hạng mục: thân một dây chuyền có thể tới hơn trăm món (driver, servo,
+// biến tần, module PLC, xi lanh). Cả danh sách nằm trong MỘT ô của Google Sheet, giới hạn 50 000 ký
+// tự, mỗi món khoảng 140 ký tự JSON nên 200 món vẫn còn xa mức đó.
+var TOI_DA_LK = 200;
 function idHopLe(v, tien) {
   v = s(v);
   return /^[A-Za-z0-9_-]{1,24}$/.test(v) ? v : tien + Utilities.getUuid().replace(/-/g, '').slice(0, 10);
@@ -5087,7 +5097,7 @@ function sachHangMuc(ds) {
 }
 function sachLinhKien(ds) {
   var out = [], thay = {};
-  (Array.isArray(ds) ? ds : []).slice(0, TOI_DA_DS).forEach(function (k) {
+  (Array.isArray(ds) ? ds : []).slice(0, TOI_DA_LK).forEach(function (k) {
     if (!k) return;
     var ten = catChu(k.ten, 120);
     if (!ten) return;
@@ -5156,7 +5166,13 @@ function chepTheoTen(nguon, dich, tien) {
   });
 }
 function luuDanhSach(u, p) {
-  var ds = dsMay(), m = ds.filter(function (x) { return x.ma === s(p.ma).toUpperCase(); })[0];
+  var ma = s(p.ma).toUpperCase();
+  var ds = dsMay(), m = ds.filter(function (x) { return x.ma === ma; })[0];
+  // Mã của một chuyền thì lưu vào chuyền: linh kiện thân dây chuyền không thuộc máy con nào
+  if (!m) {
+    var c = dsChuyen().filter(function (x) { return x.ma === ma || (x.maHT && x.maHT.toUpperCase() === ma); })[0];
+    if (c) return luuLKChuyen(u, p, c);
+  }
   if (!m) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
   capNhatTieuDe('May');
   var hm = p.hangMuc !== undefined ? sachHangMuc(p.hangMuc) : null;
@@ -5180,6 +5196,19 @@ function luuDanhSach(u, p) {
     ds.forEach(function (x) { if (x.ma !== m.ma && x.hoatDong && x.nhom === m.nhom) ghi(x, false); });
   }
   return { may: doi[0], dsMay: doi, kho: kho ? khoLuuMoi(kho) : null };
+}
+
+// Linh kiện của thân dây chuyền. Chuyền không có hạng mục bảo dưỡng nên chỉ nhận linhKien.
+function luuLKChuyen(u, p, c) {
+  if (p.linhKien === undefined) throw loi('CAN_LINH_KIEN', 'Chuyền chỉ nhận danh sách linh kiện · 产线仅支持零件清单');
+  capNhatTieuDe('Chuyen');
+  var lk = sachLinhKien(p.linhKien), kho = null;
+  if (lk.length) { kho = khoNap(); ganKho(lk, ghiChuThem(c.ma, u), kho); }
+  ghiNhatKyLienKet(u, c, c.linhKien || [], lk);
+  c.linhKien = lk;
+  c.capNhat = thoiGianStr();
+  suaDong('Chuyen', c._r, chThanhDong(c));
+  return { chuyen: sachCh(c), kho: kho ? khoLuuMoi(kho) : null };
 }
 
 // Linh kiện của máy đổi mã ERP (liên kết, bỏ liên kết, đổi sang mã khác): ghi nhật ký, lịch sử dùng giữ nguyên theo id linh kiện
@@ -8545,6 +8574,11 @@ function mergeResult(d) {
     const i = L.findIndex((x) => x.ma === d.congTo.ma);
     if (i >= 0) L[i] = d.congTo; else L.push(d.congTo);
   }
+  if (d.chuyen) {
+    const L = S.base.chuyen = S.base.chuyen || [];
+    const i = L.findIndex((x) => x.ma === d.chuyen.ma);
+    if (i >= 0) L[i] = d.chuyen; else L.push(d.chuyen);
+  }
   (d.congViec ? [d.congViec] : []).concat(d.dsCongViec || []).forEach((v) => {
     const L = S.base.congViec = S.base.congViec || [];
     const i = L.findIndex((x) => x.id === v.id);
@@ -9723,7 +9757,12 @@ function chTile(c, today) {
 }
 // ---------- Linh kiện của chuyền: gom linh kiện các máy trong chuyền, đối chiếu tồn ERP ----------
 function lkCuaCh(ma) {
-  const out = [];
+  const out = [], c = S.V.chByMa[ma];
+  // Linh kiện của THÂN dây chuyền (driver, servo, biến tần, module PLC, xi lanh) đứng trước
+  if (c) {
+    const mCh = { ma: c.ma, ten: tv('lkThanCh'), laCh: 1 };
+    lkOf(c).forEach((x) => out.push({ m: mCh, x, dc: lkDoiChieu(x) }));
+  }
   mayCuaCh(ma).forEach((m) => lkOf(m).forEach((x) => out.push({ m, x, dc: lkDoiChieu(x) })));
   return out;
 }
@@ -9833,6 +9872,12 @@ function lkMauXlsx() {
   const r1 = [[{ v: 'Bảng nhập linh kiện máy · 设备零件导入表', s: { b: 1, sz: 14 } }],
     [{ v: 'Giữ nguyên dòng tiêu đề (dòng 4). Mỗi dòng một linh kiện. Bắt buộc: Mã máy (hoặc Tên máy) và Tên linh kiện. Mã ERP để đối chiếu tồn kho. 保留第4行标题，每行一个零件。', s: { i: 1, color: '#55625F', wrap: 1 } }], [],
     LK_COT.map(([k, lbl]) => ({ v: tp(lbl).replace(' · ', '\n') + (k === 'ten' || k === 'ma' ? ' *' : ''), s: H }))];
+  // Mỗi chuyền một khối: thân dây chuyền trước, rồi tới các máy con
+  (S.V.ch || []).filter((ch) => ch.hoatDong !== false).forEach((ch) => {
+    const ds = lkOf(ch), dau = [c(ch.ma), c(ch.ma), c(tv('lkThanCh') + ' ' + ch.ma)];
+    if (!ds.length) { r1.push(dau.concat([c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y)])); return; }
+    ds.forEach((x) => r1.push(dau.concat([c(x.ten), c(x.quyCach || ''), c(x.maKho || ''), c(x.dv || ''), c(x.sl === '' || x.sl === undefined ? '' : +x.sl || x.sl), c(x.viTriMay || ''), c(MD[x.mucDo] || ''), c(x.ghiChu || '')])));
+  });
   const may = S.V.may.filter((m) => m.hoatDong).sort((a, b) => ((a.chuyen || 'zz') > (b.chuyen || 'zz') ? 1 : (a.chuyen || 'zz') < (b.chuyen || 'zz') ? -1 : a.ma.localeCompare(b.ma)));
   may.forEach((m) => {
     const ds = lkOf(m), dau = [c(m.chuyen || ''), c(m.ma), c(m.ten)];
@@ -9868,19 +9913,31 @@ async function lkDocFile(file) {
       if (cot.ten === undefined || (cot.ma === undefined && cot.tenMay === undefined)) continue;
       const out = [], byTen = {};
       S.V.may.forEach((m) => { byTen[norm(m.ten)] = m; });
+      // Mã hoặc tên của một chuyền cũng nhận: linh kiện thân dây chuyền
+      (S.V.ch || []).forEach((c) => {
+        [c.ten, c.tenZh].forEach((t2) => { if (t2 && !byTen[norm(t2)]) byTen[norm(t2)] = c; });
+      });
       for (let r = hi + 1; r < rows.length; r++) {
         const row = rows[r] || [], g = (k) => (cot[k] === undefined || row[cot[k]] === undefined ? '' : String(row[cot[k]]).trim());
         const ten = g('ten'), ma = g('ma').toUpperCase(), tenMay = g('tenMay');
         if (!ten && !ma && !tenMay) continue;
         if (!ten) continue;                                              // dòng máy chưa có linh kiện
         const o = { dong: r + 1, ten: ten.slice(0, 120), quyCach: g('quyCach').slice(0, 80), maKho: g('maKho'), dv: g('dv').slice(0, 12), sl: g('sl'), viTriMay: g('viTriMay').slice(0, 80), mucDo: mdTuChu(g('mucDo')), ghiChu: g('ghiChu').slice(0, 160), loi: [] };
-        o.m = (ma && S.V.byMa[maTuNhap(ma)]) || (tenMay && byTen[norm(tenMay)]) || null;
+        const mx = ma ? maTuNhap(ma) : '';
+        o.m = (mx && (S.V.byMa[mx] || S.V.chByMa[mx])) || (tenMay && byTen[norm(tenMay)]) || null;
+        o.laCh = !!(o.m && S.V.chByMa[o.m.ma]);
         if (!o.m) o.loi.push(ma ? 'lkLoiMa' : 'lkLoiMay');
         const sl = parseSo(o.sl);
         if (sl !== null && (isNaN(sl) || sl < 0)) o.loi.push('lkLoiSL'); else o.sl = sl === null ? '' : sl;
         const kx = o.maKho ? khoGet(o.maKho) : null;
         if (kx) { o.maKho = kx.ma; if (!o.quyCach) o.quyCach = kx.qc || ''; if (!o.dv) o.dv = kx.dv || ''; }
         o.dc = o.maKho && !kx ? { k: 'loi', ds: ['dcKhongMa'] } : lkDoiChieu({ ten: o.ten, quyCach: o.quyCach, sl: o.sl, maKho: kx ? kx.ma : '' });
+        // File không có mã ERP: dò theo quy cách trong kho, thấy đúng một món thì lấy mã luôn
+        if (!o.maKho && o.dc.kx && o.dc.ds.indexOf('dcChuaLK') >= 0) {
+          o.maKho = o.dc.kx.ma;
+          o.tuMa = 1;
+          o.dc = lkDoiChieu({ ten: o.ten, quyCach: o.quyCach, sl: o.sl, maKho: o.maKho });
+        }
         out.push(o);
       }
       if (!out.length) throw { code: 'LK_FILE_TRONG' };
@@ -9893,9 +9950,11 @@ VIEWS.lkNhap = {
   html(p) {
     const r = p.r, ok = r.ds.filter((o) => !o.loi.length), loiMay = r.ds.length - ok.length, loiERP = ok.filter((o) => o.dc.k === 'loi').length;
     const soMay = new Set(ok.map((o) => o.m.ma)).size, che = p.che || 'them';
+    const tuMa = ok.filter((o) => o.tuMa).length;
     const sx = r.ds.slice().sort((a, b) => (b.loi.length - a.loi.length) || ((b.dc.k === 'loi') - (a.dc.k === 'loi')) || a.dong - b.dong);
     let o = `<div class="card pad"><dl class="kv"><dt>${t('khoFile')}</dt><dd class="mono" style="font-size:13px">${esc(r.file)}</dd><dt>${t('khoSheet')}</dt><dd>${esc(r.sheet)}</dd></dl>
       <div class="kstrip" style="margin-top:10px">${kstHtml('k-green', 'lkNhapOk', null, ok.length)}${kstHtml('k-blue', 'lkNhapMay', null, soMay)}${kstHtml('k-red', 'lkNhapLoiMay', null, loiMay)}${kstHtml('k-orange', 'lkNhapLoiERP', null, loiERP)}</div>
+      ${tuMa ? `<div class="note" style="margin-top:8px">${t('lkTuMa', { n: tuMa })}</div>` : ''}
       <div class="seg" style="margin-top:6px"><button class="${che === 'them' ? 'on' : ''}" data-act="lkChe" data-v="them">${tv('lkCheThem')} ${tz('lkCheThem')}</button><button class="${che === 'thay' ? 'on' : ''}" data-act="lkChe" data-v="thay">${tv('lkCheThay')} ${tz('lkCheThay')}</button></div>
       <div class="help" style="margin-top:6px">${t(che === 'them' ? 'lkCheThemHelp' : 'lkCheThayHelp')}</div>
       ${loiMay ? `<div class="note" style="margin-top:8px">${t('lkBoQua', { n: loiMay })}</div>` : ''}
@@ -9915,10 +9974,12 @@ async function lkNhapOk(el) {
   let n = 0, loi = [];
   const mas = Object.keys(theoMay);
   for (const ma of mas) {
-    const m = S.V.byMa[ma]; if (!m) continue;
+    const m = S.V.byMa[ma] || S.V.chByMa[ma]; if (!m) continue;
     const ds = thay ? [] : JSON.parse(JSON.stringify(lkOf(m)));
     theoMay[ma].forEach((o) => {
-      const cu = ds.find((x) => norm(x.ten) === norm(o.ten));
+      // Cùng tên nhưng khác quy cách là hai linh kiện khác nhau (10 model driver cùng gọi là "bộ điều
+      // khiển servo"), nên phải so cả quy cách, không thì các dòng đè lên nhau chỉ còn một.
+      const cu = ds.find((x) => norm(x.ten) === norm(o.ten) && norm(x.quyCach || '') === norm(o.quyCach || ''));
       const moi = { ten: o.ten, quyCach: o.quyCach, dv: o.dv, sl: o.sl, viTriMay: o.viTriMay, ghiChu: o.ghiChu };
       if (o.mucDo) moi.mucDo = o.mucDo;
       if (o.maKho && khoGet(o.maKho)) moi.maKho = o.maKho;
@@ -9982,7 +10043,7 @@ VIEWS.chuyen = {
     if (xemHet()) {
       const lk = lkCuaCh(c.ma), nl = lkLoiN(lk);
       o += sec('lkChSec', lk.length) + gap('lkch:' + c.ma, nl ? `<b class="warnx">${tv('xLoiN', { n: nl })}</b> ${tz('xLoiN', { n: nl })}` : t('lkChXem'), lk.length, nl ? 'g-qua' : '', () => lkChHtml(c.ma));
-      o += `<div class="btns" style="margin:4px 0 10px">${can('may') && a.length ? `<button class="btn ghost sm" data-act="lkChThem" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkChThem')}</button>` : ''}<button class="btn ghost sm" data-act="lkChXuat" data-ma="${esc(c.ma)}">${IC.dl} ${t('lkChXuat')}</button></div>`;
+      o += `<div class="btns" style="margin:4px 0 10px">${can('may') && !srvOld('lkchuyen') ? `<button class="btn ghost sm" data-act="lkChThanCh" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkThanChThem')}</button>` : ''}${can('may') && a.length ? `<button class="btn ghost sm" data-act="lkChThem" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkChThem')}</button>` : ''}<button class="btn ghost sm" data-act="lkChXuat" data-ma="${esc(c.ma)}">${IC.dl} ${t('lkChXuat')}</button></div>`;
     }
     const tt = ['maTaiSan', 'quyCach', 'nhaSX', 'tinhNang', 'tocDoChuan', 'tocDoThucTe', 'viTri', 'soXuatXuong', 'ngaySX', 'ngayCaiTao', 'ngayVN', 'ghiChu'].filter((k) => c[k]);
     if (tt.length) o += sec('chTT') + `<div class="card pad"><dl class="kv kvwide">${tt.map((k) => `<dt>${t('ch_' + k)}</dt><dd>${esc(c[k])}</dd>`).join('')}</dl></div>`;
@@ -11307,6 +11368,8 @@ const ACT = {
   lkNhapOk: (el) => lkNhapOk(el),
   lkChMo: (el) => { S.f.mo = S.f.mo || {}; S.f.mo['lkch:' + el.dataset.ma] = true; go('chuyen', { ma: el.dataset.ma }); },
   lkChSua: (el) => { if (can('may')) go('dsEdit', { ma: el.dataset.ma, k: 'lk' }); else go('may', { ma: el.dataset.ma, tab: 'lk' }); },
+  // Thêm linh kiện cho chuyền: mặc định vào thân dây chuyền, vẫn chọn được máy con
+  lkChThanCh: (el) => go('dsEdit', { ma: el.dataset.ma, k: 'lk' }),
   lkChThem: (el) => {
     const a = mayCuaCh(el.dataset.ma);
     if (a.length === 1) { go('dsEdit', { ma: a[0].ma, k: 'lk' }); return; }
@@ -14430,9 +14493,10 @@ function lkCollect(m) {
 function nhomCung(m) { return m && m.nhom ? activeMay().filter((x) => x.nhom === m.nhom) : []; }
 VIEWS.dsEdit = {
   html(p) {
-    const m = S.V.byMa[p.ma];
+    // Mã chuyền cũng vào được đây: chuyền giữ linh kiện của thân dây chuyền
+    const m = S.V.byMa[p.ma] || S.V.chByMa[p.ma];
     if (!m) return `<div class="card empty">${t('notFound')}</div>`;
-    const hm = p.k === 'hm';
+    const hm = p.k === 'hm' && !S.V.chByMa[p.ma];
     if (!p.ds) p.ds = JSON.parse(JSON.stringify(hm ? hmOf(m) : lkOf(m)));
     const lbl = (k, inner) => `<label class="mini"><span>${tv(k)}<span class="zi">${tz(k)}</span></span>${inner}</label>`;
     const val = (v) => esc(v === undefined || v === null ? '' : v);
@@ -14724,6 +14788,7 @@ Object.assign(TITLES, { kho: 't_kho', khoNhap: 't_khoNhap' });
 ROOTS.push('kho');
 LIVE_VIEWS.push('kho');
 SRV_PHAN.push(['kho', '1.5.0', 'srvMissKho']);
+SRV_PHAN.push(['lkchuyen', '2.42.0', 'srvMissLKChuyen']);
 IC.box = `<svg ${ICP}><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>`;
 IC.pin = `<svg ${ICP} width="14" height="14"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>`;
 Object.assign(S.f, { khoQ: '', khoF: '', khoLim: 60 });
@@ -15606,7 +15671,13 @@ Object.assign(TX, {
   lkLoiMa: ['Mã máy không có', '无此设备编号'], lkLoiMay: ['Không tìm thấy máy', '找不到设备'], lkLoiSL: ['Số lượng sai', '数量错误'],
   LK_FILE_COT: ['Không thấy cột "Tên linh kiện" và "Mã máy". Hãy dùng bảng mẫu của app.', '未找到"零件名称"和"设备编号"列，请使用应用模板。'], LK_FILE_TRONG: ['File không có dòng linh kiện nào.', '文件中没有零件行。'],
   lkChSec: ['Linh kiện của chuyền', '产线零件'], lkChXem: ['Xem linh kiện và đối chiếu ERP', '查看零件及ERP核对'], lkChTrong: ['Chưa có linh kiện. Thêm linh kiện cho từng máy trong chuyền.', '暂无零件。请为产线内各设备添加零件。'],
-  lkChThem: ['Thêm / sửa linh kiện', '添加/编辑零件'], lkChXuat: ['Xuất Excel linh kiện chuyền này', '导出本产线零件Excel'], lkChXuatAll: ['Xuất Excel linh kiện tất cả chuyền', '导出全部产线零件Excel'],
+  lkChThem: ['Thêm / sửa linh kiện', '添加/编辑零件'],
+  lkThanCh: ['Thân dây chuyền', '产线本体'],
+  lkThanChThem: ['Linh kiện thân chuyền', '产线本体零件'],
+  lkTuMa: ['{n} dòng không ghi mã ERP, app tự dò theo quy cách trong kho và lấy được mã.',
+    '{n}行未填ERP编号，已按规格在备件库中自动匹配到编号。'],
+  srvMissLKChuyen: ['Máy chủ chưa lưu được linh kiện của thân dây chuyền. Cập nhật Code.gs rồi Triển khai lại.',
+    '服务器尚不支持产线本体零件。请更新 Code.gs 后重新部署。'], lkChXuat: ['Xuất Excel linh kiện chuyền này', '导出本产线零件Excel'], lkChXuatAll: ['Xuất Excel linh kiện tất cả chuyền', '导出全部产线零件Excel'],
   lkChHelp: ['Linh kiện của các máy trong mỗi chuyền, đối chiếu với tồn kho trong file ERP đã nhập: mã có trong ERP không, quy cách có khớp không, còn hàng không.', '各产线设备零件，与已导入的ERP库存核对：编号是否存在、规格是否一致、是否有库存。'],
   dcOk: ['Khớp ERP', '与ERP一致'], dcChuaERP: ['Chưa nhập file tồn ERP (Kho linh kiện → Nhập file ERP)', '尚未导入ERP库存文件（备件库→导入ERP）'],
   dcKhongMa: ['Mã không có trong ERP', 'ERP中无此编号'], dcKhongERP: ['Không có trong ERP', 'ERP中没有'], dcChuaLK: ['Chưa liên kết mã ERP (có mã cùng quy cách)', '未关联ERP编号（有同规格编号）'],

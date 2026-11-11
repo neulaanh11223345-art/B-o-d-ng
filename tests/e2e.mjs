@@ -2240,6 +2240,28 @@ assert.ok(xl30.chart && xl30.ve, 'file có biểu đồ Excel thật, không ph�
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
 ok('Bản 2.41: đo tủ nhánh ghi nhiệt độ / điện áp / dòng điện ba pha, biểu đồ tháng trong app và Excel xuất ra có biểu đồ thật');
 
+// 31. Bản 2.42: linh kiện của thân dây chuyền
+await page.setViewportSize({ width: 1440, height: 900 });
+const lk31 = await page.evaluate(async () => {
+  const d = await api('saveLists', { ma: 'VKY01', linhKien: [
+    { ten: 'Bộ điều khiển servo', quyCach: 'MR-J4-40B', sl: 8 },
+    { ten: 'Bộ điều khiển servo', quyCach: 'MR-J4-200B', sl: 9 },
+    { ten: 'Xi lanh', quyCach: 'CA2YD63-300Z', sl: 4 }] });
+  mergeResult(d); rebuild();
+  return (S.V.chByMa.VKY01.linhKien || []).map((x) => x.quyCach);
+});
+assert.deepEqual(lk31, ['MR-J4-40B', 'MR-J4-200B', 'CA2YD63-300Z'],
+  'cùng tên khác quy cách vẫn là hai linh kiện: ' + JSON.stringify(lk31));
+await page.evaluate(() => go('chuyen', { ma: 'VKY01' })); await wait(900);
+await page.evaluate(() => { S.f.mo = S.f.mo || {}; S.f.mo['lkch:VKY01'] = true; render(); }); await wait(700);
+const sub31 = await page.$$eval('.lkch .row .sub', (e) => e.map((x) => x.textContent));
+assert.ok(sub31.filter((x) => /Thân dây chuyền/.test(x)).length === 3,
+  'ba linh kiện hiện dưới "Thân dây chuyền"');
+assert.equal(await page.locator('[data-act="lkChThanCh"]').count(), 1, 'có nút thêm linh kiện thân chuyền');
+await shot('67-linh-kien-than-chuyen');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Bản 2.42: linh kiện gắn thẳng vào thân dây chuyền, cùng tên khác quy cách không đè lên nhau');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
