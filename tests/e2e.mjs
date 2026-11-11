@@ -2261,7 +2261,10 @@ const muc31 = await page.$$eval('.gap .gapb .gap .gaph .gt', (e) => e.map((x) =>
 assert.ok(muc31.some((x) => /Bộ điều khiển servo/.test(x)) && muc31.some((x) => /Xi lanh/.test(x)),
   'có mục Bộ điều khiển servo và mục Xi lanh: ' + JSON.stringify(muc31));
 await page.evaluate(() => { S.f.mo['lkl:VKY01:driver'] = true; S.f.mo['lkl:VKY01:xilanh'] = true; render(); }); await wait(600);
-const nm31 = await page.$$eval('.lkch .row .nm', (e) => e.map((x) => x.textContent.trim()));
+const nm31 = await page.evaluate(() => ['lkl:VKY01:driver', 'lkl:VKY01:xilanh'].flatMap((k) => {
+  const g = document.querySelector('.gaph[data-k="' + k + '"]');
+  return g ? [...g.closest('.gap').querySelectorAll('.lkch .row .nm')].map((x) => x.textContent.trim()) : [];
+}));
 assert.deepEqual(nm31.sort(), ['CA2YD63-300Z', 'MR-J4-200B', 'MR-J4-40B'],
   'trong mục, tên dòng là model, không lặp lại tên loại: ' + JSON.stringify(nm31));
 await shot('67-linh-kien-than-chuyen');

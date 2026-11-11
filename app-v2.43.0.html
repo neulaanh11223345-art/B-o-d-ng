@@ -1051,6 +1051,8 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .dtleg{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink2)}
 .dtleg i{width:12px;height:3px;border-radius:2px;display:inline-block}
 .dtgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lkhead{display:flex;align-items:center;gap:8px;margin:12px 2px 6px;font-size:13px;font-weight:700;color:var(--ink2)}
+.lkhead .nhomn{font-weight:600;color:var(--ink3);background:var(--line2,#EDF1F7);border-radius:999px;padding:1px 8px;font-size:12px}
 .nhomh{display:flex;align-items:center;gap:8px;margin:14px 2px 6px;font-size:13.5px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.3px}
 .nhomh .nhomn{font-weight:600;color:var(--ink3);background:var(--line2,#EDF1F7);border-radius:999px;padding:1px 8px;font-size:12.5px;letter-spacing:0}
 .chip.warnchip{border-color:var(--orange);color:var(--orange);background:var(--orange-bg)}
@@ -3336,17 +3338,24 @@ function lkChHtml(ma) {
   if (!a.length) return `<div class="card empty">${t('lkChTrong')}</div>`;
   const dem = (ds) => { const nl = lkLoiN(ds); return `${ds.length}${nl ? ` · <b class="warnx">${tv('xLoiN', { n: nl })}</b>` : ''}`; };
   const than = a.filter((r) => r.m.laCh), con = a.filter((r) => !r.m.laCh);
+  const nhomThan = lkGomLoai(than), soMay = new Set(con.map((r) => r.m.ma)).size;
+  // Chỉ có đúng một mục thì mở sẵn, khỏi bắt bấm hai lần mới thấy linh kiện
+  if (nhomThan.length + soMay === 1) {
+    S.f.mo = S.f.mo || {};
+    const k1 = nhomThan.length ? 'lkl:' + ma + ':' + nhomThan[0].key : 'lkm:' + ma + ':' + con[0].m.ma;
+    if (S.f.mo[k1] === undefined) S.f.mo[k1] = true;
+  }
   let o = '';
   if (than.length) {
-    o += `<div class="nhomh">${t('lkThanCh')}<span class="nhomn">${than.length}</span></div>`;
-    o += lkGomLoai(than).map((g) => gap('lkl:' + ma + ':' + g.key,
+    o += `<div class="lkhead">${t('lkThanCh')}<span class="nhomn">${than.length}</span></div>`;
+    o += nhomThan.map((g) => gap('lkl:' + ma + ':' + g.key,
       esc(g.nhan[0]) + (g.nhan[1] ? `<span class="zi" lang="zh-CN">${esc(g.nhan[1])}</span>` : ''), dem(g.ds), lkLoiN(g.ds) ? 'g-qua' : '',
       () => `<div class="list lkch">${g.ds.map((r) => lkDongHtml(r, false, g.nhan[0])).join('')}</div>`)).join('');
   }
   if (con.length) {
     const theoMay = {};
     con.forEach((r) => { (theoMay[r.m.ma] = theoMay[r.m.ma] || { m: r.m, ds: [] }).ds.push(r); });
-    o += `<div class="nhomh">${t('lkMayCon')}<span class="nhomn">${con.length}</span></div>`;
+    o += `<div class="lkhead">${t('lkMayCon')}<span class="nhomn">${con.length}</span></div>`;
     o += Object.values(theoMay).map((g) => gap('lkm:' + ma + ':' + g.m.ma, esc(g.m.ten), dem(g.ds), lkLoiN(g.ds) ? 'g-qua' : '',
       () => `<div class="list lkch">${lkGomLoai(g.ds).map((l) => l.ds.map((r) => lkDongHtml(r, false)).join('')).join('')}</div>`)).join('');
   }
