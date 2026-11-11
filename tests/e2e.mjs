@@ -146,11 +146,12 @@ await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.equal(await page.locator('.tabs .tab[data-v="list"]').count(), 0, 'kỹ thuật: không có tab Thiết bị');
 assert.match(await text('.tabs .tab[data-v="cal"]'), /Bảo dưỡng/, 'ô thứ tư của kỹ thuật là Bảo dưỡng');
 assert.match(await text('.tabs .tab[data-v="cv"]'), /Sửa chữa/);
-// Màn Thêm của kỹ thuật: không có Thiết bị, Kho, Kiểm định, Tính toán, Tài liệu
+// Màn Thêm của kỹ thuật: không có Thiết bị, Kho, Kiểm định, Tính toán, Tài liệu.
+// Đo tủ điện thì có, vì chính kỹ thuật là người đi đo.
 await page.click('.tabs .tab[data-v="them"]'); await wait(600);
 const them7 = await page.locator('#main .row .nm').allTextContents();
-assert.deepEqual(them7, ['Công việc', 'Nghiệm thu sửa chữa', 'Máy nén khí', 'Bảo dưỡng', 'Điện / Nước', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
-  'kỹ thuật chỉ thấy đúng tám mục: ' + JSON.stringify(them7));
+assert.deepEqual(them7, ['Công việc', 'Nghiệm thu sửa chữa', 'Máy nén khí', 'Bảo dưỡng', 'Điện / Nước', 'Đo tủ điện', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
+  'kỹ thuật thấy đúng chín mục: ' + JSON.stringify(them7));
 await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.match(await text('.mtiles'), /Sửa chữa/);
 assert.doesNotMatch(await text('.mtiles'), /Linh kiện|Thiết bị|Công việc/, 'Tổng quan chỉ còn Sửa chữa, Bảo dưỡng, Điện, Nước');
@@ -2179,6 +2180,65 @@ if (soMay29 >= 4) assert.ok(nhomCh > 0, 'chuyền nhiều máy thì gom theo nh�
 else assert.equal(nhomCh, 0, 'chuyền ít máy thì để phẳng cho gọn');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
 ok('Bản 2.40: sổ thiết bị xếp thành cây — hai khối sản xuất / phụ trợ, chuyền và nhóm là từng tầng, bỏ dãy chip nhóm');
+
+// 30. Bản 2.41: đo tủ nhánh (nhiệt độ, điện áp, dòng điện), biểu đồ tháng và Excel có biểu đồ
+await page.setViewportSize({ width: 390, height: 844 });
+await moThem('doTu');
+assert.match(await text('#barTitle'), /Đo tủ điện/);
+const tu30 = await page.evaluate(() => tuChuyen().map((c) => c.maCh));
+assert.ok(tu30.length >= 10, 'nhận ra các tủ nhánh của chuyền sản xuất: ' + tu30.length);
+assert.equal(await page.locator('[data-act="dtMo"]').count(), tu30.length, 'mỗi tủ một dòng');
+assert.equal(await page.locator('#main .srvwarn').count(), 0, 'máy chủ đã đủ bản, không còn cảnh báo');
+// Ghi 5 số cho tủ đầu tiên
+await page.click('[data-act="dtMo"] >> nth=0'); await wait(700);
+await page.fill('#dtND', '52.4');
+await page.fill('#dtUU', '382');
+await page.fill('#dtIA', '128');
+await page.fill('#dtIB', '131');
+await page.fill('#dtIC', '126');
+await page.click('[data-act="dtLuu"]'); await wait(2200);
+const d30 = await page.evaluate(() => (S.V.doTu || []).map((x) => [x.maCT, x.nhietDo, x.dienAp, x.ia, x.ib, x.ic]));
+assert.equal(d30.length, 1, 'đã lưu một dòng');
+assert.deepEqual(d30[0].slice(1), [52.4, 382, 128, 131, 126], 'lưu đúng năm số');
+assert.equal(await page.locator('[data-act="dtMo"] .pill.p-ok').count(), 1, 'tủ đã đo đổi sang chip Đã đo');
+await shot('65-do-tu-dien');
+// Ghi thêm vài ngày rồi xem biểu đồ tháng
+const them30 = await page.evaluate(async () => {
+  const ma = tuChuyen()[0].ma, thang = TODAY().slice(0, 7);
+  let n = 0;
+  for (let d = 1; d <= 9; d++) {
+    const ng = thang + '-' + String(d).padStart(2, '0');
+    if (ng >= TODAY()) break;
+    const r = await send('tuGhi', { maCT: ma, ngay: ng, nhietDo: 44 + d, dienAp: 380 + (d % 4),
+      ia: 120 + d, ib: 118 + (d % 5), ic: 125 - (d % 3), ghiChu: '' });
+    if (r && r.err) return 'loi: ' + JSON.stringify(r.err);
+    n++;
+  }
+  return n;
+});
+assert.equal(typeof them30, 'number', 'ghi thêm được các ngày trước: ' + them30);
+await page.click('[data-act="dtTab"][data-v="bd"]'); await wait(900);
+assert.equal(await page.locator('svg.dtchart').count(), 3, 'ba biểu đồ: nhiệt độ, điện áp, dòng điện');
+assert.ok(await page.locator('svg.dtchart polyline').count() >= 5, 'có đủ đường nhiệt độ, điện áp và ba pha dòng');
+await shot('66-bieu-do-thang');
+// Xuất Excel: phải là biểu đồ Excel thật, tức trong file có phần chart
+const xl30 = await page.evaluate(async () => {
+  const goc = window.saveFile;
+  let got = null;
+  window.saveFile = async (blob, name) => { got = { blob, name }; };
+  try { await dtXuatExcel(S.dt.thang); } finally { window.saveFile = goc; }
+  if (!got) return null;
+  const buf = new Uint8Array(await got.blob.arrayBuffer());
+  let txt = '';
+  for (let i = 0; i < buf.length; i++) txt += String.fromCharCode(buf[i]);
+  return { name: got.name, size: buf.length, chart: txt.indexOf('xl/charts/chart1.xml') >= 0,
+    ve: txt.indexOf('xl/drawings/drawing1.xml') >= 0 };
+});
+assert.ok(xl30 && xl30.size > 3000, 'xuất ra file Excel');
+assert.match(xl30.name, /^Do-tu-dien_\d{4}-\d{2}\.xlsx$/, 'tên file theo tháng: ' + xl30.name);
+assert.ok(xl30.chart && xl30.ve, 'file có biểu đồ Excel thật, không phải ảnh');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Bản 2.41: đo tủ nhánh ghi nhiệt độ / điện áp / dòng điện ba pha, biểu đồ tháng trong app và Excel xuất ra có biểu đồ thật');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

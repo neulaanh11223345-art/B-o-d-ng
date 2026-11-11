@@ -2419,3 +2419,63 @@ test('công việc: Quản lý gia hạn việc quá hạn, chỉ nới ra chứ
   ok(b.call('updateTask', { id: v.id, buoc: 'xong', ketQua: 'Đã thay băng tải' }, b.ql));
   err(b.call('updateTask', { id: v.id, buoc: 'giahan', han: '2026-11-30' }, b.ql), 'SAI_TRANG_THAI');
 });
+
+
+// ---------- Số đo tủ điện nhánh: nhiệt độ, điện áp, dòng điện ----------
+function setupDoTu() {
+  const b = loadBackend({ now: '2026-11-11T03:00:00Z' });
+  b.ctx.PropertiesService.getScriptProperties().setProperty('NHAP_EXCEL', 'test');
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  // Tủ nhánh đặt tên theo mã chuyền, đúng như công tơ nhánh ngoài nhà máy
+  const ct = ['VKY01', 'VKY02'].map((ten) => ok(b.call('saveMeter', { ten, heSo: 1, loai: 'nhanh' }, ql)).congTo);
+  return Object.assign(b, { ql, kt, ct, ma: ct[0].ma });
+}
+
+test('đo tủ điện: kỹ thuật ghi được 5 số, mỗi tủ mỗi ngày một dòng', () => {
+  const b = setupDoTu();
+  ok(b.call('tuGhi', { maCT: b.ma, ngay: '2026-11-10', nhietDo: 48.5, dienAp: 381, ia: 120, ib: 124, ic: 119 }, b.kt));
+  let ds = ok(b.call('data', {}, b.kt)).doTu;
+  assert.equal(ds.length, 1);
+  assert.equal(ds[0].nhietDo, 48.5);
+  assert.equal(ds[0].ic, 119);
+  // Ghi lại cùng tủ cùng ngày thì đè lên dòng cũ, không sinh dòng thứ hai
+  ok(b.call('tuGhi', { maCT: b.ma, ngay: '2026-11-10', nhietDo: 51, dienAp: 380, ia: 122, ib: 125, ic: 121 }, b.kt));
+  ds = ok(b.call('data', {}, b.kt)).doTu;
+  assert.equal(ds.length, 1, 'vẫn một dòng cho ngày đó');
+  assert.equal(ds[0].nhietDo, 51);
+  // Ngày khác thì là dòng mới
+  ok(b.call('tuGhi', { maCT: b.ma, ngay: '2026-11-11', nhietDo: 49, dienAp: 382, ia: 121, ib: 123, ic: 120 }, b.kt));
+  assert.equal(ok(b.call('data', {}, b.kt)).doTu.length, 2);
+});
+
+test('đo tủ điện: ô để trống giữ nguyên là trống, không thành 0', () => {
+  const b = setupDoTu();
+  ok(b.call('tuGhi', { maCT: b.ma, ngay: '2026-11-10', nhietDo: 47, dienAp: '', ia: 120, ib: '', ic: '' }, b.kt));
+  const x = ok(b.call('data', {}, b.kt)).doTu[0];
+  assert.equal(x.nhietDo, 47);
+  assert.equal(x.dienAp, '', 'điện áp bỏ trống thì vẫn trống');
+  assert.equal(x.ib, '');
+  assert.equal(x.ia, 120);
+});
+
+test('đo tủ điện: chặn số vô lý, ngày tương lai, tủ không có thật và bản ghi rỗng', () => {
+  const b = setupDoTu();
+  err(b.call('tuGhi', { maCT: 'KHONG-CO', ngay: '2026-11-10', nhietDo: 40 }, b.kt), 'KHONG_CO_CONG_TO');
+  err(b.call('tuGhi', { maCT: b.ma, ngay: '2026-12-01', nhietDo: 40 }, b.kt), 'NGAY_TUONG_LAI');
+  err(b.call('tuGhi', { maCT: b.ma, ngay: '2026-11-10', nhietDo: 900 }, b.kt), 'ND_SAI');
+  err(b.call('tuGhi', { maCT: b.ma, ngay: '2026-11-10', dienAp: 5000 }, b.kt), 'U_SAI');
+  err(b.call('tuGhi', { maCT: b.ma, ngay: '2026-11-10', ia: -5 }, b.kt), 'I_SAI');
+  err(b.call('tuGhi', { maCT: b.ma, ngay: '2026-11-10' }, b.kt), 'CAN_SO_DO');
+  assert.equal(ok(b.call('data', {}, b.kt)).doTu.length, 0, 'không ghi dòng rác nào');
+});
+
+test('đo tủ điện: gửi lại cùng opId không ghi hai lần; chỉ Quản lý xoá được', () => {
+  const b = setupDoTu();
+  const r1 = ok(b.call('tuGhi', { maCT: b.ma, ngay: '2026-11-10', nhietDo: 46 }, b.kt, 'op-dt-1'));
+  const r2 = ok(b.call('tuGhi', { maCT: b.ma, ngay: '2026-11-10', nhietDo: 46 }, b.kt, 'op-dt-1'));
+  assert.equal(r2.dup, true, 'gửi lại thì máy chủ nhận ra là trùng');
+  assert.equal(ok(b.call('data', {}, b.kt)).doTu.length, 1);
+  err(b.call('tuXoa', { id: r1.ban.id }, b.kt), 'KHONG_QUYEN');
+  ok(b.call('tuXoa', { id: r1.ban.id }, b.ql));
+  assert.equal(ok(b.call('data', {}, b.kt)).doTu.length, 0, 'xoá xong thì không còn trong dữ liệu');
+});
