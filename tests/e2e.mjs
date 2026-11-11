@@ -2271,6 +2271,37 @@ await shot('67-linh-kien-than-chuyen');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
 ok('Bản 2.42 + 2.43: linh kiện gắn thẳng vào thân dây chuyền, gom thành mục theo loại (servo, driver, xi lanh…), cùng tên khác quy cách không đè lên nhau');
 
+// 32. Bản 2.44: nối với app Ghi chú · Tài liệu bằng mã chuyền / mã máy
+const GC32 = 'https://vi-du.github.io/ghi-chu-tai-lieu/';
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('chuyen', { ma: 'VKY01' }); }); await wait(700);
+assert.equal(await page.locator('a[data-gc]').count(), 0, 'máy chưa nối thì không có nút sang app Ghi chú');
+// App Ghi chú mở sang lần đầu: gửi kèm địa chỉ của nó, app này nhớ lại và mở thẳng đúng chuyền
+await page.goto(URL_DEMO + '?m=VKY01&gc=' + encodeURIComponent(GC32)); await wait(1500);
+await page.waitForSelector('#lNV, #main', { timeout: 20000 });
+if (await page.locator('#lNV').count()) await login('NV002', '222222');
+await wait(1500);
+assert.equal(await page.evaluate(() => topV().v + ':' + topV().p.ma), 'chuyen:VKY01', 'mở thẳng đúng chuyền VKY01');
+const h32 = new URL(await page.getAttribute('a[data-gc]', 'href'));
+assert.equal(h32.origin + h32.pathname, GC32, 'nút trỏ đúng app Ghi chú');
+assert.equal(h32.searchParams.get('tim'), 'VKY01', 'mở app Ghi chú lọc sẵn VKY01');
+assert.equal(h32.searchParams.get('cmms'), URL_DEMO, 'gửi kèm địa chỉ app này để bấm ngược về');
+await page.evaluate(() => go('may', { ma: 'M001' })); await wait(700);
+assert.equal(new URL(await page.getAttribute('a[data-gc]', 'href')).searchParams.get('tim'), 'VKY01',
+  'máy thuộc chuyền thì tra theo mã chuyền');
+await shot('68-noi-app-ghi-chu');
+// Bỏ nối ở màn Cá nhân thì nút biến mất
+await page.click('#meBtn'); await wait(600);
+await page.click('[data-act="gcForm"]'); await wait(400);
+await page.click('[data-act="gcBo"]'); await wait(500);
+assert.equal(await page.evaluate(() => gcUrl()), '', 'đã bỏ nối');
+await page.evaluate(() => go('chuyen', { ma: 'VKY01' })); await wait(700);
+assert.equal(await page.locator('a[data-gc]').count(), 0, 'bỏ nối thì hết nút');
+// Địa chỉ lạ (javascript:…) không được nhận
+await page.evaluate(() => { gcDat(''); });
+await page.goto(URL_DEMO + '?gc=' + encodeURIComponent('javascript:alert(1)')); await wait(1500);
+assert.equal(await page.evaluate(() => gcUrl()), '', 'không nhận địa chỉ javascript:');
+ok('Bản 2.44: nối với app Ghi chú · Tài liệu — nút mở đúng mã, nhớ địa chỉ khi app kia mở sang, bỏ nối được, không nhận địa chỉ lạ');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

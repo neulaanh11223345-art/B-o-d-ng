@@ -1583,7 +1583,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.43.0";
+const APP_VER = "2.44.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -2655,6 +2655,7 @@ VIEWS.me = {
       <button class="row" data-act="pinForm">${IC.key}<div class="main"><div class="nm">${t('changePin')}</div></div></button>
       ${can('huy') ? `<button class="row" data-act="go" data-v="duyet">${IC.bolt}<div class="main"><div class="nm">${t('t_duyet')}</div></div>${choDuyetDS().length ? `<span class="pill p-qua">${choDuyetDS().length}</span>` : ''}${IC.chev}</button>
       <button class="row" data-act="go" data-v="nhatKy">${IC.hist}<div class="main"><div class="nm">${t('nhatKy')}</div></div>${IC.chev}</button>` : ''}
+      ${can('may') ? `<button class="row" data-act="gcForm">${IC.link}<div class="main"><div class="nm">${t('gcNoi')}</div><div class="sub mono">${gcUrl() ? esc(gcUrl().slice(0, 60)) : t('gcChuaNoi')}</div></div>${IC.chev}</button>` : ''}
       ${can('admin') ? `<button class="row" data-act="go" data-v="admin">${IC.gear}<div class="main"><div class="nm">${t('gotoAdmin')}</div></div>${IC.chev}</button>` : ''}
       ${IS_DEMO ? `<label class="row switch" style="padding:11px 14px"><span class="t">${t('simOff')}</span><input type="checkbox" id="simOff" ${S.simOff ? 'checked' : ''}></label>` : ''}
       ${!IS_DEMO && !(typeof API_URL === 'string' && API_URL) ? `<button class="row" data-act="setupAgain">${IC.link}<div class="main"><div class="nm">${t('serverLink')}</div><div class="sub mono">${esc(apiUrl().slice(0, 60))}…</div></div></button>` : ''}
@@ -3103,12 +3104,14 @@ VIEWS.may = {
           <thead><tr>${nhan.map((k) => `<th>${esc(k)}</th>`).join('')}</tr></thead><tbody>${tr}</tbody></table></div></div>`;
       }
       if (m.noiDung) o += sec('content') + `<div class="card pad"><p class="pre">${esc(m.noiDung)}</p></div>`;
+      if (gcUrl()) o += `<div class="btns" style="margin-top:14px">${gcNut(gcMaCua(m))}</div>`;
       if (can('may') && can('suatb')) {
         o += `<div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="editMay" data-ma="${esc(m.ma)}">${IC.edit} ${t('edit')}</button>
           <button class="btn ghost" data-act="labelsOne" data-ma="${esc(m.ma)}">${IC.qr} ${t('printQR')}</button>
           ${srvOld('xoamay') ? '' : `<button class="btn danger" data-act="mayXoa" data-ma="${esc(m.ma)}">${IC.out} ${t('mXoaHan')}</button>`}</div>`;
       }
     } else if (tb === 'tl') {
+      if (gcUrl()) o += `<div class="btns" style="margin:0 0 10px">${gcNut(gcMaCua(m))}</div>`;
       o += sec('tlSec', tlCua(m.ma).length) + tlSection(m.ma);
       if (m.chuyen && S.V.chByMa[m.chuyen]) o += sec('tlCuaCh', tlCua(m.chuyen).length, { c: mh(m.chuyen) }) + tlSection(m.chuyen, true);
     } else if (tb === 'sc') {
@@ -3610,6 +3613,7 @@ VIEWS.chuyen = {
         ? gs.map(([g, arr]) => `<div class="nhomh">${esc(grpLabel(g))}<span class="nhomn">${arr.length}</span></div>` + dsMayRows(arr, today)).join('')
         : dsMayRows(a, today);
     }
+    if (gcUrl()) o += `<div class="btns" style="margin:10px 0 4px">${gcNut(c.ma)}</div>`;
     if (can('may')) o += `<div class="btns" style="margin:10px 0 4px"><button class="btn ghost sm" data-act="chThemMay" data-ma="${esc(c.ma)}">${IC.plus} ${t('chThemMay')}</button><button class="btn ghost sm" data-act="chSua" data-ma="${esc(c.ma)}">${IC.edit} ${t('chSua')}</button><button class="btn ghost sm" data-act="labelsOne" data-ma="${esc(c.ma)}">${IC.qr} ${t('printQR')}</button></div>`;
     const tls = tlCua(c.ma);
     o += sec('tlSec', tls.length) + gap('tl:' + c.ma, tls.length ? esc(tls.slice(0, 3).map((x) => x.ten).join(' · ')) : t('tlChuaCo'), tls.length, '', () => tlSection(c.ma));
@@ -15322,12 +15326,60 @@ function dtXuatExcel(thang) {
   saveFile(XW.build(sheets), 'Do-tu-dien_' + thang + '.xlsx');
 }
 
+// ===================== Nối với app Ghi chú · Tài liệu (v2.44) =====================
+// Hai app vẫn đăng nhập riêng, không dữ liệu nào chạy sang app kia — chỉ là đường link mở đúng màn.
+//   App này nhận   ?m=VKY01 (vốn dùng cho tem QR) và &gc=<link app Ghi chú> → nhớ địa chỉ app Ghi chú
+//   App Ghi chú nhận ?tim=VKY01 → mở màn Tìm với sẵn chữ VKY01; &cmms=<link app này>
+// Địa chỉ lưu theo TỪNG MÁY (localStorage), không lên máy chủ: nhân viên không cài app Ghi chú thì
+// không thấy nút nào, tài liệu riêng của app Ghi chú không lộ ra.
+Object.assign(TX, {
+  gcNut: ['Ghi chú · Tài liệu', '笔记资料'],
+  gcNoi: ['Nối app Ghi chú · Tài liệu', '连接笔记资料APP'],
+  gcChuaNoi: ['Chưa nối', '未连接'],
+  gcHelp: ['Dán địa chỉ app Ghi chú · Tài liệu đang dùng trên máy này. Từ đó màn máy và màn chuyền có nút mở thẳng ghi chú, tài liệu, thông số máy in, bảng PLC của đúng mã đó bên app Ghi chú. Chỉ lưu trên máy này, máy khác không thấy.',
+    '粘贴本机使用的笔记资料APP地址。之后设备页和产线页会出现按钮，可直接打开该编号在笔记APP中的笔记、资料、喷码机参数、PLC表。仅保存在本机，其他手机看不到。'],
+  gcDiaChi: ['Địa chỉ app Ghi chú', '笔记APP地址'],
+  gcBo: ['Bỏ nối', '取消连接'], gcDaNoi: ['Đã nối với app Ghi chú', '已连接笔记APP'], gcDaBo: ['Đã bỏ nối', '已取消连接'],
+  gcSai: ['Địa chỉ phải bắt đầu bằng https://', '地址须以 https:// 开头']
+});
+const gcHopLe = (u) => /^https?:\/\//i.test(String(u || '')) || (IS_DEMO && /^file:\/\//i.test(String(u || '')));
+function gcUrl() { try { const u = localStorage.getItem('cmms_gc') || ''; return gcHopLe(u) ? u : ''; } catch (e) { return ''; } }
+function gcDat(u) { try { if (u) localStorage.setItem('cmms_gc', u); else localStorage.removeItem('cmms_gc'); } catch (e) { /* bỏ qua */ } }
+function gcLink(ma) {
+  const b = gcUrl(), m = String(ma || '').trim();
+  if (!b || !m) return '';
+  try { const u = new URL(b); u.searchParams.set('tim', m); u.searchParams.set('cmms', location.href.split('#')[0].split('?')[0]); return u.href; } catch (e) { return ''; }
+}
+// Nút mở app Ghi chú lọc sẵn đúng mã. Máy chưa nối thì không hiện gì.
+const gcNut = (ma) => { const h = gcLink(ma); return h ? `<a class="btn ghost sm" data-gc="${esc(ma)}" href="${esc(h)}" target="_blank" rel="noopener">${IC.link} ${esc(tv('gcNut'))} <b class="mono">${esc(ma)}</b><span class="zi">${esc(tz('gcNut'))}</span></a>` : ''; };
+// Máy thuộc một chuyền thì tra theo mã chuyền: app Ghi chú xếp thông số máy in, encoder, bảng PLC theo chuyền,
+// còn mã máy M001 chỉ có bên app này. Máy không thuộc chuyền nào thì tra theo mã máy.
+const gcMaCua = (m) => (m.chuyen && S.V.chByMa[m.chuyen] ? m.chuyen : mh(m.ma));
+Object.assign(ACT, {
+  gcForm: () => openSheet(`<div class="grab"></div><h3>${tv('gcNoi')}<span class="zi">${tz('gcNoi')}</span></h3>
+    <p class="help" style="margin:4px 0 12px">${t('gcHelp')}</p>
+    <label class="fld"><span>${t('gcDiaChi')}</span><input class="inp mono" id="gcIn" value="${esc(gcUrl())}" placeholder="https://…/ghi-chu-tai-lieu/" autocomplete="off"></label>
+    <div class="err" id="gcErr" hidden></div>
+    <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+      ${gcUrl() ? `<button class="btn ghost red" data-act="gcBo">${t('gcBo')}</button>` : ''}
+      <button class="btn" data-act="gcLuu">${IC.check} ${t('save')}</button></div>`),
+  gcLuu: () => {
+    const v = $('#gcIn').value.trim();
+    if (!gcHopLe(v)) { const e = $('#gcErr'); e.innerHTML = t('gcSai'); e.hidden = false; return; }
+    gcDat(v); closeSheet(); toast(t('gcDaNoi')); render();
+  },
+  gcBo: () => { gcDat(''); closeSheet(); toast(t('gcDaBo')); render(); }
+});
+
 // Link từ tem QR: ...?m=M001
 try {
   const q = new URLSearchParams(location.search), m = q.get('m');
   API_LINK = q.get('api') || '';
   if (m) S.deepMa = m.toUpperCase();
-  if (m || API_LINK) history.replaceState(null, '', location.pathname);
+  // App Ghi chú mở sang thì gửi kèm địa chỉ của nó: nhớ lại để bấm ngược về được
+  const gc = q.get('gc');
+  if (gc && gcHopLe(gc)) gcDat(gc);
+  if (m || API_LINK || gc) history.replaceState(null, '', location.pathname);
 } catch (e) { /* bỏ qua */ }
 if (!IS_DEMO && 'serviceWorker' in navigator && (/^https:/.test(location.protocol) || location.hostname === 'localhost')) {
   // Có bản app mới (service worker mới nhận quyền): tải lại trang một lần để dùng ngay, không phải tắt mở app
