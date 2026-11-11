@@ -1581,7 +1581,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.42.0";
+const APP_VER = "2.43.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1980,7 +1980,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.42.0';
+var PHIEN_BAN = '2.43.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -5110,6 +5110,8 @@ function sachLinhKien(ds) {
     if (mk) o.maKho = mk;
     var vt = catChu(k.viTriMay, 80);
     if (vt) o.viTriMay = vt;
+    var nh = catChu(k.nhom, 40);     // loại linh kiện: Xi lanh, Động cơ servo, Biến tần…
+    if (nh) o.nhom = nh;
     if (k.mucDo === 'thap' || k.mucDo === 'tb' || k.mucDo === 'cao') o.mucDo = k.mucDo;
     var anhId = '';
     if (k.anhData && String(k.anhData).indexOf('data:') === 0) {
@@ -9784,13 +9786,71 @@ function lkDoiChieu(x) {
   return { k: ds.some((d) => d === 'dcSaiQC' || d === 'dcHet') ? 'loi' : ds.length ? 'canh' : 'ok', kx: g, ds };
 }
 const dcTag = (dc) => `<span class="dctag dc-${dc.k}">${dc.k === 'ok' ? tv('dcOk') : dc.ds.map((d) => tv(d)).join(' · ')}</span>`;
+// Loại linh kiện, đúng như bảng tổng hợp của nhà máy chia sheet: xi lanh ra xi lanh, động cơ ra động cơ.
+// Linh kiện chưa ghi loại thì đoán theo tên / quy cách (MR-J… là driver, HG-… là động cơ servo, FR-… là biến tần).
+const LK_LOAI = [
+  ['servo', ['Động cơ servo', '伺服电机'], /dong co servo|伺服电机|servo motor|^h[gfc]-/],
+  ['driver', ['Bộ điều khiển servo', '伺服驱动器'], /dieu khien servo|驱动器|servo driver|^mr-/],
+  ['bientan', ['Biến tần', '变频器'], /bien tan|变频|inverter|^fr-|^md[0-9]/],
+  ['plc', ['Module PLC', 'PLC模块'], /\bplc\b|\bcpu\b|module|模块|^q[0-9a-z]{2,}|^fx[0-9]/],
+  ['xilanh', ['Xi lanh', '气缸'], /xi lanh|气缸|cylinder/],
+  ['chinhlech', ['Máy chỉnh lệch', '纠偏机'], /chinh lech|纠偏|x-guide/],
+  ['dongco', ['Động cơ', '电机'], /dong co|电机|motor/],
+  ['camBien', ['Cảm biến', '传感器'], /cam bien|传感器|sensor/],
+  ['vongBi', ['Vòng bi', '轴承'], /vong bi|bac dan|轴承|bearing/]
+];
+const LK_KHAC = ['khac', ['Khác', '其他']];
+// Trả về [khoá, [Việt, Trung]] của loại
+function lkLoai(x) {
+  const ghi = norm(x && x.nhom);
+  if (ghi) {
+    const k = LK_LOAI.find(([key, [vi, zh]]) => ghi === key.toLowerCase() || ghi === norm(vi) || ghi === norm(zh));
+    return k ? [k[0], k[1]] : ['g:' + ghi, [String(x.nhom).trim(), '']];   // loại tự đặt: giữ nguyên chữ người dùng
+  }
+  const ten = norm(x && x.ten), qc = norm(x && x.quyCach);
+  const k = LK_LOAI.find(([, , re]) => re.test(ten) || re.test(qc));
+  return k ? [k[0], k[1]] : LK_KHAC;
+}
+const lkLoaiTen = (x) => { const [, [vi, zh]] = lkLoai(x); return zh ? vi + ' · ' + zh : vi; };
+const lkLoaiThu = (key) => { const i = LK_LOAI.findIndex(([k]) => k === key); return i < 0 ? (key === 'khac' ? 999 : 500) : i; };
+// Gom theo loại, giữ thứ tự cố định: servo, driver, biến tần, PLC, xi lanh…, loại tự đặt, Khác
+function lkGomLoai(a) {
+  const nhom = {};
+  a.forEach((r) => {
+    const [key, nhan] = lkLoai(r.x);
+    (nhom[key] = nhom[key] || { key, nhan, ds: [] }).ds.push(r);
+  });
+  return Object.values(nhom).sort((p, q) => lkLoaiThu(p.key) - lkLoaiThu(q.key) || p.nhan[0].localeCompare(q.nhan[0], 'vi'));
+}
+function lkDongHtml({ m, x, dc }, hienMay, nhanLoai) {
+  // Trong mục "Xi lanh" mà tên chỉ là "Xi lanh · 气缸" thì lặp vô ích: lấy model làm tên dòng
+  const trungLoai = nhanLoai && x.quyCach && norm(x.ten).indexOf(norm(nhanLoai)) === 0;
+  return `<div class="row" data-act="lkChSua" data-ma="${esc(m.ma)}" role="button" tabindex="0"><div class="main">
+    <div class="nm">${trungLoai ? `<span class="mono">${esc(x.quyCach)}</span>` : `${esc(x.ten)}${x.quyCach ? ` <span class="mono qc">${esc(x.quyCach)}</span>` : ''}`}</div>
+    <div class="sub">${hienMay ? esc(m.ten) + ' · ' : ''}${tv('slMay')} ${esc(soG(x.sl) || '—')}${dc.kx ? ` · ERP <span class="code">${esc(dc.kx.ma)}</span>${tonOf(dc.kx) !== null ? ` · ${tv('tonKho')} <b class="mono">${esc(soG(tonOf(dc.kx)))}</b>` : ''}` : ''}</div></div>
+    <div class="end">${dcTag(dc)}</div></div>`;
+}
+// Màn chuyền: thân dây chuyền gom thành từng mục theo loại (bấm mới xổ), sau đó mỗi máy con một mục
 function lkChHtml(ma) {
   const a = lkCuaCh(ma);
   if (!a.length) return `<div class="card empty">${t('lkChTrong')}</div>`;
-  return `<div class="list lkch">${a.map(({ m, x, dc }) => `<div class="row" data-act="lkChSua" data-ma="${esc(m.ma)}" role="button" tabindex="0"><div class="main">
-    <div class="nm">${esc(x.ten)}${x.quyCach ? ` <span class="mono qc">${esc(x.quyCach)}</span>` : ''}</div>
-    <div class="sub">${esc(m.ten)} · ${tv('slMay')} ${esc(soG(x.sl) || '—')}${dc.kx ? ` · ERP <span class="code">${esc(dc.kx.ma)}</span>${tonOf(dc.kx) !== null ? ` · ${tv('tonKho')} <b class="mono">${esc(soG(tonOf(dc.kx)))}</b>` : ''}` : ''}</div></div>
-    <div class="end">${dcTag(dc)}</div></div>`).join('')}</div>`;
+  const dem = (ds) => { const nl = lkLoiN(ds); return `${ds.length}${nl ? ` · <b class="warnx">${tv('xLoiN', { n: nl })}</b>` : ''}`; };
+  const than = a.filter((r) => r.m.laCh), con = a.filter((r) => !r.m.laCh);
+  let o = '';
+  if (than.length) {
+    o += `<div class="nhomh">${t('lkThanCh')}<span class="nhomn">${than.length}</span></div>`;
+    o += lkGomLoai(than).map((g) => gap('lkl:' + ma + ':' + g.key,
+      esc(g.nhan[0]) + (g.nhan[1] ? `<span class="zi" lang="zh-CN">${esc(g.nhan[1])}</span>` : ''), dem(g.ds), lkLoiN(g.ds) ? 'g-qua' : '',
+      () => `<div class="list lkch">${g.ds.map((r) => lkDongHtml(r, false, g.nhan[0])).join('')}</div>`)).join('');
+  }
+  if (con.length) {
+    const theoMay = {};
+    con.forEach((r) => { (theoMay[r.m.ma] = theoMay[r.m.ma] || { m: r.m, ds: [] }).ds.push(r); });
+    o += `<div class="nhomh">${t('lkMayCon')}<span class="nhomn">${con.length}</span></div>`;
+    o += Object.values(theoMay).map((g) => gap('lkm:' + ma + ':' + g.m.ma, esc(g.m.ten), dem(g.ds), lkLoiN(g.ds) ? 'g-qua' : '',
+      () => `<div class="list lkch">${lkGomLoai(g.ds).map((l) => l.ds.map((r) => lkDongHtml(r, false)).join('')).join('')}</div>`)).join('');
+  }
+  return o;
 }
 const lkLoiN = (a) => a.filter((r) => r.dc.k === 'loi').length;
 function lkChXlsx(dsCh) {
@@ -9798,31 +9858,34 @@ function lkChXlsx(dsCh) {
   const hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
   const MAU = { loi: { fill: '#FDE7E7', color: '#B71C1C' }, canh: { fill: '#FFF3E0', color: '#A65400' }, ok: { color: '#1B5E20' }, chua: {} };
-  const cols = ['stt', 'thMay', 'code', 'lkTen', 'quyCach', 'dv', 'slMay', 'xMaERP', 'xTenERP', 'xQcERP', 'tonKho', 'xViTriKho', 'xDoiChieu'];
+  const cols = ['stt', 'thMay', 'code', 'lkLoai', 'lkTen', 'quyCach', 'dv', 'slMay', 'xMaERP', 'xTenERP', 'xQcERP', 'tonKho', 'xViTriKho', 'xDoiChieu'];
   const dong = (r, i) => {
     const k = r.dc.kx, n = k ? tonOf(k) : null, st = MAU[r.dc.k] || {};
-    return [c(i + 1, { align: 'center' }), c(r.m.ten), c(r.m.ma), c(r.x.ten), c(r.x.quyCach || ''), c(dvTxt(r.x.dv || '')), c(+r.x.sl || r.x.sl || '', { align: 'right' }),
+    return [c(i + 1, { align: 'center' }), c(r.m.ten), c(r.m.ma), c(lkLoaiTen(r.x)), c(r.x.ten), c(r.x.quyCach || ''), c(dvTxt(r.x.dv || '')), c(+r.x.sl || r.x.sl || '', { align: 'right' }),
       c(k ? k.ma : (r.x.maKho || '')), c(k ? k.ten : ''), c(k ? k.qc || '' : ''), c(n === null ? '' : n, { align: 'right' }), c(k ? khoBinTxt(k, false).join(', ') : ''),
       c(r.dc.k === 'ok' ? tp('dcOk') : r.dc.ds.map((d) => tp(d)).join('\n'), Object.assign({ b: r.dc.k !== 'ok' }, st))];
   };
-  const W = [5, 22, 8, 26, 18, 8, 8, 14, 26, 18, 10, 18, 26], today = fmtD(TODAY());
+  const W = [5, 22, 8, 22, 26, 18, 8, 8, 14, 26, 18, 10, 18, 26], today = fmtD(TODAY());
   const tong = [[{ v: 'Linh kiện theo chuyền · 产线零件 — ' + today, s: { b: 1, sz: 14 } }], [{ v: tp('xlsExported') + ': ' + today + ' · ERP: ' + (S.kho.nhap && S.kho.nhap.luc ? fmtD(String(S.kho.nhap.luc).slice(0, 10)) : '—'), s: { i: 1, color: '#55625F' } }], [],
     hd(['chuyen', 'xSoMay', 'xSoLK', 'xLoi', 'xCanh'])];
   const sheets = [{ name: 'Tong hop', rows: tong, cols: [30, 10, 12, 12, 12], merges: ['A1:E1'], freeze: { r: 4, c: 0 } }];
   const loiAll = [];
   dsCh.forEach((ch) => {
-    const a = lkCuaCh(ch.ma), nl = lkLoiN(a), nc = a.filter((r) => r.dc.k === 'canh').length;
+    // Thân chuyền trước, rồi từng máy con; trong mỗi phần xếp theo loại cho giống bảng của nhà máy
+    const a = lkCuaCh(ch.ma).map((r, i) => Object.assign({ i }, r)).sort((p, q) => ((q.m.laCh ? 1 : 0) - (p.m.laCh ? 1 : 0))
+      || (p.m.laCh ? 0 : p.m.ma.localeCompare(q.m.ma)) || lkLoaiThu(lkLoai(p.x)[0]) - lkLoaiThu(lkLoai(q.x)[0]) || p.i - q.i);
+    const nl = lkLoiN(a), nc = a.filter((r) => r.dc.k === 'canh').length;
     tong.push([c(ch.ma + (ch.tenZh ? ' · ' + ch.tenZh : '')), c(mayCuaCh(ch.ma).length, { align: 'center' }), c(a.length, { align: 'center' }), c(nl, Object.assign({ align: 'center' }, nl ? MAU.loi : {})), c(nc, Object.assign({ align: 'center' }, nc ? MAU.canh : {}))]);
     a.forEach((r) => { if (r.dc.k === 'loi' || r.dc.k === 'canh') loiAll.push(Object.assign({ ch: ch.ma }, r)); });
     const rows = [[{ v: 'Linh kiện chuyền ' + ch.ma + (ch.tenZh ? ' · ' + ch.tenZh : '') + ' — ' + today, s: { b: 1, sz: 14 } }], [{ v: ch.ten || '', s: { i: 1, color: '#55625F' } }], [], hd(cols)];
     a.forEach((r, i) => rows.push(dong(r, i)));
     if (!a.length) rows.push([c(tp('lkChTrong'))]);
-    sheets.push({ name: ch.ma.replace(/[^A-Za-z0-9 ._()-]/g, '').slice(0, 30) || 'Chuyen', rows, cols: W, merges: ['A1:M1', 'A2:M2'], freeze: { r: 4, c: 0 }, landscape: true });
+    sheets.push({ name: ch.ma.replace(/[^A-Za-z0-9 ._()-]/g, '').slice(0, 30) || 'Chuyen', rows, cols: W, merges: ['A1:N1', 'A2:N2'], freeze: { r: 4, c: 0 }, landscape: true });
   });
   if (dsCh.length > 1 && loiAll.length) {
     const rows = [[{ v: 'Linh kiện cần xử lý (không khớp ERP) · 需处理零件', s: { b: 1, sz: 14 } }], [], [], [{ v: tp('chuyen').replace(' · ', '\n'), s: H }].concat(hd(cols).slice(1))];
     loiAll.forEach((r) => { const d = dong(r, 0); d[0] = c(r.ch); rows.push(d); });
-    sheets.splice(1, 0, { name: 'Can xu ly', rows, cols: [8].concat(W.slice(1)), merges: ['A1:M1'], freeze: { r: 4, c: 0 }, landscape: true });
+    sheets.splice(1, 0, { name: 'Can xu ly', rows, cols: [8].concat(W.slice(1)), merges: ['A1:N1'], freeze: { r: 4, c: 0 }, landscape: true });
   }
   return XW.build(sheets);
 }
@@ -9864,7 +9927,8 @@ VIEWS.lkChuyen = {
 // ---------- Nhập linh kiện của máy từ file Excel (theo bảng mẫu) ----------
 const LK_COT = [['chuyen', 'xChuyen', ['chuyen', 'chuyen san xuat', '产线', '所属产线']], ['ma', 'code', ['ma may', 'ma thiet bi', '设备编号']], ['tenMay', 'thMay', ['ten may', 'thiet bi', '设备', '设备名称']],
   ['ten', 'lkTen', ['ten linh kien', '零件名称', 'linh kien']], ['quyCach', 'quyCach', ['quy cach', '规格', 'model']], ['maKho', 'xMaERP', ['ma erp', 'erp编号', 'ma kho', 'erp']], ['dv', 'dv', ['don vi', 'dvt', '单位']],
-  ['sl', 'slMay', ['sl tren may', 'sl lap', 'so luong', '装机数量', '数量']], ['viTriMay', 'viTriMay', ['vi tri lap', 'vi tri tren may', '安装位置']], ['mucDo', 'mucDo', ['muc do', 'muc do quan trong', '重要程度']], ['ghiChu', 'ghiChuLK', ['ghi chu', '备注']]];
+  ['sl', 'slMay', ['sl tren may', 'sl lap', 'so luong', '装机数量', '数量']], ['viTriMay', 'viTriMay', ['vi tri lap', 'vi tri tren may', '安装位置']], ['mucDo', 'mucDo', ['muc do', 'muc do quan trong', '重要程度']], ['ghiChu', 'ghiChuLK', ['ghi chu', '备注']],
+  ['nhom', 'lkLoai', ['loai linh kien', 'nhom linh kien', 'loai lk', '零件类别', '零件类型']]];
 function lkMauXlsx() {
   const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' }, Y = { fill: '#FFF8E1' };
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
@@ -9875,14 +9939,14 @@ function lkMauXlsx() {
   // Mỗi chuyền một khối: thân dây chuyền trước, rồi tới các máy con
   (S.V.ch || []).filter((ch) => ch.hoatDong !== false).forEach((ch) => {
     const ds = lkOf(ch), dau = [c(ch.ma), c(ch.ma), c(tv('lkThanCh') + ' ' + ch.ma)];
-    if (!ds.length) { r1.push(dau.concat([c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y)])); return; }
-    ds.forEach((x) => r1.push(dau.concat([c(x.ten), c(x.quyCach || ''), c(x.maKho || ''), c(x.dv || ''), c(x.sl === '' || x.sl === undefined ? '' : +x.sl || x.sl), c(x.viTriMay || ''), c(MD[x.mucDo] || ''), c(x.ghiChu || '')])));
+    if (!ds.length) { r1.push(dau.concat([c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y)])); return; }
+    ds.forEach((x) => r1.push(dau.concat([c(x.ten), c(x.quyCach || ''), c(x.maKho || ''), c(x.dv || ''), c(x.sl === '' || x.sl === undefined ? '' : +x.sl || x.sl), c(x.viTriMay || ''), c(MD[x.mucDo] || ''), c(x.ghiChu || ''), c(lkLoai(x)[1][0])])));
   });
   const may = S.V.may.filter((m) => m.hoatDong).sort((a, b) => ((a.chuyen || 'zz') > (b.chuyen || 'zz') ? 1 : (a.chuyen || 'zz') < (b.chuyen || 'zz') ? -1 : a.ma.localeCompare(b.ma)));
   may.forEach((m) => {
     const ds = lkOf(m), dau = [c(m.chuyen || ''), c(m.ma), c(m.ten)];
-    if (!ds.length) { r1.push(dau.concat([c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y)])); return; }
-    ds.forEach((x) => r1.push(dau.concat([c(x.ten), c(x.quyCach || ''), c(x.maKho || ''), c(x.dv || ''), c(x.sl === '' || x.sl === undefined ? '' : +x.sl || x.sl), c(x.viTriMay || ''), c(MD[x.mucDo] || ''), c(x.ghiChu || '')])));
+    if (!ds.length) { r1.push(dau.concat([c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y)])); return; }
+    ds.forEach((x) => r1.push(dau.concat([c(x.ten), c(x.quyCach || ''), c(x.maKho || ''), c(x.dv || ''), c(x.sl === '' || x.sl === undefined ? '' : +x.sl || x.sl), c(x.viTriMay || ''), c(MD[x.mucDo] || ''), c(x.ghiChu || ''), c(lkLoai(x)[1][0])])));
   });
   const r2 = [[{ v: 'Danh sách máy · 设备清单', s: { b: 1, sz: 14 } }], [], [], ['code', 'thMay', 'group', 'xChuyen', 'maHT'].map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }))];
   S.V.may.filter((m) => m.hoatDong).forEach((m) => r2.push([c(m.ma), c(m.ten), c(m.nhom || ''), c(m.chuyen ? mh(m.chuyen) : ''), c(m.maHT || '')]));
@@ -9892,7 +9956,7 @@ function lkMauXlsx() {
     '4. Mức độ: Thấp / Trung bình / Cao (không bắt buộc).',
     '5. Trong app: Thiết bị → Linh kiện theo chuyền → Nhập từ Excel → chọn file → xem trước → Nhập.',
     '   Chọn "Thêm vào" để giữ linh kiện cũ (trùng tên thì cập nhật), hoặc "Thay toàn bộ" để danh sách của mỗi máy có trong file chỉ còn các dòng trong file.'];
-  return XW.build([{ name: 'Linh kien', rows: r1, cols: [10, 9, 24, 28, 18, 14, 9, 9, 18, 12, 24], merges: ['A1:K1', 'A2:K2'], heights: { 2: 30 }, freeze: { r: 4, c: 0 } },
+  return XW.build([{ name: 'Linh kien', rows: r1, cols: [10, 9, 24, 28, 18, 14, 9, 9, 18, 12, 24, 18], merges: ['A1:L1', 'A2:L2'], heights: { 2: 30 }, freeze: { r: 4, c: 0 } },
     { name: 'Danh sach may', rows: r2, cols: [9, 30, 24, 10], freeze: { r: 4, c: 0 } },
     { name: 'Huong dan', rows: hd.map((x, i) => [{ v: x, s: i ? {} : { b: 1, sz: 14 } }]), cols: [110] }]);
 }
@@ -9922,7 +9986,9 @@ async function lkDocFile(file) {
         const ten = g('ten'), ma = g('ma').toUpperCase(), tenMay = g('tenMay');
         if (!ten && !ma && !tenMay) continue;
         if (!ten) continue;                                              // dòng máy chưa có linh kiện
-        const o = { dong: r + 1, ten: ten.slice(0, 120), quyCach: g('quyCach').slice(0, 80), maKho: g('maKho'), dv: g('dv').slice(0, 12), sl: g('sl'), viTriMay: g('viTriMay').slice(0, 80), mucDo: mdTuChu(g('mucDo')), ghiChu: g('ghiChu').slice(0, 160), loi: [] };
+        const o = { dong: r + 1, ten: ten.slice(0, 120), quyCach: g('quyCach').slice(0, 80), maKho: g('maKho'), dv: g('dv').slice(0, 12), sl: g('sl'), viTriMay: g('viTriMay').slice(0, 80), mucDo: mdTuChu(g('mucDo')), ghiChu: g('ghiChu').slice(0, 160), nhom: g('nhom').slice(0, 40), loi: [] };
+        // Không ghi loại thì đoán theo tên / quy cách, đoán ra được mới ghi vào
+        if (!o.nhom) { const [k2, [vi2]] = lkLoai(o); if (k2 !== 'khac') o.nhom = vi2; }
         const mx = ma ? maTuNhap(ma) : '';
         o.m = (mx && (S.V.byMa[mx] || S.V.chByMa[mx])) || (tenMay && byTen[norm(tenMay)]) || null;
         o.laCh = !!(o.m && S.V.chByMa[o.m.ma]);
@@ -9981,6 +10047,7 @@ async function lkNhapOk(el) {
       // khiển servo"), nên phải so cả quy cách, không thì các dòng đè lên nhau chỉ còn một.
       const cu = ds.find((x) => norm(x.ten) === norm(o.ten) && norm(x.quyCach || '') === norm(o.quyCach || ''));
       const moi = { ten: o.ten, quyCach: o.quyCach, dv: o.dv, sl: o.sl, viTriMay: o.viTriMay, ghiChu: o.ghiChu };
+      if (o.nhom) moi.nhom = o.nhom;
       if (o.mucDo) moi.mucDo = o.mucDo;
       if (o.maKho && khoGet(o.maKho)) moi.maKho = o.maKho;
       if (cu) Object.assign(cu, moi); else ds.push(Object.assign({ id: newId('LK') }, moi));
@@ -14517,12 +14584,13 @@ VIEWS.dsEdit = {
         ${hm ? `<div class="seg dskieu"><button type="button" class="${x.kieu !== 'SO' ? 'on' : ''}" data-act="dsKieu" data-i="${i}" data-v="OK">${tv('kieuOK')} ${tz('kieuOK')}</button><button type="button" class="${x.kieu === 'SO' ? 'on' : ''}" data-act="dsKieu" data-i="${i}" data-v="SO">${tv('kieuSO')} ${tz('kieuSO')}</button></div>
           ${x.kieu === 'SO' ? `<div class="dsgrid">${lbl('min', `<input class="inp" data-f="min" value="${val(x.min)}" inputmode="decimal" maxlength="16">`)}${lbl('max', `<input class="inp" data-f="max" value="${val(x.max)}" inputmode="decimal" maxlength="16">`)}${lbl('dv', `<input class="inp" data-f="dv" value="${val(x.dv)}" maxlength="12">`)}</div>` : ''}`
         : `<div class="dsgrid">${lbl('quyCach', `<input class="inp" data-f="quyCach" value="${val(x.quyCach)}" maxlength="80">`)}${lbl('dv', `<input class="inp" data-f="dv" value="${val(x.dv)}" maxlength="12">`)}${lbl('slMay', `<input class="inp" data-f="sl" value="${val(x.sl)}" inputmode="decimal" maxlength="10">`)}</div>
-          ${lbl('viTriMay', `<input class="inp" data-f="viTriMay" value="${val(x.viTriMay)}" maxlength="80">`)}
+          <div class="dsgrid">${lbl('viTriMay', `<input class="inp" data-f="viTriMay" value="${val(x.viTriMay)}" maxlength="80">`)}${lbl('lkLoai', `<input class="inp" data-f="nhom" value="${val(x.nhom || '')}" placeholder="${esc(lkLoai(x)[1][0])}" maxlength="40" list="lkLoaiDS">`)}</div>
           <div class="seg mdseg">${['thap', 'tb', 'cao'].map((k) => `<button type="button" class="${x.mucDo === k ? 'on' : ''}" data-act="dsMuc" data-i="${i}" data-v="${k}">${tv('md_' + k)} ${tz('md_' + k)}</button>`).join('')}</div>
           ${lbl('ghiChuLK', `<input class="inp" data-f="ghiChu" value="${val(x.ghiChu)}" maxlength="160">`)}`}
       </div>
       <div class="dsbtn">${hm ? '' : `<div class="anhds" data-act="lkAnhPick" data-i="${i}" title="${esc(tp('chupAnh'))}">${(x.anhData || x.anh) ? anhImg(x.anhData || x.anh, 'data-act="anhView" data-g="ds:' + i + '" data-i="0"') : '<span class="acap">+</span>'}</div>${(x.anhData || x.anh) ? `<button type="button" class="ax" data-act="anhDel" data-g="ds:${i}" aria-label="x">✕</button>` : ''}`}<button type="button" data-act="dsMove" data-i="${i}" data-d="-1" aria-label="${esc(tp('len'))}"${i ? '' : ' disabled'}>↑</button><button type="button" data-act="dsMove" data-i="${i}" data-d="1" aria-label="${esc(tp('xuong'))}"${i < p.ds.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="x" data-act="dsDel" data-i="${i}" aria-label="${esc(tp('del'))}">✕</button></div>
     </div>`).join('') : `<div class="card empty">${t('dsTrong')}</div>`}</div>`;
+    if (!hm) o += `<datalist id="lkLoaiDS">${LK_LOAI.map(([, [vi]]) => `<option value="${esc(vi)}"></option>`).join('')}</datalist>`;
     o += `<button class="btn ghost wide" style="margin-top:10px" data-act="dsAdd">${IC.plus} ${t(hm ? 'addHM' : 'addLK')}</button>`;
     const nh = nhomCung(m);
     if (nh.length > 1) o += `<label class="switch" style="margin-top:14px"><span class="t">${t('caNhom', { n: nh.length })}<div class="help">${t('caNhomHelp', { g: m.nhom })}</div></span><input type="checkbox" id="dsCaNhom"${p.caNhom ? ' checked' : ''}></label>`;
@@ -14598,7 +14666,7 @@ async function dsSave(el) {
       const sl = parseSo(x.sl);
       if (sl !== null && (isNaN(sl) || sl < 0)) return show(t('SO_SAI') + ' — ' + esc(ten));
       ds.push({ id: x.id, ten, quyCach: String(x.quyCach || '').trim(), dv: String(x.dv || '').trim(), sl: sl === null ? '' : sl, ghiChu: String(x.ghiChu || '').trim(), maKho: x.maKho || undefined, anh: x.anh || '', anhData: x.anhData || undefined,
-        viTriMay: String(x.viTriMay || '').trim(), mucDo: x.mucDo || undefined });
+        viTriMay: String(x.viTriMay || '').trim(), mucDo: x.mucDo || undefined, nhom: String(x.nhom || '').trim() || undefined });
     }
   }
   el.disabled = true;
@@ -15673,6 +15741,7 @@ Object.assign(TX, {
   lkChSec: ['Linh kiện của chuyền', '产线零件'], lkChXem: ['Xem linh kiện và đối chiếu ERP', '查看零件及ERP核对'], lkChTrong: ['Chưa có linh kiện. Thêm linh kiện cho từng máy trong chuyền.', '暂无零件。请为产线内各设备添加零件。'],
   lkChThem: ['Thêm / sửa linh kiện', '添加/编辑零件'],
   lkThanCh: ['Thân dây chuyền', '产线本体'],
+  lkMayCon: ['Máy trong chuyền', '产线设备'], lkLoai: ['Loại linh kiện', '零件类别'],
   lkThanChThem: ['Linh kiện thân chuyền', '产线本体零件'],
   lkTuMa: ['{n} dòng không ghi mã ERP, app tự dò theo quy cách trong kho và lấy được mã.',
     '{n}行未填ERP编号，已按规格在备件库中自动匹配到编号。'],

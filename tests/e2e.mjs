@@ -2254,13 +2254,19 @@ assert.deepEqual(lk31, ['MR-J4-40B', 'MR-J4-200B', 'CA2YD63-300Z'],
   'cùng tên khác quy cách vẫn là hai linh kiện: ' + JSON.stringify(lk31));
 await page.evaluate(() => go('chuyen', { ma: 'VKY01' })); await wait(900);
 await page.evaluate(() => { S.f.mo = S.f.mo || {}; S.f.mo['lkch:VKY01'] = true; render(); }); await wait(700);
-const sub31 = await page.$$eval('.lkch .row .sub', (e) => e.map((x) => x.textContent));
-assert.ok(sub31.filter((x) => /Thân dây chuyền/.test(x)).length === 3,
-  'ba linh kiện hiện dưới "Thân dây chuyền"');
+assert.match(await text('#main'), /Thân dây chuyền/, 'có phần Thân dây chuyền');
 assert.equal(await page.locator('[data-act="lkChThanCh"]').count(), 1, 'có nút thêm linh kiện thân chuyền');
+// Thân chuyền gom thành mục theo loại, đoán được cả khi không ghi loại
+const muc31 = await page.$$eval('.gap .gapb .gap .gaph .gt', (e) => e.map((x) => x.textContent.trim()));
+assert.ok(muc31.some((x) => /Bộ điều khiển servo/.test(x)) && muc31.some((x) => /Xi lanh/.test(x)),
+  'có mục Bộ điều khiển servo và mục Xi lanh: ' + JSON.stringify(muc31));
+await page.evaluate(() => { S.f.mo['lkl:VKY01:driver'] = true; S.f.mo['lkl:VKY01:xilanh'] = true; render(); }); await wait(600);
+const nm31 = await page.$$eval('.lkch .row .nm', (e) => e.map((x) => x.textContent.trim()));
+assert.deepEqual(nm31.sort(), ['CA2YD63-300Z', 'MR-J4-200B', 'MR-J4-40B'],
+  'trong mục, tên dòng là model, không lặp lại tên loại: ' + JSON.stringify(nm31));
 await shot('67-linh-kien-than-chuyen');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
-ok('Bản 2.42: linh kiện gắn thẳng vào thân dây chuyền, cùng tên khác quy cách không đè lên nhau');
+ok('Bản 2.42 + 2.43: linh kiện gắn thẳng vào thân dây chuyền, gom thành mục theo loại (servo, driver, xi lanh…), cùng tên khác quy cách không đè lên nhau');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

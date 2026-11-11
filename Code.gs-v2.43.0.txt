@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.42.0';
+var PHIEN_BAN = '2.43.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -3147,6 +3147,8 @@ function sachLinhKien(ds) {
     if (mk) o.maKho = mk;
     var vt = catChu(k.viTriMay, 80);
     if (vt) o.viTriMay = vt;
+    var nh = catChu(k.nhom, 40);     // loại linh kiện: Xi lanh, Động cơ servo, Biến tần…
+    if (nh) o.nhom = nh;
     if (k.mucDo === 'thap' || k.mucDo === 'tb' || k.mucDo === 'cao') o.mucDo = k.mucDo;
     var anhId = '';
     if (k.anhData && String(k.anhData).indexOf('data:') === 0) {
