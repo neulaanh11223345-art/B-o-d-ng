@@ -1051,6 +1051,10 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .dtleg{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink2)}
 .dtleg i{width:12px;height:3px;border-radius:2px;display:inline-block}
 .dtgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lksub{display:flex;align-items:center;gap:6px;margin:12px 4px 5px;font-size:12.5px;font-weight:700;color:var(--ink2)}
+.lksub .zi{font-weight:500}
+.lksub .nhomn{font-weight:600;color:var(--ink3);background:var(--line2,#EDF1F7);border-radius:999px;padding:1px 8px;font-size:11.5px}
+.lksub+.list{margin-top:0}
 .lkhead{display:flex;align-items:center;gap:8px;margin:12px 2px 6px;font-size:13px;font-weight:700;color:var(--ink2)}
 .lkhead .nhomn{font-weight:600;color:var(--ink3);background:var(--line2,#EDF1F7);border-radius:999px;padding:1px 8px;font-size:12px}
 .nhomh{display:flex;align-items:center;gap:8px;margin:14px 2px 6px;font-size:13.5px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.3px}
@@ -1333,7 +1337,11 @@ h1.cvh .zh2{font-size:.8em;margin-top:4px}
 <div id="printArea"></div>
 <script>
 // ===== XW: ghi file Excel .xlsx có màu, không cần thư viện ngoài =====
-// XW.build([{name, rows:[[cell]], cols:[width], merges:['A1:C1'], freeze:{r,c}, heights:{1:28}, landscape, charts}])
+// XW.build([{name, rows:[[cell]], cols:[width], merges:['A1:C1'], freeze:{r,c}, heights:{1:28}, landscape, charts, logo}])
+// Mọi sheet tự có dải logo công ty ở trên cùng (chèn 2 dòng, các dòng của sheet lùi xuống, ô gộp / cố định / biểu đồ
+// tự lùi theo), khổ A4 vừa một trang ngang, lặp lại dòng tiêu đề mỗi trang in, chân trang có số trang.
+// logo:false để bỏ dải logo. landscape bỏ trống thì bảng rộng tự in khổ ngang.
+// levels: {số dòng: cấp} để gom dòng, bấm dấu −/+ bên trái Excel là gập / mở cả mục.
 // charts: [{title, yTitle, cats:{c, r1, r2}, series:[{name, c, color}], at:{r, c, w, h}}]
 //   cột tính từ 0, dòng tính từ 1 (đúng như ô trên Excel). at = ô góc trên trái và cỡ biểu đồ tính bằng ô.
 //   Đây là biểu đồ Excel thật: mở file ra sửa được, không phải ảnh dán vào.
@@ -1360,7 +1368,8 @@ const XW = (() => {
     const font = '<font>' + (st.b ? '<b/>' : '') + (st.i ? '<i/>' : '') + '<sz val="' + (st.sz || 10) + '"/><color rgb="' +
       argb(st.color || '#16211F') + '"/><name val="Arial"/><family val="2"/></font>';
     const fontId = this.idx(this.fonts, font);
-    const fillId = st.fill ? this.idx(this.fills, '<fill><patternFill patternType="solid"><fgColor rgb="' + argb(st.fill) +
+    const nen = st.fill || st.bg;
+    const fillId = nen ? this.idx(this.fills, '<fill><patternFill patternType="solid"><fgColor rgb="' + argb(nen) +
       '"/><bgColor indexed="64"/></patternFill></fill>') : 0;
     let borderId = 0;
     if (st.border) {
@@ -1432,7 +1441,41 @@ const XW = (() => {
       + '</c:plotArea><c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend>'
       + '<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>';
   }
-  function drawingXml(charts) {
+  // ----- Logo công ty (ảnh PNG) -----
+  const LOGO_DONG = 2, LOGO_W = 211 * 9525, LOGO_H = 38 * 9525;   // 211 × 38 px, đúng tỉ lệ logo 333 × 60
+  let logoBytes = null;
+  function logoPng() {
+    if (logoBytes === null) {
+      try {
+        const b64 = String(typeof LOGO_FULL === 'string' ? LOGO_FULL : '').split(',')[1] || '', bin = atob(b64);
+        logoBytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) logoBytes[i] = bin.charCodeAt(i);
+      } catch (e) { logoBytes = new Uint8Array(0); }
+    }
+    return logoBytes.length ? logoBytes : null;
+  }
+  // 'A1:N1' lùi k dòng thành 'A3:N3'
+  const lui = (ref, k) => String(ref).replace(/(\$?)(\d+)/g, (m0, d, n) => d + (+n + k));
+  function themLogo(sh) {
+    if (sh.logo === false || !logoPng()) return sh;
+    const K = LOGO_DONG, o = Object.assign({}, sh), h = { 1: 34, 2: 6 };
+    o.rows = [[], []].concat(sh.rows || []);
+    o.merges = (sh.merges || []).map((m) => lui(m, K));
+    Object.keys(sh.heights || {}).forEach((r) => { h[+r + K] = sh.heights[r]; });
+    o.heights = h;
+    if (sh.levels) { o.levels = {}; Object.keys(sh.levels).forEach((r) => { o.levels[+r + K] = sh.levels[r]; }); }
+    if (sh.freeze && sh.freeze.r) o.freeze = { r: sh.freeze.r + K, c: sh.freeze.c || 0 };
+    if (sh.charts) {
+      o.charts = sh.charts.map((c) => Object.assign({}, c, c.cats ? { cats: Object.assign({}, c.cats, { r1: c.cats.r1 + K, r2: c.cats.r2 + K }) } : {},
+        { at: Object.assign({ r: 0, c: 0, w: 8, h: 15 }, c.at || {}, { r: ((c.at && c.at.r) || 0) + K }) }));
+    }
+    // In nhiều trang: trang nào cũng có logo, tiêu đề và dòng tên cột
+    if (sh.printTitles) o.printTitles = Object.assign({}, sh.printTitles, sh.printTitles.rows ? { rows: lui(sh.printTitles.rows, K) } : {});
+    else if (sh.freeze && sh.freeze.r) o.printTitles = { rows: '1:' + (sh.freeze.r + K) };
+    o._logo = 1;
+    return o;
+  }
+  function drawingXml(charts, logo) {
     const neo = (ch, i) => {
       const a = ch.at || { r: 0, c: 0, w: 8, h: 15 };
       return '<xdr:twoCellAnchor>'
@@ -1444,23 +1487,32 @@ const XW = (() => {
         + '<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId' + (i + 1) + '"/>'
         + '</a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>';
     };
+    const anh = !logo ? '' : '<xdr:oneCellAnchor>'
+      + '<xdr:from><xdr:col>0</xdr:col><xdr:colOff>57150</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>47625</xdr:rowOff></xdr:from>'
+      + '<xdr:ext cx="' + LOGO_W + '" cy="' + LOGO_H + '"/>'
+      + '<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="' + (charts.length + 2) + '" name="Logo" descr="Credible"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>'
+      + '<xdr:blipFill><a:blip r:embed="rId' + (charts.length + 1) + '"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
+      + '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + LOGO_W + '" cy="' + LOGO_H + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>'
+      + '</xdr:pic><xdr:clientData/></xdr:oneCellAnchor>';
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
       + '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"'
-      + ' xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
-      + charts.map(neo).join('') + '</xdr:wsDr>';
+      + ' xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"'
+      + ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+      + anh + charts.map(neo).join('') + '</xdr:wsDr>';
   }
 
   function sheetXml(sh, S) {
     const out = [];
     out.push('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">');
-    out.push('<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+    const capMax = sh.levels ? Math.max(0, ...Object.values(sh.levels)) : 0;
+    out.push('<sheetPr>' + (capMax ? '<outlinePr summaryBelow="0"/>' : '') + '<pageSetUpPr fitToPage="1"/></sheetPr>');
     if (sh.freeze && (sh.freeze.r || sh.freeze.c)) {
       const r = sh.freeze.r || 0, c = sh.freeze.c || 0;
       const pane = c && r ? 'bottomRight' : (r ? 'bottomLeft' : 'topRight');
       out.push('<sheetViews><sheetView workbookViewId="0"><pane' + (c ? ' xSplit="' + c + '"' : '') + (r ? ' ySplit="' + r + '"' : '') +
         ' topLeftCell="' + col(c) + (r + 1) + '" activePane="' + pane + '" state="frozen"/></sheetView></sheetViews>');
     } else out.push('<sheetViews><sheetView workbookViewId="0"/></sheetViews>');
-    out.push('<sheetFormatPr defaultRowHeight="15"/>');
+    out.push('<sheetFormatPr defaultRowHeight="15"' + (capMax ? ' outlineLevelRow="' + capMax + '"' : '') + '/>');
     if (sh.cols && sh.cols.length) {
       out.push('<cols>' + sh.cols.map((w, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>');
     }
@@ -1478,13 +1530,19 @@ const XW = (() => {
         if (typeof o.v === 'number' && isFinite(o.v)) cells.push('<c r="' + ref + '"' + sa + '><v>' + o.v + '</v></c>');
         else cells.push('<c r="' + ref + '"' + sa + ' t="inlineStr"><is><t xml:space="preserve">' + esc(o.v) + '</t></is></c>');
       });
-      out.push('<row r="' + (ri + 1) + '"' + (h ? ' ht="' + h + '" customHeight="1"' : '') + '>' + cells.join('') + '</row>');
+      const lv = sh.levels && sh.levels[ri + 1];
+      out.push('<row r="' + (ri + 1) + '"' + (h ? ' ht="' + h + '" customHeight="1"' : '') + (lv ? ' outlineLevel="' + lv + '"' : '') + '>' + cells.join('') + '</row>');
     });
     out.push('</sheetData>');
     if (sh.merges && sh.merges.length) out.push('<mergeCells count="' + sh.merges.length + '">' + sh.merges.map((m) => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>');
-    out.push('<pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/>');
+    // In: A4, căn giữa trang, vừa một trang ngang; bảng rộng (tổng độ rộng cột > 105) tự in khổ ngang
+    out.push('<printOptions horizontalCentered="1"/>');
+    out.push('<pageMargins left="0.35" right="0.35" top="0.45" bottom="0.6" header="0.2" footer="0.25"/>');
     const fit = sh.fit || { w: 1, h: 0 };
-    out.push('<pageSetup paperSize="9" orientation="' + (sh.landscape ? 'landscape' : 'portrait') + '" fitToWidth="' + fit.w + '" fitToHeight="' + fit.h + '"/>');
+    const rong = (sh.cols || []).reduce((a, w) => a + (+w || 0), 0);
+    const ngang = sh.landscape === undefined ? rong > 105 : !!sh.landscape;
+    out.push('<pageSetup paperSize="9" orientation="' + (ngang ? 'landscape' : 'portrait') + '" fitToWidth="' + fit.w + '" fitToHeight="' + fit.h + '"/>');
+    out.push('<headerFooter><oddFooter>' + esc('&L&"Arial,Regular"&8&A&R&"Arial,Regular"&8Trang &P/&N · 第&P/&N页') + '</oddFooter></headerFooter>');
     if (sh._ve) out.push('<drawing r:id="rId1"/>');   // phải nằm sau pageSetup, đúng thứ tự của chuẩn
     out.push('</worksheet>');
     return out.join('');
@@ -1529,7 +1587,8 @@ const XW = (() => {
     used.add(k); return k;
   }
 
-  function build(sheets) {
+  function build(sheets0) {
+    const sheets = (sheets0 || []).map(themLogo);
     const S = new Styles(), used = new Set();
     const names = sheets.map((sh) => sheetName(sh.name, used));
     const files = [];
@@ -1538,12 +1597,12 @@ const XW = (() => {
     let soChart = 0;
     sheets.forEach((sh, i) => {
       const ds = (sh.charts || []).filter((c) => c && c.cats && (c.series || []).length);
-      if (!ds.length) { sh._ve = 0; return; }
+      if (!ds.length && !sh._logo) { sh._ve = 0; return; }
       const ids = ds.map(() => ++soChart);
-      ve.push({ sheet: i, ids: ids, charts: ds });
+      ve.push({ sheet: i, ids: ids, charts: ds, logo: !!sh._logo });
       sh._ve = ve.length;
     });
-    files.push({ name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    files.push({ name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
       sheets.map((_, i) => '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('') +
       ve.map((v, k) => '<Override PartName="/xl/drawings/drawing' + (k + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>').join('') +
       ve.reduce((a, v) => a.concat(v.ids), []).map((n) => '<Override PartName="/xl/charts/chart' + n + '.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>').join('') +
@@ -1567,13 +1626,15 @@ const XW = (() => {
       files.push({ name: 'xl/worksheets/_rels/sheet' + (v.sheet + 1) + '.xml.rels',
         data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
           + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing' + d + '.xml"/></Relationships>' });
-      files.push({ name: 'xl/drawings/drawing' + d + '.xml', data: drawingXml(v.charts) });
+      files.push({ name: 'xl/drawings/drawing' + d + '.xml', data: drawingXml(v.charts, v.logo) });
       files.push({ name: 'xl/drawings/_rels/drawing' + d + '.xml.rels',
         data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
           + v.ids.map((n, j) => '<Relationship Id="rId' + (j + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart' + n + '.xml"/>').join('')
+          + (v.logo ? '<Relationship Id="rId' + (v.ids.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/logo.png"/>' : '')
           + '</Relationships>' });
       v.charts.forEach((ch, j) => files.push({ name: 'xl/charts/chart' + v.ids[j] + '.xml', data: chartXml(ch, names[v.sheet]) }));
     });
+    if (ve.some((v) => v.logo)) files.push({ name: 'xl/media/logo.png', data: logoPng() });
     files.push({ name: 'xl/styles.xml', data: S.xml() });
     return new Blob([zip(files)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   }
@@ -1583,7 +1644,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.44.0";
+const APP_VER = "2.45.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -1982,7 +2043,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.44.0';
+var PHIEN_BAN = '2.45.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -9860,16 +9921,24 @@ function lkChHtml(ma) {
     con.forEach((r) => { (theoMay[r.m.ma] = theoMay[r.m.ma] || { m: r.m, ds: [] }).ds.push(r); });
     o += `<div class="lkhead">${t('lkMayCon')}<span class="nhomn">${con.length}</span></div>`;
     o += Object.values(theoMay).map((g) => gap('lkm:' + ma + ':' + g.m.ma, esc(g.m.ten), dem(g.ds), lkLoiN(g.ds) ? 'g-qua' : '',
-      () => `<div class="list lkch">${lkGomLoai(g.ds).map((l) => l.ds.map((r) => lkDongHtml(r, false)).join('')).join('')}</div>`)).join('');
+      () => lkTheoLoaiHtml(lkGomLoai(g.ds), (r, nhan) => lkDongHtml(r, false, nhan), 'list lkch'))).join('');
   }
   return o;
 }
 const lkLoiN = (a) => a.filter((r) => r.dc.k === 'loi').length;
+// Nhiều loại thì mỗi loại một tiêu đề nhỏ + danh sách riêng; chỉ một loại thì để liền một danh sách
+function lkTheoLoaiHtml(gom, dong, lop) {
+  if (gom.length < 2) return `<div class="${lop}">${gom.map((g) => g.ds.map((r) => dong(r, '')).join('')).join('')}</div>`;
+  return gom.map((g) => `<div class="lksub" data-loai="${esc(g.key)}">${esc(g.nhan[0])}${g.nhan[1] ? `<span class="zi" lang="zh-CN">${esc(g.nhan[1])}</span>` : ''}<span class="nhomn">${g.ds.length}</span></div>
+    <div class="${lop}">${g.ds.map((r) => dong(r, g.nhan[0])).join('')}</div>`).join('');
+}
 function lkChXlsx(dsCh) {
   const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
   const hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
   const MAU = { loi: { fill: '#FDE7E7', color: '#B71C1C' }, canh: { fill: '#FFF3E0', color: '#A65400' }, ok: { color: '#1B5E20' }, chua: {} };
+  const MUC1 = { b: 1, sz: 11, fill: '#C9D8F0', color: '#13294F', border: '#5B6B8A', valign: 'center' };
+  const MUC2 = { b: 1, fill: '#EEF3FA', color: '#1E3A6E', border: '#C9D1CF', valign: 'center' };
   const cols = ['stt', 'thMay', 'code', 'lkLoai', 'lkTen', 'quyCach', 'dv', 'slMay', 'xMaERP', 'xTenERP', 'xQcERP', 'tonKho', 'xViTriKho', 'xDoiChieu'];
   const dong = (r, i) => {
     const k = r.dc.kx, n = k ? tonOf(k) : null, st = MAU[r.dc.k] || {};
@@ -9890,9 +9959,30 @@ function lkChXlsx(dsCh) {
     tong.push([c(ch.ma + (ch.tenZh ? ' · ' + ch.tenZh : '')), c(mayCuaCh(ch.ma).length, { align: 'center' }), c(a.length, { align: 'center' }), c(nl, Object.assign({ align: 'center' }, nl ? MAU.loi : {})), c(nc, Object.assign({ align: 'center' }, nc ? MAU.canh : {}))]);
     a.forEach((r) => { if (r.dc.k === 'loi' || r.dc.k === 'canh') loiAll.push(Object.assign({ ch: ch.ma }, r)); });
     const rows = [[{ v: 'Linh kiện chuyền ' + ch.ma + (ch.tenZh ? ' · ' + ch.tenZh : '') + ' — ' + today, s: { b: 1, sz: 14 } }], [{ v: ch.ten || '', s: { i: 1, color: '#55625F' } }], [], hd(cols)];
-    a.forEach((r, i) => rows.push(dong(r, i)));
+    // Chia mục giống bảng tổng hợp của nhà máy: Thân dây chuyền → Biến tần, Driver, Servo, Xi lanh…; rồi từng máy con.
+    // Mỗi mục là một nhóm dòng của Excel: bấm dấu − bên trái là gập lại cho gọn.
+    const merges = ['A1:N1', 'A2:N2'], levels = {}, heights = {};
+    const dai = (txt, st, lv) => {
+      rows.push([{ v: txt, s: st }].concat(cols.slice(1).map(() => ({ v: '', s: st }))));
+      merges.push('A' + rows.length + ':N' + rows.length);
+      heights[rows.length] = lv ? 17 : 20;
+      if (lv) levels[rows.length] = lv;
+    };
+    const phan = (tieuDe, ds, luonChia) => {
+      if (!ds.length) return;
+      dai(tieuDe + ' — ' + ds.length, MUC1, 0);
+      const gom = lkGomLoai(ds), chia = luonChia || gom.length > 1;
+      gom.forEach((g) => {
+        if (chia) dai(g.nhan[0] + (g.nhan[1] ? ' · ' + g.nhan[1] : '') + ' — ' + g.ds.length, MUC2, 1);
+        g.ds.forEach((r, i) => { rows.push(dong(r, i)); levels[rows.length] = chia ? 2 : 1; });
+      });
+    };
+    phan(tp('lkThanCh'), a.filter((r) => r.m.laCh), true);
+    const theoMay = {};
+    a.filter((r) => !r.m.laCh).forEach((r) => { (theoMay[r.m.ma] = theoMay[r.m.ma] || { m: r.m, ds: [] }).ds.push(r); });
+    Object.values(theoMay).forEach((g) => phan(g.m.ten + ' (' + g.m.ma + ')', g.ds, false));
     if (!a.length) rows.push([c(tp('lkChTrong'))]);
-    sheets.push({ name: ch.ma.replace(/[^A-Za-z0-9 ._()-]/g, '').slice(0, 30) || 'Chuyen', rows, cols: W, merges: ['A1:N1', 'A2:N2'], freeze: { r: 4, c: 0 }, landscape: true });
+    sheets.push({ name: ch.ma.replace(/[^A-Za-z0-9 ._()-]/g, '').slice(0, 30) || 'Chuyen', rows, cols: W, merges, levels, heights, freeze: { r: 4, c: 0 }, landscape: true });
   });
   if (dsCh.length > 1 && loiAll.length) {
     const rows = [[{ v: 'Linh kiện cần xử lý (không khớp ERP) · 需处理零件', s: { b: 1, sz: 14 } }], [], [], [{ v: tp('chuyen').replace(' · ', '\n'), s: H }].concat(hd(cols).slice(1))];
@@ -14354,7 +14444,12 @@ function lkSection(m) {
         <div class="sub${n ? ' lkn2' : ''}">${n ? `<b class="mono">${y}</b>: ${lkNamTxt(n, k.dv)}` : t('lkChuaDung')}</div></div>
       <div class="end">${last ? `<span class="lkd">${fmtDM(last.x.ngay)}<small>${last.x.ngay.slice(0, 4)}</small></span>` : ''}${IC.chev}</div></button>`;
   };
-  o += lk.length || cu.length ? `<div class="list">${lk.map((k) => row(k, st[k.id], false)).join('')}${cu.map((s) => row(s, s, true)).join('')}</div>` : `<div class="card empty">${t('noLK')}</div>`;
+  if (!lk.length && !cu.length) o += `<div class="card empty">${t('noLK')}</div>`;
+  else {
+    const gom = lkGomLoai(lk.map((k) => ({ x: k })));
+    o += lkTheoLoaiHtml(gom, (r) => row(r.x, st[r.x.id], false), 'list');
+    if (cu.length) o += `${gom.length > 1 ? `<div class="lksub">${t('lkCu')}</div>` : ''}<div class="list">${cu.map((s) => row(s, s, true)).join('')}</div>`;
+  }
   return o + '</div>';
 }
 function openLKHist(ma, id) {
