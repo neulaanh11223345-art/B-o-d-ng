@@ -2514,3 +2514,13 @@ test('linh kiện chuyền: giữ được hơn 60 dòng, chuyền lạ thì bá
   err(b.call('saveLists', { ma: 'VKY-KHONG-CO', linhKien: lk }, b.ql), 'KHONG_CO_MAY');
   err(b.call('saveLists', { ma: b.ma, linhKien: [] }, b.kt), 'KHONG_QUYEN');
 });
+
+test('linh kiện: giữ loại linh kiện (Xi lanh, Động cơ servo…) khi lưu', () => {
+  const b = setupLKCh();
+  const r = ok(b.call('saveLists', { ma: b.ma, linhKien: [
+    { ten: 'Xi lanh', quyCach: 'CA2YD63-300Z', sl: 4, nhom: 'Xi lanh' },
+    { ten: 'Động cơ servo', quyCach: 'HG-SR702J', sl: 1, nhom: 'Động cơ servo' },
+    { ten: 'Cảm biến lạ', quyCach: 'ABC-1', sl: 1 }] }, b.ql));
+  assert.deepEqual(r.chuyen.linhKien.map((x) => x.nhom || ''), ['Xi lanh', 'Động cơ servo', ''],
+    'loại ghi gì giữ nguyên nấy, không ghi thì để trống cho app tự đoán');
+});

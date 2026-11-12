@@ -2254,13 +2254,53 @@ assert.deepEqual(lk31, ['MR-J4-40B', 'MR-J4-200B', 'CA2YD63-300Z'],
   'cùng tên khác quy cách vẫn là hai linh kiện: ' + JSON.stringify(lk31));
 await page.evaluate(() => go('chuyen', { ma: 'VKY01' })); await wait(900);
 await page.evaluate(() => { S.f.mo = S.f.mo || {}; S.f.mo['lkch:VKY01'] = true; render(); }); await wait(700);
-const sub31 = await page.$$eval('.lkch .row .sub', (e) => e.map((x) => x.textContent));
-assert.ok(sub31.filter((x) => /Thân dây chuyền/.test(x)).length === 3,
-  'ba linh kiện hiện dưới "Thân dây chuyền"');
+assert.match(await text('#main'), /Thân dây chuyền/, 'có phần Thân dây chuyền');
 assert.equal(await page.locator('[data-act="lkChThanCh"]').count(), 1, 'có nút thêm linh kiện thân chuyền');
+// Thân chuyền gom thành mục theo loại, đoán được cả khi không ghi loại
+const muc31 = await page.$$eval('.gap .gapb .gap .gaph .gt', (e) => e.map((x) => x.textContent.trim()));
+assert.ok(muc31.some((x) => /Bộ điều khiển servo/.test(x)) && muc31.some((x) => /Xi lanh/.test(x)),
+  'có mục Bộ điều khiển servo và mục Xi lanh: ' + JSON.stringify(muc31));
+await page.evaluate(() => { S.f.mo['lkl:VKY01:driver'] = true; S.f.mo['lkl:VKY01:xilanh'] = true; render(); }); await wait(600);
+const nm31 = await page.evaluate(() => ['lkl:VKY01:driver', 'lkl:VKY01:xilanh'].flatMap((k) => {
+  const g = document.querySelector('.gaph[data-k="' + k + '"]');
+  return g ? [...g.closest('.gap').querySelectorAll('.lkch .row .nm')].map((x) => x.textContent.trim()) : [];
+}));
+assert.deepEqual(nm31.sort(), ['CA2YD63-300Z', 'MR-J4-200B', 'MR-J4-40B'],
+  'trong mục, tên dòng là model, không lặp lại tên loại: ' + JSON.stringify(nm31));
 await shot('67-linh-kien-than-chuyen');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
-ok('Bản 2.42: linh kiện gắn thẳng vào thân dây chuyền, cùng tên khác quy cách không đè lên nhau');
+ok('Bản 2.42 + 2.43: linh kiện gắn thẳng vào thân dây chuyền, gom thành mục theo loại (servo, driver, xi lanh…), cùng tên khác quy cách không đè lên nhau');
+
+// 32. Bản 2.44: nối với app Ghi chú · Tài liệu bằng mã chuyền / mã máy
+const GC32 = 'https://vi-du.github.io/ghi-chu-tai-lieu/';
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('chuyen', { ma: 'VKY01' }); }); await wait(700);
+assert.equal(await page.locator('a[data-gc]').count(), 0, 'máy chưa nối thì không có nút sang app Ghi chú');
+// App Ghi chú mở sang lần đầu: gửi kèm địa chỉ của nó, app này nhớ lại và mở thẳng đúng chuyền
+await page.goto(URL_DEMO + '?m=VKY01&gc=' + encodeURIComponent(GC32)); await wait(1500);
+await page.waitForSelector('#lNV, #main', { timeout: 20000 });
+if (await page.locator('#lNV').count()) await login('NV002', '222222');
+await wait(1500);
+assert.equal(await page.evaluate(() => topV().v + ':' + topV().p.ma), 'chuyen:VKY01', 'mở thẳng đúng chuyền VKY01');
+const h32 = new URL(await page.getAttribute('a[data-gc]', 'href'));
+assert.equal(h32.origin + h32.pathname, GC32, 'nút trỏ đúng app Ghi chú');
+assert.equal(h32.searchParams.get('tim'), 'VKY01', 'mở app Ghi chú lọc sẵn VKY01');
+assert.equal(h32.searchParams.get('cmms'), URL_DEMO, 'gửi kèm địa chỉ app này để bấm ngược về');
+await page.evaluate(() => go('may', { ma: 'M001' })); await wait(700);
+assert.equal(new URL(await page.getAttribute('a[data-gc]', 'href')).searchParams.get('tim'), 'VKY01',
+  'máy thuộc chuyền thì tra theo mã chuyền');
+await shot('68-noi-app-ghi-chu');
+// Bỏ nối ở màn Cá nhân thì nút biến mất
+await page.click('#meBtn'); await wait(600);
+await page.click('[data-act="gcForm"]'); await wait(400);
+await page.click('[data-act="gcBo"]'); await wait(500);
+assert.equal(await page.evaluate(() => gcUrl()), '', 'đã bỏ nối');
+await page.evaluate(() => go('chuyen', { ma: 'VKY01' })); await wait(700);
+assert.equal(await page.locator('a[data-gc]').count(), 0, 'bỏ nối thì hết nút');
+// Địa chỉ lạ (javascript:…) không được nhận
+await page.evaluate(() => { gcDat(''); });
+await page.goto(URL_DEMO + '?gc=' + encodeURIComponent('javascript:alert(1)')); await wait(1500);
+assert.equal(await page.evaluate(() => gcUrl()), '', 'không nhận địa chỉ javascript:');
+ok('Bản 2.44: nối với app Ghi chú · Tài liệu — nút mở đúng mã, nhớ địa chỉ khi app kia mở sang, bỏ nối được, không nhận địa chỉ lạ');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
