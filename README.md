@@ -114,6 +114,22 @@ File mẫu nhập (linh kiện, kiểm định, tồn kho an toàn, thiết bị
 - **Excel linh kiện theo chuyền**: mỗi chuyền một sheet, chia **Thân dây chuyền → Biến tần, Bộ điều khiển servo, Động cơ servo, Module PLC, Xi lanh, Máy chỉnh lệch…**, rồi từng máy trong chuyền. Mỗi mục là một nhóm dòng của Excel: bấm dấu **−** bên trái để gập lại, **+** để mở.
 - **Trong app**: ngoài thân dây chuyền (đã chia từ 2.43), nay **máy trong chuyền** và **tab Linh kiện của từng máy** cũng chia tiêu đề theo loại khi có từ 2 loại trở lên.
 
+**Rà soát toàn bộ màn hình và file in** (quét tự động 95 màn × 3 vai trò, điện thoại và máy tính, rồi xem lại ảnh chụp từng màn; in thử cả 16 file Excel ra PDF). Đã sửa:
+
+| Chỗ | Lỗi | Sửa |
+|---|---|---|
+| Nhập / Xuất thiết bị từ file | Tiêu đề màn hiện chữ `undefined` | Có tiêu đề đúng |
+| Biên bản nghiệm thu mới | Hiện nguyên mã `<span class="zi">…` ở dòng Số biên bản | Hiện đúng chữ song ngữ |
+| Tab Lịch sử của máy | Tiêu đề mục hiện `lsChung` | **Bảo dưỡng và công việc · 保养与工作记录** |
+| Thông số công tơ (Quản trị) | Trên điện thoại ô nhập bị bóp còn 2–3 ký tự (trùng tên lớp CSS với bảng thông số kỹ thuật) | Tách riêng, form hiện thoáng như cũ |
+| Tài liệu → thư mục Drive theo nhóm | Tên thư mục bị bóp thành một chữ mỗi dòng | Tên và ô chọn chia đôi hàng |
+| Cài đặt ca tăng ca | Dòng "Mã · 代码: HC" vỡ thành ba dòng | Hiện trên một dòng |
+| Thông tin máy | Ô "Chuyền sản xuất", nút "Sửa vị trí" hiện thành nút xám mặc định | Thành chữ link xanh |
+| Thanh tiêu đề trên điện thoại | Tên màn bị cắt ("Thông tin …") vì nút "Đã đồng bộ" chiếm chỗ | Đã đồng bộ thì chỉ còn chấm xanh; chờ gửi / lỗi vẫn hiện chữ |
+| Excel kế hoạch bảo dưỡng | Tiêu đề dài bị ô chú thích cắt mất khi in | Tiêu đề hai dòng Việt / Trung |
+| Excel lịch trực | Ô ngày có người trực bị mất chữ (chiều cao hàng chỉ tính theo Chủ nhật) | Hàng cao theo ô nhiều chữ nhất trong tuần |
+| Excel sổ kiểm định | 25 cột ép một trang A4 nên chữ rất nhỏ | In hai trang ngang, trang nào cũng lặp cột tên thiết bị |
+
 Nâng cấp: chỉ đổi app. Không cần dán lại Code.gs (số phiên bản đổi cho khớp, dán lại cũng không sao).
 
 ---

@@ -96,6 +96,8 @@ button{cursor:pointer}
 .sync.s-loi{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,var(--line));background:var(--red-bg)}
 .sync.s-off{color:var(--ink2)}
 @media (max-width:360px){.sync span{display:none}.sync{padding:0 10px}}
+/* Điện thoại: đã đồng bộ thì chỉ còn chấm xanh, nhường chỗ cho tiêu đề màn; chờ gửi / lỗi vẫn hiện chữ */
+@media (max-width:480px){.sync.s-ok span{display:none}.sync.s-ok{padding:0 11px}}
 .netbar{display:block;width:100%;border:0;text-align:left;padding:8px 16px;font-size:13px;background:var(--orange-bg);color:var(--ink)}
 .netbar.err{background:var(--red-bg)}
 .netbar .in{max-width:1240px;margin:0 auto;display:flex;gap:8px;align-items:center}
@@ -1070,9 +1072,9 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .tbds{max-height:min(58vh,480px);overflow-y:auto;margin:0 -4px;padding:0 4px}
 .tbds .sec{margin-top:10px}
 .tbds .row{width:100%;text-align:left}
-.tsrow{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--soft);font-size:14px}
-.tsrow dt{flex:1;min-width:0;color:var(--ink2);overflow-wrap:anywhere}
-.tsrow dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
+.ktrow{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--soft);font-size:14px}
+.ktrow dt{flex:1;min-width:0;color:var(--ink2);overflow-wrap:anywhere}
+.ktrow dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
 .xuatrow{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line)}
 /* Tám công tắc quyền xem trong hồ sơ tài khoản */
 .qbox{padding-top:4px}
@@ -1109,6 +1111,10 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .sheet .scstrip{margin:0 0 12px}
 .dhc{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .lnkcode{border:0;cursor:pointer;color:var(--blue)}
+dd .lnk,.kv .lnk{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--blue);cursor:pointer;text-align:left}
+dd .lnk:hover,.kv .lnk:hover{text-decoration:underline}
+.tmrow .main{flex:1 1 42%;min-width:0}.tmrow .nm{overflow-wrap:anywhere}
+.tmrow .end{flex:1 1 55%;min-width:0}.tmrow .end select{width:100%}
 .kstrip.k3{grid-template-columns:repeat(3,minmax(0,1fr))}
 td .cellnm .zi{display:block;font-size:11.5px;color:var(--ink2)}
 .dhn{display:flex;gap:12px;align-items:center;margin-top:8px}
@@ -1470,8 +1476,9 @@ const XW = (() => {
         { at: Object.assign({ r: 0, c: 0, w: 8, h: 15 }, c.at || {}, { r: ((c.at && c.at.r) || 0) + K }) }));
     }
     // In nhiều trang: trang nào cũng có logo, tiêu đề và dòng tên cột
-    if (sh.printTitles) o.printTitles = Object.assign({}, sh.printTitles, sh.printTitles.rows ? { rows: lui(sh.printTitles.rows, K) } : {});
-    else if (sh.freeze && sh.freeze.r) o.printTitles = { rows: '1:' + (sh.freeze.r + K) };
+    const pt = Object.assign({}, sh.printTitles || {});
+    if (pt.rows) pt.rows = lui(pt.rows, K); else if (sh.freeze && sh.freeze.r) pt.rows = '1:' + (sh.freeze.r + K);
+    if (pt.rows || pt.cols) o.printTitles = pt;
     o._logo = 1;
     return o;
   }
@@ -2910,6 +2917,7 @@ function hRow(x, showMachine) {
     <div class="sub">${showMachine ? esc(x.nguoi) + (x.ghiChu ? ' · ' : '') : ''}${esc(x.ghiChu)}${ctTags(x.chiTiet)}</div></div>${hTag(x)}</button>`;
 }
 Object.assign(TX, {
+  lsChung: ['Bảo dưỡng và công việc', '保养与工作记录'], len: ['Lên', '上移'], xuong: ['Xuống', '下移'],
   tabTT: ['Thông tin', '基本信息'], tabLK: ['Linh kiện', '配件'], tabBD: ['Bảo dưỡng', '保养'], tabLS: ['Lịch sử', '历史'],
   dangTD: ['Đang theo dõi', '跟踪中'], phuTrach: ['Người phụ trách', '负责人'], ngayDuaVao: ['Ngày đưa vào sử dụng', '投用日期'],
   maTB: ['Mã thiết bị', '设备编号'], loaiNhom: ['Loại / nhóm', '类别'], suaLK: ['Thêm / sửa linh kiện', '添加/编辑配件'],
@@ -3146,7 +3154,7 @@ VIEWS.may = {
       const ts = m.thongSo || [];
       if (ts.length) {
         o += sec('tbThongSo', ts.length) + `<div class="card pad"><dl style="margin:0">${ts.map(([k, v]) =>
-          `<div class="tsrow"><dt>${esc(k)}</dt><dd>${esc(String(v))}</dd></div>`).join('')}</dl></div>`;
+          `<div class="ktrow"><dt>${esc(k)}</dt><dd>${esc(String(v))}</dd></div>`).join('')}</dl></div>`;
       }
       // Bản ghi gộp (quạt gió của một chuyền, máy keo của một chuyền): mở ra xem từng cái
       const ct = m.chiTiet || [];
@@ -4695,7 +4703,8 @@ function buildWorkbook(tu, den, nhan) {
   const FIX = 7;
   // --- Trang 1: lịch năm tô màu ---
   const rows = [], merges = [];
-  const r1 = [{ v: tv('xlsTitle', { y: nhan }) + ' · ' + tz('xlsTitle', { y: nhan }), s: { b: 1, sz: 14 } }];
+  // Tiêu đề dài hơn 7 cột đầu: xuống dòng tiếng Trung để không bị ô chú thích bên phải cắt mất khi in
+  const r1 = [{ v: tv('xlsTitle', { y: nhan }) + '\n' + tz('xlsTitle', { y: nhan }), s: { b: 1, sz: 13, wrap: 1, valign: 'center' } }];
   const r2 = [{ v: tp('xlsExported') + ': ' + fmtD(today), s: { i: 1, color: '#55625F' } }];
   const LG = (k, sym) => ({ v: sym + tp(k), s: { fill: COLORS[k === 'st_xong' ? 'xong' : k === 'st_nay' ? 'nay' : k === 'st_qua' ? 'qua' : 'kh'], color: '#FFFFFF', b: 1, align: 'center' } });
   const r2b = [];
@@ -4733,7 +4742,7 @@ function buildWorkbook(tu, den, nhan) {
   });
   const rongNgay = days.length <= 31 ? 7.5 : days.length <= 92 ? 5 : 3.6;
   const cols = [5, 7, 30, 24, 11, 11, 11].concat(days.map(() => rongNgay));
-  const s1 = { name: xlTen('Lich ' + ngan), rows, cols, merges, freeze: { r: 6, c: FIX }, heights: { 1: 24, 2: 17, 3: 17, 4: 30, 5: 16, 6: 16 }, landscape: 1,
+  const s1 = { name: xlTen('Lich ' + ngan), rows, cols, merges, freeze: { r: 6, c: FIX }, heights: { 1: 36, 2: 17, 3: 17, 4: 30, 5: 16, 6: 16 }, landscape: 1,
     fit: { w: 0, h: 1 }, printTitles: { cols: 'A:G', rows: '4:6' } };
   // --- Trang 2: nhắc nhở hôm nay ---
   const r2s = [[{ v: tp('t_home') + ' — ' + fmtD(today), s: { b: 1, sz: 14 } }], []];
@@ -5610,7 +5619,7 @@ VIEWS.tlCfg = {
     if (x.id && x.doc) {
       o += sec('tlNhomThuMuc') + `<div class="card pad"><div class="help" style="margin-bottom:10px">${t('tlNhomTMHelp')}</div>
         ${x.con.length
-    ? `<div class="list">${x.con.map((c) => `<div class="row"><div class="main"><div class="nm">${esc(c.ten)}</div></div>
+    ? `<div class="list">${x.con.map((c) => `<div class="row tmrow"><div class="main"><div class="nm">${esc(c.ten)}</div></div>
           <div class="end"><select class="inp" data-tm="${esc(c.id)}">
           <option value=""${c.nhom ? '' : ' selected'}>${esc(tp('tlTuDoan'))}</option>
           ${TL_NHOM.map((g) => `<option value="${g}"${c.nhom === g ? ' selected' : ''}>${esc(tp('tl_' + g))}</option>`).join('')}
@@ -10903,7 +10912,7 @@ VIEWS.tcCfg = {
           <label class="fld"><span>${t('tcCaZh')}</span><input class="inp" data-cf="${i}:zh" value="${esc(c.zh || '')}" maxlength="40" style="font-family:var(--f-zh)"></label></div>
         <div class="row2f" style="margin-top:10px"><label class="fld"><span>${t('tcTu')}</span><input class="inp mono" type="time" data-cf="${i}:tu" value="${esc(c.tu)}"></label>
           <label class="fld"><span>${t('tcDen')}</span><input class="inp mono" type="time" data-cf="${i}:den" value="${esc(c.den)}"></label></div>
-        <div class="help" style="margin-top:8px">${t('tcCaMa')}: <span class="mono">${esc(c.k)}</span></div></div>`).join('')}</div>
+        <div class="help" style="margin-top:8px">${esc(tp('tcCaMa'))}: <span class="mono">${esc(c.k)}</span></div></div>`).join('')}</div>
       <div class="row2f" style="margin-top:12px">
         <label class="fld"><span>${t('tcGioThang')}</span><input class="inp mono" id="tcMaxTh" inputmode="numeric" maxlength="4" value="${esc(p.th)}"></label>
         <label class="fld"><span>${t('tcGioNam')}</span><input class="inp mono" id="tcMaxNam" inputmode="numeric" maxlength="4" value="${esc(p.nam)}"></label></div>
@@ -11686,7 +11695,7 @@ VIEWS.ngtGhi = {
     }
     const m = NGT_MAU[p.seg], d = ngtPhan(p);
     let o = `<div class="card pad" style="margin-bottom:12px">
-      <div class="mono" style="font-size:17px;font-weight:700">${esc(p.soBB || t('ngtSo') + ': tự đánh khi lưu')}</div>
+      <div class="mono" style="font-size:17px;font-weight:700">${p.soBB ? esc(p.soBB) : `${esc(tv('ngtSo'))}: tự đánh khi lưu <span class="zi" lang="zh-CN">${esc(tz('ngtSo'))} · 保存时自动编号</span>`}</div>
       <div class="help">${t('ngtInHelp')}</div></div>
       <div class="seg" style="margin-bottom:12px">
         ${[['truoc', 'ngtTruoc'], ['sau', 'ngtSau']].map(([k, lb]) => `<button type="button" class="${p.seg === k ? 'on' : ''}" data-act="ngtSeg" data-v="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div>
@@ -12535,7 +12544,9 @@ function kdXlsx(ds) {
   return XW.build([
     { name: 'Kiem dinh', rows,
       cols: [30, 22, 9, 12, 16, 16, 20, 9, 26, 16, 9, 13, 24, 16, 11, 13, 24, 16, 14, 11, 13, 11, 14, 10, 13],
-      merges: ['A1:Y1', 'A3:K3', 'L3:O3', 'P3:T3', 'U3:Y3'], freeze: { r: 4, c: 1 }, landscape: true },
+      merges: ['A1:Y1', 'A3:K3', 'L3:O3', 'P3:T3', 'U3:Y3'], freeze: { r: 4, c: 1 }, landscape: true,
+      // 25 cột: ép một trang A4 thì chữ quá nhỏ; in hai trang ngang, trang nào cũng lặp cột tên thiết bị
+      fit: { w: 2, h: 0 }, printTitles: { cols: 'A:A' } },
     { name: 'Lich su', rows: r2, cols: [30, 22, 16, 16, 9, 13, 13, 26, 18, 11, 30],
       merges: ['A1:K1'], freeze: { r: 3, c: 0 }, landscape: true }
   ]);
@@ -14129,16 +14140,18 @@ function trucXlsx(ym) {
   const { ds: ngayDS, truoc } = trucThangDS(ym);
   let soNgay = 0, hang = new Array(truoc).fill(c(''));
   const cao = {};
+  let dongMax = 1;   // số dòng chữ của ô nhiều chữ nhất trong tuần: cả hàng phải đủ cao cho ô đó
   ngayDS.forEach((d) => {
     const a = (d.ds || []).filter((x) => x.uid);
     // Ô Excel chỉ tô được một màu: nhiều người thì tô màu người đầu, tên xuống dòng kê đủ
     const m = a.length ? mauTruc[a[0].uid] : null;
     if (a.length) soNgay++;
-    hang.push(c(+d.ngay.slice(8, 10) + (a.length ? '\n' + a.map((x) => tenNV(x.uid, x.ten) + '\n' + trucGioTxt(x, d.ngay)).join('\n') : ''),
-      Object.assign({ align: 'center', valign: 'center', b: 1 }, m ? { fill: m[0], color: m[1] } : {})));
-    if (hang.length === 7) { r1.push(hang); cao[r1.length] = a.length > 1 ? 62 : 44; hang = []; }
+    const chu = +d.ngay.slice(8, 10) + (a.length ? '\n' + a.map((x) => tenNV(x.uid, x.ten) + '\n' + trucGioTxt(x, d.ngay)).join('\n') : '');
+    dongMax = Math.max(dongMax, chu.split('\n').length);
+    hang.push(c(chu, Object.assign({ align: 'center', valign: 'center', b: 1, wrap: 1 }, m ? { fill: m[0], color: m[1] } : {})));
+    if (hang.length === 7) { r1.push(hang); cao[r1.length] = Math.max(44, dongMax * 13 + 8); hang = []; dongMax = 1; }
   });
-  if (hang.length) { while (hang.length < 7) hang.push(c('')); r1.push(hang); cao[r1.length] = 44; }
+  if (hang.length) { while (hang.length < 7) hang.push(c('')); r1.push(hang); cao[r1.length] = Math.max(44, dongMax * 13 + 8); }
   r1.push([], [{ v: tp('xlTrDaXep') + ': ' + soNgay + '/' + ngayDS.length, s: { b: 1 } }],
     [{ v: tp('trucChuThich'), s: { b: 1, sz: 12 } }]);
   trucTongDS(ym).forEach((n) => {
@@ -15178,7 +15191,7 @@ Object.assign(TX, {
   srvMissDoTu: ['Máy chủ chưa ghi được số đo tủ điện. Cập nhật Code.gs rồi Triển khai lại.',
     '服务器尚不支持配电柜测量记录。请更新 Code.gs 后重新部署。']
 });
-Object.assign(TITLES, { doTu: 't_doTu' });
+Object.assign(TITLES, { doTu: 't_doTu', tbNhap: 't_tbNhap', tbXuat: 't_tbXuat', khongQuyen: 't_khongQuyen' });
 ROOTS.push('doTu');
 (NHOM.find((x) => x[0] === 'nhomDien') || [0, []])[1].push(['doTu', 'navDoTu', 'bolt']);
 SRV_PHAN.push(['dotu', '2.41.0', 'srvMissDoTu']);
