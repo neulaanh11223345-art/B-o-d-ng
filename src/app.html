@@ -3219,6 +3219,7 @@ VIEWS.may = {
         }).join('');
         o += sec('tbChiTiet', ct.length) + `<div class="card"><div class="tblwrap"><table class="dt ctbang">
           <thead><tr>${nhan.map((k) => `<th>${esc(k)}</th>`).join('')}</tr></thead><tbody>${tr}</tbody></table></div></div>`;
+        if (can('may') && can('suatb')) o += `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="tachMay" data-ma="${esc(m.ma)}">${esc(tv('tachBtn'))}<span class="zi">${esc(tz('tachBtn'))}</span></button></div>`;
       }
       if (m.noiDung) o += sec('content') + `<div class="card pad"><p class="pre">${esc(m.noiDung)}</p></div>`;
       if (gcUrl()) o += `<div class="btns" style="margin-top:14px">${gcNut(gcMaCua(m))}</div>`;
@@ -4323,8 +4324,8 @@ function tbXuatNhom(nhom) {
 }
 VIEWS.tbXuat = {
   html() {
-    const dem = {};
-    activeMay().forEach((m) => { const k = khoiCua(m) + '|' + (m.nhom || ''); dem[k] = (dem[k] || 0) + 1; });
+    const dem = {}, gop = {};
+    activeMay().forEach((m) => { const k = khoiCua(m) + '|' + (m.nhom || ''); dem[k] = (dem[k] || 0) + 1; if ((m.chiTiet || []).length) gop[k] = (gop[k] || 0) + 1; });
     let o = `<div class="card pad"><p class="help" style="margin:0;font-size:13.5px">${t('tbXuatHelp')}</p>
       ${can('may') && can('suatb') ? `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="go" data-v="maLoai">${IC.qr} ${t('t_maLoai')}</button></div>` : ''}</div>`;
     KHOI_DS.forEach((kh) => {
@@ -4334,7 +4335,8 @@ VIEWS.tbXuat = {
         + gs.map((k) => { const g = k.slice(kh.length + 1);
           return `<div class="xuatrow"><span style="flex:1;min-width:0"><b>${esc(g || '—')}</b><br><small class="help">${dem[k]} thiết bị</small></span>
             <button class="btn ghost sm" data-act="tbXuat1" data-g="${esc(g)}">${IC.dl} ${t('tbXuatBtn')}</button>
-            ${can('may') && can('suatb') ? `<button class="btn ghost sm" data-act="tbNhapNhom" data-g="${esc(g)}">${IC.plus} ${t('tbNhapLai')}</button>` : ''}</div>`; }).join('')
+            ${can('may') && can('suatb') ? `<button class="btn ghost sm" data-act="tbNhapNhom" data-g="${esc(g)}">${IC.plus} ${t('tbNhapLai')}</button>` : ''}
+            ${can('may') && can('suatb') && gop[k] ? `<button class="btn ghost sm" data-act="tachNhom" data-g="${esc(g)}">${esc(tv('tachNhom', { n: gop[k] }))}<span class="zi">${esc(tz('tachNhom', { n: gop[k] }))}</span></button>` : ''}</div>`; }).join('')
         + '</div>';
     });
     return o;
@@ -15958,6 +15960,93 @@ Object.assign(ACT, {
     } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
   }
 });
+
+// ===================== Tách bản ghi gộp thành từng máy (v2.50) =====================
+SRV_PHAN.push(['tach', '2.50.0', 'srvMissTach']);
+Object.assign(TX, {
+  tachBtn: ['Tách thành từng máy', '拆分为单台设备'], tachNhom: ['Tách từng máy ({n})', '拆分为单台（{n}）'],
+  tachTD: ['Tách thành từng máy, mỗi máy một mã', '拆分为单台设备，每台一个编号'],
+  tachHelp: ['Mỗi đơn vị trong bản ghi gộp (vd từng quạt của một chuyền) thành một máy riêng: tên riêng, thông số riêng, mã riêng = M + mã loại + số thứ tự. Đơn vị đầu tiên giữ luôn bản ghi cũ nên lịch sử, tài liệu không mất.',
+    '合并记录中的每个单元（例如一条产线的每台风机）拆分为单独设备：独立名称、参数、编号 = M + 类别代码 + 序号。第一个单元沿用原记录，历史和资料不丢失。'],
+  tachMaLoai: ['Mã loại 2 số cho {g}', '{g} 的2位类别代码'], tachMaDung: ['Mã loại {c} đã dùng cho {g} — chọn số khác', '类别代码{c}已用于{g}——请换一个'], tachXem: ['{a} bản ghi → {b} máy', '{a}条记录 → {b}台设备'],
+  tachOk: ['Tách {a} bản ghi thành {b} máy', '拆分{a}条记录为{b}台设备'], tachXong: ['Đã tách {a} bản ghi thành {b} máy, mỗi máy một mã riêng', '已将{a}条记录拆分为{b}台设备，每台独立编号'],
+  srvMissTach: ['Máy chủ chưa tách được bản ghi gộp. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不支持拆分合并记录。请更新 Code.gs 并重新部署。']
+});
+const tachTenDV = (d, i) => { const kv = (d.cot || []).find(([k]) => /^(tên|ten|name|名称)$/i.test(String(k || '').trim())); return (kv && String(kv[1] || '').trim()) || 'Số ' + (i + 1); };
+// Mã loại đang dùng cho một nhóm: đã đặt trong app, hoặc suy ra từ mã đã gõ (cả loại cùng một mã)
+function tachMaLoaiCua(g) {
+  const luu = (S.base && S.base.caiDat && S.base.caiDat.maLoai) || {};
+  if (/^\d{2}$/.test(luu[g] || '')) return luu[g];
+  const cs = new Set();
+  (S.V.may || []).forEach((m) => { if (m.nhom === g) { const k = ML_RE.exec(String(m.maHT || '').toUpperCase()); if (k) cs.add(k[1]); } });
+  if (cs.size === 1) return [...cs][0];
+  const dung = new Set(Object.values(luu));
+  (S.V.may || []).forEach((m) => { const k = ML_RE.exec(String(m.maHT || '').toUpperCase()); if (k && m.nhom !== g) dung.add(k[1]); });
+  for (let i = 1; i < 100; i++) { const v = String(i).padStart(2, '0'); if (!dung.has(v)) return v; }
+  return '';
+}
+// Xem trước: tên và mã của từng máy sẽ tạo, đúng thứ tự máy chủ đánh (theo chuyền, rồi đơn vị)
+// Mã loại này đã thuộc loại khác chưa (đặt trong app, hoặc máy loại khác đang mang mã M + code…)
+function tachMaKhac(g, code) {
+  const luu = (S.base && S.base.caiDat && S.base.caiDat.maLoai) || {};
+  const k1 = Object.keys(luu).find((k) => k !== g && luu[k] === code);
+  if (k1) return k1;
+  const m = (S.V.may || []).find((x) => x.nhom !== g && (ML_RE.exec(String(x.maHT || '').toUpperCase()) || [])[1] === code);
+  return m ? m.nhom || m.ten : '';
+}
+function tachKeHoach(dsMa, code) {
+  const goc = dsMa.map((ma) => S.V.byMa[ma]).filter((m) => m && (m.chiTiet || []).length)
+    .sort((a, b) => (a.chuyen || 'ZZZ').localeCompare(b.chuyen || 'ZZZ') || a.ten.localeCompare(b.ten));
+  let n = 0;
+  if (/^\d{2}$/.test(code || '')) (S.V.may || []).forEach((m) => { if (goc.includes(m)) return; const k = ML_RE.exec(String(m.maHT || '').toUpperCase()); if (k && k[1] === code) n = Math.max(n, +k[2]); });
+  const out = [];
+  goc.forEach((m) => {
+    const nen = m.ten.replace(/\s*\(\s*\d+[^)]*\)\s*$/, '');
+    m.chiTiet.forEach((d, i) => { n++; out.push({ ten: nen + ' · ' + tachTenDV(d, i), maHT: /^\d{2}$/.test(code || '') ? 'M' + code + String(n).padStart(3, '0') : '', giu: i === 0 }); });
+  });
+  return { goc, out };
+}
+function tachMo(dsMa) {
+  const g = (S.V.byMa[dsMa[0]] || {}).nhom || '';
+  S.f.tach = { ds: dsMa, g, code: tachMaLoaiCua(g) };
+  const ve = () => {
+    const f = S.f.tach, kh = tachKeHoach(f.ds, f.code), sai = !/^\d{2}$/.test(f.code || '') || f.code === '00';
+    const khac = sai ? '' : tachMaKhac(f.g, f.code);
+    if (khac) return `<div class="err">${esc(tv('tachMaDung', { c: f.code, g: khac }))} <span class="zi">${esc(tz('tachMaDung', { c: f.code, g: khac }))}</span></div>`;
+    return `<div class="lshd">${esc(tv('tachXem', { a: kh.goc.length, b: kh.out.length }))}<span class="zi">${esc(tz('tachXem', { a: kh.goc.length, b: kh.out.length }))}</span></div>
+      ${sai ? `<div class="err">${t('maLoaiSai')}</div>` : `<div class="list">${kh.out.slice(0, 80).map((x) => `<div class="row"><div class="main"><div class="nm">${esc(x.ten)}</div>
+        <div class="sub"><b class="mono">${esc(x.maHT)}</b>${x.giu ? ` · <span class="muted">${esc(tv('lsGiuBanGhi'))}</span>` : ''}</div></div></div>`).join('')}
+        ${kh.out.length > 80 ? `<div class="pad help">… ${kh.out.length - 80}</div>` : ''}</div>`}`;
+  };
+  openSheet(`<div class="grab"></div><h3>${tv('tachTD')}<span class="zi">${tz('tachTD')}</span></h3>
+    ${srvOld('tach') ? srvWarn('tach') : ''}
+    <p class="help" style="margin:4px 0 10px">${t('tachHelp')}</p>
+    <label class="fld"><span>${esc(tv('tachMaLoai', { g }))}<span class="zi">${esc(tz('tachMaLoai', { g }))}</span></span>
+      <input class="inp mono mlinp" id="tachCode" inputmode="numeric" maxlength="2" value="${esc(S.f.tach.code)}" style="width:90px"></label>
+    <div id="tachXem" style="margin-top:8px">${ve()}</div>
+    <div class="err" id="tachErr" hidden></div>
+    <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+      <button class="btn" data-act="tachOk"${srvOld('tach') ? ' disabled' : ''}>${IC.check} ${esc(tv('tachBtn'))}</button></div>`, (bg) => {
+    $('#tachCode', bg).addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); S.f.tach.code = e.target.value; $('#tachXem').innerHTML = ve(); });
+  });
+}
+Object.assign(ACT, {
+  tachMay: (el) => tachMo([el.dataset.ma]),
+  tachNhom: (el) => tachMo(activeMay().filter((m) => (m.nhom || '') === el.dataset.g && (m.chiTiet || []).length).map((m) => m.ma)),
+  tachOk: async (el) => {
+    const f = S.f.tach; if (!f) return;
+    const fe = $('#tachErr');
+    if (!/^\d{2}$/.test(f.code || '') || f.code === '00') { fe.innerHTML = t('maLoaiSai'); fe.hidden = false; return; }
+    if (tachMaKhac(f.g, f.code)) return;
+    el.disabled = true;
+    try {
+      const d = await api('splitDetail', { ds: f.ds, maLoai: f.code });
+      mergeResult(d); closeSheet(); toast(t('tachXong', { a: d.banGhi, b: d.may }));
+      if (topV().v === 'may' && !S.V.byMa[topV().p.ma]) back(); else render();
+    } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  }
+});
+TX.lsGiuBanGhi = ['giữ bản ghi cũ (lịch sử, tài liệu)', '沿用原记录（历史、资料）'];
 
 // Link từ tem QR: ...?m=M001
 try {

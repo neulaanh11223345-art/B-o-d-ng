@@ -2449,6 +2449,31 @@ assert.ok(kq37.heThong, 'mã hệ thống giữ nguyên');
 assert.ok(kq37.quet && kq37.hien === 'M01001', 'gõ / quét mã mới mở đúng máy, mọi màn hiện mã mới');
 ok('Bản 2.49: mã máy theo loại M + mã loại + số thứ tự (M01001…), xem trước trước khi đổi, báo trùng mã loại, mã hệ thống giữ nguyên');
 
+// 38. Tách bản ghi gộp quạt gió thành từng quạt, mỗi quạt một mã; quạt mới tự lấy số kế tiếp
+await page.evaluate(async () => {
+  while (S.stack.length > 1) back();
+  const ct = (n) => Array.from({ length: n }, (_, i) => ({ cot: [['Tên', 'Quạt số ' + (i + 1)], ['Công suất (kW)', String(15 + i)]] }));
+  await send('importMachines', { rows: [
+    { ten: 'Quạt gió chuyền VKY02 (3 quạt)', tenPhu: 'VKY02风机', nhom: 'Quạt gió · 风机', khoi: 'HCD', chuyen: 'VKY02', chiTiet: ct(3) },
+    { ten: 'Quạt gió chuyền VKY01 (2 quạt)', tenPhu: 'VKY01风机', nhom: 'Quạt gió · 风机', khoi: 'HCD', chuyen: 'VKY01', chiTiet: ct(2) }] });
+  rebuild(); tab('list'); go('tbXuat');
+}); await wait(700);
+await page.click('[data-act="tachNhom"][data-g="Quạt gió · 风机"]'); await wait(500);
+await page.fill('#tachCode', '05'); await wait(200);
+assert.match(await text('#tachXem'), /đã dùng cho/, 'mã loại đã thuộc loại khác thì báo ngay');
+await page.fill('#tachCode', '42'); await wait(200);
+assert.match(await text('#tachXem'), /2 bản ghi → 5 máy/, 'xem trước số máy sẽ tạo');
+assert.match(await text('#tachXem'), /M42001/, 'xem trước mã từng quạt');
+await shot('74-tach-quat-gio');
+await page.click('[data-act="tachOk"]'); await wait(1500);
+const q38 = await page.evaluate(() => S.V.may.filter((m) => m.nhom === 'Quạt gió · 风机').sort((a, b) => (a.maHT < b.maHT ? -1 : 1)).map((m) => m.maHT + '|' + m.ten));
+assert.deepEqual(q38, ['M42001|Quạt gió chuyền VKY01 · Quạt số 1', 'M42002|Quạt gió chuyền VKY01 · Quạt số 2',
+  'M42003|Quạt gió chuyền VKY02 · Quạt số 1', 'M42004|Quạt gió chuyền VKY02 · Quạt số 2', 'M42005|Quạt gió chuyền VKY02 · Quạt số 3'], 'mỗi quạt một mã riêng, theo chuyền rồi số quạt');
+const moi38 = await page.evaluate(async () => (await send('saveMachine', { ten: 'Quạt mới E2E', nhom: 'Quạt gió · 风机', chuKy: 0 })).data.may.maHT);
+assert.equal(moi38, 'M42006', 'quạt mới tự lấy số kế tiếp, không trùng');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.50: tách bản ghi gộp quạt gió thành từng quạt, mỗi quạt một mã riêng; máy mới tự lấy số kế tiếp, không trùng');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

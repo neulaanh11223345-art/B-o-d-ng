@@ -743,6 +743,51 @@ test('mã máy theo loại: M + mã loại 2 số + số thứ tự 3 số; ghi 
   assert.equal(ok(b.call('saveMachine', { ten: 'Máy lạ', nhom: 'Loại chưa có mã', chuKy: 0 }, ql)).may.maHT, '');
 });
 
+test('tách bản ghi gộp (quạt gió theo chuyền) thành từng máy, mỗi máy một mã riêng; bản ghi cũ thành quạt số 1', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const ct = (n) => Array.from({ length: n }, (_, i) => ({ cot: [['Tên', 'Quạt số ' + (i + 1)], ['Công suất (kW)', String(10 + i)], ['Model quạt', 'F-' + (i + 1)]] }));
+  const nh = ok(b.call('importMachines', { rows: [
+    { ten: 'Quạt gió chuyền VKY02 (3 quạt)', tenPhu: 'VKY02风机', nhom: 'Quạt gió · 风机', chuyen: 'VKY02', thongSo: [['Số quạt', '3']], chiTiet: ct(3) },
+    { ten: 'Quạt gió chuyền VKY01 (2 quạt)', tenPhu: 'VKY01风机', nhom: 'Quạt gió · 风机', chuyen: 'VKY01', thongSo: [['Số quạt', '2']], chiTiet: ct(2) }] }, ql));
+  const g1 = nh.dsMay.find((x) => x.ten.indexOf('VKY01 (2') > 0), g2 = nh.dsMay.find((x) => x.ten.indexOf('VKY02 (3') > 0);
+  // ghi một lần bảo dưỡng cho bản ghi gộp VKY01 để xem lịch sử có theo quạt số 1 không
+  err(b.call('splitDetail', { ds: [g1.ma], maLoai: '01' }, kt), 'KHONG_QUYEN');
+  err(b.call('splitDetail', { ds: [g1.ma], maLoai: '1' }, ql), 'MA_LOAI_SAI');
+  const r = ok(b.call('splitDetail', { ds: [g2.ma, g1.ma], maLoai: '01' }, ql));
+  assert.equal(r.banGhi, 2); assert.equal(r.may, 5);
+  const q = r.dsMay.filter((x) => x.nhom === 'Quạt gió · 风机').sort((a, c) => (a.maHT < c.maHT ? -1 : 1));
+  assert.deepEqual(q.map((x) => x.maHT + ' ' + x.ten), [
+    'M01001 Quạt gió chuyền VKY01 · Quạt số 1', 'M01002 Quạt gió chuyền VKY01 · Quạt số 2',
+    'M01003 Quạt gió chuyền VKY02 · Quạt số 1', 'M01004 Quạt gió chuyền VKY02 · Quạt số 2', 'M01005 Quạt gió chuyền VKY02 · Quạt số 3']);
+  assert.equal(q[0].ma, g1.ma, 'quạt số 1 giữ mã hệ thống của bản ghi gộp (lịch sử không đứt)');
+  assert.deepEqual(q[1].thongSo, [['Công suất (kW)', '11'], ['Model quạt', 'F-2']], 'thông số riêng từng quạt');
+  assert.equal(q[1].chuyen, 'VKY01'); assert.equal(q[1].tenPhu, 'VKY01风机 2#');
+  assert.ok(q.every((x) => !(x.chiTiet || []).length), 'hết chi tiết gộp');
+  assert.equal(new Set(q.map((x) => x.ma)).size, 5, 'mã hệ thống không trùng');
+  // Máy mới cùng loại tự lấy số kế tiếp
+  assert.equal(ok(b.call('saveMachine', { ten: 'Quạt mới', nhom: 'Quạt gió · 风机', chuyen: 'VKY03', chuKy: 0 }, ql)).may.maHT, 'M01006');
+});
+
+test('mã máy không bao giờ trùng: mã hệ thống bỏ qua mã hiển thị gõ tay; loại chưa đặt mã thì suy ra từ mã đã gõ trong Sheet', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222');
+  let d = ok(b.call('data', {}, ql));
+  const so = d.may.map((x) => +x.ma.slice(1)).filter((n) => n > 0), ke = 'M' + String(Math.max(...so) + 1).padStart(3, '0');
+  // Ai đó gõ tay mã hiển thị trùng đúng mã hệ thống kế tiếp cho một máy
+  const m0 = d.may[0];
+  ok(b.call('saveMachine', { ma: m0.ma, ten: m0.ten, nhom: m0.nhom, chuKy: m0.chuKy, hanKeTiep: m0.hanKeTiep, maHT: ke }, ql));
+  const moi = ok(b.call('saveMachine', { ten: 'Máy lạ chưa có loại', nhom: 'Loại chưa có mã', chuKy: 0 }, ql)).may;
+  assert.notEqual(moi.ma, ke, 'mã hệ thống mới nhảy qua mã đã có người dùng làm mã hiển thị');
+  assert.equal(moi.maHT, '');
+  // Gõ tay mã theo loại cho hai máy hút bụi (như sửa cột MaHT trong Google Sheet), chưa đặt bảng mã loại trong app
+  const hb = d.may.filter((x) => x.nhom === 'Máy hút bụi · 吸尘器');
+  ok(b.call('saveMachine', { ma: hb[0].ma, ten: hb[0].ten, nhom: hb[0].nhom, chuKy: hb[0].chuKy, hanKeTiep: hb[0].hanKeTiep, maHT: 'M07001' }, ql));
+  ok(b.call('saveMachine', { ma: hb[1].ma, ten: hb[1].ten, nhom: hb[1].nhom, chuKy: hb[1].chuKy, hanKeTiep: hb[1].hanKeTiep, maHT: 'M07004' }, ql));
+  const hbMoi = ok(b.call('saveMachine', { ten: 'Máy hút bụi mới', nhom: 'Máy hút bụi · 吸尘器', chuKy: 30, hanKeTiep: '2026-11-01' }, ql)).may;
+  assert.equal(hbMoi.maHT, 'M07005', 'suy ra mã loại 07 từ mã đã gõ, lấy số kế tiếp sau số lớn nhất');
+});
+
 test('bản ghi sửa chữa: đánh dấu nguồn SC (cả bản ghi cũ 2.6.0); xoá: Quản lý xoá mọi bản ghi, người khác chỉ xoá bản mình ghi; việc thường không xoá kiểu này', () => {
   const b = setupSC();
   const a = ok(b.call('saveRepair', { moTa: 'Máy kêu to', ketQua: 'Siết bu lông', nguyenNhan: 'Bu lông lỏng', ma: 'M001' }, b.kt)).congViec;
