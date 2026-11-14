@@ -2394,6 +2394,38 @@ assert.equal(await page.evaluate(() => tcKhoang().kieu), 'tuan', 'quay lại xem
 await page.evaluate(() => { S.f.tcKieu = ''; while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.47: tăng ca theo tuần hoặc từ ngày – đến ngày; tuần vắt hai tháng tách riêng từng tháng cho danh sách, đơn in, Excel');
 
+// 36. Xuất / nhập theo từng loại thiết bị, cùng một mẫu; nút quay lại luôn lùi được
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('list'); go('tbXuat'); }); await wait(600);
+assert.ok(await page.locator('[data-act="tbNhapNhom"]').count() >= 5, 'mỗi loại có nút Nhập lại cạnh Xuất Excel');
+const file36 = await page.evaluate(async () => {
+  const g = 'Máy hút bụi · 吸尘器', rows = await (await readXlsx(await tbXuatNhom(g).blob.arrayBuffer()))[0].rows();
+  const hi = rows.findIndex((r) => (r || []).includes('Mã máy')), h = rows[hi];
+  const dong = rows.slice(hi + 1).map((r) => h.map((_, i) => (r[i] === undefined ? '' : r[i])));
+  dong[0][h.indexOf('Vị trí')] = 'Vị trí sửa trong Excel';
+  const moi = h.map(() => ''); moi[h.indexOf('Tên thiết bị')] = 'Máy hút bụi mới E2E';
+  const khac = h.map(() => ''); khac[h.indexOf('Tên thiết bị')] = 'Bơm lạ E2E'; khac[h.indexOf('Nhóm')] = 'Bơm nước · 水泵';
+  const bl = XW.build([{ name: 'may hut bui', rows: [[g], h].concat(dong, [moi, khac]), cols: h.map(() => 15) }]);
+  return Array.from(new Uint8Array(await bl.arrayBuffer()));
+});
+await page.click('[data-act="tbNhapNhom"][data-g="Máy hút bụi · 吸尘器"]'); await wait(500);
+await page.setInputFiles('#tbFile', { name: 'may-hut-bui.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(file36) });
+await wait(1500);
+assert.match(await text('#main'), /Đang nhập cho loại: Máy hút bụi/, 'ghi rõ đang nhập cho loại nào');
+assert.match(await text('#main'), /1 dòng thuộc loại khác/, 'dòng của loại khác bị bỏ qua, có báo');
+await shot('72-nhap-theo-loai');
+await page.click('[data-act="tbNhapGo"]'); await wait(1800);
+assert.match(await text('.toast'), /1 thêm mới, \d+ cập nhật/, 'thông báo có đủ số thêm mới / cập nhật');
+const kq36 = await page.evaluate(() => ({ viTri: !!S.V.may.find((m) => m.viTri === 'Vị trí sửa trong Excel'),
+  moi: (S.V.may.find((m) => m.ten === 'Máy hút bụi mới E2E') || {}).nhom, bom: !!S.V.may.find((m) => m.ten === 'Bơm lạ E2E') }));
+assert.deepEqual(kq36, { viTri: true, moi: 'Máy hút bụi · 吸尘器', bom: false }, 'cập nhật máy cũ, thêm máy mới đúng loại, bỏ dòng loại khác');
+// Nút quay lại trên thanh tiêu đề
+await page.evaluate(() => go('may', { ma: 'M001' })); await wait(400);
+const sau36 = await page.evaluate(() => S.stack.length);
+await page.click('#barLead .back'); await wait(400);
+assert.equal(await page.evaluate(() => S.stack.length), sau36 - 1, 'bấm quay lại thì lùi một màn');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.48: xuất / nhập lại theo từng loại thiết bị cùng một mẫu; nút quay lại luôn lùi được');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

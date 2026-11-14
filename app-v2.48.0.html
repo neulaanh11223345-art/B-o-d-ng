@@ -1078,6 +1078,8 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .ktrow dt{flex:1;min-width:0;color:var(--ink2);overflow-wrap:anywhere}
 .ktrow dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
 .xuatrow{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line)}
+/* Hai nút Xuất / Nhập lại: điện thoại thì tên loại một dòng, nút xuống dưới */
+@media (max-width:600px){.xuatrow{flex-wrap:wrap}.xuatrow>span:first-child{flex:1 1 100%!important}.xuatrow>.btn{flex:1}}
 /* Tám công tắc quyền xem trong hồ sơ tài khoản */
 .qbox{padding-top:4px}
 .qrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--soft)}
@@ -1115,6 +1117,8 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .lnkcode{border:0;cursor:pointer;color:var(--blue)}
 dd .lnk,.kv .lnk{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--blue);cursor:pointer;text-align:left}
 dd .lnk:hover,.kv .lnk:hover{text-decoration:underline}
+dd .lnk .zi,.kv .lnk .zi{display:inline;margin-left:4px}
+dd>.lnk[data-act="tbViTri"]{margin-left:10px;font-size:13px}
 .tmrow .main{flex:1 1 42%;min-width:0}.tmrow .nm{overflow-wrap:anywhere}
 .tmrow .end{flex:1 1 55%;min-width:0}.tmrow .end select{width:100%}
 .kstrip.k3{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -1683,7 +1687,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.47.0";
+const APP_VER = "2.48.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -2531,22 +2535,35 @@ function go(v, p) {
   if (!IS_DEMO) { try { history.pushState({ d: S.stack.length }, ''); } catch (e) { /* bỏ qua */ } }
   render(); window.scrollTo(0, 0);
 }
+// Nút quay lại trong app: lùi NGAY trong app, rồi mới nhờ trình duyệt lùi lịch sử cho khớp.
+// Trước đây chỉ gọi history.back() rồi chờ trình duyệt báo lại: khi lịch sử trình duyệt lệch với các màn
+// trong app (mở bằng link ở tab mới, chuyển mục ở thanh bên…) thì trình duyệt không lùi được và nút đứng im.
+function popTuApp(n) {
+  S.popCho = (Date.now() - (S.popLuc || 0) < 1500 ? S.popCho || 0 : 0) + n;
+  S.popLuc = Date.now();
+}
+// Số màn của app mà trình duyệt đang giữ trong lịch sử (go() ghi {d: độ sâu}); 0 nếu không phải của app
+const lsSau = () => { try { return (history.state && +history.state.d) || 0; } catch (e) { return 0; } };
 function back() {
   closeSheet();
   if (S.stack.length <= 1) return;
-  if (!IS_DEMO) { S.popByApp = true; history.back(); return; }
   S.stack.pop(); render();
+  // Chỉ nhờ trình duyệt lùi khi mục trước đó chắc chắn là của app — nếu không, lùi lịch sử sẽ rời khỏi app
+  if (!IS_DEMO && lsSau() > 1) { popTuApp(1); try { history.back(); } catch (e) { /* bỏ qua */ } }
 }
 function tab(v) {
   closeSheet();
   const n = S.stack.length - 1;
   S.stack = [{ v, p: {} }];
-  if (!IS_DEMO && n > 0) { S.rewind = true; history.go(-n); }
+  const lui = Math.min(n, lsSau() - 1);
+  if (!IS_DEMO && lui > 0) { popTuApp(1); try { history.go(-lui); } catch (e) { /* bỏ qua */ } }
   render(); window.scrollTo(0, 0);
 }
 window.addEventListener('popstate', () => {
-  if (S.rewind) { S.rewind = false; return; }
-  S.popByApp = false;
+  // Lịch sử lùi do chính app gọi (nút quay lại, chuyển tab): app đã lùi rồi, bỏ qua
+  if (S.popCho > 0 && Date.now() - (S.popLuc || 0) < 1500) { S.popCho--; return; }
+  S.popCho = 0;
+  // Nút back của điện thoại / trình duyệt
   if ($('#sheetBg')) closeSheet();
   if (S.stack.length > 1) { S.stack.pop(); render(); }
 });
@@ -3933,7 +3950,11 @@ Object.assign(TX, {
   tbViTriHelp: ['Ai cũng sửa được vị trí máy — đứng tại máy thấy sai thì sửa ngay, khỏi báo Quản lý.',
     '任何人都可以修改设备位置——在现场发现不对即可直接修改，无需上报主管。'],
   tbNhapBtn: ['Nhập từ file', '从文件导入'], tbXuatBtn: ['Xuất Excel', '导出'],
-  t_tbNhap: ['Nhập thiết bị từ file', '从文件导入设备'], t_tbXuat: ['Xuất bảng thiết bị', '导出设备台帐'],
+  t_tbNhap: ['Nhập thiết bị từ file', '从文件导入设备'], t_tbXuat: ['Xuất · nhập theo loại thiết bị', '按设备类别导出 · 导入'],
+  tbNhapLai: ['Nhập lại', '重新导入'], tbXuatNhapBtn: ['Xuất / nhập theo loại', '按类别导出/导入'], tbNhapLoai: ['Đang nhập cho loại: {g}', '正在导入类别：{g}'],
+  tbNhapKhacLoai: ['{n} dòng thuộc loại khác — bỏ qua (nhập ở đúng loại đó, hoặc dùng "Nhập từ file" ở màn Danh sách)', '{n}行属于其他类别——已跳过（请在对应类别导入，或在列表页使用“从文件导入”）'],
+  tbNhapDongLoi: ['Dòng {d}: {m}', '第{d}行：{m}'], tbNhapCho: ['Đã lưu trên máy, sẽ gửi khi có mạng', '已保存在本机，联网后发送'],
+  tbNhapCoLoi: ['Đã nhập: {a} thêm mới, {b} cập nhật. Có {n} dòng không nhập được:', '已导入：新增{a}，更新{b}。有{n}行未能导入：'],
   tbNhapHelp: ['Mỗi loại thiết bị một file, cột như bảng tổng hợp của nhà máy. Cột bắt buộc: Tên thiết bị. Để trống cột Mã máy thì app tự đánh mã mới; điền mã cũ thì app cập nhật đúng máy đó.',
     '每类设备一个文件，列与工厂台帐一致。必填列：设备名称。"设备编号"留空则自动编号；填写原编号则更新该设备。'],
   tbNhapChon: ['Chọn file Excel', '选择 Excel 文件'], tbNhapDoc: ['Đang đọc file…', '正在读取文件…'],
@@ -3943,8 +3964,8 @@ Object.assign(TX, {
   tbNhapTrong: ['File này không có dòng thiết bị nào đọc được', '该文件没有可读取的设备行'],
   tbMaMoi: ['mã mới', '新编号'], tbThem1: ['Thêm mới', '新增'], tbSua1: ['Cập nhật', '更新'],
   tbNhapCot: ['Không thấy cột "Tên thiết bị" trong file', '文件中找不到"设备名称"列'],
-  tbXuatHelp: ['Mỗi loại một file riêng, cột đúng như bảng tổng hợp của nhà máy. Nhập lại chính file này cũng được.',
-    '每类一个独立文件，列与工厂台帐一致。该文件也可直接重新导入。'],
+  tbXuatHelp: ['Mỗi loại một file riêng, cột đúng như bảng tổng hợp của nhà máy. Sửa trong file rồi bấm "Nhập lại" ở đúng loại đó: dòng giữ nguyên Mã máy thì cập nhật máy cũ, dòng để trống Mã máy thì thêm máy mới. Sheet "chi tiet" (từng quạt, từng máy keo) cũng nhập lại được.',
+    '每类一个独立文件，列与工厂台帐一致。在文件中修改后，在对应类别点“重新导入”：保留设备编号的行更新原设备，编号留空的行新增设备。“chi tiet”明细表（每台风机、胶机）也可重新导入。'],
   tbXuatTat: ['Xuất tất cả (mỗi loại một file)', '全部导出（每类一个文件）'],
 });
 const listSeg = (cur) => `<div class="seg wide3${xemHet() ? ' seg4' : ''}" style="margin-bottom:12px">${(xemHet() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history'], ['kho', 'segKho']] : [['cal', 'segLich'], ['hist', 'history']]).map(([v, k]) =>
@@ -4005,7 +4026,7 @@ VIEWS.list = {
     const nut = [];
     if (can('may') && can('suatb')) nut.push(`<button class="btn sm" data-act="newMay">${IC.plus} ${t('addMachine')}</button>`,
       `<button class="btn ghost sm" data-act="go" data-v="tbNhap">${IC.dl} ${t('tbNhapBtn')}</button>`);
-    if (can('xuattb')) nut.push(`<button class="btn ghost sm" data-act="go" data-v="tbXuat">${IC.share} ${t('tbXuatBtn')}</button>`);
+    if (can('xuattb')) nut.push(`<button class="btn ghost sm" data-act="go" data-v="tbXuat">${IC.share} ${t(can('may') && can('suatb') ? 'tbXuatNhapBtn' : 'tbXuatBtn')}</button>`);
     if (can('may')) nut.push(`<button class="btn ghost sm" data-act="labels">${IC.qr} ${t('printQR')}</button>`);
     if (nut.length) o += `<div class="btns" style="margin-bottom:14px">${nut.join('')}</div>`;
     if (f.grp === '__ktra') o += `<div class="note srvwarn" style="margin-bottom:12px">${t('mCanKTHelp')}</div>`;
@@ -4210,7 +4231,14 @@ async function tbDocChiTiet(sheets, ds) {
 }
 VIEWS.tbNhap = {
   html(p) {
-    let o = `<div class="card pad"><p class="help" style="margin:0 0 12px;font-size:13.5px">${t('tbNhapHelp')}</p>
+    let o = p.nhom !== undefined ? `<div class="note" style="margin-bottom:10px"><b>${esc(tv('tbNhapLoai', { g: p.nhom || '—' }))}</b> <span class="zi">${esc(tz('tbNhapLoai', { g: p.nhom || '—' }))}</span></div>` : '';
+    if (p.ketQua) {
+      const k = p.ketQua;
+      o += `<div class="card pad" style="margin-bottom:12px"><b>${esc(tv('tbNhapCoLoi', { a: k.them, b: k.capNhat, n: k.loi.length }))}</b>
+        <div class="help">${esc(tz('tbNhapCoLoi', { a: k.them, b: k.capNhat, n: k.loi.length }))}</div>
+        <ul style="margin:8px 0 0;padding-left:18px">${k.loi.slice(0, 30).map((x) => `<li>${esc(tv('tbNhapDongLoi', { d: x.dong, m: x.vi }))} <span class="zi">${esc(x.zh || '')}</span></li>`).join('')}</ul></div>`;
+    }
+    o += `<div class="card pad"><p class="help" style="margin:0 0 12px;font-size:13.5px">${t('tbNhapHelp')}</p>
       <label class="btn y filebtn wide"><span class="stk">${tv('tbNhapChon')}<span class="zi">${tz('tbNhapChon')}</span></span><input type="file" id="tbFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
       <div class="err" id="tbErr" hidden></div></div>`;
     if (p.dangDoc) return o + `<div class="card pad empty">${t('tbNhapDoc')}</div>`;
@@ -4218,6 +4246,7 @@ VIEWS.tbNhap = {
     if (!p.ds.length) return o + `<div class="card pad empty">${t('tbNhapTrong')}</div>`;
     const them = p.ds.filter((x) => !x.cu), sua = p.ds.filter((x) => x.cu);
     o += `<div class="kstrip" style="margin-top:12px">${kstHtml('k-green', 'tbNhapThem', { n: them.length }, them.length, '')}${kstHtml('k-blue', 'tbNhapSua', { n: sua.length }, sua.length, '')}</div>`;
+    if (p.khacLoai) o += `<div class="note" style="margin-top:10px">${esc(tv('tbNhapKhacLoai', { n: p.khacLoai }))} <span class="zi">${esc(tz('tbNhapKhacLoai', { n: p.khacLoai }))}</span></div>`;
     o += `<div class="card" style="margin-top:12px"><div class="list">${p.ds.slice(0, 60).map((x) => `<div class="row"><div class="main">
         <div class="nm">${esc(x.ten)}${x.tenPhu ? `<span class="zi">${esc(x.tenPhu)}</span>` : ''}</div>
         <div class="sub"><span class="mono">${x.cu ? esc(x.cu.ma) : t('tbMaMoi')}</span> · ${esc(x.nhom || '—')}${x.chuyen ? ' · ' + esc(x.chuyen) : ''}${x.thongSo.length ? ' · ' + x.thongSo.length + ' thông số' : ''}${(x.chiTiet || []).length ? ' · ' + tv('tbCtN', { n: x.chiTiet.length }) : ''}</div></div>
@@ -4233,12 +4262,19 @@ VIEWS.tbNhap = {
       if (!f) return;
       const fe = $('#tbErr');
       fe.hidden = true;
-      p.dangDoc = 1; p.ds = null; render();
+      p.dangDoc = 1; p.ds = null; p.ketQua = null; p.khacLoai = 0; render();
       try {
-        const ds = await tbDocFile(f);
+        let ds = await tbDocFile(f);
         const byMa = {}, byHT = {};
         S.V.may.forEach((m) => { byMa[m.ma] = m; if (m.maHT) byHT[m.maHT.toUpperCase()] = m; });
         ds.forEach((x) => { x.cu = byMa[x.ma] || (x.maHT && byHT[x.maHT.toUpperCase()]) || null; });
+        // Nhập theo một loại: dòng để trống nhóm thì nhận loại này; dòng thuộc loại khác thì bỏ qua
+        if (p.nhom !== undefined) {
+          const g = norm(p.nhom);
+          ds.forEach((x) => { if (!String(x.nhom || '').trim()) x.nhom = (x.cu && x.cu.nhom) || p.nhom; });
+          const dung = ds.filter((x) => norm(x.nhom) === g);
+          p.khacLoai = ds.length - dung.length; ds = dung;
+        }
         p.ds = ds;
       } catch (err) {
         p.ds = null;
@@ -4297,7 +4333,8 @@ VIEWS.tbXuat = {
       o += sec('khoi_' + kh, gs.reduce((a, k) => a + dem[k], 0)) + '<div class="card">'
         + gs.map((k) => { const g = k.slice(kh.length + 1);
           return `<div class="xuatrow"><span style="flex:1;min-width:0"><b>${esc(g || '—')}</b><br><small class="help">${dem[k]} thiết bị</small></span>
-            <button class="btn ghost sm" data-act="tbXuat1" data-g="${esc(g)}">${IC.dl} ${t('tbXuatBtn')}</button></div>`; }).join('')
+            <button class="btn ghost sm" data-act="tbXuat1" data-g="${esc(g)}">${IC.dl} ${t('tbXuatBtn')}</button>
+            ${can('may') && can('suatb') ? `<button class="btn ghost sm" data-act="tbNhapNhom" data-g="${esc(g)}">${IC.plus} ${t('tbNhapLai')}</button>` : ''}</div>`; }).join('')
         + '</div>';
     });
     return o;
@@ -9294,14 +9331,20 @@ Object.assign(ACT, {
     });
     el.disabled = false;
     if (r.err) { fe.innerHTML = errMsg(r.err); fe.hidden = false; return; }
-    toast(tp('tbNhapXong', { a: r.them, b: r.capNhat }));
+    // send() trả về { data: kết quả máy chủ } (trước đây đọc nhầm r.them nên thông báo mất số)
+    if (r.queued) { toast(t('tbNhapCho')); p.ds = null; back(); return; }
+    const d = r.data || {}, loi = d.loi || [];
     p.ds = null;
+    if (loi.length) { p.ketQua = { them: d.them || 0, capNhat: d.capNhat || 0, loi }; render(); window.scrollTo(0, 0); return; }
+    toast(tp('tbNhapXong', { a: d.them || 0, b: d.capNhat || 0 }));
     back();
   }
 });
 
 Object.assign(ACT, {
-  tbXuat1: async (el) => { const f = tbXuatNhom(el.dataset.g); await saveFile(f.blob, f.ten); }
+  tbXuat1: async (el) => { const f = tbXuatNhom(el.dataset.g); await saveFile(f.blob, f.ten); },
+  // Nhập lại đúng file vừa xuất của một loại: cùng một mẫu
+  tbNhapNhom: (el) => go('tbNhap', { nhom: el.dataset.g })
 });
 
 Object.assign(ACT, {
