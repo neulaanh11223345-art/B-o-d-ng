@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.46.0';
+var PHIEN_BAN = '2.51.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -202,6 +202,7 @@ var CAI_DAT_MAC_DINH = {
   trucTu: '17:00', trucDen: '19:30',       // giờ trực mặc định ngày thường
   trucCnTu: '07:30', trucCnDen: '17:00',   // giờ trực mặc định Chủ nhật
   saoLuuTat: false,                  // true = tắt sao lưu tự động hằng đêm
+  maLoai: {},                        // mã loại máy 2 chữ số theo nhóm: { 'Quạt gió · 风机': '01' } → mã máy M01020
   // Giá điện sản xuất EVN, cấp 22 kV – dưới 110 kV, chưa VAT (QĐ 1279/QĐ-BCT, từ 10/05/2025). Quản lý sửa trong app khi EVN đổi giá.
   giaDien: [{ tu: '2025-05-10', bt: 1833, cd: 3398, td: 1190 }],
   vatDien: 8,                        // % thuế GTGT trên hoá đơn điện
@@ -343,6 +344,8 @@ function dieuHuong(a, p, req) {
     case 'undo': return huyXacNhan(u, p);
     case 'saveMachine': canQuyen(u, 'may'); return luuMay(u, p);
     case 'importMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return nhapThietBi(u, p);
+    case 'saveMaLoai': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return luuMaLoai(u, p);
+    case 'splitDetail': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return tachChiTiet(u, p);
     case 'deleteMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return xoaThietBi(u, p);
     case 'saveSpot': canQuyen(u, 'xacnhan'); return luuViTriMay(u, p);
     case 'saveLine': canQuyen(u, 'may'); return luuChuyen(u, p);
@@ -934,7 +937,7 @@ function layDuLieu(u) {
     caiDat: coQuyen(u, 'may')
       ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
         caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram,
-        trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN }
+        trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN, maLoai: cd.maLoai || {} }
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
         caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram,
         trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN },
@@ -2919,6 +2922,8 @@ function luuMay(u, p) {
     m.chuyen = ch;
   }
   if (p.maHT !== undefined) m.maHT = kiemMaHT(p.maHT, m ? m.ma : '');
+  // Máy mới không tự đặt mã hiển thị: lấy mã theo loại (M + mã loại + số thứ tự) nếu loại đã có mã
+  if (moi && !m.maHT) { var mt = maTheoLoai(m.nhom, dsMayHet()); if (mt) { try { m.maHT = kiemMaHT(mt, m.ma); } catch (e) { m.maHT = ''; } } }
   if (p.khoi !== undefined) m.khoi = khoiHopLe(p.khoi);
   if (p.thongSo !== undefined) m.thongSo = thongSoSach(p.thongSo);
   if (p.chiTiet !== undefined) m.chiTiet = chiTietSach(p.chiTiet);
@@ -3035,6 +3040,7 @@ function nhapThietBi(u, p) {
     if (r.maHT !== undefined && s(r.maHT)) {
       try { m.maHT = kiemMaHT(r.maHT, m.ma); } catch (e) { m.maHT = ''; }
     }
+    if (m._moi && !m.maHT) m.maHT = maTheoLoai(m.nhom, maCap);
     m.capNhat = bay;
     (m._moi ? them : sua).push(m);
   }
@@ -3264,11 +3270,141 @@ function ghiNhatKyLienKet(u, m, cu, moi) {
   });
 }
 
-function maMoi(ds) {
+// ===== Mã máy theo loại: M + 2 số mã loại + 3 số thứ tự (M01020 = loại 01, máy thứ 20) =====
+// Ghi vào MÃ HIỂN THỊ, mã hệ thống (M130…) giữ nguyên: lịch sử, công việc, tài liệu, tem QR đã in không đứt.
+var MA_LOAI_RE = /^M(\d{2})(\d{3})$/;
+function maLoaiCua(nhom, ds) {
+  var ml = docCaiDat().maLoai || {}, code = s(ml[s(nhom)]);
+  if (/^\d{2}$/.test(code)) return code;
+  // Chưa đặt trong app: lấy theo mã các máy cùng loại đã gõ (vd sửa tay cột MaHT trong Google Sheet),
+  // chỉ khi cả loại dùng chung một mã loại và mã đó chưa thuộc loại khác
+  var dem = {};
+  ds.forEach(function (x) { if (s(x.nhom) !== s(nhom)) return; var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); if (k) dem[k[1]] = 1; });
+  var cs = Object.keys(dem);
+  if (cs.length !== 1) return '';
+  var khac = ds.some(function (x) { var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); return k && k[1] === cs[0] && s(x.nhom) !== s(nhom); });
+  return khac ? '' : cs[0];
+}
+function maTheoLoai(nhom, ds) {
+  var code = maLoaiCua(nhom, ds);
+  if (!code) return '';
   var n = 0;
-  ds.forEach(function (x) { var k = /^M(\d+)$/.exec(x.ma); if (k) n = Math.max(n, Number(k[1])); });
+  ds.forEach(function (x) { var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); if (k && k[1] === code) n = Math.max(n, Number(k[2])); });
+  if (n >= 999) return '';
   var t = String(n + 1); while (t.length < 3) t = '0' + t;
-  return 'M' + t;
+  return 'M' + code + t;
+}
+// Lưu bảng mã loại; kèm danh sách máy cần đổi mã hiển thị (app tính sẵn, máy chủ kiểm lại trùng)
+function luuMaLoai(u, p) {
+  var c = docCaiDat(), ml = {}, dung = {}, vao = p.maLoai || {};
+  Object.keys(vao).forEach(function (k) {
+    var nh = catChu(k, 60), v = s(vao[k]);
+    if (!nh || !v) return;
+    if (!/^\d{2}$/.test(v) || v === '00') throw loi('MA_LOAI_SAI', 'Mã loại phải là 2 chữ số 01–99 · 类别代码须为01–99：' + nh);
+    if (dung[v]) throw loi('MA_LOAI_TRUNG', 'Hai loại trùng mã ' + v + ' · 类别代码重复：' + dung[v] + ' / ' + nh);
+    dung[v] = nh; ml[nh] = v;
+  });
+  c.maLoai = ml; ghiCaiDat(c);
+  var gan = Array.isArray(p.gan) ? p.gan.slice(0, 3000) : [], doi = 0;
+  if (gan.length) {
+    var ds = dsMayHet(), theoMa = {}, doiMa = {}, daCo = {}, moi = {};
+    ds.forEach(function (m) { theoMa[m.ma] = m; });
+    gan.forEach(function (g) { doiMa[s(g.ma).toUpperCase()] = 1; });
+    // Mã mới không được trùng: mã hệ thống, mã hiển thị của máy không đổi, mã chuyền
+    ds.forEach(function (m) { daCo[m.ma.toUpperCase()] = m.ma; if (m.maHT && !doiMa[m.ma]) daCo[s(m.maHT).toUpperCase()] = m.ma; });
+    dsChuyen().forEach(function (c2) { daCo[c2.ma.toUpperCase()] = c2.ma; if (c2.maHT) daCo[s(c2.maHT).toUpperCase()] = c2.ma; });
+    gan.forEach(function (g) {
+      var ma = s(g.ma).toUpperCase(), v = s(g.maHT).toUpperCase();
+      if (!theoMa[ma]) return;
+      if (!MA_LOAI_RE.test(v)) throw loi('MA_HT_SAI', v);
+      if ((daCo[v] && daCo[v] !== ma) || moi[v]) throw loi('MA_HT_TRUNG', daCo[v] || moi[v]);
+      moi[v] = ma;
+    });
+    // Ghi một lần cả cột Mã hiển thị (và Cập nhật) thay vì từng dòng — nhà máy vài trăm máy vẫn nhanh
+    capNhatTieuDe('May');
+    var sh = trang('May'), last = sh.getLastRow();
+    if (last >= 2) {
+      var cHT = sh.getRange(2, 16, last - 1, 1).getValues(), cCN = sh.getRange(2, 10, last - 1, 1).getValues(), bay = thoiGianStr();
+      Object.keys(moi).forEach(function (v) {
+        var m = theoMa[moi[v]], i = m._r - 2;
+        if (i < 0 || i >= cHT.length || s(cHT[i][0]).toUpperCase() === v) return;
+        cHT[i][0] = v; cCN[i][0] = bay; doi++;
+      });
+      if (doi) { sh.getRange(2, 16, last - 1, 1).setValues(cHT); sh.getRange(2, 10, last - 1, 1).setValues(cCN); }
+    }
+  }
+  ghiNhatKy(u, 'DAT_MA_LOAI', 'May', '', {}, { loai: Object.keys(ml).length, doiMa: doi }, 'Đặt mã máy theo loại · 按类别设定设备编号');
+  return { caiDat: { maLoai: ml }, dsMay: mayChoXem(u), doiMa: doi };
+}
+
+function maMoi(ds) {
+  var n = 0, dung = {};
+  ds.forEach(function (x) {
+    var k = /^M(\d+)$/.exec(x.ma); if (k) n = Math.max(n, Number(k[1]));
+    if (x.maHT) dung[s(x.maHT).toUpperCase()] = 1;
+  });
+  // Mã hệ thống còn là mã hiện ra khi máy chưa có mã hiển thị: tránh trùng mã hiển thị đã gõ tay
+  // (vd ai đó đặt M131 cho một máy trong Google Sheet) và trùng mã chuyền
+  try { dsChuyen().forEach(function (c) { dung[s(c.ma).toUpperCase()] = 1; if (c.maHT) dung[s(c.maHT).toUpperCase()] = 1; }); } catch (e) { /* bỏ qua */ }
+  var ma;
+  do { n++; var t = String(n); while (t.length < 3) t = '0' + t; ma = 'M' + t; } while (dung[ma]);
+  return ma;
+}
+// ===== Tách bản ghi gộp (quạt gió theo chuyền…) thành từng máy, mỗi máy một mã riêng =====
+// Đơn vị đầu giữ luôn bản ghi cũ (mã hệ thống, lịch sử, tài liệu không đứt); các đơn vị sau thành máy mới.
+function tenDonVi(ct, i) {
+  var t = '';
+  (ct.cot || []).forEach(function (kv) { if (!t && /^(tên|ten|name|名称)$/i.test(s(kv[0]))) t = s(kv[1]); });
+  return t || ('Số ' + (i + 1));
+}
+function tachChiTiet(u, p) {
+  var dsMa = (Array.isArray(p.ds) ? p.ds : []).map(function (x) { return s(x).toUpperCase(); }).slice(0, 100);
+  if (!dsMa.length) throw loi('KHONG_CO', 'Chưa chọn bản ghi nào · 未选择记录');
+  var tatCa = dsMayHet(), theoMa = {};
+  tatCa.forEach(function (m) { theoMa[m.ma] = m; });
+  var goc = dsMa.map(function (ma) { return theoMa[ma]; }).filter(function (m) { return m && !m.xoa && (m.chiTiet || []).length; });
+  if (!goc.length) throw loi('KHONG_CO', 'Không có bản ghi gộp nào để tách · 没有可拆分的合并记录');
+  // Mã loại: lấy từ app gửi lên (lưu luôn vào cài đặt) hoặc đã đặt / suy ra được
+  var nhom = s(goc[0].nhom);
+  if (goc.some(function (m) { return s(m.nhom) !== nhom; })) throw loi('KHAC_LOAI', 'Chỉ tách các bản ghi cùng một loại mỗi lần · 每次只能拆分同一类别');
+  var code = s(p.maLoai);
+  if (code) {
+    if (!/^\d{2}$/.test(code) || code === '00') throw loi('MA_LOAI_SAI', 'Mã loại phải là 2 chữ số 01–99 · 类别代码须为01–99');
+    var c = docCaiDat(), ml = c.maLoai || {};
+    Object.keys(ml).forEach(function (k) { if (k !== nhom && ml[k] === code) throw loi('MA_LOAI_TRUNG', 'Mã ' + code + ' đã dùng cho loại ' + k + ' · 类别代码已被使用'); });
+    ml[nhom] = code; c.maLoai = ml; ghiCaiDat(c);
+  }
+  capNhatTieuDe('May');
+  var bay = thoiGianStr(), them = [], sua = [], thuTu = [];
+  // Thứ tự đánh số: theo chuyền (VKY01, VKY02…), trong chuyền theo thứ tự đơn vị (Quạt số 1, 2…)
+  goc.sort(function (a, b) {
+    var x = s(a.chuyen) || 'ZZZ', y = s(b.chuyen) || 'ZZZ';
+    return x < y ? -1 : x > y ? 1 : (a.ten < b.ten ? -1 : a.ten > b.ten ? 1 : 0);
+  });
+  goc.forEach(function (m) {
+    var nen = s(m.ten).replace(/\s*\(\s*\d+[^)]*\)\s*$/, '');      // "Quạt gió chuyền VKY01 (5 quạt)" → "Quạt gió chuyền VKY01"
+    var ct = m.chiTiet, tenPhu = s(m.tenPhu);
+    ct.forEach(function (d, i) {
+      var ts = (d.cot || []).filter(function (kv) { return !/^(tên|ten|name|名称)$/i.test(s(kv[0])); });
+      var x = i === 0 ? m : { ma: maMoi(tatCa), hangMuc: [], linhKien: [], noiDung: '', phuTrach: m.phuTrach || '', ngayDuaVao: m.ngayDuaVao || '',
+        chuKy: m.chuKy || 0, hanKeTiep: m.hanKeTiep || '', hoatDong: m.hoatDong !== false, khoi: m.khoi || '', nhom: m.nhom, chuyen: m.chuyen || '',
+        viTri: m.viTri || '', maHT: '' };
+      x.ten = (nen + ' · ' + tenDonVi(d, i)).slice(0, 120);
+      x.tenPhu = tenPhu ? (tenPhu + ' ' + (i + 1) + '#').slice(0, 120) : '';
+      x.thongSo = thongSoSach(ts);
+      x.chiTiet = [];
+      x.maHT = '';
+      x.capNhat = bay;
+      if (i > 0) { tatCa.push(x); them.push(x); } else sua.push(x);
+      thuTu.push(x);
+    });
+  });
+  // Mã riêng cho từng máy: M + mã loại + số thứ tự kế tiếp (tatCa đã có cả máy mới nên số không lặp)
+  thuTu.forEach(function (x) { var mt = maTheoLoai(x.nhom, tatCa); if (mt) x.maHT = mt; });
+  sua.forEach(function (m) { suaDong('May', m._r, mayThanhDong(m)); });
+  if (them.length) themNhieu('May', them.map(mayThanhDong));
+  ghiNhatKy(u, 'TACH_CHI_TIET', 'May', '', {}, { banGhi: goc.length, may: thuTu.length }, 'Tách bản ghi gộp thành từng máy · 拆分合并记录为单台设备');
+  return { banGhi: goc.length, may: thuTu.length, dsMay: mayChoXem(u), caiDat: { maLoai: docCaiDat().maLoai || {} } };
 }
 
 // ===================== Kho linh kiện · 备件库 =====================
