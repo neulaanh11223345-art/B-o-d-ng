@@ -130,6 +130,14 @@ File mẫu nhập (linh kiện, kiểm định, tồn kho an toàn, thiết bị
 | Excel lịch trực | Ô ngày có người trực bị mất chữ (chiều cao hàng chỉ tính theo Chủ nhật) | Hàng cao theo ô nhiều chữ nhất trong tuần |
 | Excel sổ kiểm định | 25 cột ép một trang A4 nên chữ rất nhỏ | In hai trang ngang, trang nào cũng lặp cột tên thiết bị |
 
+**Sửa linh kiện chưa khớp ERP ngay trên màn chuyền:**
+- **Bấm vào một dòng linh kiện** → mở khung sửa riêng dòng đó: tên, quy cách, **mã ERP**, số lượng trên máy, loại. Trước đây bấm vào là mở cả danh sách, phải tự tìm lại dòng.
+- **Gợi ý mã ERP gần đúng**: app so quy cách với file ERP (bỏ qua gạch, khoảng trắng; trùng hẳn → chứa nhau → cùng đầu mã), ví dụ `6306ZZ` → `605010001 · 6306ZZCM`. Bấm **Dùng** là điền mã và quy cách ERP; có nút **Lấy tên ERP**. Không thấy thì gõ vào ô **Tìm trong ERP**.
+- Ô mã ERP báo ngay: có trong ERP (tên, quy cách, tồn kho), mã tự đặt trong app (`APP-…`), hay không có trong file ERP.
+- **Lưu, sang mục chưa khớp tiếp**: sửa xong dòng này mở luôn dòng chưa khớp kế tiếp trên cùng màn.
+- **Xem và tự khớp**: dòng nào có quy cách trùng đúng một mã ERP mà chưa gắn mã thì gom lại một danh sách; bỏ chọn dòng chưa chắc rồi bấm **Áp dụng**.
+- Vẫn còn nút **Sửa cả danh sách** khi cần sửa nhiều dòng một lúc.
+
 **Rà soát lần hai** (bấm thử từng nút trên mọi màn bằng tài khoản Quản trị và Kỹ thuật, cả app Ghi chú · Tài liệu; in thử toàn bộ các trang của 16 file Excel; thử với 672 linh kiện): không còn lỗi khi bấm nút, mọi màn mở trong vài mili-giây. Đã chỉnh thêm:
 
 | Chỗ | Trước | Nay |
