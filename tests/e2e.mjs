@@ -2368,7 +2368,7 @@ await page.click('[data-act="lkTuKhopOk"]'); await wait(900);
 assert.equal(await page.evaluate(() => (S.V.chByMa.VKY01.linhKien.find((x) => x.quyCach === '6009 2Z') || {}).maKho), '605010022',
   'tự khớp: 6009 2Z → mã ERP của 6009-2Z');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
-ok('Bản 2.45: bấm dòng linh kiện chưa khớp ERP để sửa tên / quy cách / mã, có gợi ý mã gần đúng; tự khớp theo quy cách');
+ok('Bản 2.46: bấm dòng linh kiện chưa khớp ERP để sửa tên / quy cách / mã, có gợi ý mã gần đúng; tự khớp theo quy cách');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
