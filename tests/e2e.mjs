@@ -2370,6 +2370,30 @@ assert.equal(await page.evaluate(() => (S.V.chByMa.VKY01.linhKien.find((x) => x.
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.46: bấm dòng linh kiện chưa khớp ERP để sửa tên / quy cách / mã, có gợi ý mã gần đúng; tự khớp theo quy cách');
 
+// 35. Tăng ca theo khoảng ngày: tuần vắt hai tháng thì tách riêng từng tháng cho đơn in và Excel
+await page.evaluate(async () => {
+  while (S.stack.length > 1) back();
+  for (const ng of ['2026-10-30', '2026-11-01']) await send('saveOT', { id: '', uid: S.me.id, ngay: ng, ca: tcCaDS()[0].k, tu: '17:30', den: '19:30', soGio: 2, lyDo: 'Thử khoảng ngày' });
+  S.f.tcUid = S.me.id; S.f.tcKieu = ''; S.f.tcTuan = '2026-10-26'; tab('tc');
+}); await wait(800);
+const tach35 = await page.$$eval('[data-act="tcChonKhoang"]', (e) => e.map((x) => x.dataset.tu + '>' + x.dataset.den));
+assert.deepEqual(tach35, ['2026-10-26>2026-10-31', '2026-11-01>2026-11-01'], 'tuần 26/10–01/11 tách thành phần tháng 10 và phần tháng 11');
+await page.click('[data-act="tcChonKhoang"][data-tu="2026-11-01"]'); await wait(600);
+assert.deepEqual(await page.evaluate(() => tcLoc(S.me.id, tcKhoang().tu, tcKhoang().den).map((x) => x.ngay)), ['2026-11-01'], 'chỉ còn lượt của tháng 11');
+await page.evaluate(() => go('tcXem')); await wait(700);
+assert.match(await text('.tcsheet .d3'), /01\/11\/2026/, 'đơn in ghi đúng ngày của phần tháng 11');
+assert.doesNotMatch(await text('.tcsheet .ot'), /30\/10/, 'đơn tháng 11 không lẫn ngày 30/10');
+await shot('71-tang-ca-tach-thang');
+// Tự chọn: cả tháng 10
+await page.click('[data-act="tcKhoangBuoc"][data-d="-1"]'); await wait(500);
+assert.equal(await page.evaluate(() => tcKhoang().tu + '>' + tcKhoang().den), '2026-10-01>2026-10-31', 'Tháng trước = cả tháng 10');
+const ten35 = await page.evaluate(async () => { let n = null; const g = window.saveFile; window.saveFile = async (bl, ten) => { n = ten; }; await ACT.tcXuatTuan(); window.saveFile = g; return n; });
+assert.ok(!ten35 || /_2026-10-01_2026-10-31\.xlsx$/.test(ten35), 'tên file Excel theo khoảng ngày: ' + ten35);
+await page.click('[data-act="tcKieu"][data-v="tuan"]'); await wait(400);
+assert.equal(await page.evaluate(() => tcKhoang().kieu), 'tuan', 'quay lại xem theo tuần');
+await page.evaluate(() => { S.f.tcKieu = ''; while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.47: tăng ca theo tuần hoặc từ ngày – đến ngày; tuần vắt hai tháng tách riêng từng tháng cho danh sách, đơn in, Excel');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
