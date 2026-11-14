@@ -2474,6 +2474,48 @@ assert.equal(moi38, 'M42006', 'quạt mới tự lấy số kế tiếp, không 
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.50: tách bản ghi gộp quạt gió thành từng quạt, mỗi quạt một mã riêng; máy mới tự lấy số kế tiếp, không trùng');
 
+// 39. Biên bản nghiệm thu: chọn quạt gió trong danh sách → điền sẵn thông số; động cơ thì ghi tay
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('ngtGhi', {}); }); await wait(700);
+assert.ok(await page.locator('[data-act="ngtChonQuat"]').count(), 'có nút chọn quạt gió');
+await page.click('[data-act="ngtChonQuat"]'); await wait(500);
+await page.locator('#ngtQDs .ksi', { hasText: 'Quạt số 2' }).first().click(); await wait(600);
+const ngt39 = await page.evaluate(() => { const q = topV().p; return { maTB: q.truoc.chung.maTB, cs: q.truoc.chung.congSuat, ten: q.truoc.chung.tenTB, sau: q.sau.chung.maTB }; });
+assert.match(ngt39.maTB, /^M42\d{3}$/, 'mã thiết bị điền sẵn: ' + ngt39.maTB);
+assert.equal(ngt39.sau, ngt39.maTB, 'mặt "sau sửa" cũng có mã');
+assert.equal(ngt39.cs, '16', 'công suất của đúng quạt số 2');
+assert.equal(await page.inputValue('[data-c="congSuat"]'), '16', 'ô công suất trên biên bản đã điền');
+await page.click('[data-act="ngtLoai"][data-v="dc"]'); await wait(300);
+assert.match(await text('#ngtF'), /Ghi tay tên, công suất/, 'chọn động cơ thì hướng dẫn ghi tay');
+await shot('75-nghiem-thu-chon-quat');
+// 40. Kho: phiếu đề nghị mua hàng — chọn hàng, số lượng, ghi chú, xuất Excel
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); }); await wait(600);
+await page.click('[data-act="datMua"]'); await wait(600);
+assert.ok(await page.locator('#dmDs .ksi').count() >= 1, 'gợi ý sẵn hàng cần mua');
+await page.click('[data-act="dmThemTatCa"]'); await wait(500);
+const n40 = await page.locator('.dmrow').count();
+assert.ok(n40 >= 1, 'thêm cả loạt hàng cần mua vào phiếu');
+await page.click('[data-act="dmLoc"][data-v="tatca"]'); await wait(300);
+await page.fill('#dmTim', 'vong bi'); await wait(400);
+const chua40 = page.locator('#dmDs .ksi:not([disabled])');
+if (await chua40.count()) { await chua40.first().click(); await wait(400); }
+await page.locator('summary', { hasText: 'chưa có mã ERP' }).click();
+await page.fill('#dmNTen', 'Động cơ 15kW'); await page.fill('#dmNSL', '2'); await page.click('[data-act="dmThemNgoai"]'); await wait(400);
+await page.fill('[data-dmsl="0"]', '5'); await page.fill('[data-dmgc="0"]', 'Gấp');
+const xl40 = await page.evaluate(async () => {
+  const d = dmLay(), u = new Uint8Array(await dmXlsx(d).arrayBuffer()), rows = await (await readXlsx(u.buffer))[0].rows();
+  return { n: d.ds.length, sl: d.ds[0].sl, gc: d.ds[0].gc, txt: rows.map((r) => (r || []).join('|')).join('\n') };
+});
+assert.equal(xl40.sl, '5'); assert.equal(xl40.gc, 'Gấp', 'số lượng, ghi chú lưu lại ngay');
+assert.match(xl40.txt, /PHIẾU ĐỀ NGHỊ MUA HÀNG/, 'Excel có tiêu đề phiếu');
+assert.match(xl40.txt, /Động cơ 15kW/, 'có cả hàng chưa có mã ERP');
+assert.match(xl40.txt, /Phê duyệt/, 'có chỗ ký duyệt');
+await shot('76-phieu-dat-mua');
+page.once('dialog', (dg) => dg.accept());
+await page.click('[data-act="dmXoaHet"]'); await wait(400);
+assert.equal(await page.locator('.dmrow').count(), 0, 'xoá hết phiếu');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.51: nghiệm thu chọn quạt gió điền sẵn thông số, động cơ ghi tay; phiếu đề nghị mua hàng xuất Excel');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
