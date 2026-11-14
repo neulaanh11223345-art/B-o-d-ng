@@ -937,7 +937,8 @@ const xlTruc = await page.evaluate(async (ym) => {
     dongCa: r[1].length };
 }, ymMau);
 assert.deepEqual(xlTruc.ten, ['Lich truc', 'Phan ca truc', 'Tong hop', 'Doi chieu TC'], 'đủ bốn sheet: ' + xlTruc.ten);
-assert.ok(xlTruc.dongCa >= 7 && xlTruc.dongCa <= 9, 'sheet phân ca có mỗi tuần một dòng: ' + xlTruc.dongCa);
+// + 2 dòng dải logo công ty ở trên cùng (bản 2.45)
+assert.ok(xlTruc.dongCa >= 9 && xlTruc.dongCa <= 11, 'sheet phân ca có mỗi tuần một dòng: ' + xlTruc.dongCa);
 assert.match(xlTruc.ngay, /Thứ Hai.*Chủ nhật/s, 'sheet lịch trực là lịch tháng, bảy cột thứ Hai → Chủ nhật');
 assert.match(xlTruc.ngay, /星期日/, 'cột thứ song ngữ');
 assert.match(xlTruc.ngay, /Số ngày đã xếp/, 'sheet lịch trực đếm số ngày đã xếp');
@@ -1300,7 +1301,7 @@ const xlKD = await page.evaluate(async () => {
   // XW lưu zip không nén nên dò thẳng mã màu trong tệp là biết ô quá hạn có được tô đỏ không
   const byt = new Uint8Array(await blob.arrayBuffer());
   let raw = ''; for (let i = 0; i < byt.length; i++) raw += String.fromCharCode(byt[i]);
-  return { ten: sh.map((x) => x.name), tieuDe: txt(r[0].slice(0, 4)), so: txt(r[0]), ls: txt(r[1]),
+  return { ten: sh.map((x) => x.name), tieuDe: txt(r[0].slice(0, 6)), so: txt(r[0]), ls: txt(r[1]),
     dongLS: r[1].length, doQuaHan: raw.indexOf('FFFBDBD8') >= 0, camSapHet: raw.indexOf('FFFDEBCF') >= 0 };
 });
 assert.deepEqual(xlKD.ten, ['Kiem dinh', 'Lich su'], 'hai sheet: sổ kiểm định và lịch sử');
@@ -1737,9 +1738,9 @@ const xl22 = await page.evaluate(async () => {
     const o = bdKhoang(k, +S.f.histMonth.slice(0, 4), S.f.histMonth);
     const sh = await readXlsx(await buildWorkbook(o.tu, o.den, o.nhan).arrayBuffer());
     const rows = await sh[0].rows();
-    const ls = (await sh[2].rows()).slice(3).filter((x) => x[0]);
+    const ls = (await sh[2].rows()).slice(5).filter((x) => x[0]);   // 2 dòng logo + 3 dòng đầu bảng
     // Ô ngày trong Excel là số sê-ri nên không so chuỗi được; đối chiếu số dòng với dữ liệu trong app
-    r[k] = { tu: o.tu, den: o.den, ten: sh.map((x) => x.name), cot: rows[5].length, soLS: ls.length,
+    r[k] = { tu: o.tu, den: o.den, ten: sh.map((x) => x.name), cot: rows[7].length, soLS: ls.length,
       mong: S.V.ls.filter((x) => x.ngay >= o.tu && x.ngay <= o.den).length };
   }
   return r;
@@ -1867,7 +1868,8 @@ const xl24 = await page.evaluate(async () => {
   const f = tbXuatNhom(g[0]);
   const sh = await readXlsx(await f.blob.arrayBuffer());
   const rows = await sh[0].rows();
-  return { nhom: g[0], ten: f.ten, soSheet: sh.length, cot: rows[1], dong: rows.length - 2 };
+  const hi = rows.findIndex((r) => (r || []).includes('Mã máy'));   // trên cùng là dải logo, rồi tiêu đề, rồi tên cột
+  return { nhom: g[0], ten: f.ten, soSheet: sh.length, cot: rows[hi] || [], dong: rows.length - hi - 1 };
 }).catch((e) => ({ loi: String(e) }));
 assert.ok(!xl24.loi, 'dựng được file: ' + xl24.loi);
 assert.equal(xl24.soSheet, 1, 'một loại một file, không gộp nhiều sheet');
@@ -2301,6 +2303,46 @@ await page.evaluate(() => { gcDat(''); });
 await page.goto(URL_DEMO + '?gc=' + encodeURIComponent('javascript:alert(1)')); await wait(1500);
 assert.equal(await page.evaluate(() => gcUrl()), '', 'không nhận địa chỉ javascript:');
 ok('Bản 2.44: nối với app Ghi chú · Tài liệu — nút mở đúng mã, nhớ địa chỉ khi app kia mở sang, bỏ nối được, không nhận địa chỉ lạ');
+
+// 33. Bản 2.45: mọi file Excel có logo công ty + căn chỉnh để in; linh kiện chia mục theo loại ở mọi chỗ
+if (await page.locator('#lNV').count()) await login('NV002', '222222');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+const xl33 = await page.evaluate(async () => {
+  // Bước 32 tải lại trang nên bản xem thử về dữ liệu gốc: gắn lại linh kiện thân chuyền VKY01
+  mergeResult(await api('saveLists', { ma: 'VKY01', linhKien: [
+    { ten: 'Bộ điều khiển servo', quyCach: 'MR-J4-40B', sl: 8 }, { ten: 'Xi lanh', quyCach: 'CA2YD63-300Z', sl: 4 }] })); rebuild();
+  const chu = async (bl) => { const u = new Uint8Array(await bl.arrayBuffer()); let s = ''; for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return s; };
+  const ym = TODAY().slice(0, 7), out = {};
+  const ds = { lk: () => lkChXlsx([S.V.chByMa.VKY01]), bc: () => bcWorkbook(ym), kd: () => kdMauXlsx(), mnk: () => mnkXlsx(ym),
+    tb: () => tbXuatNhom((activeMay()[0] || {}).nhom || '').blob };
+  for (const [k, f] of Object.entries(ds)) {
+    const s = await chu(await f());
+    out[k] = { logo: s.includes('xl/media/logo.png') && s.includes('r:embed='), in: s.includes('<headerFooter>') && s.includes('horizontalCentered="1"'),
+      lap: s.includes('_xlnm.Print_Titles'), lv: s.includes('outlineLevel="2"'), muc: new TextDecoder().decode(await (await f()).arrayBuffer()).includes('Thân dây chuyền · 产线本体 — ') };
+  }
+  // File mẫu có logo vẫn đọc lại đúng
+  const lkMau = await lkDocFile(new File([lkMauXlsx()], 'mau.xlsx'));
+  out.docLai = lkMau.ds.length;
+  return out;
+});
+for (const k of ['lk', 'bc', 'kd', 'mnk', 'tb']) {
+  assert.ok(xl33[k].logo, 'file ' + k + ' có logo công ty');
+  assert.ok(xl33[k].in, 'file ' + k + ' căn giữa trang in, có số trang');
+}
+assert.ok(xl33.lk.lap && xl33.tb.lap, 'in nhiều trang thì trang nào cũng lặp tiêu đề cột');
+assert.ok(xl33.lk.muc && xl33.lk.lv, 'Excel linh kiện chuyền chia mục Thân dây chuyền → từng loại, gập / mở được');
+assert.ok(xl33.docLai > 0, 'file mẫu nhập linh kiện có logo vẫn đọc lại được');
+// Trong app: tab Linh kiện của máy M001 (vòng bi + loại khác) chia mục theo loại
+await page.evaluate(() => go('may', { ma: 'M001', tab: 'lk' })); await wait(800);
+const sub33 = await page.$$eval('#mayLK .lksub', (e) => e.map((x) => x.textContent.trim()));
+assert.ok(sub33.length >= 2 && sub33.some((x) => /Vòng bi/.test(x)), 'tab Linh kiện của máy chia theo loại: ' + JSON.stringify(sub33));
+// Màn chuyền: mục máy con cũng chia theo loại
+await page.evaluate(() => { S.f.mo = S.f.mo || {}; S.f.mo['lkch:VKY01'] = true; S.f.mo['lkm:VKY01:M001'] = true; go('chuyen', { ma: 'VKY01' }); }); await wait(900);
+const sub33b = await page.$$eval('.gaph[data-k="lkm:VKY01:M001"]', (g) => g.length ? [...g[0].closest('.gap').querySelectorAll('.lksub')].map((x) => x.textContent.trim()) : []);
+assert.ok(sub33b.length >= 2, 'máy con trong màn chuyền chia theo loại: ' + JSON.stringify(sub33b));
+await shot('69-linh-kien-may-con-theo-loai');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+ok('Bản 2.45: mọi file Excel có logo công ty, căn giữa khổ A4, lặp tiêu đề mỗi trang, có số trang; linh kiện chia mục theo loại cả trong app lẫn Excel');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
