@@ -709,6 +709,40 @@ test('mã hiển thị: tự đặt cho chuyền và máy, không trùng, đổi
   assert.equal(ok(sua('')).may.maHT, '', 'xoá mã hiển thị');
 });
 
+test('mã máy theo loại: M + mã loại 2 số + số thứ tự 3 số; ghi vào mã hiển thị, mã hệ thống giữ nguyên; máy mới tự lấy mã', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  let d = ok(b.call('data', {}, ql));
+  const hb = d.may.filter((x) => x.nhom === 'Máy hút bụi · 吸尘器');
+  assert.ok(hb.length >= 3);
+  err(b.call('saveMaLoai', { maLoai: { 'Máy hút bụi · 吸尘器': '01' } }, kt), 'KHONG_QUYEN');
+  err(b.call('saveMaLoai', { maLoai: { 'Máy hút bụi · 吸尘器': '1' } }, ql), 'MA_LOAI_SAI');
+  err(b.call('saveMaLoai', { maLoai: { 'Máy hút bụi · 吸尘器': '01', 'Bơm nước · 水泵': '01' } }, ql), 'MA_LOAI_TRUNG');
+  const gan = hb.map((m, i) => ({ ma: m.ma, maHT: 'M01' + String(i + 1).padStart(3, '0') }));
+  err(b.call('saveMaLoai', { maLoai: { 'Máy hút bụi · 吸尘器': '01' }, gan: [{ ma: hb[0].ma, maHT: 'X01' }] }, ql), 'MA_HT_SAI');
+  err(b.call('saveMaLoai', { maLoai: { 'Máy hút bụi · 吸尘器': '01' }, gan: [gan[0], { ma: hb[1].ma, maHT: gan[0].maHT }] }, ql), 'MA_HT_TRUNG');
+  const r = ok(b.call('saveMaLoai', { maLoai: { 'Máy hút bụi · 吸尘器': '01', 'Bơm nước · 水泵': '02' }, gan }, ql));
+  assert.equal(r.doiMa, hb.length);
+  assert.deepEqual(r.caiDat.maLoai, { 'Máy hút bụi · 吸尘器': '01', 'Bơm nước · 水泵': '02' });
+  d = ok(b.call('data', {}, ql));
+  hb.forEach((m, i) => {
+    const x = d.may.find((y) => y.ma === m.ma);
+    assert.equal(x.maHT, gan[i].maHT, 'mã hiển thị mới'); assert.equal(x.ten, m.ten, 'các ô khác giữ nguyên'); assert.equal(x.chuKy, m.chuKy);
+  });
+  assert.deepEqual(d.caiDat.maLoai, { 'Máy hút bụi · 吸尘器': '01', 'Bơm nước · 水泵': '02' }, 'app nhận bảng mã loại');
+  // Máy mới thêm bằng form: tự lấy số kế tiếp của loại
+  const moi = ok(b.call('saveMachine', { ten: 'Máy hút bụi mới', nhom: 'Máy hút bụi · 吸尘器', chuKy: 30, hanKeTiep: '2026-11-01' }, ql)).may;
+  assert.equal(moi.maHT, 'M01' + String(hb.length + 1).padStart(3, '0'));
+  assert.match(moi.ma, /^M\d{3}$/, 'mã hệ thống vẫn đánh như cũ');
+  // Nhập từ file: hai máy mới loại Bơm nước → M02001, M02002 (bơm cũ chưa đánh mã)
+  const nh = ok(b.call('importMachines', { rows: [{ ten: 'Bơm A', nhom: 'Bơm nước · 水泵' }, { ten: 'Bơm B', nhom: 'Bơm nước · 水泵' }] }, ql));
+  assert.equal(nh.them, 2);
+  const bom = nh.dsMay.filter((x) => x.ten === 'Bơm A' || x.ten === 'Bơm B').map((x) => x.maHT).sort();
+  assert.deepEqual(bom, ['M02001', 'M02002']);
+  // Loại chưa có mã: máy mới không tự đặt mã hiển thị
+  assert.equal(ok(b.call('saveMachine', { ten: 'Máy lạ', nhom: 'Loại chưa có mã', chuKy: 0 }, ql)).may.maHT, '');
+});
+
 test('bản ghi sửa chữa: đánh dấu nguồn SC (cả bản ghi cũ 2.6.0); xoá: Quản lý xoá mọi bản ghi, người khác chỉ xoá bản mình ghi; việc thường không xoá kiểu này', () => {
   const b = setupSC();
   const a = ok(b.call('saveRepair', { moTa: 'Máy kêu to', ketQua: 'Siết bu lông', nguyenNhan: 'Bu lông lỏng', ma: 'M001' }, b.kt)).congViec;

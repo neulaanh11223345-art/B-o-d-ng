@@ -2426,6 +2426,29 @@ assert.equal(await page.evaluate(() => S.stack.length), sau36 - 1, 'bấm quay l
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.48: xuất / nhập lại theo từng loại thiết bị cùng một mẫu; nút quay lại luôn lùi được');
 
+// 37. Mã máy theo loại: M + mã loại 2 số + số thứ tự (M01020); mã hệ thống giữ nguyên
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('maLoai'); }); await wait(600);
+const g37 = await page.$$eval('[data-ml]', (e) => e.map((x) => x.dataset.ml));
+assert.ok(g37.length >= 5, 'mỗi loại một ô mã loại');
+const hutBui = 'Máy hút bụi · 吸尘器';
+await page.fill(`[data-ml="${hutBui}"]`, '01'); await wait(200);
+assert.match(await text('#mlXem'), /trùng mã 01/, 'hai loại trùng mã thì báo ngay');
+// Đổi loại đang giữ 01 sang số khác cho khỏi trùng
+const giu01 = await page.evaluate((hb) => Object.keys(topV().p.ma).find((g) => g !== hb && topV().p.ma[g] === '01'), hutBui);
+if (giu01) { await page.fill(`[data-ml="${giu01}"]`, '99'); await wait(200); }
+assert.match(await text('#mlXem'), /Sẽ đổi mã \d+ máy/, 'xem trước số máy đổi mã');
+await shot('73-ma-may-theo-loai');
+await page.click('[data-act="maLoaiLuu"]'); await wait(1500);
+const kq37 = await page.evaluate((hb) => {
+  const a = S.V.may.filter((m) => m.nhom === hb).sort(sapMay);
+  return { ma: a.map((m) => m.maHT), heThong: a.every((m) => /^M\d{3}$/.test(m.ma)), quet: maTuNhap(a[0].maHT) === a[0].ma, hien: mh(a[0].ma) };
+}, hutBui);
+assert.equal(kq37.ma[0], 'M01001', 'máy đầu của loại 01 là M01001');
+assert.ok(kq37.ma.every((v, i) => v === 'M01' + String(i + 1).padStart(3, '0')), 'đánh số liên tiếp trong loại: ' + kq37.ma.join(','));
+assert.ok(kq37.heThong, 'mã hệ thống giữ nguyên');
+assert.ok(kq37.quet && kq37.hien === 'M01001', 'gõ / quét mã mới mở đúng máy, mọi màn hiện mã mới');
+ok('Bản 2.49: mã máy theo loại M + mã loại + số thứ tự (M01001…), xem trước trước khi đổi, báo trùng mã loại, mã hệ thống giữ nguyên');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

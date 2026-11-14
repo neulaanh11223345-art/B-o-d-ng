@@ -1053,6 +1053,8 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .dtleg{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink2)}
 .dtleg i{width:12px;height:3px;border-radius:2px;display:inline-block}
 .dtgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mlinp{width:64px;flex:none;text-align:center;font-size:18px;font-weight:700;letter-spacing:1px}
+@media (max-width:600px){.xuatrow.mlrow{flex-wrap:nowrap}.xuatrow.mlrow>span:first-child{flex:1 1 auto!important}}
 .lshd{font-size:12.5px;font-weight:700;color:var(--ink2);margin:14px 2px 6px}
 .lshd .zi{display:inline;margin-left:6px;font-weight:500}
 .lksub{display:flex;align-items:center;gap:6px;margin:12px 4px 5px;font-size:12.5px;font-weight:700;color:var(--ink2)}
@@ -4323,7 +4325,8 @@ VIEWS.tbXuat = {
   html() {
     const dem = {};
     activeMay().forEach((m) => { const k = khoiCua(m) + '|' + (m.nhom || ''); dem[k] = (dem[k] || 0) + 1; });
-    let o = `<div class="card pad"><p class="help" style="margin:0;font-size:13.5px">${t('tbXuatHelp')}</p></div>`;
+    let o = `<div class="card pad"><p class="help" style="margin:0;font-size:13.5px">${t('tbXuatHelp')}</p>
+      ${can('may') && can('suatb') ? `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="go" data-v="maLoai">${IC.qr} ${t('t_maLoai')}</button></div>` : ''}</div>`;
     KHOI_DS.forEach((kh) => {
       const gs = Object.keys(dem).filter((k) => k.indexOf(kh + '|') === 0).sort();
       if (!gs.length) return;
@@ -4526,6 +4529,7 @@ VIEWS.admin = {
       <button class="row" data-act="go" data-v="thongSo">${IC.edit}<div class="main"><div class="nm">${t('t_thongSo')}</div><div class="sub">1.8.0 · 1.8.1 · 1.8.2 · 1.8.3 · 2.8.0 …</div></div>${IC.chev}</button>
       <button class="row" data-act="go" data-v="dienCfg">${IC.warn}<div class="main"><div class="nm">${t('dienCfg')}</div><div class="sub">+${esc((b.caiDat || {}).nguongTang || 50)}% / −${esc((b.caiDat || {}).nguongGiam || 50)}%</div></div>${IC.chev}</button>
       <button class="row" data-act="go" data-v="nhatKy">${IC.hist}<div class="main"><div class="nm">${t('nhatKy')}</div></div>${IC.chev}</button>
+      ${can('may') && can('suatb') ? `<button class="row" data-act="go" data-v="maLoai">${IC.qr}<div class="main"><div class="nm">${t('t_maLoai')}</div><div class="sub">${t('maLoaiSub')}</div></div>${IC.chev}</button>` : ''}
       ${srvOld('tldr') ? '' : `<button class="row" data-act="go" data-v="tlCfg">${IC.link}<div class="main"><div class="nm">${t('t_tlCfg')}</div><div class="sub">${t('tlCfgSub')}</div></div>${IC.chev}</button>`}
       ${srvOld('saoluu') ? '' : `<button class="row" data-act="go" data-v="saoLuu">${IC.dl}<div class="main"><div class="nm">${t('t_saoLuu')}</div><div class="sub">${t('slSub')}</div></div>${IC.chev}</button>`}
       </div>${sec('appInfo')}<div class="card pad"><dl class="kv">
@@ -15378,7 +15382,7 @@ Object.assign(TX, {
   srvMissDoTu: ['Máy chủ chưa ghi được số đo tủ điện. Cập nhật Code.gs rồi Triển khai lại.',
     '服务器尚不支持配电柜测量记录。请更新 Code.gs 后重新部署。']
 });
-Object.assign(TITLES, { doTu: 't_doTu', tbNhap: 't_tbNhap', tbXuat: 't_tbXuat', khongQuyen: 't_khongQuyen' });
+Object.assign(TITLES, { maLoai: 't_maLoai', doTu: 't_doTu', tbNhap: 't_tbNhap', tbXuat: 't_tbXuat', khongQuyen: 't_khongQuyen' });
 ROOTS.push('doTu');
 (NHOM.find((x) => x[0] === 'nhomDien') || [0, []])[1].push(['doTu', 'navDoTu', 'bolt']);
 SRV_PHAN.push(['dotu', '2.41.0', 'srvMissDoTu']);
@@ -15834,6 +15838,126 @@ function lkTuKhopDS(a) {
   });
   return out;
 }
+
+// ===================== Mã máy theo loại (v2.49) =====================
+// M + 2 số mã loại + 3 số thứ tự: M01020 = loại 01, máy thứ 20. Ghi vào MÃ HIỂN THỊ — mã hệ thống (M130…)
+// giữ nguyên nên lịch sử, công việc, tài liệu, tem QR đã dán không đứt; máy mới tự lấy số kế tiếp của loại.
+SRV_PHAN.push(['maloai', '2.49.0', 'srvMissMaLoai']);
+Object.assign(TX, {
+  t_maLoai: ['Mã máy theo loại', '按类别设备编号'], maLoaiSub: ['M + mã loại 2 số + số thứ tự: M01020', 'M + 2位类别代码 + 序号：M01020'],
+  maLoaiHelp: ['Mỗi loại thiết bị một mã 2 chữ số (01–99). Mã máy = M + mã loại + số thứ tự 3 chữ số, vd M01020 là máy thứ 20 của loại 01. Mã này hiện trên mọi màn, tem QR, Excel, tìm kiếm; mã hệ thống cũ vẫn giữ bên trong nên lịch sử và tem QR đã dán không bị ảnh hưởng (nên in lại tem để thấy mã mới). Máy thêm sau tự lấy số kế tiếp của loại.',
+    '每类设备一个2位代码（01–99）。设备编号 = M + 类别代码 + 3位序号，例如 M01020 表示01类第20台。该编号显示在所有页面、二维码标签、Excel和搜索中；原系统编号保留在内部，历史记录和已贴的二维码不受影响（建议重新打印标签以显示新编号）。之后新增的设备自动取该类下一个序号。'],
+  maLoaiCot: ['Mã loại', '类别代码'], maLoaiGiu: ['Giữ nguyên số của máy đã có mã đúng loại (chỉ đánh mã cho máy chưa có)', '已有正确类别编号的设备保持不变（只为没有的设备编号）'],
+  maLoaiXem: ['Sẽ đổi mã {n} máy', '将更改{n}台设备的编号'], maLoaiKhongDoi: ['Không máy nào cần đổi mã', '没有需要更改编号的设备'],
+  maLoaiLuu: ['Lưu mã loại và đánh mã máy', '保存类别代码并编号'], maLoaiXong: ['Đã lưu mã loại, đổi mã {n} máy', '已保存类别代码，更改了{n}台设备编号'],
+  maLoaiSai: ['Mã loại phải là 2 chữ số 01–99', '类别代码须为01–99的2位数字'], maLoaiTrung: ['Hai loại đang trùng mã {m}', '两个类别代码重复：{m}'],
+  maLoaiChuaLoai: ['{n} máy chưa có loại (nhóm) nên chưa đánh mã được', '{n}台设备未设类别，暂无法编号'],
+  maLoaiNTB: ['{n} máy', '{n}台'], maLoaiDay: ['Loại {m} đã quá 999 máy', '{m}类设备已超过999台'],
+  srvMissMaLoai: ['Máy chủ chưa lưu được mã máy theo loại. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不支持按类别编号。请更新 Code.gs 并重新部署。']
+});
+const ML_RE = /^M(\d{2})(\d{3})$/;
+// Các loại (nhóm) đang có, thứ tự: thiết bị sản xuất trước, rồi phụ trợ; trong khối theo tên
+function maLoaiNhom() {
+  const dem = {};
+  (S.V.may || []).forEach((m) => { const g = String(m.nhom || '').trim(); if (g) (dem[g] = dem[g] || { g, n: 0, khoi: khoiCua(m) }).n++; });
+  return Object.values(dem).sort((a, b) => (a.khoi === b.khoi ? 0 : a.khoi === 'SX' ? -1 : 1) || a.g.localeCompare(b.g, 'vi'));
+}
+// Kế hoạch đổi mã: loại nào có mã thì xếp máy theo chuyền rồi tên, máy đã đúng dạng giữ số (nếu chọn giữ)
+function maLoaiKeHoach(p) {
+  const out = [], trungMa = {};
+  maLoaiNhom().forEach(({ g }) => {
+    const code = p.ma[g];
+    if (!/^\d{2}$/.test(code || '') || code === '00') return;
+    const ds = (S.V.may || []).filter((m) => String(m.nhom || '').trim() === g).slice().sort(sapMay);
+    let n = 0;
+    const giu = new Set();
+    if (p.giu) ds.forEach((m) => { const k = ML_RE.exec(String(m.maHT || '').toUpperCase()); if (k && k[1] === code && !trungMa[m.maHT.toUpperCase()]) { trungMa[m.maHT.toUpperCase()] = 1; giu.add(m.ma); n = Math.max(n, +k[2]); } });
+    ds.forEach((m) => {
+      if (giu.has(m.ma)) return;
+      n++;
+      const moi = 'M' + code + String(n).padStart(3, '0');
+      if (n > 999) { out.day = g; return; }
+      if (String(m.maHT || '').toUpperCase() !== moi) out.push({ m, cu: mh(m.ma), moi });
+    });
+  });
+  return out;
+}
+function maLoaiLoi(p) {
+  const da = {};
+  for (const { g } of maLoaiNhom()) {
+    const v = String(p.ma[g] || '').trim();
+    if (!v) continue;
+    if (!/^\d{2}$/.test(v) || v === '00') return tv('maLoaiSai') + ': ' + g;
+    if (da[v]) return tv('maLoaiTrung', { m: v + ' (' + da[v] + ' / ' + g + ')' });
+    da[v] = g;
+  }
+  return '';
+}
+const maLoaiXemHtml = (p) => {
+  const loi = maLoaiLoi(p);
+  if (loi) return `<div class="err">${esc(loi)}</div>`;
+  const kh = maLoaiKeHoach(p);
+  if (kh.day) return `<div class="err">${esc(tv('maLoaiDay', { m: kh.day }))}</div>`;
+  if (!kh.length) return `<div class="help">${t('maLoaiKhongDoi')}</div>`;
+  return `<div class="lshd" style="margin-top:4px">${esc(tv('maLoaiXem', { n: kh.length }))}<span class="zi">${esc(tz('maLoaiXem', { n: kh.length }))}</span></div>
+    <div class="list">${kh.slice(0, 60).map((x) => `<div class="row"><div class="main"><div class="nm">${esc(x.m.ten)}</div>
+      <div class="sub mono">${esc(x.cu)} → <b>${esc(x.moi)}</b></div></div></div>`).join('')}
+    ${kh.length > 60 ? `<div class="pad help">… và ${kh.length - 60} máy nữa</div>` : ''}</div>`;
+};
+VIEWS.maLoai = {
+  html(p) {
+    if (!p.ma) {
+      // Lấy mã đã lưu; loại chưa có thì gợi ý số trống kế tiếp theo thứ tự
+      const luu = (S.base && S.base.caiDat && S.base.caiDat.maLoai) || {}, dung = new Set(Object.values(luu));
+      p.ma = {}; p.giu = true;
+      let k = 1;
+      maLoaiNhom().forEach(({ g }) => {
+        if (luu[g]) { p.ma[g] = luu[g]; return; }
+        while (dung.has(String(k).padStart(2, '0'))) k++;
+        p.ma[g] = String(k).padStart(2, '0'); dung.add(p.ma[g]);
+      });
+    }
+    let o = srvOld('maloai') ? srvWarn('maloai') : '';
+    o += `<div class="card pad"><p class="help" style="margin:0;font-size:13.5px">${t('maLoaiHelp')}</p></div>`;
+    const nh = maLoaiNhom(), chua = (S.V.may || []).filter((m) => !String(m.nhom || '').trim()).length;
+    o += sec('maLoaiCot', nh.length) + `<div class="card">${nh.map(({ g, n }) => `<div class="xuatrow mlrow">
+      <span style="flex:1;min-width:0"><b>${esc(g)}</b><br><small class="help">${esc(tv('maLoaiNTB', { n }))} · <span class="mono" data-mlvd="${esc(g)}">${esc(/^\d{2}$/.test(p.ma[g] || '') ? 'M' + p.ma[g] + '001 – M' + p.ma[g] + String(n).padStart(3, '0') : '—')}</span></small></span>
+      <input class="inp mono mlinp" data-ml="${esc(g)}" value="${esc(p.ma[g] || '')}" inputmode="numeric" maxlength="2" aria-label="${esc(tp('maLoaiCot'))}"></div>`).join('')}</div>`;
+    if (chua) o += `<div class="note" style="margin-top:10px">${esc(tv('maLoaiChuaLoai', { n: chua }))} <span class="zi">${esc(tz('maLoaiChuaLoai', { n: chua }))}</span></div>`;
+    o += `<label class="checkrow" style="margin-top:12px"><input type="checkbox" id="mlGiu"${p.giu ? ' checked' : ''}><span>${t('maLoaiGiu')}</span></label>
+      <div id="mlXem" style="margin-top:12px">${maLoaiXemHtml(p)}</div>
+      <div class="err" id="mlErr" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="back">${t('cancel')}</button>
+        <button class="btn" data-act="maLoaiLuu"${srvOld('maloai') ? ' disabled' : ''}>${IC.check} ${t('maLoaiLuu')}</button></div>`;
+    return o;
+  },
+  after(p) {
+    $$('[data-ml]').forEach((i) => i.addEventListener('input', () => {
+      i.value = i.value.replace(/\D/g, '').slice(0, 2);
+      p.ma[i.dataset.ml] = i.value;
+      const g = i.dataset.ml, n = (S.V.may || []).filter((m) => String(m.nhom || '').trim() === g).length, vd = $(`[data-mlvd="${CSS.escape(g)}"]`);
+      if (vd) vd.textContent = /^\d{2}$/.test(i.value) ? 'M' + i.value + '001 – M' + i.value + String(n).padStart(3, '0') : '—';
+      $('#mlXem').innerHTML = maLoaiXemHtml(p);
+    }));
+    const c = $('#mlGiu');
+    if (c) c.addEventListener('change', () => { p.giu = c.checked; $('#mlXem').innerHTML = maLoaiXemHtml(p); });
+  }
+};
+Object.assign(ACT, {
+  maLoaiLuu: async (el) => {
+    const p = topV().p, fe = $('#mlErr'), loi = maLoaiLoi(p);
+    if (loi) { fe.textContent = loi; fe.hidden = false; return; }
+    const kh = maLoaiKeHoach(p);
+    if (kh.day) return;
+    const maLoai = {};
+    Object.keys(p.ma).forEach((g) => { if (/^\d{2}$/.test(p.ma[g] || '')) maLoai[g] = p.ma[g]; });
+    el.disabled = true;
+    try {
+      const d = await api('saveMaLoai', { maLoai, gan: kh.map((x) => ({ ma: x.m.ma, maHT: x.moi })) });
+      mergeResult(d); toast(t('maLoaiXong', { n: d.doiMa || 0 })); back();
+    } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  }
+});
 
 // Link từ tem QR: ...?m=M001
 try {

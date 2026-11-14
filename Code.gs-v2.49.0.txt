@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.48.0';
+var PHIEN_BAN = '2.49.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -202,6 +202,7 @@ var CAI_DAT_MAC_DINH = {
   trucTu: '17:00', trucDen: '19:30',       // giờ trực mặc định ngày thường
   trucCnTu: '07:30', trucCnDen: '17:00',   // giờ trực mặc định Chủ nhật
   saoLuuTat: false,                  // true = tắt sao lưu tự động hằng đêm
+  maLoai: {},                        // mã loại máy 2 chữ số theo nhóm: { 'Quạt gió · 风机': '01' } → mã máy M01020
   // Giá điện sản xuất EVN, cấp 22 kV – dưới 110 kV, chưa VAT (QĐ 1279/QĐ-BCT, từ 10/05/2025). Quản lý sửa trong app khi EVN đổi giá.
   giaDien: [{ tu: '2025-05-10', bt: 1833, cd: 3398, td: 1190 }],
   vatDien: 8,                        // % thuế GTGT trên hoá đơn điện
@@ -343,6 +344,7 @@ function dieuHuong(a, p, req) {
     case 'undo': return huyXacNhan(u, p);
     case 'saveMachine': canQuyen(u, 'may'); return luuMay(u, p);
     case 'importMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return nhapThietBi(u, p);
+    case 'saveMaLoai': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return luuMaLoai(u, p);
     case 'deleteMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return xoaThietBi(u, p);
     case 'saveSpot': canQuyen(u, 'xacnhan'); return luuViTriMay(u, p);
     case 'saveLine': canQuyen(u, 'may'); return luuChuyen(u, p);
@@ -934,7 +936,7 @@ function layDuLieu(u) {
     caiDat: coQuyen(u, 'may')
       ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
         caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram,
-        trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN }
+        trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN, maLoai: cd.maLoai || {} }
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
         caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram,
         trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN },
@@ -2919,6 +2921,8 @@ function luuMay(u, p) {
     m.chuyen = ch;
   }
   if (p.maHT !== undefined) m.maHT = kiemMaHT(p.maHT, m ? m.ma : '');
+  // Máy mới không tự đặt mã hiển thị: lấy mã theo loại (M + mã loại + số thứ tự) nếu loại đã có mã
+  if (moi && !m.maHT) { var mt = maTheoLoai(m.nhom, dsMayHet()); if (mt) { try { m.maHT = kiemMaHT(mt, m.ma); } catch (e) { m.maHT = ''; } } }
   if (p.khoi !== undefined) m.khoi = khoiHopLe(p.khoi);
   if (p.thongSo !== undefined) m.thongSo = thongSoSach(p.thongSo);
   if (p.chiTiet !== undefined) m.chiTiet = chiTietSach(p.chiTiet);
@@ -3035,6 +3039,7 @@ function nhapThietBi(u, p) {
     if (r.maHT !== undefined && s(r.maHT)) {
       try { m.maHT = kiemMaHT(r.maHT, m.ma); } catch (e) { m.maHT = ''; }
     }
+    if (m._moi && !m.maHT) m.maHT = maTheoLoai(m.nhom, maCap);
     m.capNhat = bay;
     (m._moi ? them : sua).push(m);
   }
@@ -3262,6 +3267,61 @@ function ghiNhatKyLienKet(u, m, cu, moi) {
     ghiNhatKy(u, b ? (a ? 'DOI_MA_ERP' : 'LIEN_KET_ERP') : 'BO_LIEN_KET_ERP', 'May', m.ma + '|' + k.id,
       { maKho: a, ten: c.ten }, { maKho: b, ten: k.ten }, '');
   });
+}
+
+// ===== Mã máy theo loại: M + 2 số mã loại + 3 số thứ tự (M01020 = loại 01, máy thứ 20) =====
+// Ghi vào MÃ HIỂN THỊ, mã hệ thống (M130…) giữ nguyên: lịch sử, công việc, tài liệu, tem QR đã in không đứt.
+var MA_LOAI_RE = /^M(\d{2})(\d{3})$/;
+function maTheoLoai(nhom, ds) {
+  var ml = docCaiDat().maLoai || {}, code = s(ml[s(nhom)]);
+  if (!/^\d{2}$/.test(code)) return '';
+  var n = 0;
+  ds.forEach(function (x) { var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); if (k && k[1] === code) n = Math.max(n, Number(k[2])); });
+  if (n >= 999) return '';
+  var t = String(n + 1); while (t.length < 3) t = '0' + t;
+  return 'M' + code + t;
+}
+// Lưu bảng mã loại; kèm danh sách máy cần đổi mã hiển thị (app tính sẵn, máy chủ kiểm lại trùng)
+function luuMaLoai(u, p) {
+  var c = docCaiDat(), ml = {}, dung = {}, vao = p.maLoai || {};
+  Object.keys(vao).forEach(function (k) {
+    var nh = catChu(k, 60), v = s(vao[k]);
+    if (!nh || !v) return;
+    if (!/^\d{2}$/.test(v) || v === '00') throw loi('MA_LOAI_SAI', 'Mã loại phải là 2 chữ số 01–99 · 类别代码须为01–99：' + nh);
+    if (dung[v]) throw loi('MA_LOAI_TRUNG', 'Hai loại trùng mã ' + v + ' · 类别代码重复：' + dung[v] + ' / ' + nh);
+    dung[v] = nh; ml[nh] = v;
+  });
+  c.maLoai = ml; ghiCaiDat(c);
+  var gan = Array.isArray(p.gan) ? p.gan.slice(0, 3000) : [], doi = 0;
+  if (gan.length) {
+    var ds = dsMayHet(), theoMa = {}, doiMa = {}, daCo = {}, moi = {};
+    ds.forEach(function (m) { theoMa[m.ma] = m; });
+    gan.forEach(function (g) { doiMa[s(g.ma).toUpperCase()] = 1; });
+    // Mã mới không được trùng: mã hệ thống, mã hiển thị của máy không đổi, mã chuyền
+    ds.forEach(function (m) { daCo[m.ma.toUpperCase()] = m.ma; if (m.maHT && !doiMa[m.ma]) daCo[s(m.maHT).toUpperCase()] = m.ma; });
+    dsChuyen().forEach(function (c2) { daCo[c2.ma.toUpperCase()] = c2.ma; if (c2.maHT) daCo[s(c2.maHT).toUpperCase()] = c2.ma; });
+    gan.forEach(function (g) {
+      var ma = s(g.ma).toUpperCase(), v = s(g.maHT).toUpperCase();
+      if (!theoMa[ma]) return;
+      if (!MA_LOAI_RE.test(v)) throw loi('MA_HT_SAI', v);
+      if ((daCo[v] && daCo[v] !== ma) || moi[v]) throw loi('MA_HT_TRUNG', daCo[v] || moi[v]);
+      moi[v] = ma;
+    });
+    // Ghi một lần cả cột Mã hiển thị (và Cập nhật) thay vì từng dòng — nhà máy vài trăm máy vẫn nhanh
+    capNhatTieuDe('May');
+    var sh = trang('May'), last = sh.getLastRow();
+    if (last >= 2) {
+      var cHT = sh.getRange(2, 16, last - 1, 1).getValues(), cCN = sh.getRange(2, 10, last - 1, 1).getValues(), bay = thoiGianStr();
+      Object.keys(moi).forEach(function (v) {
+        var m = theoMa[moi[v]], i = m._r - 2;
+        if (i < 0 || i >= cHT.length || s(cHT[i][0]).toUpperCase() === v) return;
+        cHT[i][0] = v; cCN[i][0] = bay; doi++;
+      });
+      if (doi) { sh.getRange(2, 16, last - 1, 1).setValues(cHT); sh.getRange(2, 10, last - 1, 1).setValues(cCN); }
+    }
+  }
+  ghiNhatKy(u, 'DAT_MA_LOAI', 'May', '', {}, { loai: Object.keys(ml).length, doiMa: doi }, 'Đặt mã máy theo loại · 按类别设定设备编号');
+  return { caiDat: { maLoai: ml }, dsMay: mayChoXem(u), doiMa: doi };
 }
 
 function maMoi(ds) {
