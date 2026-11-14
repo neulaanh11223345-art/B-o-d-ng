@@ -1053,6 +1053,8 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .dtleg{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink2)}
 .dtleg i{width:12px;height:3px;border-radius:2px;display:inline-block}
 .dtgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lshd{font-size:12.5px;font-weight:700;color:var(--ink2);margin:14px 2px 6px}
+.lshd .zi{display:inline;margin-left:6px;font-weight:500}
 .lksub{display:flex;align-items:center;gap:6px;margin:12px 4px 5px;font-size:12.5px;font-weight:700;color:var(--ink2)}
 .lksub .zi{font-weight:500}
 .lksub .nhomn{font-weight:600;color:var(--ink3);background:var(--line2,#EDF1F7);border-radius:999px;padding:1px 8px;font-size:11.5px}
@@ -1681,7 +1683,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.45.0";
+const APP_VER = "2.46.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -3429,7 +3431,7 @@ function lkGomLoai(a) {
 function lkDongHtml({ m, x, dc }, hienMay, nhanLoai) {
   // Trong mục "Xi lanh" mà tên chỉ là "Xi lanh · 气缸" thì lặp vô ích: lấy model làm tên dòng
   const trungLoai = nhanLoai && x.quyCach && norm(x.ten).indexOf(norm(nhanLoai)) === 0;
-  return `<div class="row" data-act="lkChSua" data-ma="${esc(m.ma)}" role="button" tabindex="0"><div class="main">
+  return `<div class="row" data-act="lkChSua" data-ma="${esc(m.ma)}" data-id="${esc(x.id || '')}" role="button" tabindex="0"><div class="main">
     <div class="nm">${trungLoai ? `<span class="mono">${esc(x.quyCach)}</span>` : `${esc(x.ten)}${x.quyCach ? ` <span class="mono qc">${esc(x.quyCach)}</span>` : ''}`}</div>
     <div class="sub">${hienMay ? esc(m.ten) + ' · ' : ''}${tv('slMay')} ${esc(soG(x.sl) || '—')}${dc.kx ? ` · ERP <span class="code">${esc(dc.kx.ma)}</span>${tonOf(dc.kx) !== null ? ` · ${tv('tonKho')} <b class="mono">${esc(soG(tonOf(dc.kx)))}</b>` : ''}` : ''}</div></div>
     <div class="end">${dcTag(dc)}</div></div>`;
@@ -3438,6 +3440,9 @@ function lkDongHtml({ m, x, dc }, hienMay, nhanLoai) {
 function lkChHtml(ma) {
   const a = lkCuaCh(ma);
   if (!a.length) return `<div class="card empty">${t('lkChTrong')}</div>`;
+  const tuKhop = can('may') ? lkTuKhopDS(a).length : 0;
+  const dauBtn = tuKhop ? `<div class="note" style="margin:6px 0 8px"><b>${esc(tv('lkTuKhopCo', { n: tuKhop }))}</b> <span class="zi">${esc(tz('lkTuKhopCo', { n: tuKhop }))}</span>
+    <div class="btns" style="margin-top:8px"><button class="btn sm" data-act="lkTuKhop" data-ma="${esc(ma)}">${IC.check} ${t('lkTuKhopBtn')}</button></div></div>` : '';
   const dem = (ds) => { const nl = lkLoiN(ds); return `${ds.length}${nl ? ` · <b class="warnx">${tv('xLoiN', { n: nl })}</b>` : ''}`; };
   const than = a.filter((r) => r.m.laCh), con = a.filter((r) => !r.m.laCh);
   const nhomThan = lkGomLoai(than), soMay = new Set(con.map((r) => r.m.ma)).size;
@@ -3447,7 +3452,7 @@ function lkChHtml(ma) {
     const k1 = nhomThan.length ? 'lkl:' + ma + ':' + nhomThan[0].key : 'lkm:' + ma + ':' + con[0].m.ma;
     if (S.f.mo[k1] === undefined) S.f.mo[k1] = true;
   }
-  let o = '';
+  let o = dauBtn;
   if (than.length) {
     o += `<div class="lkhead">${t('lkThanCh')}<span class="nhomn">${than.length}</span></div>`;
     o += nhomThan.map((g) => gap('lkl:' + ma + ':' + g.key,
@@ -3464,6 +3469,7 @@ function lkChHtml(ma) {
   return o;
 }
 const lkLoiN = (a) => a.filter((r) => r.dc.k === 'loi').length;
+
 // Nhiều loại thì mỗi loại một tiêu đề nhỏ + danh sách riêng; chỉ một loại thì để liền một danh sách
 function lkTheoLoaiHtml(gom, dong, lop) {
   if (gom.length < 2) return `<div class="${lop}">${gom.map((g) => g.ds.map((r) => dong(r, '')).join('')).join('')}</div>`;
@@ -5080,7 +5086,12 @@ const ACT = {
   lkChe: (el) => { topV().p.che = el.dataset.v; render(); },
   lkNhapOk: (el) => lkNhapOk(el),
   lkChMo: (el) => { S.f.mo = S.f.mo || {}; S.f.mo['lkch:' + el.dataset.ma] = true; go('chuyen', { ma: el.dataset.ma }); },
-  lkChSua: (el) => { if (can('may')) go('dsEdit', { ma: el.dataset.ma, k: 'lk' }); else go('may', { ma: el.dataset.ma, tab: 'lk' }); },
+  // Bấm một dòng: sửa nhanh đúng dòng đó (tên, quy cách, mã ERP); không có quyền sửa thì xem máy
+  lkChSua: (el) => {
+    if (!can('may')) { go('may', { ma: el.dataset.ma, tab: 'lk' }); return; }
+    if (el.dataset.id && lkSuaNhanh(el.dataset.ma, el.dataset.id)) return;
+    go('dsEdit', { ma: el.dataset.ma, k: 'lk' });
+  },
   // Thêm linh kiện cho chuyền: mặc định vào thân dây chuyền, vẫn chọn được máy con
   lkChThanCh: (el) => go('dsEdit', { ma: el.dataset.ma, k: 'lk' }),
   lkChThem: (el) => {
@@ -15522,6 +15533,178 @@ Object.assign(ACT, {
   },
   gcBo: () => { gcDat(''); closeSheet(); toast(t('gcDaBo')); render(); }
 });
+
+// ===================== Sửa nhanh một linh kiện, gợi ý mã ERP (v2.46) =====================
+Object.assign(TX, {
+  lsTieuDe: ['Sửa linh kiện', '编辑零件'], lsMaERP: ['Mã ERP', 'ERP编号'], lsGoiY: ['Gợi ý mã ERP gần đúng', '相近的ERP编号'],
+  lsKhongGoiY: ['Không tìm thấy mã ERP nào gần giống. Gõ vào ô tìm bên dưới.', '没有相近的ERP编号，请在下方搜索。'],
+  lsTim: ['Tìm trong ERP: mã, tên, quy cách', '在ERP中搜索：编号、名称、规格'], lsDung: ['Dùng', '使用'],
+  lsErpCo: ['Trong ERP', 'ERP中'], lsErpKhong: ['Mã này không có trong file ERP — vẫn lưu được, nhưng sẽ báo "Không có trong ERP"', 'ERP文件中没有该编号——可以保存，但会显示“ERP中没有”'],
+  lsErpApp: ['Mã tự đặt trong app, không phải mã ERP', '应用内自编号，不是ERP编号'],
+  lsLayTen: ['Lấy tên ERP', '采用ERP名称'], lsLayQC: ['Lấy quy cách ERP', '采用ERP规格'],
+  lsLuuTiep: ['Lưu, sang mục chưa khớp tiếp', '保存并转到下一个未匹配项'], lsCaDS: ['Sửa cả danh sách', '编辑整个列表'],
+  lsDaLuu: ['Đã lưu linh kiện', '已保存零件'], lsHet: ['Đã hết mục chưa khớp ERP', '已无未匹配ERP的项目'],
+  lsTenTrong: ['Nhập tên linh kiện', '请填写零件名称'],
+  lkTuKhopCo: ['{n} linh kiện có quy cách trùng đúng một mã ERP nhưng chưa gắn mã', '{n}个零件的规格与ERP编号完全一致但未关联'],
+  lkTuKhopBtn: ['Xem và tự khớp', '查看并自动匹配'], lkTuKhopTD: ['Tự khớp mã ERP theo quy cách', '按规格自动匹配ERP编号'],
+  lkTuKhopHelp: ['Các dòng dưới đây có quy cách trùng đúng một mã trong file ERP. Bỏ chọn dòng nào chưa chắc, rồi bấm Áp dụng.', '以下零件的规格与ERP中某编号完全一致。不确定的请取消勾选，然后点“应用”。'],
+  lkTuKhopOk: ['Áp dụng', '应用'], lkTuKhopXong: ['Đã gắn mã ERP cho {n} linh kiện', '已为{n}个零件关联ERP编号']
+});
+// Khoá so sánh: bỏ dấu, bỏ khoảng trắng, gạch, chấm… (HG-SN202J-S100 = HGSN202JS100)
+const lsKhoa = (v) => norm(v).replace(/[^a-z0-9一-鿿]/g, '');
+const lsLaERP = (k) => k && tonOf(k) !== null;   // mã có trong file ERP thật (không phải mã tự đặt APP-…)
+// Chưa khớp mã ERP (khác với đã khớp nhưng hết hàng / tồn ít)
+const lsChuaKhop = (dc) => (dc.ds || []).some((d) => d === 'dcKhongERP' || d === 'dcKhongMa' || d === 'dcSaiQC' || d === 'dcChuaLK');
+// Gợi ý mã ERP cho một linh kiện: trùng quy cách → chứa nhau → cùng đầu mã dài nhất → trùng tên
+function lsGoiY(x, lim) {
+  const qc = lsKhoa(x.quyCach), ten = lsKhoa(String(x.ten || '').split('·')[0]), out = [];
+  if (!S.kho.ds.length) return out;
+  for (const k of S.kho.ds) {
+    if (k.an || k.gop || !lsLaERP(k)) continue;
+    const kq = lsKhoa(k.qc), km = lsKhoa(k.ma), kt = lsKhoa(k.ten);
+    let sc = 99, lcp = 0;
+    if (qc && (kq === qc || km === qc)) sc = 0;
+    else if (qc.length >= 5 && ((kq && (kq.indexOf(qc) >= 0 || (kq.length >= 5 && qc.indexOf(kq) >= 0))) || kt.indexOf(qc) >= 0)) sc = 1;
+    else if (qc.length >= 5 && kq) {
+      while (lcp < qc.length && lcp < kq.length && qc[lcp] === kq[lcp]) lcp++;
+      if (lcp >= 5 && lcp >= Math.min(qc.length, kq.length) * 0.6) sc = 2;
+    }
+    if (sc === 99 && ten.length >= 3 && kt.indexOf(ten) >= 0 && !qc) sc = 3;
+    if (sc < 99) out.push([sc, -lcp, (tonOf(k) || 0) > 0 ? 0 : 1, k]);
+  }
+  out.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2] || (a[3].ma < b[3].ma ? -1 : 1));
+  return out.slice(0, lim || 6).map((o) => o[3]);
+}
+const lsDongERP = (k, act) => `<button type="button" class="ksi" data-act="${act}" data-ma="${esc(k.ma)}">
+  <span class="kn">${lkTenH(k.ten)}<small><span class="mono">${esc(k.ma)}</span>${k.qc ? ' · <span class="mono">' + esc(k.qc) + '</span>' : ''}</small></span>${tonHtml(k)}<span class="chip sm">${esc(tv('lsDung'))}</span></button>`;
+function lsErpInfo(ma) {
+  const v = String(ma || '').trim();
+  if (!v) return '';
+  const k = khoGet(v);
+  if (!k) return `<div class="note srvwarn">${t('lsErpKhong')}</div>`;
+  if (!lsLaERP(k)) return `<div class="note srvwarn">${t('lsErpApp')}</div>`;
+  return `<div class="card pad" style="margin-top:8px"><div class="lshd" style="margin:0">${t('lsErpCo')}</div>
+    <div class="nm" style="font-weight:700;margin-top:2px">${lkTenH(k.ten)}</div>
+    <div class="sub">${k.qc ? `${tv('quyCach')} <span class="mono">${esc(k.qc)}</span> · ` : ''}${esc(dvTxt(k.dv) || '')} · ${tv('tonKho')} <b class="mono">${esc(soG(tonOf(k)))}</b></div>
+    <div class="btns" style="margin-top:8px"><button type="button" class="btn ghost sm" data-act="lsLayTen">${t('lsLayTen')}</button>${k.qc ? `<button type="button" class="btn ghost sm" data-act="lsLayQC">${t('lsLayQC')}</button>` : ''}</div></div>`;
+}
+// Danh sách các dòng đang hiện trên màn (để "sang mục chưa khớp tiếp")
+function lsDanhSach(ma) {
+  const v = topV();
+  if (v.v === 'chuyen' && v.p.ma) return lkCuaCh(v.p.ma);
+  const chu = S.V.chByMa[ma] || S.V.byMa[ma];
+  return lkOf(chu).map((x) => ({ m: chu, x, dc: lkDoiChieu(x) }));
+}
+function lkSuaNhanh(ma, id) {
+  const chu = S.V.chByMa[ma] || S.V.byMa[ma], x = chu && lkOf(chu).find((k) => k.id === id);
+  if (!x) return false;
+  S.f.ls = { ma, id };
+  const dc = lkDoiChieu(x), goiY = lsChuaKhop(dc) ? lsGoiY(x) : [];
+  const conLai = lsDanhSach(ma).filter((r) => lsChuaKhop(r.dc) && r.x.id !== id).length;
+  openSheet(`<div class="grab"></div><h3>${tv('lsTieuDe')}<span class="zi">${tz('lsTieuDe')}</span></h3>
+    <div class="who">${esc(S.V.chByMa[ma] ? tv('lkThanCh') + ' ' + mh(ma) : chu.ten + ' · ' + mh(ma))} · ${dcTag(dc)}</div>
+    <label class="mini" style="margin-top:10px"><span>${tv('lkTen')}<span class="zi">${tz('lkTen')}</span></span><input class="inp" id="lsTen" maxlength="120" value="${esc(x.ten)}"></label>
+    <div class="dsgrid" style="grid-template-columns:1fr 1fr;margin-top:8px">
+      <label class="mini"><span>${tv('quyCach')}<span class="zi">${tz('quyCach')}</span></span><input class="inp mono" id="lsQc" maxlength="80" value="${esc(x.quyCach || '')}"></label>
+      <label class="mini"><span>${tv('lsMaERP')}<span class="zi">${tz('lsMaERP')}</span></span><input class="inp mono" id="lsMa" maxlength="40" value="${esc(x.maKho || '')}" autocomplete="off"></label>
+      <label class="mini"><span>${tv('slMay')}<span class="zi">${tz('slMay')}</span></span><input class="inp" id="lsSl" inputmode="decimal" maxlength="10" value="${esc(x.sl === undefined ? '' : x.sl)}"></label>
+      <label class="mini"><span>${tv('lkLoai')}<span class="zi">${tz('lkLoai')}</span></span><input class="inp" id="lsLoai" maxlength="40" list="lsLoaiDS" value="${esc(x.nhom || '')}" placeholder="${esc(lkLoai(x)[1][0])}"></label>
+    </div>
+    <datalist id="lsLoaiDS">${LK_LOAI.map(([, [vi]]) => `<option value="${esc(vi)}"></option>`).join('')}</datalist>
+    <div id="lsInfo">${lsErpInfo(x.maKho)}</div>
+    ${!lsChuaKhop(dc) ? '' : `<div class="lshd">${t('lsGoiY')}</div>
+    <div class="ksug" id="lsGoiY">${goiY.length ? goiY.map((k) => lsDongERP(k, 'lsDung')).join('') : `<div class="help">${t('lsKhongGoiY')}</div>`}</div>`}
+    <label class="mini" style="margin-top:12px"><input class="inp" id="lsTim" type="search" placeholder="${esc(tp('lsTim'))}" autocomplete="off"></label>
+    <div class="ksug" id="lsTimKq" style="margin-top:6px"></div>
+    <div class="err" id="lsErr" hidden></div>
+    <div class="btns" style="margin-top:14px"><button class="btn ghost" data-act="lsCaDS">${t('lsCaDS')}</button><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+      <button class="btn" data-act="lsLuu">${IC.check} ${t('save')}</button></div>
+    ${conLai ? `<div class="btns" style="margin-top:8px"><button class="btn g" data-act="lsLuu" data-tiep="1">${t('lsLuuTiep')} (${conLai})</button></div>` : ''}`, (bg) => {
+    $('#lsMa', bg).addEventListener('input', (e) => { $('#lsInfo').innerHTML = lsErpInfo(e.target.value); });
+    $('#lsTim', bg).addEventListener('input', (e) => {
+      const q = e.target.value;
+      $('#lsTimKq').innerHTML = norm(q).length < 2 ? '' : khoFind(q, lsLaERP).slice(0, 8).map((k) => lsDongERP(k, 'lsDung')).join('') || `<div class="help">${t('khoKhongThay')}</div>`;
+    });
+  });
+  return true;
+}
+Object.assign(ACT, {
+  lsDung: (el) => {
+    const k = khoGet(el.dataset.ma); if (!k) return;
+    $('#lsMa').value = k.ma;
+    if (k.qc) $('#lsQc').value = k.qc;
+    $('#lsInfo').innerHTML = lsErpInfo(k.ma);
+    $('#lsInfo').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  },
+  lsLayTen: () => { const k = khoGet($('#lsMa').value.trim()); if (k) $('#lsTen').value = k.ten; },
+  lsLayQC: () => { const k = khoGet($('#lsMa').value.trim()); if (k && k.qc) $('#lsQc').value = k.qc; },
+  lsCaDS: () => { const f = S.f.ls; closeSheet(); if (f) go('dsEdit', { ma: f.ma, k: 'lk' }); },
+  lsLuu: async (el) => {
+    const f = S.f.ls; if (!f) return;
+    const chu = S.V.chByMa[f.ma] || S.V.byMa[f.ma];
+    const fe = $('#lsErr'), show = (h) => { fe.innerHTML = h; fe.hidden = false; };
+    const ten = $('#lsTen').value.trim(), sl = parseSo($('#lsSl').value);
+    if (!ten) return show(t('lsTenTrong'));
+    if (sl !== null && (isNaN(sl) || sl < 0)) return show(t('SO_SAI'));
+    const maKho = $('#lsMa').value.trim().replace(/\s+/g, '');
+    const ds = lkOf(chu).map((k) => (k.id !== f.id ? k : Object.assign({}, k, { ten, quyCach: $('#lsQc').value.trim(), sl: sl === null ? '' : sl,
+      maKho: maKho || undefined, nhom: $('#lsLoai').value.trim() || undefined })));
+    $$('.sheet .btn').forEach((b) => { b.disabled = true; });
+    try {
+      mergeResult(await api('saveLists', { ma: f.ma, linhKien: ds }));
+    } catch (e) { $$('.sheet .btn').forEach((b) => { b.disabled = false; }); return show(e.code === 'MANG' ? t('needNet') : errMsg(e)); }
+    closeSheet(); render(); toast(t('lsDaLuu'));
+    if (!el.dataset.tiep) return;
+    // Sang mục chưa khớp ERP kế tiếp trên cùng màn
+    const a = lsDanhSach(f.ma), i = a.findIndex((r) => r.x.id === f.id);
+    const sau = a.slice(i + 1).concat(a.slice(0, Math.max(i, 0))).find((r) => lsChuaKhop(r.dc) && r.x.id !== f.id);
+    if (sau) { lkSuaNhanh(sau.m.ma, sau.x.id); } else toast(t('lsHet'));
+  },
+  lkTuKhop: (el) => {
+    const ma = el.dataset.ma, ds = lkTuKhopDS(lkCuaCh(ma));
+    if (!ds.length) return;
+    S.f.tk = { ma, ds };
+    openSheet(`<div class="grab"></div><h3>${tv('lkTuKhopTD')}<span class="zi">${tz('lkTuKhopTD')}</span></h3>
+      <p class="help" style="margin:4px 0 10px">${t('lkTuKhopHelp')}</p>
+      <div class="list">${ds.map((d, i) => `<label class="checkrow"><input type="checkbox" data-tk="${i}" checked>
+        <span><b>${esc(d.r.x.quyCach || d.r.x.ten)}</b> <span class="muted">· ${esc(d.r.m.laCh ? tv('lkThanCh') : d.r.m.ten)}</span><br>
+        → <span class="code">${esc(d.k.ma)}</span> ${esc(d.k.ten)} · ${tv('tonKho')} <b class="mono">${esc(soG(tonOf(d.k)))}</b></span></label>`).join('')}</div>
+      <div class="err" id="tkErr" hidden></div>
+      <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn" data-act="lkTuKhopOk">${IC.check} ${t('lkTuKhopOk')}</button></div>`);
+  },
+  lkTuKhopOk: async () => {
+    const f = S.f.tk; if (!f) return;
+    const chon = f.ds.filter((d, i) => { const c = $(`[data-tk="${i}"]`); return c && c.checked; });
+    if (!chon.length) { closeSheet(); return; }
+    // Gom theo chủ (thân chuyền hoặc từng máy) rồi lưu một lần mỗi chủ
+    const theoChu = {};
+    chon.forEach((d) => { (theoChu[d.r.m.ma] = theoChu[d.r.m.ma] || {})[d.r.x.id] = d.k.ma; });
+    $$('.sheet .btn').forEach((b) => { b.disabled = true; });
+    try {
+      for (const ma of Object.keys(theoChu)) {
+        const chu = S.V.chByMa[ma] || S.V.byMa[ma], gan = theoChu[ma];
+        mergeResult(await api('saveLists', { ma, linhKien: lkOf(chu).map((k) => (gan[k.id] ? Object.assign({}, k, { maKho: gan[k.id] }) : k)) }));
+      }
+    } catch (e) { $$('.sheet .btn').forEach((b) => { b.disabled = false; }); const fe = $('#tkErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; return; }
+    closeSheet(); render(); toast(t('lkTuKhopXong', { n: chon.length }));
+  }
+});
+// Dòng chưa khớp ERP mà quy cách trùng đúng MỘT mã ERP: tự khớp được, không phải đoán
+function lkTuKhopDS(a) {
+  if (!S.kho.ds.length) return [];
+  const theoQC = {};
+  S.kho.ds.forEach((k) => {
+    if (k.an || k.gop || !lsLaERP(k)) return;
+    [lsKhoa(k.qc), lsKhoa(k.ma)].filter((v) => v && v.length >= 4).forEach((v) => { (theoQC[v] = theoQC[v] || new Set()).add(k); });
+  });
+  const out = [];
+  a.forEach((r) => {
+    if (!lsChuaKhop(r.dc)) return;
+    const q = lsKhoa(r.x.quyCach), cs = q && theoQC[q];
+    if (cs && cs.size === 1) { const k = [...cs][0]; if (k.ma !== r.x.maKho) out.push({ r, k }); }
+  });
+  return out;
+}
 
 // Link từ tem QR: ...?m=M001
 try {

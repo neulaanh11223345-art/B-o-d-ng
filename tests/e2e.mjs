@@ -2344,6 +2344,32 @@ await shot('69-linh-kien-may-con-theo-loai');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
 ok('Bản 2.45: mọi file Excel có logo công ty, căn giữa khổ A4, lặp tiêu đề mỗi trang, có số trang; linh kiện chia mục theo loại cả trong app lẫn Excel');
 
+// 34. Bấm vào dòng linh kiện chưa khớp ERP: sửa nhanh tên / quy cách / mã ERP, gợi ý mã gần đúng; tự khớp theo quy cách
+await page.evaluate(async () => {
+  while (S.stack.length > 1) back();
+  mergeResult(await api('saveLists', { ma: 'VKY01', linhKien: [
+    { ten: 'Vòng bi', quyCach: '6306ZZ', sl: 1, maKho: 'APP-0001' }, { ten: 'Vòng bi', quyCach: '6009 2Z', sl: 2 }] }));
+  rebuild(); S.f.mo = { 'lkch:VKY01': true, 'lkl:VKY01:vongBi': true }; go('chuyen', { ma: 'VKY01' });
+}); await wait(800);
+await page.locator('.lkch .row', { hasText: '6306ZZ' }).first().click(); await wait(600);
+assert.equal(await page.inputValue('#lsMa'), 'APP-0001', 'mở đúng dòng vừa bấm');
+const goiY34 = await page.$$eval('#lsGoiY .ksi', (e) => e.map((x) => x.dataset.ma));
+assert.ok(goiY34.includes('605010001'), 'gợi ý mã ERP gần đúng 6306ZZ → 6306ZZCM: ' + JSON.stringify(goiY34));
+await page.click('#lsGoiY .ksi[data-ma="605010001"]'); await wait(300);
+assert.equal(await page.inputValue('#lsQc'), '6306ZZCM', 'chọn gợi ý thì điền cả quy cách ERP');
+assert.match(await text('#lsInfo'), /Tồn kho/, 'hiện thông tin mã ERP vừa chọn');
+await shot('70-sua-nhanh-linh-kien');
+await page.click('[data-act="lsLuu"]:not([data-tiep])'); await wait(900);
+const sau34 = await page.evaluate(() => S.V.chByMa.VKY01.linhKien.find((x) => x.quyCach === '6306ZZCM'));
+assert.ok(sau34 && sau34.maKho === '605010001', 'lưu đúng mã ERP: ' + JSON.stringify(sau34));
+assert.equal(await page.locator('[data-act="lkTuKhop"]').count(), 1, 'có nút tự khớp cho dòng quy cách trùng ERP');
+await page.click('[data-act="lkTuKhop"]'); await wait(500);
+await page.click('[data-act="lkTuKhopOk"]'); await wait(900);
+assert.equal(await page.evaluate(() => (S.V.chByMa.VKY01.linhKien.find((x) => x.quyCach === '6009 2Z') || {}).maKho), '605010022',
+  'tự khớp: 6009 2Z → mã ERP của 6009-2Z');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.46: bấm dòng linh kiện chưa khớp ERP để sửa tên / quy cách / mã, có gợi ý mã gần đúng; tự khớp theo quy cách');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
