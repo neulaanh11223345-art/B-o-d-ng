@@ -130,6 +130,17 @@ File mẫu nhập (linh kiện, kiểm định, tồn kho an toàn, thiết bị
 | Excel lịch trực | Ô ngày có người trực bị mất chữ (chiều cao hàng chỉ tính theo Chủ nhật) | Hàng cao theo ô nhiều chữ nhất trong tuần |
 | Excel sổ kiểm định | 25 cột ép một trang A4 nên chữ rất nhỏ | In hai trang ngang, trang nào cũng lặp cột tên thiết bị |
 
+**Rà soát lần hai** (bấm thử từng nút trên mọi màn bằng tài khoản Quản trị và Kỹ thuật, cả app Ghi chú · Tài liệu; in thử toàn bộ các trang của 16 file Excel; thử với 672 linh kiện): không còn lỗi khi bấm nút, mọi màn mở trong vài mili-giây. Đã chỉnh thêm:
+
+| Chỗ | Trước | Nay |
+|---|---|---|
+| Nhật ký sửa đổi | 42 loại thao tác hiện nguyên mã (`QUET_DRIVE`, `LUAN_PHIEN_CA`…), tên trường kỹ thuật (`conNua: false`, `SX/NGAY`) | Chữ song ngữ dễ đọc: "Quét thư mục Drive · 扫描云盘文件夹", "Còn tệp chưa quét: không", "Sản xuất ca ngày" |
+| Excel kế hoạch bảo dưỡng (tháng) | Ép cao một trang: nhà máy nhiều máy thì chữ li ti; tháng 30 ngày lẻ ra một trang chỉ 2 ngày | Hai trang ngang (ngày 1–15, 16–hết), máy nhiều thì sang trang dọc, lặp tên máy và dòng tiêu đề. Bản năm in đúng cỡ chữ |
+| Excel lịch sử bảo dưỡng | 14 cột ép một trang | Hai trang ngang, lặp cột ngày / mã / tên máy |
+| Excel lịch trực | Chú thích màu bị đẩy sang trang 2 | Cả tháng và chú thích trên một trang |
+| Excel đo tủ điện | Biểu đồ dòng điện bị đẩy sang trang riêng | Bảng 31 ngày và ba biểu đồ gọn một trang |
+| Mọi file Excel | Dòng ghi chú dài ở cuối bảng tràn ra ngoài, làm cả trang in bị thu nhỏ (sheet Đối chiếu tăng ca, Máy nén khí) | Tự gộp ngang bằng bảng và xuống dòng |
+
 Nâng cấp: chỉ đổi app. Không cần dán lại Code.gs (số phiên bản đổi cho khớp, dán lại cũng không sao).
 
 ---

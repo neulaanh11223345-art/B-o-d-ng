@@ -1512,7 +1512,7 @@ const XW = (() => {
     const out = [];
     out.push('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">');
     const capMax = sh.levels ? Math.max(0, ...Object.values(sh.levels)) : 0;
-    out.push('<sheetPr>' + (capMax ? '<outlinePr summaryBelow="0"/>' : '') + '<pageSetUpPr fitToPage="1"/></sheetPr>');
+    out.push('<sheetPr>' + (capMax ? '<outlinePr summaryBelow="0"/>' : '') + (sh.fit === false ? '' : '<pageSetUpPr fitToPage="1"/>') + '</sheetPr>');
     if (sh.freeze && (sh.freeze.r || sh.freeze.c)) {
       const r = sh.freeze.r || 0, c = sh.freeze.c || 0;
       const pane = c && r ? 'bottomRight' : (r ? 'bottomLeft' : 'topRight');
@@ -1548,8 +1548,10 @@ const XW = (() => {
     const fit = sh.fit || { w: 1, h: 0 };
     const rong = (sh.cols || []).reduce((a, w) => a + (+w || 0), 0);
     const ngang = sh.landscape === undefined ? rong > 105 : !!sh.landscape;
-    out.push('<pageSetup paperSize="9" orientation="' + (ngang ? 'landscape' : 'portrait') + '" fitToWidth="' + fit.w + '" fitToHeight="' + fit.h + '"/>');
+    out.push('<pageSetup paperSize="9" orientation="' + (ngang ? 'landscape' : 'portrait') + '"' + (sh.fit === false ? '' : ' fitToWidth="' + fit.w + '" fitToHeight="' + fit.h + '"') + '/>');
     out.push('<headerFooter><oddFooter>' + esc('&L&"Arial,Regular"&8&A&R&"Arial,Regular"&8Trang &P/&N · 第&P/&N页') + '</oddFooter></headerFooter>');
+    // Ngắt trang dọc chủ động (vd lịch tháng: ngày 1–15 một trang, 16–31 trang sau)
+    if (sh.colBreaks && sh.colBreaks.length) out.push('<colBreaks count="' + sh.colBreaks.length + '" manualBreakCount="' + sh.colBreaks.length + '">' + sh.colBreaks.map((c) => '<brk id="' + c + '" max="1048575" man="1"/>').join('') + '</colBreaks>');
     if (sh._ve) out.push('<drawing r:id="rId1"/>');   // phải nằm sau pageSetup, đúng thứ tự của chuẩn
     out.push('</worksheet>');
     return out.join('');
@@ -1594,8 +1596,36 @@ const XW = (() => {
     used.add(k); return k;
   }
 
+  // Dòng ghi chú dài chỉ nằm ở ô A, chưa gộp: khi in, chữ tràn ra ngoài bảng làm trang bị thu nhỏ.
+  // Tự gộp ngang bằng bảng và xuống dòng, đặt chiều cao đủ cho số dòng chữ.
+  const rongChu = (s) => { let n = 0; for (const ch of String(s)) n += /[\u2E80-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/.test(ch) ? 2 : 1; return n; };
+  function gopGhiChu(sh) {
+    const cols = sh.cols || [];
+    if (cols.length < 2 || !sh.rows) return sh;
+    const tong = cols.reduce((a, w) => a + (+w || 0), 0);
+    const gop = (sh.merges || []).map((m) => { const [a, b] = m.split(':'); return { c1: a.replace(/\d+/g, ''), r1: +a.replace(/\D+/g, ''), r2: +(b || a).replace(/\D+/g, '') }; });
+    const rows = sh.rows.slice(), merges = (sh.merges || []).slice(), heights = Object.assign({}, sh.heights || {});
+    let doi = false;
+    rows.forEach((row, i) => {
+      const r = i + 1;
+      if (!row || !row.length) return;
+      const trong = (c) => c === null || c === undefined || c === '' || (typeof c === 'object' && (c.v === '' || c.v === null || c.v === undefined));
+      if (row.slice(1).some((c) => !trong(c))) return;
+      const c0 = row[0], v = c0 && typeof c0 === 'object' ? c0.v : c0;
+      if (typeof v !== 'string' || gop.some((g) => g.c1 === 'A' && r >= g.r1 && r <= g.r2)) return;
+      const st = (c0 && c0.s) || {}, sz = st.sz || 10, he = sz / 10 * (st.b ? 1.1 : 1);
+      if (st.b || sz >= 12) return;   // tiêu đề in đậm: để nguyên một dòng
+      const dong = v.split('\n').reduce((a, l) => a + Math.max(1, Math.ceil(rongChu(l) * he / (tong * 1.02))), 0);
+      if (Math.max(...v.split('\n').map((l) => rongChu(l) * he)) <= tong * 1.02) return;
+      rows[i] = [{ v, s: Object.assign({}, st, { wrap: 1, valign: 'top' }) }];
+      merges.push('A' + r + ':' + col(cols.length - 1) + r);
+      if (!heights[r]) heights[r] = Math.round(dong * sz * 1.35 + 4);
+      doi = true;
+    });
+    return doi ? Object.assign({}, sh, { rows, merges, heights }) : sh;
+  }
   function build(sheets0) {
-    const sheets = (sheets0 || []).map(themLogo);
+    const sheets = (sheets0 || []).map(gopGhiChu).map(themLogo);
     const S = new Styles(), used = new Set();
     const names = sheets.map((sh) => sheetName(sh.name, used));
     const files = [];
@@ -4746,7 +4776,10 @@ function buildWorkbook(tu, den, nhan) {
   const rongNgay = days.length <= 31 ? 7.5 : days.length <= 92 ? 5 : 3.6;
   const cols = [5, 7, 30, 24, 11, 11, 11].concat(days.map(() => rongNgay));
   const s1 = { name: xlTen('Lich ' + ngan), rows, cols, merges, freeze: { r: 6, c: FIX }, heights: { 1: 36, 2: 17, 3: 17, 4: 30, 5: 16, 6: 16 }, landscape: 1,
-    fit: { w: 0, h: 1 }, printTitles: { cols: 'A:G', rows: '4:6' } };
+    // Trước: ép cao một trang nên nhà máy nhiều máy thì chữ li ti, và tháng 30 ngày bị lẻ một trang chỉ 2 ngày.
+    // Nay: tuần một trang ngang; tháng hai trang ngang (ngày 1–15 | 16–hết); năm in đúng cỡ, tự sang trang.
+    fit: days.length <= 8 ? { w: 1, h: 0 } : days.length <= 31 ? { w: 2, h: 0 } : false,
+    colBreaks: days.length > 8 && days.length <= 31 ? [FIX + 15] : [], printTitles: { cols: 'A:G', rows: '4:6' } };
   // --- Trang 2: nhắc nhở hôm nay ---
   const r2s = [[{ v: tp('t_home') + ' — ' + fmtD(today), s: { b: 1, sz: 14 } }], []];
   const h2 = [tp('stt'), tp('code'), tp('name'), tp('group'), tp('cycle'), tp('lastDone'), tp('performer'), tp('nextDue'), tp('xRemain'), tp('xStatus')];
@@ -4781,7 +4814,8 @@ function buildWorkbook(tu, den, nhan) {
       { v: ctText(x.chiTiet, 'kt'), s: Object.assign({ wrap: 1 }, st, x.chiTiet && (x.chiTiet.kt || []).some((h) => h.kq === 'LOI') && !huy ? { color: '#C8372D' } : {}) },
       { v: ctText(x.chiTiet, 'so'), s: Object.assign({ wrap: 1 }, st) }, { v: ctText(x.chiTiet, 'lk'), s: Object.assign({ wrap: 1 }, st) }]);
   });
-  const s3 = { name: xlTen('Lich su ' + ngan), rows: r3, cols: [12, 7, 30, 20, 24, 28, 12, 16, 16, 19, 22, 30, 30, 36], merges: ['A1:N1'], freeze: { r: 3 }, heights: { 1: 24, 3: 30 }, landscape: 1, printTitles: { rows: '3:3' } };
+  const s3 = { name: xlTen('Lich su ' + ngan), rows: r3, cols: [12, 7, 30, 20, 24, 28, 12, 16, 16, 19, 22, 30, 30, 36], merges: ['A1:N1'], freeze: { r: 3 }, heights: { 1: 24, 3: 30 }, landscape: 1,
+    fit: { w: 2, h: 0 }, printTitles: { rows: '3:3', cols: 'A:C' } };
   return XW.build([s1, s2, s3].concat(lkSheets(tu, den, nhan, ngan)));
 }
 // Ba khoảng xuất Excel bảo dưỡng: tuần đang xem, tháng đang xem, cả năm
@@ -7257,6 +7291,8 @@ Object.assign(TX, {
   khongCoCho: ['Không có ngoại lệ chờ duyệt', '没有待审核的异常'], chiQLDuyet: ['Chỉ Quản lý / Quản trị duyệt được.', '只有主管/管理员可以审核。'],
   daDuyetOk: ['Đã duyệt', '已通过'], daTuChoiOk: ['Đã từ chối — công tơ cần ghi lại số kỳ này', '已拒绝 — 该电表本期需重新抄表'],
   nlLoaiL: ['Loại ngoại lệ', '异常类型'], ttTinh: ['Tiêu thụ tính được', '计算用量'],
+  // v2.45: các thao tác thêm sau này trước đây hiện nguyên mã (QUET_DRIVE…)
+  hd_BAO_DUONG_MAY_NEN: ['Bảo dưỡng máy nén khí', '空压机保养'], hd_BO_THEO_DOI_LK: ['Bỏ theo dõi linh kiện', '取消跟踪零件'], hd_BO_XAC_NHAN_BT: ['Bỏ xác nhận bất thường', '取消异常确认'], hd_CHEP_LICH_TRUC: ['Chép lịch trực', '复制值班表'], hd_CHO_DUYET: ['Chờ duyệt', '待审核'], hd_DAT_NHOM_THU_MUC: ['Đặt nhóm cho thư mục', '设置文件夹类别'], hd_DAT_THU_MUC_TL: ['Nối thư mục tài liệu', '连接资料文件夹'], hd_GAN_TAI_LIEU: ['Gán tài liệu', '分配资料'], hd_GHI_KIEM_DINH: ['Ghi lần kiểm định', '登记检定'], hd_GHI_TANG_CA: ['Ghi tăng ca', '登记加班'], hd_GOI_Y_MAY_NEN: ['Gợi ý lịch máy nén', '空压机排班建议'], hd_KHOI_PHUC: ['Khôi phục dữ liệu', '恢复数据'], hd_LICH_MAY_NEN: ['Xếp lịch máy nén khí', '空压机排班'], hd_LUAN_PHIEN_CA: ['Xếp luân phiên ca trực', '轮班安排'], hd_LUU_MAY_NEN: ['Lưu máy nén khí', '保存空压机'], hd_LUU_TRU: ['Lưu trữ dữ liệu cũ', '归档旧数据'], hd_NHAP_KIEM_DINH: ['Nhập sổ kiểm định từ file', '从文件导入检定'], hd_NHAP_TON_AN_TOAN: ['Nhập tồn an toàn từ file', '从文件导入安全库存'], hd_QUET_DRIVE: ['Quét thư mục Drive', '扫描云盘文件夹'], hd_SUA_CA_TANG_CA: ['Sửa ca tăng ca', '修改加班班次'], hd_SUA_DO_TU: ['Sửa số đo tủ điện', '修改配电柜测量'], hd_SUA_GIO_TRUC: ['Sửa giờ trực', '修改值班时间'], hd_SUA_KIEM_DINH: ['Sửa hồ sơ kiểm định', '修改检定档案'], hd_SUA_MA_LOI: ['Sửa mã lỗi', '修改故障代码'], hd_SUA_NGHIEM_THU: ['Sửa biên bản nghiệm thu', '修改验收单'], hd_SUA_NGUOI_TRUC: ['Sửa người trực', '修改值班人'], hd_SUA_NGUONG_KHO: ['Sửa ngưỡng báo kho', '修改库存提醒阈值'], hd_SUA_TANG_CA: ['Sửa tăng ca', '修改加班'], hd_TAO_MAY_NEN_KHI: ['Thêm máy nén khí', '添加空压机'], hd_THEM_KIEM_DINH: ['Thêm thiết bị kiểm định', '添加检定设备'], hd_THEM_MA_LOI: ['Thêm mã lỗi', '添加故障代码'], hd_THEM_NGHIEM_THU: ['Lập biên bản nghiệm thu', '新建验收单'], hd_XAC_NHAN_BT: ['Xác nhận bất thường', '确认异常'], hd_XEP_CA_TRUC: ['Xếp ca trực', '安排值班'], hd_XEP_LICH_TRUC: ['Xếp lịch trực', '安排值班表'], hd_XOA_DO_TU: ['Xoá số đo tủ điện', '删除配电柜测量'], hd_XOA_GIO_CHAY: ['Xoá giờ chạy', '删除运行小时'], hd_XOA_KIEM_DINH: ['Xoá thiết bị kiểm định', '删除检定设备'], hd_XOA_MA_LOI: ['Xoá mã lỗi', '删除故障代码'], hd_XOA_NGHIEM_THU: ['Xoá biên bản nghiệm thu', '删除验收单'], hd_XOA_SUA_CHUA: ['Xoá lần sửa chữa', '删除维修记录'], hd_XOA_TAI_LIEU: ['Xoá tài liệu', '删除资料'], hd_XOA_TANG_CA: ['Xoá tăng ca', '删除加班'], hd_sua: ['Sửa', '修改'], hd_xoa: ['Xoá', '删除'],
   hd_SUA_CHI_SO: ['Sửa chỉ số', '修改读数'], hd_SUA_SAU_KHOA: ['Sửa chỉ số kỳ đã khoá', '修改已锁定读数'], hd_XOA_CHI_SO: ['Xoá chỉ số', '删除读数'],
   hd_TINH_LAI: ['Tự tính lại tiêu thụ', '自动重算用量'], hd_NGOAI_LE_CHO_DUYET: ['Ngoại lệ chờ duyệt', '异常待审核'], hd_NGOAI_LE_TU_DUYET: ['Ngoại lệ (tự duyệt)', '异常（自审）'],
   hd_DUYET_NGOAI_LE: ['Duyệt ngoại lệ', '审核通过'], hd_TU_CHOI_NGOAI_LE: ['Từ chối ngoại lệ', '审核拒绝'], hd_KHOA_KY: ['Khoá kỳ', '锁定'], hd_MO_KHOA_KY: ['Mở lại kỳ', '重新开放'],
@@ -7359,15 +7395,23 @@ async function doUnlock(el) {
 // ----- Nhật ký sửa đổi -----
 function nkGiaTri(o) {
   if (o === null || o === undefined || o === '') return '—';
-  if (typeof o !== 'object') return esc(String(o));
+  // Luân phiên ca trực: máy chủ ghi mã nhóm / ca (SX/NGAY…), đổi sang chữ
+  if (typeof o !== 'object') return esc(String(o).replace(/\b(SX|KHO)\/(NGAY|DEM)\b/g, (m0, n, c) => (n === 'SX' ? 'Sản xuất' : 'Kho ngũ kim') + ' ca ' + (c === 'NGAY' ? 'ngày' : 'đêm')));
   if (o.giaTri) return '<span class="mono">' + esc(qGiaTri(o.giaTri)) + '</span>' + (o.trangThai && o.trangThai !== 'OK' ? ' · ' + esc(o.trangThai) : '');
   if (o.den !== undefined) return esc(o.den ? fmtD(o.den) : '—');
   if (o.maKho !== undefined) return '<span class="mono">' + esc(o.maKho || '—') + '</span>';
   if (o.tonMin !== undefined) return '<span class="mono">' + esc(o.tonMin === '' ? '—' : o.tonMin) + '</span>';
   if (o.heSo !== undefined) return '×' + esc(o.heSo) + (o.cha ? ' · ⊂ ' + esc(o.cha) : '');
-  const k = Object.keys(o).slice(0, 4);
-  return esc(k.map((x) => x + ': ' + (typeof o[x] === 'object' ? JSON.stringify(o[x]) : o[x])).join(' · ')).slice(0, 200);
+  const k = Object.keys(o).slice(0, 5);
+  const gt = (v) => (v === true ? 'có' : v === false ? 'không' : v === null || v === '' ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v));
+  return esc(k.map((x) => (NK_KHOA[x] || x) + ': ' + gt(o[x])).join(' · ').slice(0, 220));
 }
+// Tên trường trong nhật ký: đổi khoá kỹ thuật sang chữ người đọc được
+const NK_KHOA = { ten: 'Tên', viTri: 'Vị trí', trangThai: 'Trạng thái', tonMin: 'Tồn an toàn', tieuDe: 'Tiêu đề', nhom: 'Nhóm', n: 'Số lượng',
+  ma: 'Mã', id: 'ID', bat: 'Bật', vatDien: 'Vật tư điện', uuTien: 'Ưu tiên', uidLam: 'Người làm', tu: 'Từ', den: 'Đến', them: 'Thêm mới', tep: 'Số tệp',
+  nguongTang: 'Ngưỡng tăng (%)', nguongGiam: 'Ngưỡng giảm (%)', nguon: 'Nguồn', moi: 'Tệp mới', kieu: 'Kiểu', khoPhanTram: 'Báo thiếu hàng (%)',
+  khoGanHet: 'Ngưỡng gần hết', han: 'Hạn', giaDien: 'Giá điện', file: 'File', dvSanLuong: 'Đơn vị sản lượng', dem: 'Số lần', conNua: 'Còn tệp chưa quét',
+  capNhat: 'Cập nhật', bang: 'Bảng', banAnToan: 'Tồn an toàn', chuKy: 'Chu kỳ', ngay: 'Ngày', gio: 'Giờ', sl: 'Số lượng', ghiChu: 'Ghi chú' };
 VIEWS.nhatKy = {
   html(p) {
     if (!p.ds) return `<div class="card empty" id="nkLoad">${t('loading')}</div>`;
@@ -14232,7 +14276,7 @@ function trucXlsx(ym) {
   }
   r4.push([], [{ v: tp('trucDCHelp') }]);
   return XW.build([
-    { name: 'Lich truc', rows: r1, cols: [17, 17, 17, 17, 17, 17, 17], merges: ['A1:G1'], freeze: { r: 3, c: 0 }, heights: cao },
+    { name: 'Lich truc', rows: r1, cols: [17, 17, 17, 17, 17, 17, 17], merges: ['A1:G1'], freeze: { r: 3, c: 0 }, heights: cao, fit: { w: 1, h: 1 } },
     { name: 'Phan ca truc', rows: r2, cols: [22, 24, 24, 24, 24], merges: ['A1:E1'], freeze: { r: 3, c: 0 } },
     { name: 'Tong hop', rows: r3, cols: [26, 13, 13, 13, 13], merges: ['A1:D1'], freeze: { r: 3, c: 0 } },
     { name: 'Doi chieu TC', rows: r4, cols: [26, 13, 16, 13, 16, 13], merges: ['A1:E1'], heights: { 3: 34 }, freeze: { r: 3, c: 0 } }
@@ -15410,7 +15454,7 @@ function dtXuatExcel(thang) {
     })));
   }
   sheets.push({ name: 'Tong hop nhiet do', rows: rT, cols: [9].concat(coSo.map(() => 9)),
-    freeze: { r: 2, c: 1 }, landscape: 1 });
+    freeze: { r: 2, c: 1 }, landscape: 1, fit: { w: 1, h: 1 } });
   coSo.forEach((c) => {
     const rows = [[{ v: c.maCh + ' · ' + (c.ch.ten || '') + ' · ' + (c.ch.tenZh || '') + ' — ' + thang, s: { b: 1, sz: 13 } }],
       [{ v: 'Ngày · 日期', s: TD }, { v: 'Nhiệt độ · 温度 (°C)', s: TD }, { v: 'Điện áp · 电压 (V)', s: TD },
@@ -15422,13 +15466,13 @@ function dtXuatExcel(thang) {
     }
     const r1 = 3, r2 = 2 + n;
     const bd = (ten, yt, ser, hang) => ({ title: ten, yTitle: yt, xTitle: tv('dtNgayDo'),
-      cats: { c: 0, r1: r1, r2: r2 }, series: ser, at: { r: hang, c: 7, w: 9, h: 16 } });
+      cats: { c: 0, r1: r1, r2: r2 }, series: ser, at: { r: hang, c: 7, w: 9, h: 11 } });
     sheets.push({ name: c.maCh, rows: rows, cols: [9, 13, 13, 12, 12, 12], freeze: { r: 2, c: 1 }, landscape: 1,
       charts: [
         bd(tv('dtNhiet') + ' (°C)', '°C', [{ name: tv('dtNhiet'), c: 1, color: DT_MAU.nd }], 1),
-        bd(tv('dtU') + ' (V)', 'V', [{ name: tv('dtU'), c: 2, color: DT_MAU.u }], 18),
+        bd(tv('dtU') + ' (V)', 'V', [{ name: tv('dtU'), c: 2, color: DT_MAU.u }], 12),
         bd(tv('dtI') + ' (A)', 'A', [{ name: tv('dtIA'), c: 3, color: DT_MAU.ia },
-          { name: tv('dtIB'), c: 4, color: DT_MAU.ib }, { name: tv('dtIC'), c: 5, color: DT_MAU.ic }], 35)
+          { name: tv('dtIB'), c: 4, color: DT_MAU.ib }, { name: tv('dtIC'), c: 5, color: DT_MAU.ic }], 23)
       ] });
   });
   saveFile(XW.build(sheets), 'Do-tu-dien_' + thang + '.xlsx');
