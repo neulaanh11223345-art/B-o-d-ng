@@ -2481,9 +2481,24 @@ await page.evaluate(() => closeSheet());
 await page.locator('[data-act="qgXem"]', { hasText: 'Quạt số 1' }).click(); await wait(500);
 assert.equal(await page.locator('.sheet .scrow').count(), 0, 'quạt số 1 không dính lịch sử của quạt số 2');
 await page.evaluate(() => closeSheet());
+// Mỗi quạt một mã riêng, vẫn gộp theo chuyền; gõ / quét mã quạt mở đúng quạt
+await page.click('[data-act="qgDanhMa"]'); await wait(500);
+await page.fill('#qgCode', '01'); await wait(200);
+assert.match(await text('#qgDMXem'), /đã dùng cho/, 'mã loại đã thuộc loại khác thì báo');
+await page.fill('#qgCode', '61'); await wait(200);
+assert.match(await text('#qgDMXem'), /M61001/, 'xem trước mã từng quạt');
+await page.click('[data-act="qgDanhMaOk"]'); await wait(1200);
+const ma38 = await page.evaluate(() => quatTheoChuyen().map((g) => g.ch + ':' + g.ds.map((q) => q.maDV).join(',')));
+assert.deepEqual(ma38, ['VKY01:M61001,M61002', 'VKY02:M61003,M61004,M61005'], 'theo chuyền rồi số quạt: ' + ma38.join(' | '));
+assert.equal(await page.evaluate(() => S.V.may.filter((m) => m.nhom === 'Quạt gió · 风机' && (m.chiTiet || []).length).length), 2, 'vẫn gộp mỗi chuyền một bản ghi');
+assert.equal(await page.locator('[data-act="qgDanhMa"]').count(), 0, 'đã đủ mã thì hết nút');
+await page.evaluate(() => { while (S.stack.length > 1) back(); onScan('M61004'); }); await wait(900);
+assert.match(await text('.sheet h3'), /M61004\s*Quạt số 2/, 'quét mã M61004 mở đúng quạt số 2 của VKY02');
+assert.match(await text('.sheet'), /Lệch tâm|Quạt rung mạnh/, 'lịch sử sửa chữa vẫn theo đúng quạt sau khi đánh mã');
+await page.evaluate(() => closeSheet());
 await shot('74-quat-gio-theo-chuyen');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
-ok('Bản 2.52: quạt gió theo chuyền — số quạt mỗi chuyền, bấm ra từng quạt; sửa chữa ghi đúng quạt, lịch sử riêng từng quạt');
+ok('Bản 2.52 + 2.53: quạt gió theo chuyền — số quạt mỗi chuyền, bấm ra từng quạt; mỗi quạt một mã, quét mã mở đúng quạt; sửa chữa ghi đúng quạt');
 
 // 39. Biên bản nghiệm thu: chọn quạt gió trong danh sách → điền sẵn thông số, ghi đúng quạt; động cơ thì ghi tay
 await page.evaluate(() => { while (S.stack.length > 1) back(); go('ngtGhi', {}); }); await wait(700);

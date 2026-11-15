@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.52.0';
+var PHIEN_BAN = '2.53.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -345,6 +345,7 @@ function dieuHuong(a, p, req) {
     case 'saveMachine': canQuyen(u, 'may'); return luuMay(u, p);
     case 'importMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return nhapThietBi(u, p);
     case 'saveMaLoai': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return luuMaLoai(u, p);
+    case 'unitCodes': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return danhMaDV(u, p);
     case 'deleteMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return xoaThietBi(u, p);
     case 'saveSpot': canQuyen(u, 'xacnhan'); return luuViTriMay(u, p);
     case 'saveLine': canQuyen(u, 'may'); return luuChuyen(u, p);
@@ -611,10 +612,13 @@ function kiemMaHT(v, maGoc) {
   if (!v) return '';
   if (/[<>"'`\\]/.test(v)) throw loi('MA_HT_SAI', 'Mã hiển thị có ký tự không hợp lệ · 显示编号含无效字符');
   var k = v.toUpperCase(), goc = s(maGoc).toUpperCase();
-  var trung = dsMay().concat(dsChuyen()).filter(function (x) {
+  var tatCa = dsMay();
+  var trung = tatCa.concat(dsChuyen()).filter(function (x) {
     return x.ma !== goc && (x.ma === k || s(x.maHT).toUpperCase() === k);
   })[0];
   if (trung) throw loi('MA_HT_TRUNG', trung.ma);
+  var dv = maDVDung(tatCa)[k];                    // trùng mã của một quạt trong bản ghi gộp
+  if (dv) throw loi('MA_HT_TRUNG', dv);
   return v;
 }
 // ----- Chuyền sản xuất -----
@@ -3041,7 +3045,8 @@ function nhapThietBi(u, p) {
     if (r.maHT !== undefined && s(r.maHT)) {
       try { m.maHT = kiemMaHT(r.maHT, m.ma); } catch (e) { m.maHT = ''; }
     }
-    if (m._moi && !m.maHT) m.maHT = maTheoLoai(m.nhom, maCap);
+    if (m._moi && !m.maHT && !(m.chiTiet || []).length) m.maHT = maTheoLoai(m.nhom, maCap);
+    ganMaDVThieu(m, maCap);       // quạt mới thêm vào bản ghi gộp đã đánh mã thì tự lấy số kế tiếp
     m.capNhat = bay;
     (m._moi ? them : sua).push(m);
   }
@@ -3274,23 +3279,104 @@ function ghiNhatKyLienKet(u, m, cu, moi) {
 // ===== Mã máy theo loại: M + 2 số mã loại + 3 số thứ tự (M01020 = loại 01, máy thứ 20) =====
 // Ghi vào MÃ HIỂN THỊ, mã hệ thống (M130…) giữ nguyên: lịch sử, công việc, tài liệu, tem QR đã in không đứt.
 var MA_LOAI_RE = /^M(\d{2})(\d{3})$/;
+// ===== Mã riêng cho từng đơn vị trong bản ghi gộp (mỗi quạt gió một mã, vẫn gộp theo chuyền) =====
+// Lưu trong chính dòng chi tiết, cột "Mã máy": không tách thành máy riêng, nhưng mã không trùng với bất kỳ máy nào.
+var KHOA_MA_DV = 'Mã máy';
+function maDV(ct) {
+  var v = '';
+  (ct && ct.cot || []).forEach(function (kv) { if (!v && s(kv[0]) === KHOA_MA_DV) v = s(kv[1]).toUpperCase(); });
+  return v;
+}
+// Mọi mã đang dùng của đơn vị: { MÃ: mã bản ghi chứa nó }
+function maDVDung(ds) {
+  var o = {};
+  ds.forEach(function (m) { (m.chiTiet || []).forEach(function (ct) { var v = maDV(ct); if (v) o[v] = m.ma; }); });
+  return o;
+}
 function maLoaiCua(nhom, ds) {
   var ml = docCaiDat().maLoai || {}, code = s(ml[s(nhom)]);
   if (/^\d{2}$/.test(code)) return code;
   // Chưa đặt trong app: lấy theo mã các máy cùng loại đã gõ (vd sửa tay cột MaHT trong Google Sheet),
   // chỉ khi cả loại dùng chung một mã loại và mã đó chưa thuộc loại khác
   var dem = {};
-  ds.forEach(function (x) { if (s(x.nhom) !== s(nhom)) return; var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); if (k) dem[k[1]] = 1; });
+  ds.forEach(function (x) {
+    if (s(x.nhom) !== s(nhom)) return;
+    var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); if (k) dem[k[1]] = 1;
+    (x.chiTiet || []).forEach(function (ct) { var k2 = MA_LOAI_RE.exec(maDV(ct)); if (k2) dem[k2[1]] = 1; });
+  });
   var cs = Object.keys(dem);
   if (cs.length !== 1) return '';
   var khac = ds.some(function (x) { var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); return k && k[1] === cs[0] && s(x.nhom) !== s(nhom); });
   return khac ? '' : cs[0];
+}
+// Đánh mã cho từng đơn vị (quạt) của các bản ghi gộp cùng loại: theo chuyền rồi thứ tự quạt.
+// Đơn vị đã có mã đúng loại (không trùng) giữ nguyên; chỉ cấp số kế tiếp cho đơn vị chưa có.
+function danhMaDV(u, p) {
+  var nhom = catChu(p.nhom, 60);
+  if (!nhom) throw loi('KHONG_CO', 'Chưa chọn loại · 未选择类别');
+  var tatCa = dsMayHet(), code = s(p.maLoai);
+  if (code) {
+    if (!/^\d{2}$/.test(code) || code === '00') throw loi('MA_LOAI_SAI', 'Mã loại phải là 2 chữ số 01–99 · 类别代码须为01–99');
+    var c = docCaiDat(), ml = c.maLoai || {};
+    Object.keys(ml).forEach(function (k) { if (k !== nhom && ml[k] === code) throw loi('MA_LOAI_TRUNG', 'Mã ' + code + ' đã dùng cho loại ' + k + ' · 类别代码已被使用'); });
+    ml[nhom] = code; c.maLoai = ml; ghiCaiDat(c);
+  } else code = maLoaiCua(nhom, tatCa);
+  if (!code) throw loi('MA_LOAI_SAI', 'Cần mã loại 2 chữ số · 需要2位类别代码');
+  var recs = tatCa.filter(function (m) { return !m.xoa && s(m.nhom) === nhom && (m.chiTiet || []).length; })
+    .sort(function (a, b) { var x = s(a.chuyen) || 'ZZZ', y = s(b.chuyen) || 'ZZZ'; return x < y ? -1 : x > y ? 1 : (a.ten < b.ten ? -1 : 1); });
+  if (!recs.length) throw loi('KHONG_CO', 'Không có bản ghi gộp nào của loại này · 该类别没有合并记录');
+  var laRec = {}; recs.forEach(function (m) { laRec[m.ma] = 1; });
+  // Mã đã bị chiếm ở chỗ khác: mã hệ thống, mã hiển thị, mã chuyền, mã đơn vị của bản ghi không nằm trong đợt này
+  var dung = {}, n = 0;
+  tatCa.forEach(function (m) {
+    dung[m.ma.toUpperCase()] = 1;
+    var hk = s(m.maHT).toUpperCase(); if (hk) dung[hk] = 1;
+    if (!laRec[m.ma]) (m.chiTiet || []).forEach(function (ct) { var v = maDV(ct); if (v) dung[v] = 1; });
+  });
+  dsChuyen().forEach(function (c2) { dung[c2.ma.toUpperCase()] = 1; if (c2.maHT) dung[s(c2.maHT).toUpperCase()] = 1; });
+  Object.keys(dung).forEach(function (v) { var k = MA_LOAI_RE.exec(v); if (k && k[1] === code) n = Math.max(n, Number(k[2])); });
+  // Giữ mã cũ hợp lệ (lần xuất hiện đầu); số kế tiếp tính sau mã lớn nhất đang có
+  var giu = {};
+  recs.forEach(function (m) { m.chiTiet.forEach(function (ct) {
+    var v = maDV(ct), k = MA_LOAI_RE.exec(v);
+    if (k && k[1] === code && !dung[v] && !giu[v]) { giu[v] = 'chua'; n = Math.max(n, Number(k[2])); }
+  }); });
+  var bay = thoiGianStr(), doi = 0;
+  recs.forEach(function (m) {
+    var thay = false;
+    m.chiTiet = m.chiTiet.map(function (ct) {
+      var v = maDV(ct);
+      if (giu[v] === 'chua') { giu[v] = 'da'; return ct; }
+      n++;
+      if (n > 999) throw loi('QUA_NHIEU', 'Loại này đã quá 999 mã · 该类别编号已超过999');
+      var t = String(n); while (t.length < 3) t = '0' + t;
+      thay = true; doi++;
+      return { cot: [[KHOA_MA_DV, 'M' + code + t]].concat((ct.cot || []).filter(function (kv) { return s(kv[0]) !== KHOA_MA_DV; })) };
+    });
+    if (thay) { m.capNhat = bay; suaDong('May', m._r, mayThanhDong(m)); }
+  });
+  ghiNhatKy(u, 'DANH_MA_DON_VI', 'May', '', {}, { loai: nhom, maLoai: code, doiMa: doi }, 'Đánh mã từng quạt · 为每台风机编号');
+  return { dsMay: mayChoXem(u), doiMa: doi, caiDat: { maLoai: docCaiDat().maLoai || {} } };
+}
+// Đơn vị chưa có mã (quạt thêm vào bản ghi gộp khi nhập file): cấp số kế tiếp nếu loại đã có mã loại
+function ganMaDVThieu(m, pool) {
+  if (!(m.chiTiet || []).length || !(m.chiTiet.some(function (ct) { return maDV(ct); }))) return;
+  m.chiTiet = m.chiTiet.map(function (ct) {
+    if (maDV(ct)) return ct;
+    var mt = maTheoLoai(m.nhom, pool.concat([m]));
+    if (!mt) return ct;
+    var moi = { cot: [[KHOA_MA_DV, mt]].concat(ct.cot || []) };
+    // cập nhật ngay để số sau không lặp
+    ct.cot = moi.cot;
+    return moi;
+  });
 }
 function maTheoLoai(nhom, ds) {
   var code = maLoaiCua(nhom, ds);
   if (!code) return '';
   var n = 0;
   ds.forEach(function (x) { var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); if (k && k[1] === code) n = Math.max(n, Number(k[2])); });
+  Object.keys(maDVDung(ds)).forEach(function (v) { var k = MA_LOAI_RE.exec(v); if (k && k[1] === code) n = Math.max(n, Number(k[2])); });
   if (n >= 999) return '';
   var t = String(n + 1); while (t.length < 3) t = '0' + t;
   return 'M' + code + t;
@@ -3343,6 +3429,7 @@ function maMoi(ds) {
   ds.forEach(function (x) {
     var k = /^M(\d+)$/.exec(x.ma); if (k) n = Math.max(n, Number(k[1]));
     if (x.maHT) dung[s(x.maHT).toUpperCase()] = 1;
+    (x.chiTiet || []).forEach(function (ct) { var v = maDV(ct); if (v) dung[v] = 1; });
   });
   // Mã hệ thống còn là mã hiện ra khi máy chưa có mã hiển thị: tránh trùng mã hiển thị đã gõ tay
   // (vd ai đó đặt M131 cho một máy trong Google Sheet) và trùng mã chuyền
