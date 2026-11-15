@@ -795,6 +795,16 @@ test('mỗi quạt một mã riêng nhưng vẫn gộp theo chuyền: đánh mã
   assert.ok(!['M01001', 'M01002', 'M01003', 'M01004', 'M01005', 'M01006'].includes(moi.ma) && !so.includes(moi.ma));
 });
 
+test('nhập file: ô chu kỳ ghi 0 thì tắt bảo dưỡng; để trống thì giữ nguyên', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222');
+  const d = ok(b.call('data', {}, ql));
+  const [a, c] = d.may.filter((x) => x.chuKy > 0);
+  const r = ok(b.call('importMachines', { rows: [{ ma: a.ma, ten: a.ten, nhom: a.nhom, chuKy: 0, tatBD: true }, { ma: c.ma, ten: c.ten, nhom: c.nhom, chuKy: 0 }] }, ql));
+  assert.equal(r.dsMay.find((x) => x.ma === a.ma).chuKy, 0, 'ghi 0 → chỉ ghi sổ');
+  assert.equal(r.dsMay.find((x) => x.ma === c.ma).chuKy, c.chuKy, 'để trống → giữ chu kỳ cũ');
+});
+
 test('mã máy không bao giờ trùng: mã hệ thống bỏ qua mã hiển thị gõ tay; loại chưa đặt mã thì suy ra từ mã đã gõ trong Sheet', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222');

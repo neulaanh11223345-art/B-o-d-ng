@@ -3958,7 +3958,7 @@ Object.assign(TX, {
     '任何人都可以修改设备位置——在现场发现不对即可直接修改，无需上报主管。'],
   tbNhapBtn: ['Nhập từ file', '从文件导入'], tbXuatBtn: ['Xuất Excel', '导出'],
   t_tbNhap: ['Nhập thiết bị từ file', '从文件导入设备'], t_tbXuat: ['Xuất · nhập theo loại thiết bị', '按设备类别导出 · 导入'],
-  tbNhapLai: ['Nhập lại', '重新导入'], tbXuatNhapBtn: ['Xuất / nhập theo loại', '按类别导出/导入'], tbNhapLoai: ['Đang nhập cho loại: {g}', '正在导入类别：{g}'],
+  tbNhapLai: ['Nhập lại', '重新导入'], tbTatBD: ['Tắt bảo dưỡng', '停止保养'], tbXuatNhapBtn: ['Xuất / nhập theo loại', '按类别导出/导入'], tbNhapLoai: ['Đang nhập cho loại: {g}', '正在导入类别：{g}'],
   tbNhapKhacLoai: ['{n} dòng thuộc loại khác — bỏ qua (nhập ở đúng loại đó, hoặc dùng "Nhập từ file" ở màn Danh sách)', '{n}行属于其他类别——已跳过（请在对应类别导入，或在列表页使用“从文件导入”）'],
   tbNhapDongLoi: ['Dòng {d}: {m}', '第{d}行：{m}'], tbNhapCho: ['Đã lưu trên máy, sẽ gửi khi có mạng', '已保存在本机，联网后发送'],
   tbNhapCoLoi: ['Đã nhập: {a} thêm mới, {b} cập nhật. Có {n} dòng không nhập được:', '已导入：新增{a}，更新{b}。有{n}行未能导入：'],
@@ -4200,7 +4200,9 @@ async function tbDocFile(file) {
         out.push({ dong: r + 1, sheet: sh.name, chiTiet: [], ma: g('ma').toUpperCase(), maHT: g('maHT'),
           ten: ten.slice(0, 120), tenPhu: g('tenPhu').slice(0, 120), khoi: khoiTuChu(g('khoi')),
           nhom: g('nhom').slice(0, 60), chuyen: g('chuyen').toUpperCase(), viTri: g('viTri').slice(0, 120),
-          chuKy: parseSo(g('chuKy')) || 0, thongSo: ts });
+          chuKy: parseSo(g('chuKy')) || 0, thongSo: ts,
+          // Ô chu kỳ ghi đúng số 0 = tắt theo dõi bảo dưỡng (quạt gió, cáp điện…); để trống = giữ nguyên
+          tatBD: g('chuKy') !== '' && parseSo(g('chuKy')) === 0 });
       }
       break;
     }
@@ -4258,7 +4260,7 @@ VIEWS.tbNhap = {
     o += `<div class="card" style="margin-top:12px"><div class="list">${p.ds.slice(0, 60).map((x) => `<div class="row"><div class="main">
         <div class="nm">${esc(x.ten)}${x.tenPhu ? `<span class="zi">${esc(x.tenPhu)}</span>` : ''}</div>
         <div class="sub"><span class="mono">${x.cu ? esc(x.cu.ma) : t('tbMaMoi')}</span> · ${esc(x.nhom || '—')}${x.chuyen ? ' · ' + esc(x.chuyen) : ''}${x.thongSo.length ? ' · ' + x.thongSo.length + ' thông số' : ''}${(x.chiTiet || []).length ? ' · ' + tv('tbCtN', { n: x.chiTiet.length }) : ''}</div></div>
-        <span class="pill ${x.cu ? 'p-nay' : 'p-ok'}">${t(x.cu ? 'tbSua1' : 'tbThem1')}</span></div>`).join('')}</div>
+        ${x.tatBD && x.cu && x.cu.chuKy > 0 ? `<span class="pill p-cho">${esc(tv('tbTatBD'))}</span>` : ''}<span class="pill ${x.cu ? 'p-nay' : 'p-ok'}">${t(x.cu ? 'tbSua1' : 'tbThem1')}</span></div>`).join('')}</div>
       ${p.ds.length > 60 ? `<div class="pad help">… và ${p.ds.length - 60} dòng nữa</div>` : ''}</div>`;
     o += `<div class="btns" style="margin-top:14px"><button class="btn bigbtn" data-act="tbNhapGo">${IC.check} ${t('tbNhapGo')}</button></div>`;
     return o;
@@ -9338,7 +9340,7 @@ Object.assign(ACT, {
     el.disabled = true;
     const r = await send('importMachines', {
       rows: p.ds.map((x) => ({ ma: x.cu ? x.cu.ma : '', maHT: x.maHT, ten: x.ten, tenPhu: x.tenPhu,
-        khoi: x.khoi, nhom: x.nhom, chuyen: x.chuyen, viTri: x.viTri, chuKy: x.chuKy,
+        khoi: x.khoi, nhom: x.nhom, chuyen: x.chuyen, viTri: x.viTri, chuKy: x.chuKy, tatBD: !!x.tatBD,
         thongSo: x.thongSo, chiTiet: x.chiTiet || [] }))
     });
     el.disabled = false;
@@ -16148,7 +16150,7 @@ function qgDanhMaMo(g) {
       const k = ML_RE.exec(q.maDV);
       out.push({ ch, ten: q.ten, ma: k && k[1] === f.code ? q.maDV : 'M' + f.code + String(++n).padStart(3, '0'), giu: !!(k && k[1] === f.code) });
     }));
-    return `<div class="lshd">${esc(tv('qgSub', { n: out.length, c: new Set(out.map((x) => x.ch)).size }))}</div>
+    return `<div class="lshd">${esc(tv('qgSub', { n: out.length, c: new Set(out.map((x) => x.ch).filter(Boolean)).size }))}</div>
       <div class="list">${out.slice(0, 120).map((x) => `<div class="row"><div class="main"><div class="nm"><span class="code">${esc(x.ma)}</span> ${esc(x.ten)}</div>
         <div class="sub">${esc(x.ch ? tv('chuyenNgan') + ' ' + x.ch : tv('qgChuaGan'))}${x.giu ? ' · ✓' : ''}</div></div></div>`).join('')}</div>`;
   };
@@ -16168,7 +16170,7 @@ function qgXemMo(ma, i) {
   const sc = scCuaQuat(q), nt = ntCuaQuat(q);
   openSheet(`<div class="grab"></div><h3>${q.maDV ? `<span class="code" style="font-size:15px">${esc(q.maDV)}</span> ` : ''}${esc(q.ten || m.ten)}<span class="zi">${esc(m.chuyen ? tv('chuyenNgan') + ' ' + mh(m.chuyen) : tv('qgChuaGan'))} · <span class="mono">${esc(mh(m.ma))}</span></span></h3>
     <div class="card pad"><dl class="kv kvwide">${q.ts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(String(v === undefined ? '' : v)) || '—'}</dd>`).join('')}
-      ${m.viTri ? `<dt>${t('location')}</dt><dd>${esc(m.viTri)}</dd>` : ''}</dl></div>
+      ${m.viTri && !q.ts.some(([k]) => /^v[iị] tr[ií]/i.test(String(k || ''))) ? `<dt>${t('location')}</dt><dd>${esc(m.viTri)}</dd>` : ''}</dl></div>
     ${can('confirm') ? `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgGhiSC" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.wrench} ${t('qgGhiSC')}</button>
       <button class="btn ghost sm" data-act="qgNT" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.edit} ${t('qgNghiemThu')}</button></div>` : ''}
     <div class="lshd">${t('qgLS')} <span class="nhomn">${sc.length + nt.length}</span></div>
