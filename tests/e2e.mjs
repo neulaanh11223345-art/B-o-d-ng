@@ -2449,44 +2449,56 @@ assert.ok(kq37.heThong, 'mã hệ thống giữ nguyên');
 assert.ok(kq37.quet && kq37.hien === 'M01001', 'gõ / quét mã mới mở đúng máy, mọi màn hiện mã mới');
 ok('Bản 2.49: mã máy theo loại M + mã loại + số thứ tự (M01001…), xem trước trước khi đổi, báo trùng mã loại, mã hệ thống giữ nguyên');
 
-// 38. Tách bản ghi gộp quạt gió thành từng quạt, mỗi quạt một mã; quạt mới tự lấy số kế tiếp
+// 38. Quạt gió theo chuyền: số quạt mỗi chuyền, bấm ra từng quạt; ghi sửa chữa đúng quạt, lịch sử của quạt đó
 await page.evaluate(async () => {
   while (S.stack.length > 1) back();
-  const ct = (n) => Array.from({ length: n }, (_, i) => ({ cot: [['Tên', 'Quạt số ' + (i + 1)], ['Công suất (kW)', String(15 + i)]] }));
+  const ct = (n) => Array.from({ length: n }, (_, i) => ({ cot: [['Tên', 'Quạt số ' + (i + 1)], ['Model động cơ', 'YE3-160M-' + (i + 1)], ['Dòng (A)', String(28 + i)], ['Công suất (kW)', String(15 + i)]] }));
   await send('importMachines', { rows: [
     { ten: 'Quạt gió chuyền VKY02 (3 quạt)', tenPhu: 'VKY02风机', nhom: 'Quạt gió · 风机', khoi: 'HCD', chuyen: 'VKY02', chiTiet: ct(3) },
-    { ten: 'Quạt gió chuyền VKY01 (2 quạt)', tenPhu: 'VKY01风机', nhom: 'Quạt gió · 风机', khoi: 'HCD', chuyen: 'VKY01', chiTiet: ct(2) }] });
-  rebuild(); tab('list'); go('tbXuat');
+    { ten: 'Quạt gió chuyền VKY01 (2 quạt)', tenPhu: 'VKY01风机', nhom: 'Quạt gió · 风机', khoi: 'HCD', chuyen: 'VKY01', viTri: 'Tầng 2', chiTiet: ct(2) }] });
+  rebuild(); tab('list');
 }); await wait(700);
-await page.click('[data-act="tachNhom"][data-g="Quạt gió · 风机"]'); await wait(500);
-await page.fill('#tachCode', '05'); await wait(200);
-assert.match(await text('#tachXem'), /đã dùng cho/, 'mã loại đã thuộc loại khác thì báo ngay');
-await page.fill('#tachCode', '42'); await wait(200);
-assert.match(await text('#tachXem'), /2 bản ghi → 5 máy/, 'xem trước số máy sẽ tạo');
-assert.match(await text('#tachXem'), /M42001/, 'xem trước mã từng quạt');
-await shot('74-tach-quat-gio');
-await page.click('[data-act="tachOk"]'); await wait(1500);
-const q38 = await page.evaluate(() => S.V.may.filter((m) => m.nhom === 'Quạt gió · 风机').sort((a, b) => (a.maHT < b.maHT ? -1 : 1)).map((m) => m.maHT + '|' + m.ten));
-assert.deepEqual(q38, ['M42001|Quạt gió chuyền VKY01 · Quạt số 1', 'M42002|Quạt gió chuyền VKY01 · Quạt số 2',
-  'M42003|Quạt gió chuyền VKY02 · Quạt số 1', 'M42004|Quạt gió chuyền VKY02 · Quạt số 2', 'M42005|Quạt gió chuyền VKY02 · Quạt số 3'], 'mỗi quạt một mã riêng, theo chuyền rồi số quạt');
-const moi38 = await page.evaluate(async () => (await send('saveMachine', { ten: 'Quạt mới E2E', nhom: 'Quạt gió · 风机', chuKy: 0 })).data.may.maHT);
-assert.equal(moi38, 'M42006', 'quạt mới tự lấy số kế tiếp, không trùng');
+assert.equal(await page.locator('#main [data-act="tbXuat1"], #main [data-act="tachNhom"]').count(), 0, 'không còn nút tách thành từng máy');
+await page.click('#main [data-act="quatGio"]'); await wait(600);
+assert.match(await text('#main'), /5 quạt · 2 chuyền/, 'tổng số quạt và số chuyền');
+const so38 = await page.$$eval('[data-act="qgMo"] .qgso b', (e) => e.map((x) => x.textContent));
+assert.deepEqual(so38, ['2', '3'], 'mỗi chuyền bao nhiêu quạt (VKY01 rồi VKY02)');
+await page.click('[data-act="qgMo"][data-ch="VKY02"]'); await wait(400);
+assert.equal(await page.locator('[data-act="qgXem"]').count(), 3, 'bấm số lượng ra đủ 3 quạt của VKY02');
+await page.locator('[data-act="qgXem"]', { hasText: 'Quạt số 2' }).click(); await wait(500);
+assert.match(await text('.sheet'), /YE3-160M-2/, 'bấm một quạt ra thông số của đúng quạt đó');
+await page.click('[data-act="qgGhiSC"]'); await wait(600);
+assert.equal(await page.inputValue('#scDv'), 'Quạt số 2', 'ghi sửa chữa chọn sẵn đúng quạt');
+await page.fill('#scMT', 'Quạt rung mạnh'); await page.fill('#scNN', 'Lệch tâm cánh'); await page.fill('#scKQ', 'Cân bằng lại cánh');
+await page.evaluate(() => { topV().p.sel.lam = S.me.id; });
+await page.click('#scOk'); await wait(1200);
+const sc38 = await page.evaluate(() => { const x = S.V.cvAll.find((c) => c.tieuDe && c.tieuDe.indexOf('Quạt rung mạnh') >= 0); return x && { dv: x.dvMay, la: laQuatGio(S.V.byMa[x.ma]) }; });
+assert.deepEqual(sc38, { dv: 'Quạt số 2', la: true }, 'bản ghi sửa chữa ghi đúng quạt số 2, gắn với bản ghi quạt gió (không quy về chuyền)');
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('quatGio', { ch: 'VKY02' }); }); await wait(600);
+await page.locator('[data-act="qgXem"]', { hasText: 'Quạt số 2' }).click(); await wait(500);
+assert.equal(await page.locator('.sheet .scrow').count(), 1, 'lịch sử sửa chữa hiện trong đúng quạt số 2');
+await page.evaluate(() => closeSheet());
+await page.locator('[data-act="qgXem"]', { hasText: 'Quạt số 1' }).click(); await wait(500);
+assert.equal(await page.locator('.sheet .scrow').count(), 0, 'quạt số 1 không dính lịch sử của quạt số 2');
+await page.evaluate(() => closeSheet());
+await shot('74-quat-gio-theo-chuyen');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
-ok('Bản 2.50: tách bản ghi gộp quạt gió thành từng quạt, mỗi quạt một mã riêng; máy mới tự lấy số kế tiếp, không trùng');
+ok('Bản 2.52: quạt gió theo chuyền — số quạt mỗi chuyền, bấm ra từng quạt; sửa chữa ghi đúng quạt, lịch sử riêng từng quạt');
 
-// 39. Biên bản nghiệm thu: chọn quạt gió trong danh sách → điền sẵn thông số; động cơ thì ghi tay
+// 39. Biên bản nghiệm thu: chọn quạt gió trong danh sách → điền sẵn thông số, ghi đúng quạt; động cơ thì ghi tay
 await page.evaluate(() => { while (S.stack.length > 1) back(); go('ngtGhi', {}); }); await wait(700);
-assert.ok(await page.locator('[data-act="ngtChonQuat"]').count(), 'có nút chọn quạt gió');
 await page.click('[data-act="ngtChonQuat"]'); await wait(500);
-await page.locator('#ngtQDs .ksi', { hasText: 'Quạt số 2' }).first().click(); await wait(600);
-const ngt39 = await page.evaluate(() => { const q = topV().p; return { maTB: q.truoc.chung.maTB, cs: q.truoc.chung.congSuat, ten: q.truoc.chung.tenTB, sau: q.sau.chung.maTB }; });
-assert.match(ngt39.maTB, /^M42\d{3}$/, 'mã thiết bị điền sẵn: ' + ngt39.maTB);
-assert.equal(ngt39.sau, ngt39.maTB, 'mặt "sau sửa" cũng có mã');
-assert.equal(ngt39.cs, '16', 'công suất của đúng quạt số 2');
-assert.equal(await page.inputValue('[data-c="congSuat"]'), '16', 'ô công suất trên biên bản đã điền');
+await page.locator('#ngtQDs .ksi', { hasText: 'Quạt số 3' }).first().click(); await wait(600);
+const ngt39 = await page.evaluate(() => { const q = topV().p; return { dv: q.dvMay, cs: q.truoc.chung.congSuat, dong: q.truoc.chung.dongDM, ten: q.truoc.chung.tenTB, sau: q.sau.chung.tenTB }; });
+assert.equal(ngt39.dv, 'Quạt số 3', 'biên bản ghi đúng quạt số 3');
+assert.equal(ngt39.cs, '17', 'công suất của đúng quạt số 3'); assert.equal(ngt39.dong, '30');
+assert.match(ngt39.ten, /Quạt gió chuyền VKY02 · Quạt số 3 \(ĐC YE3-160M-3\)/, 'tên kèm model động cơ: ' + ngt39.ten);
+assert.equal(ngt39.sau, ngt39.ten, 'mặt sau sửa cũng điền');
+assert.equal(await page.inputValue('#ngtDv'), 'Quạt số 3', 'ô "Quạt nào" chọn sẵn');
 await page.click('[data-act="ngtLoai"][data-v="dc"]'); await wait(300);
 assert.match(await text('#ngtF'), /Ghi tay tên, công suất/, 'chọn động cơ thì hướng dẫn ghi tay');
 await shot('75-nghiem-thu-chon-quat');
+
 // 40. Kho: phiếu đề nghị mua hàng — chọn hàng, số lượng, ghi chú, xuất Excel
 await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); }); await wait(600);
 await page.click('[data-act="datMua"]'); await wait(600);
@@ -2514,7 +2526,7 @@ page.once('dialog', (dg) => dg.accept());
 await page.click('[data-act="dmXoaHet"]'); await wait(400);
 assert.equal(await page.locator('.dmrow').count(), 0, 'xoá hết phiếu');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
-ok('Bản 2.51: nghiệm thu chọn quạt gió điền sẵn thông số, động cơ ghi tay; phiếu đề nghị mua hàng xuất Excel');
+ok('Bản 2.51 + 2.52: nghiệm thu chọn quạt gió điền sẵn thông số, ghi đúng quạt, động cơ ghi tay; phiếu đề nghị mua hàng xuất Excel');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
