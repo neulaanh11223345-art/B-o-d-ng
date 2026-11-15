@@ -1055,6 +1055,8 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .dtgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .mlinp{width:64px;flex:none;text-align:center;font-size:18px;font-weight:700;letter-spacing:1px}
 @media (max-width:600px){.xuatrow.mlrow{flex-wrap:nowrap}.xuatrow.mlrow>span:first-child{flex:1 1 auto!important}}
+.qgso{display:inline-flex;align-items:baseline;gap:4px;font-size:13px;color:var(--ink2);margin-right:6px}
+.qgso b{font:800 22px var(--f-mono);color:var(--brand)}.qgso small{font-size:11px;color:var(--ink3)}
 .lshd{font-size:12.5px;font-weight:700;color:var(--ink2);margin:14px 2px 6px}
 .lshd .zi{display:inline;margin-left:6px;font-weight:500}
 .lksub{display:flex;align-items:center;gap:6px;margin:12px 4px 5px;font-size:12.5px;font-weight:700;color:var(--ink2)}
@@ -1689,7 +1691,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.51.0";
+const APP_VER = "2.53.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -2088,7 +2090,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.51.0';
+var PHIEN_BAN = '2.53.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -2137,7 +2139,7 @@ var BANG = {
   CongViec: ['ID', 'So', 'TieuDe', 'MoTa', 'Loai', 'UuTien', 'Ma', 'Han', 'TrangThai', 'UIDLam', 'NguoiLam', 'UIDPhu',
     'NguoiGiao', 'UIDGiao', 'LucGiao', 'NguoiTao', 'UIDTao', 'LucTao', 'LucBatDau', 'LucXong', 'KetQua', 'LinhKien',
     'AnhTao', 'AnhXong', 'CanKiemTra', 'NguoiKiemTra', 'LucKiemTra', 'LapLai', 'OpId', 'CapNhat', 'NhatKy', 'NguyenNhan', 'PhutDung',
-    'TieuDeDich', 'MoTaDich', 'KetQuaDich', 'NguyenNhanDich', 'Nguon'],
+    'TieuDeDich', 'MoTaDich', 'KetQuaDich', 'NguyenNhanDich', 'Nguon', 'DvMay'],
   // Việc lặp lại: mỗi ngày (khi app tải dữ liệu và lúc nhắc hằng ngày) tự sinh việc vào CongViec
   // Kieu: ngay (hằng ngày) · tuan (Ngay = các thứ 0–6, 0 = Chủ nhật) · thang (Ngay = các ngày trong tháng) · TaoDen: đã sinh việc đến ngày
   // Hai kiểu giao:
@@ -2180,7 +2182,7 @@ var BANG = {
   // So: BBNT + năm.tháng.ngày / số thứ tự trong ngày, vd BBNT2026.10.08/3 — máy chủ tự đánh số, không trùng.
   // Truoc / Sau (JSON): { chung: {...}, muc: { mã mục: {so, A, B, C, gc, dg} }, vanBan, vanBanDich, ky: {...}, ketLuan }
   NghiemThu: ['ID', 'SoBB', 'NgayNT', 'STT', 'Ma', 'TenTB', 'DonVi', 'CvId', 'Truoc', 'Sau', 'KetLuan',
-    'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'Xoa'],
+    'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'Xoa', 'DvMay'],
   // Máy nén khí: mỗi máy một dòng. Danh sách riêng vì nhà máy chỉ có MỘT mã máy "Phòng máy nén khí"
   // trong danh mục, còn giờ chạy thì tính cho từng máy.
   // Ma: mã máy trong danh mục (để trống được) · MaCT: mã công tơ nhánh của máy đó (để trống được)
@@ -2416,7 +2418,7 @@ function dieuHuong(a, p, req) {
     case 'saveMachine': canQuyen(u, 'may'); return luuMay(u, p);
     case 'importMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return nhapThietBi(u, p);
     case 'saveMaLoai': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return luuMaLoai(u, p);
-    case 'splitDetail': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return tachChiTiet(u, p);
+    case 'unitCodes': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return danhMaDV(u, p);
     case 'deleteMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return xoaThietBi(u, p);
     case 'saveSpot': canQuyen(u, 'xacnhan'); return luuViTriMay(u, p);
     case 'saveLine': canQuyen(u, 'may'); return luuChuyen(u, p);
@@ -2683,10 +2685,13 @@ function kiemMaHT(v, maGoc) {
   if (!v) return '';
   if (/[<>"'`\\]/.test(v)) throw loi('MA_HT_SAI', 'Mã hiển thị có ký tự không hợp lệ · 显示编号含无效字符');
   var k = v.toUpperCase(), goc = s(maGoc).toUpperCase();
-  var trung = dsMay().concat(dsChuyen()).filter(function (x) {
+  var tatCa = dsMay();
+  var trung = tatCa.concat(dsChuyen()).filter(function (x) {
     return x.ma !== goc && (x.ma === k || s(x.maHT).toUpperCase() === k);
   })[0];
   if (trung) throw loi('MA_HT_TRUNG', trung.ma);
+  var dv = maDVDung(tatCa)[k];                    // trùng mã của một quạt trong bản ghi gộp
+  if (dv) throw loi('MA_HT_TRUNG', dv);
   return v;
 }
 // ----- Chuyền sản xuất -----
@@ -4059,7 +4064,8 @@ var TEN_TT_CV = { CHO_GIAO: 'Chờ giao · 待派工', DA_GIAO: 'Đã giao · �
 var CV_KHOA = ['id', 'so', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'han', 'trangThai', 'uidLam', 'nguoiLam', 'uidPhu',
   'nguoiGiao', 'uidGiao', 'lucGiao', 'nguoiTao', 'uidTao', 'lucTao', 'lucBatDau', 'lucXong', 'ketQua', 'linhKien',
   'anhTao', 'anhXong', 'canKiemTra', 'nguoiKiemTra', 'lucKiemTra', 'lapLai', 'opId', 'capNhat', 'nhatKy', 'nguyenNhan', 'phutDung',
-  'tieuDeDich', 'moTaDich', 'ketQuaDich', 'nguyenNhanDich', 'nguon'];
+  'tieuDeDich', 'moTaDich', 'ketQuaDich', 'nguyenNhanDich', 'nguon', 'dvMay'];
+// dvMay: đơn vị cụ thể trong bản ghi gộp (vd "Quạt số 3" của bản ghi quạt gió chuyền VKY01) đem đi sửa
 // nguon: 'SC' = bản ghi sửa chữa (Ghi sửa chữa), chỉ lưu làm lịch sử, không hiện trong danh sách công việc
 var VL_KHOA = ['id', 'tieuDe', 'moTa', 'loai', 'uuTien', 'ma', 'kieu', 'ngay', 'uidLam', 'canKiemTra', 'hoatDong', 'taoDen', 'nguoiTao', 'capNhat',
   'tieuDeDich', 'moTaDich', 'uidPhu', 'dsGiao'];
@@ -4368,7 +4374,7 @@ function luuSuaChua(u, p, opId) {
   var x = { id: id, so: soLonNhat(ds) + 1, tieuDe: td[0], tieuDeDich: td[1], moTa: mt[0], moTaDich: mt[1], loai: 'SUA', uuTien: 'TB', ma: f.ma, han: ngay,
     trangThai: 'DONG', uidLam: '', nguoiLam: '', uidPhu: [], nguoiGiao: '', uidGiao: '', lucGiao: '', nguoiTao: u.ten, uidTao: u.id, lucTao: bay,
     lucBatDau: luc, lucXong: luc, ketQua: kqD[0], ketQuaDich: kqD[1], nguyenNhan: nnD[0], nguyenNhanDich: nnD[1], linhKien: lk, anhTao: [], anhXong: anhSC(p.anh, 'sc', 'SAU'),
-    canKiemTra: false, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: opId, capNhat: bay, nguon: 'SC',
+    canKiemTra: false, nguoiKiemTra: '', lucKiemTra: '', lapLai: '', opId: opId, capNhat: bay, nguon: 'SC', dvMay: catChu(p.dvMay, 80),
     phutDung: gio !== '' && gio >= 0 && gio <= 24 * 60 ? Math.round(gio * 60) : '',
     nhatKy: [{ b: 'tao', luc: bay, uid: u.id, nguoi: u.ten, gc: 'Ghi sửa chữa', gcDich: '记录维修', op: opId }] };
   if (f.lam) { x.uidLam = f.lam.id; x.nguoiLam = f.lam.ten; x.uidPhu = f.phu.map(function (n) { return n.id; }); x.nguoiGiao = u.ten; x.uidGiao = u.id; x.lucGiao = bay; }
@@ -4858,7 +4864,7 @@ function xoaMaLoi(u, p) {
 // Một dòng giữ cả hai phần của một lần gửi sửa: TRƯỚC khi sửa và SAU khi sửa, chung một số biên bản.
 // Số biên bản do máy chủ đánh: BBNT + năm.tháng.ngày / số thứ tự trong ngày.
 var NGT_KHOA = ['id', 'soBB', 'ngayNT', 'stt', 'ma', 'tenTB', 'donVi', 'cvId', 'truoc', 'sau', 'ketLuan',
-  'nguoiTao', 'uidTao', 'lucTao', 'capNhat', 'xoa'];
+  'nguoiTao', 'uidTao', 'lucTao', 'capNhat', 'xoa', 'dvMay'];
 var NGT_KL = ['DAT', 'CHUA'];
 var NGT_CHU_TOI_DA = 2000;         // mỗi ô chữ trong biên bản
 // Truoc / Sau là object (không phải mảng) nên obThanhDong dùng chung không ghi được — đọc ghi riêng ở đây.
@@ -4939,6 +4945,7 @@ function luuNghiemThu(u, p) {
     x.ngayNT = ngay; x.stt = ngtSttMoi(ds.filter(function (r) { return r.id !== x.id; }), ngay); x.soBB = ngtSoBB(ngay, x.stt);
   }
   x.ma = ma; x.tenTB = ten; x.donVi = catChu(p.donVi, 150); x.cvId = s(p.cvId).toUpperCase();
+  if (p.dvMay !== undefined) x.dvMay = catChu(p.dvMay, 80);   // quạt nào trong bản ghi gộp của chuyền
   // Chỉ ghi đè phần nào app gửi lên, để hai người ghi hai phần không đạp lên nhau
   if (p.truoc !== undefined) x.truoc = ngtSachPhan(p.truoc);
   if (p.sau !== undefined) x.sau = ngtSachPhan(p.sau);
@@ -5111,7 +5118,8 @@ function nhapThietBi(u, p) {
     if (r.maHT !== undefined && s(r.maHT)) {
       try { m.maHT = kiemMaHT(r.maHT, m.ma); } catch (e) { m.maHT = ''; }
     }
-    if (m._moi && !m.maHT) m.maHT = maTheoLoai(m.nhom, maCap);
+    if (m._moi && !m.maHT && !(m.chiTiet || []).length) m.maHT = maTheoLoai(m.nhom, maCap);
+    ganMaDVThieu(m, maCap);       // quạt mới thêm vào bản ghi gộp đã đánh mã thì tự lấy số kế tiếp
     m.capNhat = bay;
     (m._moi ? them : sua).push(m);
   }
@@ -5344,23 +5352,104 @@ function ghiNhatKyLienKet(u, m, cu, moi) {
 // ===== Mã máy theo loại: M + 2 số mã loại + 3 số thứ tự (M01020 = loại 01, máy thứ 20) =====
 // Ghi vào MÃ HIỂN THỊ, mã hệ thống (M130…) giữ nguyên: lịch sử, công việc, tài liệu, tem QR đã in không đứt.
 var MA_LOAI_RE = /^M(\d{2})(\d{3})$/;
+// ===== Mã riêng cho từng đơn vị trong bản ghi gộp (mỗi quạt gió một mã, vẫn gộp theo chuyền) =====
+// Lưu trong chính dòng chi tiết, cột "Mã máy": không tách thành máy riêng, nhưng mã không trùng với bất kỳ máy nào.
+var KHOA_MA_DV = 'Mã máy';
+function maDV(ct) {
+  var v = '';
+  (ct && ct.cot || []).forEach(function (kv) { if (!v && s(kv[0]) === KHOA_MA_DV) v = s(kv[1]).toUpperCase(); });
+  return v;
+}
+// Mọi mã đang dùng của đơn vị: { MÃ: mã bản ghi chứa nó }
+function maDVDung(ds) {
+  var o = {};
+  ds.forEach(function (m) { (m.chiTiet || []).forEach(function (ct) { var v = maDV(ct); if (v) o[v] = m.ma; }); });
+  return o;
+}
 function maLoaiCua(nhom, ds) {
   var ml = docCaiDat().maLoai || {}, code = s(ml[s(nhom)]);
   if (/^\d{2}$/.test(code)) return code;
   // Chưa đặt trong app: lấy theo mã các máy cùng loại đã gõ (vd sửa tay cột MaHT trong Google Sheet),
   // chỉ khi cả loại dùng chung một mã loại và mã đó chưa thuộc loại khác
   var dem = {};
-  ds.forEach(function (x) { if (s(x.nhom) !== s(nhom)) return; var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); if (k) dem[k[1]] = 1; });
+  ds.forEach(function (x) {
+    if (s(x.nhom) !== s(nhom)) return;
+    var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); if (k) dem[k[1]] = 1;
+    (x.chiTiet || []).forEach(function (ct) { var k2 = MA_LOAI_RE.exec(maDV(ct)); if (k2) dem[k2[1]] = 1; });
+  });
   var cs = Object.keys(dem);
   if (cs.length !== 1) return '';
   var khac = ds.some(function (x) { var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); return k && k[1] === cs[0] && s(x.nhom) !== s(nhom); });
   return khac ? '' : cs[0];
+}
+// Đánh mã cho từng đơn vị (quạt) của các bản ghi gộp cùng loại: theo chuyền rồi thứ tự quạt.
+// Đơn vị đã có mã đúng loại (không trùng) giữ nguyên; chỉ cấp số kế tiếp cho đơn vị chưa có.
+function danhMaDV(u, p) {
+  var nhom = catChu(p.nhom, 60);
+  if (!nhom) throw loi('KHONG_CO', 'Chưa chọn loại · 未选择类别');
+  var tatCa = dsMayHet(), code = s(p.maLoai);
+  if (code) {
+    if (!/^\d{2}$/.test(code) || code === '00') throw loi('MA_LOAI_SAI', 'Mã loại phải là 2 chữ số 01–99 · 类别代码须为01–99');
+    var c = docCaiDat(), ml = c.maLoai || {};
+    Object.keys(ml).forEach(function (k) { if (k !== nhom && ml[k] === code) throw loi('MA_LOAI_TRUNG', 'Mã ' + code + ' đã dùng cho loại ' + k + ' · 类别代码已被使用'); });
+    ml[nhom] = code; c.maLoai = ml; ghiCaiDat(c);
+  } else code = maLoaiCua(nhom, tatCa);
+  if (!code) throw loi('MA_LOAI_SAI', 'Cần mã loại 2 chữ số · 需要2位类别代码');
+  var recs = tatCa.filter(function (m) { return !m.xoa && s(m.nhom) === nhom && (m.chiTiet || []).length; })
+    .sort(function (a, b) { var x = s(a.chuyen) || 'ZZZ', y = s(b.chuyen) || 'ZZZ'; return x < y ? -1 : x > y ? 1 : (a.ten < b.ten ? -1 : 1); });
+  if (!recs.length) throw loi('KHONG_CO', 'Không có bản ghi gộp nào của loại này · 该类别没有合并记录');
+  var laRec = {}; recs.forEach(function (m) { laRec[m.ma] = 1; });
+  // Mã đã bị chiếm ở chỗ khác: mã hệ thống, mã hiển thị, mã chuyền, mã đơn vị của bản ghi không nằm trong đợt này
+  var dung = {}, n = 0;
+  tatCa.forEach(function (m) {
+    dung[m.ma.toUpperCase()] = 1;
+    var hk = s(m.maHT).toUpperCase(); if (hk) dung[hk] = 1;
+    if (!laRec[m.ma]) (m.chiTiet || []).forEach(function (ct) { var v = maDV(ct); if (v) dung[v] = 1; });
+  });
+  dsChuyen().forEach(function (c2) { dung[c2.ma.toUpperCase()] = 1; if (c2.maHT) dung[s(c2.maHT).toUpperCase()] = 1; });
+  Object.keys(dung).forEach(function (v) { var k = MA_LOAI_RE.exec(v); if (k && k[1] === code) n = Math.max(n, Number(k[2])); });
+  // Giữ mã cũ hợp lệ (lần xuất hiện đầu); số kế tiếp tính sau mã lớn nhất đang có
+  var giu = {};
+  recs.forEach(function (m) { m.chiTiet.forEach(function (ct) {
+    var v = maDV(ct), k = MA_LOAI_RE.exec(v);
+    if (k && k[1] === code && !dung[v] && !giu[v]) { giu[v] = 'chua'; n = Math.max(n, Number(k[2])); }
+  }); });
+  var bay = thoiGianStr(), doi = 0;
+  recs.forEach(function (m) {
+    var thay = false;
+    m.chiTiet = m.chiTiet.map(function (ct) {
+      var v = maDV(ct);
+      if (giu[v] === 'chua') { giu[v] = 'da'; return ct; }
+      n++;
+      if (n > 999) throw loi('QUA_NHIEU', 'Loại này đã quá 999 mã · 该类别编号已超过999');
+      var t = String(n); while (t.length < 3) t = '0' + t;
+      thay = true; doi++;
+      return { cot: [[KHOA_MA_DV, 'M' + code + t]].concat((ct.cot || []).filter(function (kv) { return s(kv[0]) !== KHOA_MA_DV; })) };
+    });
+    if (thay) { m.capNhat = bay; suaDong('May', m._r, mayThanhDong(m)); }
+  });
+  ghiNhatKy(u, 'DANH_MA_DON_VI', 'May', '', {}, { loai: nhom, maLoai: code, doiMa: doi }, 'Đánh mã từng quạt · 为每台风机编号');
+  return { dsMay: mayChoXem(u), doiMa: doi, caiDat: { maLoai: docCaiDat().maLoai || {} } };
+}
+// Đơn vị chưa có mã (quạt thêm vào bản ghi gộp khi nhập file): cấp số kế tiếp nếu loại đã có mã loại
+function ganMaDVThieu(m, pool) {
+  if (!(m.chiTiet || []).length || !(m.chiTiet.some(function (ct) { return maDV(ct); }))) return;
+  m.chiTiet = m.chiTiet.map(function (ct) {
+    if (maDV(ct)) return ct;
+    var mt = maTheoLoai(m.nhom, pool.concat([m]));
+    if (!mt) return ct;
+    var moi = { cot: [[KHOA_MA_DV, mt]].concat(ct.cot || []) };
+    // cập nhật ngay để số sau không lặp
+    ct.cot = moi.cot;
+    return moi;
+  });
 }
 function maTheoLoai(nhom, ds) {
   var code = maLoaiCua(nhom, ds);
   if (!code) return '';
   var n = 0;
   ds.forEach(function (x) { var k = MA_LOAI_RE.exec(s(x.maHT).toUpperCase()); if (k && k[1] === code) n = Math.max(n, Number(k[2])); });
+  Object.keys(maDVDung(ds)).forEach(function (v) { var k = MA_LOAI_RE.exec(v); if (k && k[1] === code) n = Math.max(n, Number(k[2])); });
   if (n >= 999) return '';
   var t = String(n + 1); while (t.length < 3) t = '0' + t;
   return 'M' + code + t;
@@ -5413,6 +5502,7 @@ function maMoi(ds) {
   ds.forEach(function (x) {
     var k = /^M(\d+)$/.exec(x.ma); if (k) n = Math.max(n, Number(k[1]));
     if (x.maHT) dung[s(x.maHT).toUpperCase()] = 1;
+    (x.chiTiet || []).forEach(function (ct) { var v = maDV(ct); if (v) dung[v] = 1; });
   });
   // Mã hệ thống còn là mã hiện ra khi máy chưa có mã hiển thị: tránh trùng mã hiển thị đã gõ tay
   // (vd ai đó đặt M131 cho một máy trong Google Sheet) và trùng mã chuyền
@@ -5420,62 +5510,6 @@ function maMoi(ds) {
   var ma;
   do { n++; var t = String(n); while (t.length < 3) t = '0' + t; ma = 'M' + t; } while (dung[ma]);
   return ma;
-}
-// ===== Tách bản ghi gộp (quạt gió theo chuyền…) thành từng máy, mỗi máy một mã riêng =====
-// Đơn vị đầu giữ luôn bản ghi cũ (mã hệ thống, lịch sử, tài liệu không đứt); các đơn vị sau thành máy mới.
-function tenDonVi(ct, i) {
-  var t = '';
-  (ct.cot || []).forEach(function (kv) { if (!t && /^(tên|ten|name|名称)$/i.test(s(kv[0]))) t = s(kv[1]); });
-  return t || ('Số ' + (i + 1));
-}
-function tachChiTiet(u, p) {
-  var dsMa = (Array.isArray(p.ds) ? p.ds : []).map(function (x) { return s(x).toUpperCase(); }).slice(0, 100);
-  if (!dsMa.length) throw loi('KHONG_CO', 'Chưa chọn bản ghi nào · 未选择记录');
-  var tatCa = dsMayHet(), theoMa = {};
-  tatCa.forEach(function (m) { theoMa[m.ma] = m; });
-  var goc = dsMa.map(function (ma) { return theoMa[ma]; }).filter(function (m) { return m && !m.xoa && (m.chiTiet || []).length; });
-  if (!goc.length) throw loi('KHONG_CO', 'Không có bản ghi gộp nào để tách · 没有可拆分的合并记录');
-  // Mã loại: lấy từ app gửi lên (lưu luôn vào cài đặt) hoặc đã đặt / suy ra được
-  var nhom = s(goc[0].nhom);
-  if (goc.some(function (m) { return s(m.nhom) !== nhom; })) throw loi('KHAC_LOAI', 'Chỉ tách các bản ghi cùng một loại mỗi lần · 每次只能拆分同一类别');
-  var code = s(p.maLoai);
-  if (code) {
-    if (!/^\d{2}$/.test(code) || code === '00') throw loi('MA_LOAI_SAI', 'Mã loại phải là 2 chữ số 01–99 · 类别代码须为01–99');
-    var c = docCaiDat(), ml = c.maLoai || {};
-    Object.keys(ml).forEach(function (k) { if (k !== nhom && ml[k] === code) throw loi('MA_LOAI_TRUNG', 'Mã ' + code + ' đã dùng cho loại ' + k + ' · 类别代码已被使用'); });
-    ml[nhom] = code; c.maLoai = ml; ghiCaiDat(c);
-  }
-  capNhatTieuDe('May');
-  var bay = thoiGianStr(), them = [], sua = [], thuTu = [];
-  // Thứ tự đánh số: theo chuyền (VKY01, VKY02…), trong chuyền theo thứ tự đơn vị (Quạt số 1, 2…)
-  goc.sort(function (a, b) {
-    var x = s(a.chuyen) || 'ZZZ', y = s(b.chuyen) || 'ZZZ';
-    return x < y ? -1 : x > y ? 1 : (a.ten < b.ten ? -1 : a.ten > b.ten ? 1 : 0);
-  });
-  goc.forEach(function (m) {
-    var nen = s(m.ten).replace(/\s*\(\s*\d+[^)]*\)\s*$/, '');      // "Quạt gió chuyền VKY01 (5 quạt)" → "Quạt gió chuyền VKY01"
-    var ct = m.chiTiet, tenPhu = s(m.tenPhu);
-    ct.forEach(function (d, i) {
-      var ts = (d.cot || []).filter(function (kv) { return !/^(tên|ten|name|名称)$/i.test(s(kv[0])); });
-      var x = i === 0 ? m : { ma: maMoi(tatCa), hangMuc: [], linhKien: [], noiDung: '', phuTrach: m.phuTrach || '', ngayDuaVao: m.ngayDuaVao || '',
-        chuKy: m.chuKy || 0, hanKeTiep: m.hanKeTiep || '', hoatDong: m.hoatDong !== false, khoi: m.khoi || '', nhom: m.nhom, chuyen: m.chuyen || '',
-        viTri: m.viTri || '', maHT: '' };
-      x.ten = (nen + ' · ' + tenDonVi(d, i)).slice(0, 120);
-      x.tenPhu = tenPhu ? (tenPhu + ' ' + (i + 1) + '#').slice(0, 120) : '';
-      x.thongSo = thongSoSach(ts);
-      x.chiTiet = [];
-      x.maHT = '';
-      x.capNhat = bay;
-      if (i > 0) { tatCa.push(x); them.push(x); } else sua.push(x);
-      thuTu.push(x);
-    });
-  });
-  // Mã riêng cho từng máy: M + mã loại + số thứ tự kế tiếp (tatCa đã có cả máy mới nên số không lặp)
-  thuTu.forEach(function (x) { var mt = maTheoLoai(x.nhom, tatCa); if (mt) x.maHT = mt; });
-  sua.forEach(function (m) { suaDong('May', m._r, mayThanhDong(m)); });
-  if (them.length) themNhieu('May', them.map(mayThanhDong));
-  ghiNhatKy(u, 'TACH_CHI_TIET', 'May', '', {}, { banGhi: goc.length, may: thuTu.length }, 'Tách bản ghi gộp thành từng máy · 拆分合并记录为单台设备');
-  return { banGhi: goc.length, may: thuTu.length, dsMay: mayChoXem(u), caiDat: { maLoai: docCaiDat().maLoai || {} } };
 }
 
 // ===================== Kho linh kiện · 备件库 =====================
@@ -9562,7 +9596,7 @@ function parseCode(text) {
   let s = String(text || '').trim();
   try { const u = new URL(s); const m = u.searchParams.get('m'); if (m) s = m; } catch (e) { /* không phải link */ }
   s = s.replace(/^BD[:\-]/i, '').trim().toUpperCase();
-  return S.V.ctByMa[s] ? s : maTuNhap(s) || null;
+  return S.V.ctByMa[s] ? s : maTuNhap(s) || (dvTheoMa(s) ? 'DV:' + s : null);
 }
 function onScan(text) {
   if (S.scanBusy) return;
@@ -9571,6 +9605,7 @@ function onScan(text) {
   if (!ma) { toast(t('qrUnknown') + '<br><span class="mono">' + esc(String(text).slice(0, 60)) + '</span>', true); return; }
   try { navigator.vibrate && navigator.vibrate(60); } catch (e) { /* bỏ qua */ }
   stopScan();
+  if (ma.indexOf('DV:') === 0) { moQuat(ma.slice(3)); return; }
   if (S.V.ctByMa[ma]) go('dienNhap', { ma }); else if (S.V.chByMa[ma]) go('chuyen', { ma }); else go('may', { ma, xn: true });
 }
 async function scanFromFile(e) {
@@ -9629,7 +9664,7 @@ function mayHead(m) {
 // ---------- Lịch sử sự cố (việc sửa chữa) của máy / chuyền ----------
 const scNgay = (x) => (x.lucXong || x.lucTao || '').slice(0, 10);
 // Thiết bị của việc sửa chữa: chuyền sản xuất (máy chính) hoặc máy không thuộc chuyền nào. Máy thuộc chuyền (máy in phun, máy hút bụi…) quy về chuyền.
-const maSuaChua = (ma) => { const m = ma && S.V.byMa[ma]; return m && m.chuyen && S.V.chByMa[m.chuyen] && !srvOld('scch') ? m.chuyen : (ma || ''); };
+const maSuaChua = (ma) => { const m = ma && S.V.byMa[ma]; return m && m.chuyen && S.V.chByMa[m.chuyen] && !srvOld('scch') && !(laQuatGio(m) && !srvOld('dvmay')) ? m.chuyen : (ma || ''); };
 // Danh sách thiết bị dùng chung cho mọi loại việc (Ghi việc, Ghi sửa chữa, Việc lặp lại).
 // Ba nhóm: chuyền sản xuất · máy ngoài chuyền · máy của từng chuyền. Máy chủ nhận cả mã máy lẫn mã chuyền.
 // Chuyền để trên cùng vì việc sửa chữa thường ghi theo chuyền, nhưng máy nhánh vẫn chọn được.
@@ -9800,7 +9835,7 @@ function scCuaCh(ch) {
 function scRow(x, coMay) {
   const m = coMay && x.ma && (S.V.byMa[x.ma] || S.V.chByMa[x.ma]) ? { ma: x.ma, ten: tbTen(x.ma) } : null, dung = x.phutDung !== '' && x.phutDung !== undefined && x.phutDung !== null;
   return `<button class="scrow" data-act="cvView" data-id="${esc(x.id)}">
-    <div class="sch"><span class="mono scno">${esc(fmtD(scNgay(x)))}</span>${m ? `<span class="code">${esc(mh(m.ma))}</span>` : ''}${dung ? `<span class="sct">${IC.clock} ${esc(fmtNum(x.phutDung / 60, 1))} h</span>` : ''}${cvMo(x) ? cvPill(x) : ''}</div>
+    <div class="sch"><span class="mono scno">${esc(fmtD(scNgay(x)))}</span>${m ? `<span class="code">${esc(mh(m.ma))}</span>` : ''}${x.dvMay ? `<span class="pill p-nay">${esc(dvNhan(x.ma, x.dvMay))}</span>` : ''}${dung ? `<span class="sct">${IC.clock} ${esc(fmtNum(x.phutDung / 60, 1))} h</span>` : ''}${cvMo(x) ? cvPill(x) : ''}</div>
     <div class="nm">${svH(x.tieuDe, x.tieuDeDich)}</div>${m ? `<div class="sub">${esc(m.ten)}</div>` : ''}
     ${x.nguyenNhan ? `<div class="sub scl"><b>${esc(tv('scNN'))} ${esc(tz('scNN'))}</b>${svH(soDong(x.nguyenNhan), soDong(x.nguyenNhanDich))}</div>` : ''}
     ${x.ketQua ? `<div class="sub scl"><b>${esc(tv('scKQ'))} ${esc(tz('scKQ'))}</b>${svH(soDong(x.ketQua), soDong(x.ketQuaDich))}</div>` : ''}
@@ -9856,9 +9891,9 @@ VIEWS.may = {
           (x.cot || []).forEach(([k, v]) => { o2[k] = v; });
           return `<tr>${nhan.map((k, i) => `<td class="${i ? 'mono' : ''}"${i ? '' : ' style="font-weight:600"'}>${esc(o2[k] === undefined ? '' : o2[k])}</td>`).join('')}</tr>`;
         }).join('');
+        if (laQuatGio(m)) o += `<div class="btns" style="margin:12px 0 0"><button class="btn sm" data-act="quatGio" data-ch="${esc(m.chuyen || '')}">${IC.list} ${t('qgXemDS')} (${ct.length})</button></div>`;
         o += sec('tbChiTiet', ct.length) + `<div class="card"><div class="tblwrap"><table class="dt ctbang">
           <thead><tr>${nhan.map((k) => `<th>${esc(k)}</th>`).join('')}</tr></thead><tbody>${tr}</tbody></table></div></div>`;
-        if (can('may') && can('suatb')) o += `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="tachMay" data-ma="${esc(m.ma)}">${esc(tv('tachBtn'))}<span class="zi">${esc(tz('tachBtn'))}</span></button></div>`;
       }
       if (m.noiDung) o += sec('content') + `<div class="card pad"><p class="pre">${esc(m.noiDung)}</p></div>`;
       if (gcUrl()) o += `<div class="btns" style="margin-top:14px">${gcNut(gcMaCua(m))}</div>`;
@@ -10404,6 +10439,10 @@ VIEWS.chuyen = {
         : dsMayRows(a, today);
     }
     if (gcUrl()) o += `<div class="btns" style="margin:10px 0 4px">${gcNut(c.ma)}</div>`;
+    // Quạt gió của chuyền: bấm số lượng ra từng quạt
+    { const qg = (quatTheoChuyen().find((x) => x.ch === c.ma) || { ds: [] }).ds;
+      if (qg.length) o += `<button class="scstrip" data-act="quatGio" data-ch="${esc(c.ma)}">${IC.list}<span><b>${esc(tv('t_quatGio'))}</b> <span class="zi">${esc(tz('t_quatGio'))}</span><br>
+        <small><b class="mono">${qg.length}</b> ${esc(tv('qgN', { n: '' }).trim())} · ${esc(tv('qgXemDS'))}</small></span>${IC.chev}</button>`; }
     if (can('may')) o += `<div class="btns" style="margin:10px 0 4px"><button class="btn ghost sm" data-act="chThemMay" data-ma="${esc(c.ma)}">${IC.plus} ${t('chThemMay')}</button><button class="btn ghost sm" data-act="chSua" data-ma="${esc(c.ma)}">${IC.edit} ${t('chSua')}</button><button class="btn ghost sm" data-act="labelsOne" data-ma="${esc(c.ma)}">${IC.qr} ${t('printQR')}</button></div>`;
     const tls = tlCua(c.ma);
     o += sec('tlSec', tls.length) + gap('tl:' + c.ma, tls.length ? esc(tls.slice(0, 3).map((x) => x.ten).join(' · ')) : t('tlChuaCo'), tls.length, '', () => tlSection(c.ma));
@@ -10665,6 +10704,7 @@ VIEWS.list = {
     const nut = [];
     if (can('may') && can('suatb')) nut.push(`<button class="btn sm" data-act="newMay">${IC.plus} ${t('addMachine')}</button>`,
       `<button class="btn ghost sm" data-act="go" data-v="tbNhap">${IC.dl} ${t('tbNhapBtn')}</button>`);
+    if (activeMay().some(laQuatGio)) nut.push(`<button class="btn ghost sm" data-act="quatGio">${IC.list} ${t('t_quatGio')}</button>`);
     if (can('xuattb')) nut.push(`<button class="btn ghost sm" data-act="go" data-v="tbXuat">${IC.share} ${t(can('may') && can('suatb') ? 'tbXuatNhapBtn' : 'tbXuatBtn')}</button>`);
     if (can('may')) nut.push(`<button class="btn ghost sm" data-act="labels">${IC.qr} ${t('printQR')}</button>`);
     if (nut.length) o += `<div class="btns" style="margin-bottom:14px">${nut.join('')}</div>`;
@@ -10963,8 +11003,8 @@ function tbXuatNhom(nhom) {
 }
 VIEWS.tbXuat = {
   html() {
-    const dem = {}, gop = {};
-    activeMay().forEach((m) => { const k = khoiCua(m) + '|' + (m.nhom || ''); dem[k] = (dem[k] || 0) + 1; if ((m.chiTiet || []).length) gop[k] = (gop[k] || 0) + 1; });
+    const dem = {};
+    activeMay().forEach((m) => { const k = khoiCua(m) + '|' + (m.nhom || ''); dem[k] = (dem[k] || 0) + 1; });
     let o = `<div class="card pad"><p class="help" style="margin:0;font-size:13.5px">${t('tbXuatHelp')}</p>
       ${can('may') && can('suatb') ? `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="go" data-v="maLoai">${IC.qr} ${t('t_maLoai')}</button></div>` : ''}</div>`;
     KHOI_DS.forEach((kh) => {
@@ -10974,8 +11014,7 @@ VIEWS.tbXuat = {
         + gs.map((k) => { const g = k.slice(kh.length + 1);
           return `<div class="xuatrow"><span style="flex:1;min-width:0"><b>${esc(g || '—')}</b><br><small class="help">${dem[k]} thiết bị</small></span>
             <button class="btn ghost sm" data-act="tbXuat1" data-g="${esc(g)}">${IC.dl} ${t('tbXuatBtn')}</button>
-            ${can('may') && can('suatb') ? `<button class="btn ghost sm" data-act="tbNhapNhom" data-g="${esc(g)}">${IC.plus} ${t('tbNhapLai')}</button>` : ''}
-            ${can('may') && can('suatb') && gop[k] ? `<button class="btn ghost sm" data-act="tachNhom" data-g="${esc(g)}">${esc(tv('tachNhom', { n: gop[k] }))}<span class="zi">${esc(tz('tachNhom', { n: gop[k] }))}</span></button>` : ''}</div>`; }).join('')
+            ${can('may') && can('suatb') ? `<button class="btn ghost sm" data-act="tbNhapNhom" data-g="${esc(g)}">${IC.plus} ${t('tbNhapLai')}</button>` : ''}</div>`; }).join('')
         + '</div>';
     });
     return o;
@@ -11672,6 +11711,7 @@ function openDeep(final) {
   if (S.V.byMa[mm]) { S.deepMa = null; go('may', { ma: mm, xn: true }); }
   else if (S.V.chByMa[mm]) { S.deepMa = null; go('chuyen', { ma: mm }); }
   else if (S.V.ctByMa[dm]) { S.deepMa = null; go('dienNhap', { ma: dm }); }
+  else if (dvTheoMa(dm)) { S.deepMa = null; moQuat(dm); }
   else if (final) { S.deepMa = null; toast(t('qrUnknown') + '<br><span class="mono">' + esc(dm) + '</span>', true); }
 }
 function startApp() {
@@ -16610,7 +16650,7 @@ VIEWS.cvView = {
     let o = `<div class="card schead"><div class="dh1">${cvPill(x)}${uuTag(x)}<span class="mdtag md-KHONG">${esc(tv('lv_' + x.loai))}<i>${esc(tz('lv_' + x.loai))}</i></span>${x.cho ? `<span class="pill p-cho">${t('pending')}</span>` : ''}<span class="scno mono">${x.so ? '#' + x.so : ''}</span></div>
       <h1 class="cvh">${svH(x.tieuDe, x.tieuDeDich)}</h1>
       ${x.moTa ? `<div class="scmota">${svH(x.moTa, x.moTaDich)}</div>` : ''}
-      ${m ? `<button class="scmayl" data-act="may" data-ma="${esc(m.ma)}"><span><b>${esc(m.ten)}</b> <span class="code">${esc(mh(m.ma))}</span>${m.viTri ? `<span class="sub">${esc(m.viTri)}</span>` : ''}</span>${IC.chev}</button>`
+      ${m ? `<button class="scmayl" data-act="may" data-ma="${esc(m.ma)}"><span><b>${esc(m.ten)}${x.dvMay ? ' · ' + esc(x.dvMay) : ''}</b> <span class="code">${esc(mh(m.ma))}</span>${m.viTri ? `<span class="sub">${esc(m.viTri)}</span>` : ''}</span>${IC.chev}</button>`
         : x.ma && S.V.chByMa[x.ma] ? `<button class="scmayl" data-act="chuyen" data-ma="${esc(x.ma)}"><span><b>${esc(tv('chuyenNgan'))} ${esc(mh(x.ma))}</b> <span class="code">${esc(x.ma)}</span><span class="sub">${esc(S.V.chByMa[x.ma].tenZh || S.V.chByMa[x.ma].ten || '')}</span></span>${IC.chev}</button>` : ''}
       ${x.anhTao.length ? anhGridHtml(x.anhTao, false, '') : ''}
       <div class="scgrid">
@@ -16762,7 +16802,7 @@ VIEWS.scGhi = {
     const ta = (id, k, rows, ph) => `<label class="fld"><span>${t(k)}</span><textarea class="inp" id="${id}" rows="${rows}" maxlength="1000"${ph ? ` placeholder="${esc(tp(ph))}"` : ''}>${esc(p[id] || '')}</textarea></label>`;
     return `<form id="scF" class="card pad" autocomplete="off">
       <div class="help" style="margin-bottom:10px">${t('scGhiHelp')}</div>
-      <div class="row2f"><div class="fld"><span>${t('thMay')}</span>${tbChon('scMa', p.scMa, 'scChonMay', true)}${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}</div>
+      <div class="row2f"><div class="fld"><span>${t('thMay')}</span>${tbChon('scMa', p.scMa, 'scChonMay', true)}${srvOld('scch') ? '' : `<span class="help">${t('scTbHelp')}</span>`}<div id="scDvBox">${dvChonHtml('scDv', p.scMa, p.dvMay)}</div></div>
         <label class="fld"><span>${t('scNgay')}</span><input class="inp" id="scNgay" type="date" max="${esc(TODAY())}" value="${esc(p.ngay)}"></label></div>
       ${ta('scMT', 'scMT', 2, '')}
       <div id="scGoiY">${gyHtml(scGoiY(p.scMa, p.scMT), 'sc', p.scMa)}</div>
@@ -16786,8 +16826,10 @@ VIEWS.scGhi = {
     f.addEventListener('input', (e) => { const el = e.target; if (el.id === 'scNgay') p.ngay = el.value; else if (el.id) p[el.id] = el.value; if (el.id === 'scMT') { clearTimeout(gyT); gyT = setTimeout(gyVe, 300); } });
     lkBindRows(f);
     f.addEventListener('change', (e) => {
-      if (e.target.id !== 'scMa') return;
-      p.scMa = e.target.value; p.ctF.ma = p.scMa;
+      if (e.target.id !== 'scMa' && e.target.id !== 'scDv') return;
+      if (e.target.id === 'scDv') { p.dvMay = e.target.value; return; }
+      p.scMa = e.target.value; p.ctF.ma = p.scMa; p.dvMay = '';
+      const db = $('#scDvBox'); if (db) db.innerHTML = dvChonHtml('scDv', p.scMa, '');
       // Đổi sang máy khác thì danh sách linh kiện của máy khác đi, bỏ các dòng đã chọn theo máy cũ
       p.ctF.lk = p.ctF.lk.filter((r) => r.id === '__khac');
       lkPaint(); gyVe();
@@ -16803,6 +16845,7 @@ VIEWS.scGhi = {
       if (!v('scNN')) thieu.push(['Nguyên nhân', '原因']);
       if (!v('scKQ')) thieu.push(['Kết quả / cách xử lý', '处理结果']);
       if (!p.sel.lam) thieu.push(['Người làm', '执行人']);
+      if ($('#scDv') && !$('#scDv').value) thieu.push(['Quạt nào', '哪台风机']);
       if (thieu.length) return err(thieuHtml(thieu));
       const ngay = $('#scNgay').value || TODAY();
       if (!validD(ngay) || ngay > TODAY()) return err(t('NGAY_SAI'));
@@ -16811,6 +16854,7 @@ VIEWS.scGhi = {
       const lr = lkCollect(S.V.byMa[$('#scMa').value]);
       if (lr.err) return err(lr.err);
       const pl = { id: p.id, moTa: v('scMT'), nguyenNhan: v('scNN'), ketQua: v('scKQ'), ma: $('#scMa').value, ngay, uidLam: p.sel.lam, uidPhu: p.sel.phu, gioDung: gio === null ? '' : gio, linhKien: lr.v };
+      if ($('#scDv')) pl.dvMay = $('#scDv').value;
       $('#scOk').disabled = true;
       const r = await send('saveRepair', pl);
       if (r.err) { $('#scOk').disabled = false; return err(cvLoi(r.err)); }
@@ -18529,7 +18573,11 @@ VIEWS.ngtGhi = {
       p.loai = p.ma && S.V.byMa[p.ma] && !laQuatGio(S.V.byMa[p.ma]) ? 'dc' : (x && !p.ma ? 'dc' : 'quat');
       p._maCu = p.ma;
       // Mở từ màn một quạt (biên bản mới): điền sẵn luôn
-      if (!x && p.ma && S.V.byMa[p.ma] && laQuatGio(S.V.byMa[p.ma])) ngtApMay(p, S.V.byMa[p.ma]);
+      p.dvMay = x ? x.dvMay || '' : p.dvMay || '';
+      if (!x && p.ma && S.V.byMa[p.ma] && laQuatGio(S.V.byMa[p.ma])) {
+        const mq = S.V.byMa[p.ma], qq = quatCua(mq).find((u) => u.ten === p.dvMay) || (quatCua(mq).length === 1 ? quatCua(mq)[0] : null);
+        if (qq) ngtApMay(p, mq, qq); else { p.tenTB = mq.ten; }
+      }
     }
     const m = NGT_MAU[p.seg], d = ngtPhan(p);
     let o = `<div class="card pad" style="margin-bottom:12px">
@@ -18541,11 +18589,11 @@ VIEWS.ngtGhi = {
       <div class="card pad" style="margin-bottom:12px">
         <div class="fld" style="margin-bottom:8px"><span>${t('ngtLoai')}</span><div class="seg" style="margin:4px 0 0">
           ${[['quat', 'ngtLoaiQuat'], ['dc', 'ngtLoaiDC']].map(([k, lb]) => `<button type="button" class="${(p.loai || 'quat') === k ? 'on' : ''}" data-act="ngtLoai" data-v="${k}">${tv(lb)}<small>${tz(lb)}</small></button>`).join('')}</div></div>
-        ${(p.loai || 'quat') === 'quat' ? `<div class="btns" style="margin:0 0 6px"><button type="button" class="btn sm" data-act="ngtChonQuat">${IC.list} ${t('ngtChonQuat')} (${ngtQuatDS().length})</button></div>
+        ${(p.loai || 'quat') === 'quat' ? `<div class="btns" style="margin:0 0 6px"><button type="button" class="btn sm" data-act="ngtChonQuat">${IC.list} ${t('ngtChonQuat')} (${ngtQuatSoLuong()})</button></div>
           <div class="help" style="margin-bottom:10px">${t('ngtQuatHelp')}</div>` : `<div class="help" style="margin-bottom:10px">${t('ngtDCHelp')}</div>`}
         <div class="row2f">
         <label class="fld"><span>${t('ngtNgay')}</span><input class="inp" id="ngtNgay" type="date" value="${esc(p.ngayNT)}"></label>
-        <div class="fld"><span>${t('ngtMay')}</span>${tbChon('ngtMa', p.ma, 'ngtKhongMay', false)}</div></div>
+        <div class="fld"><span>${t('ngtMay')}</span>${tbChon('ngtMa', p.ma, 'ngtKhongMay', false)}${dvChonHtml('ngtDv', p.ma, p.dvMay)}</div></div>
         <div class="row2f"><label class="fld"><span>${t('ngtTenTB')}</span><input class="inp" id="ngtTen" maxlength="150" value="${esc(p.tenTB)}"></label>
         <label class="fld"><span>${t('ngtDonVi')}</span><input class="inp" id="ngtDV" maxlength="150" value="${esc(p.donVi)}"></label></div></div>`;
 
@@ -18610,7 +18658,8 @@ VIEWS.ngtGhi = {
       if (p.ma !== p._maCu) {
         p._maCu = p.ma;
         const mm = S.V.byMa[p.ma];
-        if (mm && laQuatGio(mm)) { ngtApMay(p, mm); setTimeout(render, 0); }
+        p.dvMay = '';
+        if (mm && laQuatGio(mm)) { if ((mm.chiTiet || []).length) { p.tenTB = mm.ten; } else ngtApMay(p, mm); setTimeout(render, 0); }
       }
     };
     S.ngtSync = sync;
@@ -18623,7 +18672,7 @@ VIEWS.ngtGhi = {
       b.disabled = true;
       try {
         const d = await api('saveAccept', { id: p.id || '', ngayNT: p.ngayNT, ma: p.ma, tenTB: p.tenTB.trim(),
-          donVi: p.donVi.trim(), cvId: p.cvId || '', truoc: p.truoc, sau: p.sau });
+          donVi: p.donVi.trim(), cvId: p.cvId || '', truoc: p.truoc, sau: p.sau, dvMay: p.dvMay || '' });
         ngtApDung(d); p.id = d.nghiemThu.id; p.soBB = d.nghiemThu.soBB;
         toast(t('scDaLuu')); render();
       } catch (er) { b.disabled = false; fe.innerHTML = er.code === 'MANG' ? t('needNet') : errMsg(er); fe.hidden = false; }
@@ -22616,141 +22665,241 @@ Object.assign(ACT, {
   }
 });
 
-// ===================== Tách bản ghi gộp thành từng máy (v2.50) =====================
-SRV_PHAN.push(['tach', '2.50.0', 'srvMissTach']);
+// ===================== Quạt gió theo chuyền (v2.52) =====================
+// Quạt gió không bảo dưỡng định kỳ, mỗi chuyền một bản ghi gộp (chi tiết từng quạt nằm trong bản ghi).
+// Màn "Quạt gió theo chuyền": mỗi chuyền bao nhiêu quạt, bấm số lượng ra từng quạt; bấm một quạt ra thông tin
+// và lịch sử sửa chữa của đúng quạt đó. Ghi sửa chữa / nghiệm thu chọn được quạt nào → lưu vào ô dvMay.
+SRV_PHAN.push(['dvmay', '2.52.0', 'srvMissDvMay'], ['madv', '2.53.0', 'srvMissMaDV']);
 Object.assign(TX, {
-  tachBtn: ['Tách thành từng máy', '拆分为单台设备'], tachNhom: ['Tách từng máy ({n})', '拆分为单台（{n}）'],
-  tachTD: ['Tách thành từng máy, mỗi máy một mã', '拆分为单台设备，每台一个编号'],
-  tachHelp: ['Mỗi đơn vị trong bản ghi gộp (vd từng quạt của một chuyền) thành một máy riêng: tên riêng, thông số riêng, mã riêng = M + mã loại + số thứ tự. Đơn vị đầu tiên giữ luôn bản ghi cũ nên lịch sử, tài liệu không mất.',
-    '合并记录中的每个单元（例如一条产线的每台风机）拆分为单独设备：独立名称、参数、编号 = M + 类别代码 + 序号。第一个单元沿用原记录，历史和资料不丢失。'],
-  tachMaLoai: ['Mã loại 2 số cho {g}', '{g} 的2位类别代码'], tachMaDung: ['Mã loại {c} đã dùng cho {g} — chọn số khác', '类别代码{c}已用于{g}——请换一个'], tachXem: ['{a} bản ghi → {b} máy', '{a}条记录 → {b}台设备'],
-  tachOk: ['Tách {a} bản ghi thành {b} máy', '拆分{a}条记录为{b}台设备'], tachXong: ['Đã tách {a} bản ghi thành {b} máy, mỗi máy một mã riêng', '已将{a}条记录拆分为{b}台设备，每台独立编号'],
-  srvMissTach: ['Máy chủ chưa tách được bản ghi gộp. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不支持拆分合并记录。请更新 Code.gs 并重新部署。']
-});
-const tachTenDV = (d, i) => { const kv = (d.cot || []).find(([k]) => /^(tên|ten|name|名称)$/i.test(String(k || '').trim())); return (kv && String(kv[1] || '').trim()) || 'Số ' + (i + 1); };
-// Mã loại đang dùng cho một nhóm: đã đặt trong app, hoặc suy ra từ mã đã gõ (cả loại cùng một mã)
-function tachMaLoaiCua(g) {
-  const luu = (S.base && S.base.caiDat && S.base.caiDat.maLoai) || {};
-  if (/^\d{2}$/.test(luu[g] || '')) return luu[g];
-  const cs = new Set();
-  (S.V.may || []).forEach((m) => { if (m.nhom === g) { const k = ML_RE.exec(String(m.maHT || '').toUpperCase()); if (k) cs.add(k[1]); } });
-  if (cs.size === 1) return [...cs][0];
-  const dung = new Set(Object.values(luu));
-  (S.V.may || []).forEach((m) => { const k = ML_RE.exec(String(m.maHT || '').toUpperCase()); if (k && m.nhom !== g) dung.add(k[1]); });
-  for (let i = 1; i < 100; i++) { const v = String(i).padStart(2, '0'); if (!dung.has(v)) return v; }
-  return '';
-}
-// Xem trước: tên và mã của từng máy sẽ tạo, đúng thứ tự máy chủ đánh (theo chuyền, rồi đơn vị)
-// Mã loại này đã thuộc loại khác chưa (đặt trong app, hoặc máy loại khác đang mang mã M + code…)
-function tachMaKhac(g, code) {
-  const luu = (S.base && S.base.caiDat && S.base.caiDat.maLoai) || {};
-  const k1 = Object.keys(luu).find((k) => k !== g && luu[k] === code);
-  if (k1) return k1;
-  const m = (S.V.may || []).find((x) => x.nhom !== g && (ML_RE.exec(String(x.maHT || '').toUpperCase()) || [])[1] === code);
-  return m ? m.nhom || m.ten : '';
-}
-function tachKeHoach(dsMa, code) {
-  const goc = dsMa.map((ma) => S.V.byMa[ma]).filter((m) => m && (m.chiTiet || []).length)
-    .sort((a, b) => (a.chuyen || 'ZZZ').localeCompare(b.chuyen || 'ZZZ') || a.ten.localeCompare(b.ten));
-  let n = 0;
-  if (/^\d{2}$/.test(code || '')) (S.V.may || []).forEach((m) => { if (goc.includes(m)) return; const k = ML_RE.exec(String(m.maHT || '').toUpperCase()); if (k && k[1] === code) n = Math.max(n, +k[2]); });
-  const out = [];
-  goc.forEach((m) => {
-    const nen = m.ten.replace(/\s*\(\s*\d+[^)]*\)\s*$/, '');
-    m.chiTiet.forEach((d, i) => { n++; out.push({ ten: nen + ' · ' + tachTenDV(d, i), maHT: /^\d{2}$/.test(code || '') ? 'M' + code + String(n).padStart(3, '0') : '', giu: i === 0 }); });
-  });
-  return { goc, out };
-}
-function tachMo(dsMa) {
-  const g = (S.V.byMa[dsMa[0]] || {}).nhom || '';
-  S.f.tach = { ds: dsMa, g, code: tachMaLoaiCua(g) };
-  const ve = () => {
-    const f = S.f.tach, kh = tachKeHoach(f.ds, f.code), sai = !/^\d{2}$/.test(f.code || '') || f.code === '00';
-    const khac = sai ? '' : tachMaKhac(f.g, f.code);
-    if (khac) return `<div class="err">${esc(tv('tachMaDung', { c: f.code, g: khac }))} <span class="zi">${esc(tz('tachMaDung', { c: f.code, g: khac }))}</span></div>`;
-    return `<div class="lshd">${esc(tv('tachXem', { a: kh.goc.length, b: kh.out.length }))}<span class="zi">${esc(tz('tachXem', { a: kh.goc.length, b: kh.out.length }))}</span></div>
-      ${sai ? `<div class="err">${t('maLoaiSai')}</div>` : `<div class="list">${kh.out.slice(0, 80).map((x) => `<div class="row"><div class="main"><div class="nm">${esc(x.ten)}</div>
-        <div class="sub"><b class="mono">${esc(x.maHT)}</b>${x.giu ? ` · <span class="muted">${esc(tv('lsGiuBanGhi'))}</span>` : ''}</div></div></div>`).join('')}
-        ${kh.out.length > 80 ? `<div class="pad help">… ${kh.out.length - 80}</div>` : ''}</div>`}`;
-  };
-  openSheet(`<div class="grab"></div><h3>${tv('tachTD')}<span class="zi">${tz('tachTD')}</span></h3>
-    ${srvOld('tach') ? srvWarn('tach') : ''}
-    <p class="help" style="margin:4px 0 10px">${t('tachHelp')}</p>
-    <label class="fld"><span>${esc(tv('tachMaLoai', { g }))}<span class="zi">${esc(tz('tachMaLoai', { g }))}</span></span>
-      <input class="inp mono mlinp" id="tachCode" inputmode="numeric" maxlength="2" value="${esc(S.f.tach.code)}" style="width:90px"></label>
-    <div id="tachXem" style="margin-top:8px">${ve()}</div>
-    <div class="err" id="tachErr" hidden></div>
-    <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
-      <button class="btn" data-act="tachOk"${srvOld('tach') ? ' disabled' : ''}>${IC.check} ${esc(tv('tachBtn'))}</button></div>`, (bg) => {
-    $('#tachCode', bg).addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); S.f.tach.code = e.target.value; $('#tachXem').innerHTML = ve(); });
-  });
-}
-Object.assign(ACT, {
-  tachMay: (el) => tachMo([el.dataset.ma]),
-  tachNhom: (el) => tachMo(activeMay().filter((m) => (m.nhom || '') === el.dataset.g && (m.chiTiet || []).length).map((m) => m.ma)),
-  tachOk: async (el) => {
-    const f = S.f.tach; if (!f) return;
-    const fe = $('#tachErr');
-    if (!/^\d{2}$/.test(f.code || '') || f.code === '00') { fe.innerHTML = t('maLoaiSai'); fe.hidden = false; return; }
-    if (tachMaKhac(f.g, f.code)) return;
-    el.disabled = true;
-    try {
-      const d = await api('splitDetail', { ds: f.ds, maLoai: f.code });
-      mergeResult(d); closeSheet(); toast(t('tachXong', { a: d.banGhi, b: d.may }));
-      if (topV().v === 'may' && !S.V.byMa[topV().p.ma]) back(); else render();
-    } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
-  }
-});
-TX.lsGiuBanGhi = ['giữ bản ghi cũ (lịch sử, tài liệu)', '沿用原记录（历史、资料）'];
-
-// ===================== Nghiệm thu: chọn quạt gió → điền sẵn thông số (v2.51) =====================
-Object.assign(TX, {
+  t_quatGio: ['Quạt gió theo chuyền', '各产线风机'], qgSub: ['{n} quạt · {c} chuyền', '{n}台风机 · {c}条产线'],
+  qgN: ['{n} quạt', '{n}台'], qgKw: ['tổng {k} kW', '合计 {k} kW'], qgSuaN: ['sửa {n} lần', '维修{n}次'],
+  qgHelp: ['Quạt gió không bảo dưỡng định kỳ, chỉ ghi sổ. Bấm số quạt của một chuyền để xem từng quạt; bấm một quạt để xem thông số và lịch sử sửa chữa của đúng quạt đó.',
+    '风机不做定期保养，仅登记。点击某产线的风机数量查看每台风机；点击某台风机查看参数和该台的维修记录。'],
+  qgChuaGan: ['Chưa gắn chuyền', '未分配产线'], qgTim: ['Tìm: mã quạt, chuyền, số quạt, model', '搜索：风机编号、产线、序号、型号'],
+  qgDanhMa: ['Đánh mã cho từng quạt ({n} quạt chưa có mã)', '为每台风机编号（{n}台未编号）'], qgDanhMaTD: ['Đánh mã cho từng quạt', '为每台风机编号'],
+  qgDanhMaHelp: ['Mỗi quạt một mã riêng = M + mã loại 2 số + số thứ tự (vd M01003), vẫn gộp theo chuyền như cũ. Quạt đã có mã giữ nguyên; quạt thêm sau tự lấy số kế tiếp. Gõ hoặc quét mã quạt là mở đúng quạt đó.',
+    '每台风机一个独立编号 = M + 2位类别代码 + 序号（例 M01003），仍按产线合并。已有编号的保持不变；之后新增的自动取下一个序号。输入或扫描风机编号即可打开该风机。'],
+  qgDanhMaOk: ['Đánh mã', '编号'], qgDanhMaXong: ['Đã đánh mã {n} quạt', '已为{n}台风机编号'], qgMaLoai: ['Mã loại 2 số', '2位类别代码'],
+  qgMaDung: ['Mã loại {c} đã dùng cho {g} — chọn số khác', '类别代码{c}已用于{g}——请换一个'], srvMissMaDV: ['Máy chủ chưa đánh mã từng quạt được. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不支持为每台风机编号。请更新 Code.gs 并重新部署。'],
+  qgKhong: ['Chưa có quạt gió nào trong danh sách thiết bị', '设备列表中暂无风机'],
+  qgLS: ['Lịch sử sửa chữa của quạt này', '该风机维修记录'], qgChuaSua: ['Chưa sửa lần nào', '暂无维修记录'],
+  qgGhiSC: ['Ghi sửa chữa quạt này', '记录该风机维修'], qgNghiemThu: ['Lập biên bản nghiệm thu', '新建验收单'],
+  qgQuatNao: ['Quạt nào', '哪台风机'], qgChonQuat: ['— Chọn quạt đem sửa —', '— 选择送修风机 —'], qgXemDS: ['Xem từng quạt', '查看每台风机'],
+  srvMissDvMay: ['Máy chủ chưa lưu được quạt nào đem sửa. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不能保存送修的风机。请更新 Code.gs 并重新部署。'],
   ngtLoai: ['Thiết bị đem sửa', '送修设备'], ngtLoaiQuat: ['Quạt gió · chọn trong danh sách', '风机 · 从列表选择'],
   ngtLoaiDC: ['Động cơ / khác · tự ghi', '电机 / 其他 · 手动填写'], ngtChonQuat: ['Chọn quạt gió', '选择风机'],
-  ngtQuatHelp: ['Chọn quạt nào thì tên, mã, vị trí, công suất, dòng định mức, model được điền sẵn vào biên bản (vẫn sửa lại được).', '选择风机后，名称、编号、位置、功率、额定电流、型号会自动填入（仍可修改）。'],
+  ngtQuatHelp: ['Chọn quạt nào thì tên, mã, vị trí, công suất, dòng định mức, model được điền sẵn vào biên bản (vẫn sửa lại được), và biên bản được ghi vào lịch sử của đúng quạt đó.', '选择风机后，名称、编号、位置、功率、额定电流、型号会自动填入（仍可修改），验收单记入该台风机的记录。'],
   ngtDCHelp: ['Ghi tay tên, công suất, điện áp, dòng định mức của động cơ ở phần Thông tin chung bên dưới.', '请在下方“基本信息”中手动填写电机名称、功率、电压、额定电流。'],
-  ngtQuatTim: ['Tìm quạt: mã, chuyền, số quạt, model', '搜索风机：编号、产线、序号、型号'], ngtQuatKhong: ['Chưa có quạt gió nào trong danh sách thiết bị', '设备列表中暂无风机'],
+  ngtQuatTim: ['Tìm quạt: chuyền, số quạt, model', '搜索风机：产线、序号、型号'], ngtQuatKhong: ['Chưa có quạt gió nào trong danh sách thiết bị', '设备列表中暂无风机'],
   ngtDaDien: ['Đã điền thông số của {m}', '已填入 {m} 的参数']
 });
 const laQuatGio = (m) => /qu[aạ]t\s*gi[oó]|风机/i.test(String((m && m.nhom) || ''));
-// Các quạt đang dùng, theo chuyền rồi theo mã
-const ngtQuatDS = () => activeMay().filter(laQuatGio).sort((a, b) => (a.chuyen || 'ZZZ').localeCompare(b.chuyen || 'ZZZ') || mh(a.ma).localeCompare(mh(b.ma), 'vi', { numeric: true }));
-// Lấy một thông số theo tên cột (bỏ đơn vị kW / A / V ở cuối giá trị)
-function tsLay(m, re, so) {
-  const kv = (m.thongSo || []).find(([k]) => re.test(String(k || '')));
-  const v = kv ? String(kv[1] === undefined ? '' : kv[1]).trim() : '';
-  return so ? v.replace(/\s*(kw|a|v)\s*$/i, '').trim() : v;   // ô số: bỏ đơn vị ở cuối; model thì giữ nguyên (No6.3A)
-}
-// Điền thông tin máy vào cả hai mặt biên bản (trước / sau sửa)
-function ngtApMay(p, m) {
-  if (!m) return;
-  const mq = tsLay(m, /model qu[aạ]t|风机型号/i), mdc = tsLay(m, /model đ[oộ]ng c[oơ]|电机型号/i);
-  const tenDu = m.ten + (mq || mdc ? ' (' + [mq, mdc ? 'ĐC ' + mdc : ''].filter(Boolean).join(', ') + ')' : '');
-  p.ma = m.ma; p.tenTB = m.ten;
-  ['truoc', 'sau'].forEach((seg) => {
-    const c = (p[seg].chung = p[seg].chung || {});
-    c.tenTB = tenDu; c.maTB = mh(m.ma);
+const KHOA_TEN_DV = /^(tên|ten|name|名称)$/i, KHOA_MA_DV = 'Mã máy';
+// Các quạt của một bản ghi: bản ghi gộp → từng dòng chi tiết (mỗi quạt một mã riêng ở cột "Mã máy");
+// bản ghi một quạt → chính nó
+function quatCua(m) {
+  const ct = m.chiTiet || [];
+  if (!ct.length) return [{ m, ten: '', i: 0, ts: m.thongSo || [], maDV: '' }];
+  return ct.map((d, i) => {
+    const cot = d.cot || [], lay = (re) => { const kv = cot.find(([k]) => re.test(String(k || '').trim())); return kv ? String(kv[1] || '').trim() : ''; };
+    return { m, ten: lay(KHOA_TEN_DV) || 'Số ' + (i + 1), i, maDV: lay(/^mã máy$/i).toUpperCase(),
+      ts: cot.filter(([k]) => !KHOA_TEN_DV.test(String(k || '').trim()) && String(k || '').trim() !== KHOA_MA_DV) };
   });
+}
+// Tìm quạt theo mã riêng (gõ, quét QR): trả về { m, q } hoặc null
+function dvTheoMa(code) {
+  const k = String(code || '').trim().toUpperCase();
+  if (!k || !S.V) return null;
+  for (const m of S.V.may || []) {
+    if (!(m.chiTiet || []).length) continue;
+    const q = quatCua(m).find((x) => x.maDV === k);
+    if (q) return { m, q };
+  }
+  return null;
+}
+// Mở thẳng một quạt: màn quạt gió theo chuyền, rồi tờ thông tin của quạt
+function moQuat(code) {
+  const r = dvTheoMa(code); if (!r) return false;
+  go('quatGio', { ch: r.m.chuyen || '' });
+  setTimeout(() => qgXemMo(r.m.ma, r.q.i), 50);
+  return true;
+}
+const tenQuat = (q) => (q.ten ? q.m.ten.replace(/\s*\(\s*\d+[^)]*\)\s*$/, '') + ' · ' + q.ten : q.m.ten);
+// Gom theo chuyền (VKY01, VKY02…, chưa gắn chuyền để cuối)
+function quatTheoChuyen() {
+  const by = {};
+  activeMay().filter(laQuatGio).forEach((m) => { const k = m.chuyen || ''; (by[k] = by[k] || []).push(...quatCua(m)); });
+  return Object.keys(by).sort((a, b) => (a || 'ZZZ').localeCompare(b || 'ZZZ')).map((ch) => ({ ch, ds: by[ch] }));
+}
+// Lấy một thông số theo tên cột; ô số thì bỏ đơn vị ở cuối, model giữ nguyên (No6.3A)
+function tsLay(ts, re, so) {
+  const kv = (Array.isArray(ts) ? ts : (ts && ts.thongSo) || []).find(([k]) => re.test(String(k || '')));
+  const v = kv ? String(kv[1] === undefined ? '' : kv[1]).trim() : '';
+  return so ? v.replace(/\s*(kw|a|v)\s*$/i, '').trim() : v;
+}
+const RE_CS = /c[oô]ng su[aấ]t|功率|\(kw\)/i, RE_DONG = /^d[oò]ng|电流|\(a\)/i, RE_AP = /đi[eệ]n [aá]p|电压|\(v\)/i;
+const RE_MQ = /model qu[aạ]t|风机型号/i, RE_MDC = /model đ[oộ]ng c[oơ]|电机型号/i;
+// Lịch sử sửa chữa của một quạt: bản ghi sửa chữa + biên bản nghiệm thu ghi đúng quạt đó
+const scCuaQuat = (q) => (S.V.cvAll || []).filter((x) => x.loai === 'SUA' && x.trangThai !== 'HUY' && x.ma === q.m.ma && (x.dvMay || '') === q.ten)
+  .sort((a, b) => (scNgay(b) > scNgay(a) ? 1 : -1));
+const ntCuaQuat = (q) => ((S.base && S.base.nghiemThu) || []).filter((x) => !x.xoa && x.ma === q.m.ma && (x.dvMay || '') === q.ten);
+VIEWS.quatGio = {
+  html(p) {
+    const g = quatTheoChuyen(), tong = g.reduce((a, x) => a + x.ds.length, 0);
+    if (!g.length) return `<div class="card empty">${t('qgKhong')}</div>`;
+    S.f.qgMo = S.f.qgMo || {};
+    if (p.ch !== undefined && S.f.qgMo[p.ch] === undefined) S.f.qgMo[p.ch] = true;
+    const q = norm(p.q || '');
+    let o = `<div class="card pad"><b>${esc(tv('qgSub', { n: tong, c: g.filter((x) => x.ch).length }))}</b> <span class="zi">${esc(tz('qgSub', { n: tong, c: g.filter((x) => x.ch).length }))}</span>
+      <p class="help" style="margin:6px 0 0">${t('qgHelp')}</p>
+      <input class="inp" id="qgTim" type="search" style="margin-top:10px" placeholder="${esc(tp('qgTim'))}" value="${esc(p.q || '')}" autocomplete="off">
+      ${qgThieuMaHtml()}</div>`;
+    g.forEach(({ ch, ds }) => {
+      const loc = q ? ds.filter((x) => norm([ch, x.maDV, x.ten, x.m.ten, x.ts.map((k) => k[1]).join(' ')].join(' ')).includes(q)) : ds;
+      if (q && !loc.length) return;
+      const kw = ds.reduce((a, x) => a + (parseFloat(tsLay(x.ts, RE_CS, 1).replace(',', '.')) || 0), 0);
+      const sua = ds.reduce((a, x) => a + scCuaQuat(x).length + ntCuaQuat(x).length, 0), c = S.V.chByMa[ch], mo = q || S.f.qgMo[ch];
+      o += `<div class="card" style="margin-top:10px"><button class="row qgrow" data-act="qgMo" data-ch="${esc(ch)}" aria-expanded="${mo ? 'true' : 'false'}">
+        <div class="main"><div class="nm">${ch ? esc(tv('chuyenNgan') + ' ' + mh(ch)) : t('qgChuaGan')}</div>
+          <div class="sub">${c && c.tenZh ? esc(c.tenZh) + ' · ' : ''}${kw ? esc(tv('qgKw', { k: fmtNum(kw, 1) })) : ''}${sua ? ' · ' + esc(tv('qgSuaN', { n: sua })) : ''}</div></div>
+        <div class="end"><span class="qgso"><b>${ds.length}</b> ${esc(tv('qgN', { n: '' }).trim())}<small>${esc(tz('qgN', { n: '' }).trim())}</small></span>${IC.chev}</div></button>
+        ${mo ? `<div class="list">${loc.map((x) => { const n = scCuaQuat(x).length + ntCuaQuat(x).length, cs = tsLay(x.ts, RE_CS, 1), mdc = tsLay(x.ts, RE_MDC), mq = tsLay(x.ts, RE_MQ);
+          return `<button class="row" data-act="qgXem" data-ma="${esc(x.m.ma)}" data-i="${x.i}"><div class="main"><div class="nm">${x.maDV ? `<span class="code">${esc(x.maDV)}</span> ` : ''}${esc(x.ten || x.m.ten)}</div>
+            <div class="sub">${[cs ? cs + ' kW' : '', mq, mdc ? 'ĐC ' + mdc : ''].filter(Boolean).map(esc).join(' · ') || '—'}</div></div>
+            <div class="end">${n ? `<span class="pill p-nay">${esc(tv('qgSuaN', { n }))}</span>` : ''}${IC.chev}</div></button>`; }).join('')}</div>` : ''}</div>`;
+    });
+    return o;
+  },
+  after(p) {
+    const i = $('#qgTim');
+    if (i) i.addEventListener('input', () => { p.q = i.value; const pos = i.selectionStart; render(); const j = $('#qgTim'); if (j) { j.focus(); try { j.setSelectionRange(pos, pos); } catch (e) { /* bỏ qua */ } } });
+  }
+};
+Object.assign(TITLES, { quatGio: 't_quatGio' });
+// Các loại có quạt chưa có mã riêng → nút đánh mã (mỗi loại một nút)
+// Nhãn quạt trong lịch sử: "M01003 · Quạt số 3"
+function dvNhan(ma, ten) { const m = S.V.byMa[ma], q = m && quatCua(m).find((x) => x.ten === ten); return q && q.maDV ? q.maDV + ' · ' + ten : ten; }
+function qgThieuMaHtml() {
+  if (!(can('may') && can('suatb'))) return '';
+  const by = {};
+  activeMay().filter((m) => laQuatGio(m) && (m.chiTiet || []).length).forEach((m) => { quatCua(m).forEach((q) => { if (!q.maDV) by[m.nhom] = (by[m.nhom] || 0) + 1; }); });
+  return Object.keys(by).map((g) => `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgDanhMa" data-g="${esc(g)}">${IC.qr} ${esc(tv('qgDanhMa', { n: by[g] }))}<span class="zi">${esc(tz('qgDanhMa', { n: by[g] }))}</span></button></div>`).join('');
+}
+// Mã loại gợi ý: đã đặt / suy ra từ mã quạt đã có / số trống đầu tiên
+function qgMaLoaiGoiY(g) {
+  const luu = (S.base && S.base.caiDat && S.base.caiDat.maLoai) || {};
+  if (/^\d{2}$/.test(luu[g] || '')) return luu[g];
+  const cs = new Set(), dung = new Set(Object.keys(luu).filter((k) => k !== g).map((k) => luu[k]));
+  (S.V.may || []).forEach((m) => {
+    const k = ML_RE.exec(String(m.maHT || '').toUpperCase()); if (k && m.nhom !== g) dung.add(k[1]);
+    quatCua(m).forEach((q) => { const k2 = ML_RE.exec(q.maDV); if (k2) (m.nhom === g ? cs : dung).add(k2[1]); });
+  });
+  if (cs.size === 1) return [...cs][0];
+  for (let i = 1; i < 100; i++) { const v = String(i).padStart(2, '0'); if (!dung.has(v)) return v; }
+  return '';
+}
+function qgMaKhac(g, code) {
+  const luu = (S.base && S.base.caiDat && S.base.caiDat.maLoai) || {};
+  const k1 = Object.keys(luu).find((k) => k !== g && luu[k] === code); if (k1) return k1;
+  const m = (S.V.may || []).find((x) => x.nhom !== g && ((ML_RE.exec(String(x.maHT || '').toUpperCase()) || [])[1] === code || quatCua(x).some((q) => (ML_RE.exec(q.maDV) || [])[1] === code)));
+  return m ? m.nhom || m.ten : '';
+}
+function qgDanhMaMo(g) {
+  S.f.qgDM = { g, code: qgMaLoaiGoiY(g) };
+  const ve = () => {
+    const f = S.f.qgDM, sai = !/^\d{2}$/.test(f.code || '') || f.code === '00';
+    if (sai) return `<div class="err">${t('maLoaiSai')}</div>`;
+    const khac = qgMaKhac(f.g, f.code);
+    if (khac) return `<div class="err">${esc(tv('qgMaDung', { c: f.code, g: khac }))}</div>`;
+    // Xem trước: theo chuyền rồi thứ tự quạt; quạt đã có mã đúng loại giữ nguyên
+    let n = 0;
+    (S.V.may || []).forEach((m) => { const k = ML_RE.exec(String(m.maHT || '').toUpperCase()); if (k && k[1] === f.code) n = Math.max(n, +k[2]); quatCua(m).forEach((q) => { const k2 = ML_RE.exec(q.maDV); if (k2 && k2[1] === f.code) n = Math.max(n, +k2[2]); }); });
+    const out = [];
+    quatTheoChuyen().forEach(({ ch, ds }) => ds.filter((q) => q.m.nhom === f.g && (q.m.chiTiet || []).length).forEach((q) => {
+      const k = ML_RE.exec(q.maDV);
+      out.push({ ch, ten: q.ten, ma: k && k[1] === f.code ? q.maDV : 'M' + f.code + String(++n).padStart(3, '0'), giu: !!(k && k[1] === f.code) });
+    }));
+    return `<div class="lshd">${esc(tv('qgSub', { n: out.length, c: new Set(out.map((x) => x.ch)).size }))}</div>
+      <div class="list">${out.slice(0, 120).map((x) => `<div class="row"><div class="main"><div class="nm"><span class="code">${esc(x.ma)}</span> ${esc(x.ten)}</div>
+        <div class="sub">${esc(x.ch ? tv('chuyenNgan') + ' ' + x.ch : tv('qgChuaGan'))}${x.giu ? ' · ✓' : ''}</div></div></div>`).join('')}</div>`;
+  };
+  openSheet(`<div class="grab"></div><h3>${tv('qgDanhMaTD')}<span class="zi">${tz('qgDanhMaTD')}</span></h3>
+    ${srvOld('madv') ? srvWarn('madv') : ''}
+    <p class="help" style="margin:4px 0 10px">${t('qgDanhMaHelp')}</p>
+    <label class="fld"><span>${esc(tv('qgMaLoai'))} · ${esc(g)}<span class="zi">${esc(tz('qgMaLoai'))}</span></span><input class="inp mono mlinp" id="qgCode" inputmode="numeric" maxlength="2" value="${esc(S.f.qgDM.code)}" style="width:90px"></label>
+    <div id="qgDMXem" style="margin-top:8px">${ve()}</div><div class="err" id="qgDMErr" hidden></div>
+    <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+      <button class="btn" data-act="qgDanhMaOk"${srvOld('madv') ? ' disabled' : ''}>${IC.check} ${t('qgDanhMaOk')}</button></div>`, (bg) => {
+    $('#qgCode', bg).addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); S.f.qgDM.code = e.target.value; $('#qgDMXem').innerHTML = ve(); });
+  });
+}
+function qgXemMo(ma, i) {
+  const m = S.V.byMa[ma]; if (!m) return;
+  const q = quatCua(m)[+i || 0]; if (!q) return;
+  const sc = scCuaQuat(q), nt = ntCuaQuat(q);
+  openSheet(`<div class="grab"></div><h3>${q.maDV ? `<span class="code" style="font-size:15px">${esc(q.maDV)}</span> ` : ''}${esc(q.ten || m.ten)}<span class="zi">${esc(m.chuyen ? tv('chuyenNgan') + ' ' + mh(m.chuyen) : tv('qgChuaGan'))} · <span class="mono">${esc(mh(m.ma))}</span></span></h3>
+    <div class="card pad"><dl class="kv kvwide">${q.ts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(String(v === undefined ? '' : v)) || '—'}</dd>`).join('')}
+      ${m.viTri ? `<dt>${t('location')}</dt><dd>${esc(m.viTri)}</dd>` : ''}</dl></div>
+    ${can('confirm') ? `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgGhiSC" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.wrench} ${t('qgGhiSC')}</button>
+      <button class="btn ghost sm" data-act="qgNT" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.edit} ${t('qgNghiemThu')}</button></div>` : ''}
+    <div class="lshd">${t('qgLS')} <span class="nhomn">${sc.length + nt.length}</span></div>
+    ${sc.length ? `<div class="list">${sc.map((x) => scRow(x, false)).join('')}</div>` : ''}
+    ${nt.length ? `<div class="list">${nt.map((x) => `<button class="row" data-act="ngtMoBB" data-id="${esc(x.id)}"><div class="main"><div class="nm mono">${esc(x.soBB)}</div>
+      <div class="sub">${esc(fmtD(x.ngayNT))} · ${esc(x.donVi || '')}${x.ketLuan ? ' · ' + esc(x.ketLuan === 'DAT' ? tv('ngtDat') : tv('ngtKhong')) : ''}</div></div>${IC.chev}</button>`).join('')}</div>` : ''}
+    ${!sc.length && !nt.length ? `<div class="card empty">${t('qgChuaSua')}</div>` : ''}`);
+}
+// Điền thông tin một quạt (hoặc một máy) vào cả hai mặt biên bản
+function ngtApMay(p, m, q) {
+  if (!m) return;
+  q = q || quatCua(m)[0];
+  const ts = q && q.ten ? q.ts : m.thongSo || [];
+  const mq = tsLay(ts, RE_MQ), mdc = tsLay(ts, RE_MDC), ten = q && q.ten ? tenQuat(q) : m.ten;
+  const tenDu = ten + (mq || mdc ? ' (' + [mq, mdc ? 'ĐC ' + mdc : ''].filter(Boolean).join(', ') + ')' : '');
+  p.ma = m.ma; p.tenTB = ten; p.dvMay = q && q.ten ? q.ten : '';
+  ['truoc', 'sau'].forEach((seg) => { const c = (p[seg].chung = p[seg].chung || {}); c.tenTB = tenDu; c.maTB = q && q.maDV ? q.maDV : mh(m.ma) + (p.dvMay ? ' · ' + p.dvMay : ''); });
   const c = p.truoc.chung;
   c.viTri = m.viTri || (m.chuyen ? 'Chuyền ' + m.chuyen : '');
-  const cs = tsLay(m, /c[oô]ng su[aấ]t|功率|\(kw\)/i, 1), dg = tsLay(m, /^d[oò]ng|电流|\(a\)/i, 1), da = tsLay(m, /đi[eệ]n [aá]p|电压|\(v\)/i, 1);
+  const cs = tsLay(ts, RE_CS, 1), dg = tsLay(ts, RE_DONG, 1), da = tsLay(ts, RE_AP, 1);
   if (cs) c.congSuat = cs;
   if (dg) c.dongDM = dg;
   if (da) c.dienAp = da;
 }
-function ngtQuatList(q) {
-  const ds = ngtQuatDS(), n = norm(q || '');
-  const loc = n ? ds.filter((m) => norm([mh(m.ma), m.ten, m.tenPhu, m.chuyen, (m.thongSo || []).map((x) => x[1]).join(' ')].join(' ')).includes(n)) : ds;
-  if (!ds.length) return `<div class="card empty">${t('ngtQuatKhong')}</div>`;
-  let o = '', ch = null;
-  loc.slice(0, 200).forEach((m) => {
-    if (m.chuyen !== ch) { ch = m.chuyen; o += `<div class="lshd">${esc(ch ? tv('chuyenNgan') + ' ' + ch : '—')}</div>`; }
-    const cs = tsLay(m, /c[oô]ng su[aấ]t|功率|\(kw\)/i, 1), mdc = tsLay(m, /model đ[oộ]ng c[oơ]|电机型号/i);
-    o += `<button type="button" class="ksi" data-act="ngtQuatDung" data-ma="${esc(m.ma)}"><span class="kn">${esc(m.ten)}<small><span class="mono">${esc(mh(m.ma))}</span>${cs ? ' · ' + esc(cs) + ' kW' : ''}${mdc ? ' · ' + esc(mdc) : ''}</small></span></button>`;
+// Danh sách chọn quạt (biên bản nghiệm thu): theo chuyền, từng quạt
+function ngtQuatList(qs) {
+  const g = quatTheoChuyen(), n = norm(qs || '');
+  if (!g.length) return `<div class="card empty">${t('ngtQuatKhong')}</div>`;
+  let o = '';
+  g.forEach(({ ch, ds }) => {
+    const loc = n ? ds.filter((x) => norm([ch, x.maDV, x.ten, x.m.ten, x.ts.map((k) => k[1]).join(' ')].join(' ')).includes(n)) : ds;
+    if (!loc.length) return;
+    o += `<div class="lshd">${esc(ch ? tv('chuyenNgan') + ' ' + mh(ch) : tv('qgChuaGan'))} <span class="nhomn">${ds.length}</span></div>`;
+    o += loc.map((x) => { const cs = tsLay(x.ts, RE_CS, 1), mdc = tsLay(x.ts, RE_MDC);
+      return `<button type="button" class="ksi" data-act="ngtQuatDung" data-ma="${esc(x.m.ma)}" data-i="${x.i}"><span class="kn">${esc(x.ten || x.m.ten)}<small>${[x.maDV, cs ? cs + ' kW' : '', mdc].filter(Boolean).map(esc).join(' · ')}</small></span></button>`; }).join('');
   });
   return o || `<div class="help">${t('khoKhongThay')}</div>`;
 }
+// Ô "Quạt nào" khi thiết bị đang chọn là bản ghi quạt gió gộp nhiều quạt
+function dvChonHtml(id, ma, cur) {
+  const m = ma && S.V.byMa[ma];
+  if (!m || !(m.chiTiet || []).length || srvOld('dvmay')) return '';
+  return `<label class="fld"><span>${t('qgQuatNao')}</span><select class="inp" id="${id}"><option value="">${esc(tp('qgChonQuat'))}</option>
+    ${quatCua(m).map((q) => `<option value="${esc(q.ten)}"${q.ten === cur ? ' selected' : ''}>${q.maDV ? esc(q.maDV) + ' · ' : ''}${esc(q.ten)}${tsLay(q.ts, RE_CS, 1) ? ' · ' + esc(tsLay(q.ts, RE_CS, 1)) + ' kW' : ''}</option>`).join('')}</select></label>`;
+}
 Object.assign(ACT, {
+  quatGio: (el) => go('quatGio', el && el.dataset.ch !== undefined ? { ch: el.dataset.ch } : {}),
+  qgMo: (el) => { S.f.qgMo = S.f.qgMo || {}; S.f.qgMo[el.dataset.ch] = !S.f.qgMo[el.dataset.ch]; render(); },
+  qgDanhMa: (el) => qgDanhMaMo(el.dataset.g),
+  qgDanhMaOk: async (el) => {
+    const f = S.f.qgDM; if (!f) return;
+    const fe = $('#qgDMErr');
+    if (!/^\d{2}$/.test(f.code || '') || f.code === '00' || qgMaKhac(f.g, f.code)) return;
+    el.disabled = true;
+    try { const d = await api('unitCodes', { nhom: f.g, maLoai: f.code }); mergeResult(d); closeSheet(); toast(t('qgDanhMaXong', { n: d.doiMa || 0 })); render(); }
+    catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  },
+  qgXem: (el) => qgXemMo(el.dataset.ma, el.dataset.i),
+  qgGhiSC: (el) => { const m = S.V.byMa[el.dataset.ma], q = quatCua(m)[+el.dataset.i]; closeSheet(); go('scGhi', { scMa: m.ma, dvMay: q.ten }); },
+  qgNT: (el) => { const m = S.V.byMa[el.dataset.ma], q = quatCua(m)[+el.dataset.i]; closeSheet(); go('ngtGhi', { ma: m.ma, dvMay: q.ten }); },
   ngtLoai: (el) => { const p = topV().p; if (S.ngtSync) S.ngtSync(); p.loai = el.dataset.v; render(); },
   ngtChonQuat: () => {
     if (S.ngtSync) S.ngtSync();
@@ -22761,11 +22910,12 @@ Object.assign(ACT, {
     });
   },
   ngtQuatDung: (el) => {
-    const p = topV().p, m = S.V.byMa[el.dataset.ma];
-    closeSheet(); ngtApMay(p, m); p._maCu = p.ma; render();
-    toast(t('ngtDaDien', { m: mh(m.ma) }));
+    const p = topV().p, m = S.V.byMa[el.dataset.ma], q = quatCua(m)[+el.dataset.i || 0];
+    closeSheet(); ngtApMay(p, m, q); p._maCu = p.ma; render();
+    toast(t('ngtDaDien', { m: q && q.ten ? tenQuat(q) : mh(m.ma) }));
   }
 });
+function ngtQuatSoLuong() { return quatTheoChuyen().reduce((a, x) => a + x.ds.length, 0); }
 
 // ===================== Kho: phiếu đề nghị mua hàng (v2.51) =====================
 // Chọn hàng cần đặt (gợi ý sẵn hàng hết / thiếu tồn an toàn, hoặc tìm bất kỳ mã nào, hoặc hàng chưa có mã ERP),

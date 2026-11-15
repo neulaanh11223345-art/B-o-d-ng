@@ -743,30 +743,56 @@ test('mã máy theo loại: M + mã loại 2 số + số thứ tự 3 số; ghi 
   assert.equal(ok(b.call('saveMachine', { ten: 'Máy lạ', nhom: 'Loại chưa có mã', chuKy: 0 }, ql)).may.maHT, '');
 });
 
-test('tách bản ghi gộp (quạt gió theo chuyền) thành từng máy, mỗi máy một mã riêng; bản ghi cũ thành quạt số 1', () => {
+test('sửa chữa / nghiệm thu ghi được quạt nào trong bản ghi quạt gió gộp của chuyền (DvMay)', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222');
+  const ct = (n) => Array.from({ length: n }, (_, i) => ({ cot: [['Tên', 'Quạt số ' + (i + 1)], ['Công suất (kW)', String(10 + i)]] }));
+  const nh = ok(b.call('importMachines', { rows: [{ ten: 'Quạt gió chuyền VKY01 (3 quạt)', nhom: 'Quạt gió · 风机', chuyen: 'VKY01', chiTiet: ct(3) }] }, ql));
+  const q = nh.dsMay.find((x) => x.ten.indexOf('Quạt gió chuyền VKY01') === 0);
+  const kt = b.login('NV003', '333333');
+  const r = ok(b.call('saveRepair', { moTa: 'Quạt kêu to', nguyenNhan: 'Mòn vòng bi', ketQua: 'Thay vòng bi', ma: q.ma, dvMay: 'Quạt số 2', linhKien: [] }, kt));
+  assert.equal(r.congViec.dvMay, 'Quạt số 2');
+  assert.equal(r.congViec.ma, q.ma, 'bản ghi sửa chữa gắn đúng bản ghi quạt gió, không quy về chuyền');
+  const d = ok(b.call('data', {}, ql));
+  assert.equal(d.congViec.find((x) => x.id === r.congViec.id).dvMay, 'Quạt số 2', 'đọc lại còn nguyên');
+  const nt = ok(b.call('saveAccept', { ma: q.ma, tenTB: 'Quạt gió chuyền VKY01 · Quạt số 3', dvMay: 'Quạt số 3', truoc: { chung: {}, muc: {}, ky: {} } }, ql));
+  assert.equal(nt.nghiemThu.dvMay, 'Quạt số 3');
+  // Sửa biên bản mà app cũ không gửi dvMay thì giữ nguyên
+  const nt2 = ok(b.call('saveAccept', { id: nt.nghiemThu.id, ma: q.ma, tenTB: 'Quạt gió chuyền VKY01 · Quạt số 3' }, ql));
+  assert.equal(nt2.nghiemThu.dvMay, 'Quạt số 3');
+});
+
+test('mỗi quạt một mã riêng nhưng vẫn gộp theo chuyền: đánh mã từng đơn vị, giữ mã cũ, không trùng, quạt mới tự lấy số', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
-  const ct = (n) => Array.from({ length: n }, (_, i) => ({ cot: [['Tên', 'Quạt số ' + (i + 1)], ['Công suất (kW)', String(10 + i)], ['Model quạt', 'F-' + (i + 1)]] }));
-  const nh = ok(b.call('importMachines', { rows: [
-    { ten: 'Quạt gió chuyền VKY02 (3 quạt)', tenPhu: 'VKY02风机', nhom: 'Quạt gió · 风机', chuyen: 'VKY02', thongSo: [['Số quạt', '3']], chiTiet: ct(3) },
-    { ten: 'Quạt gió chuyền VKY01 (2 quạt)', tenPhu: 'VKY01风机', nhom: 'Quạt gió · 风机', chuyen: 'VKY01', thongSo: [['Số quạt', '2']], chiTiet: ct(2) }] }, ql));
-  const g1 = nh.dsMay.find((x) => x.ten.indexOf('VKY01 (2') > 0), g2 = nh.dsMay.find((x) => x.ten.indexOf('VKY02 (3') > 0);
-  // ghi một lần bảo dưỡng cho bản ghi gộp VKY01 để xem lịch sử có theo quạt số 1 không
-  err(b.call('splitDetail', { ds: [g1.ma], maLoai: '01' }, kt), 'KHONG_QUYEN');
-  err(b.call('splitDetail', { ds: [g1.ma], maLoai: '1' }, ql), 'MA_LOAI_SAI');
-  const r = ok(b.call('splitDetail', { ds: [g2.ma, g1.ma], maLoai: '01' }, ql));
-  assert.equal(r.banGhi, 2); assert.equal(r.may, 5);
-  const q = r.dsMay.filter((x) => x.nhom === 'Quạt gió · 风机').sort((a, c) => (a.maHT < c.maHT ? -1 : 1));
-  assert.deepEqual(q.map((x) => x.maHT + ' ' + x.ten), [
-    'M01001 Quạt gió chuyền VKY01 · Quạt số 1', 'M01002 Quạt gió chuyền VKY01 · Quạt số 2',
-    'M01003 Quạt gió chuyền VKY02 · Quạt số 1', 'M01004 Quạt gió chuyền VKY02 · Quạt số 2', 'M01005 Quạt gió chuyền VKY02 · Quạt số 3']);
-  assert.equal(q[0].ma, g1.ma, 'quạt số 1 giữ mã hệ thống của bản ghi gộp (lịch sử không đứt)');
-  assert.deepEqual(q[1].thongSo, [['Công suất (kW)', '11'], ['Model quạt', 'F-2']], 'thông số riêng từng quạt');
-  assert.equal(q[1].chuyen, 'VKY01'); assert.equal(q[1].tenPhu, 'VKY01风机 2#');
-  assert.ok(q.every((x) => !(x.chiTiet || []).length), 'hết chi tiết gộp');
-  assert.equal(new Set(q.map((x) => x.ma)).size, 5, 'mã hệ thống không trùng');
-  // Máy mới cùng loại tự lấy số kế tiếp
-  assert.equal(ok(b.call('saveMachine', { ten: 'Quạt mới', nhom: 'Quạt gió · 风机', chuyen: 'VKY03', chuKy: 0 }, ql)).may.maHT, 'M01006');
+  const ct = (n) => Array.from({ length: n }, (_, i) => ({ cot: [['Tên', 'Quạt số ' + (i + 1)], ['Công suất (kW)', String(10 + i)]] }));
+  const G = 'Quạt gió · 风机';
+  ok(b.call('importMachines', { rows: [
+    { ten: 'Quạt gió chuyền VKY02 (3 quạt)', nhom: G, chuyen: 'VKY02', chiTiet: ct(3) },
+    { ten: 'Quạt gió chuyền VKY01 (2 quạt)', nhom: G, chuyen: 'VKY01', chiTiet: ct(2) }] }, ql));
+  err(b.call('unitCodes', { nhom: G, maLoai: '01' }, kt), 'KHONG_QUYEN');
+  const r = ok(b.call('unitCodes', { nhom: G, maLoai: '01' }, ql));
+  assert.equal(r.doiMa, 5);
+  const ma = (dsMay) => dsMay.filter((x) => x.nhom === G).sort((a, c) => (a.chuyen < c.chuyen ? -1 : 1))
+    .map((x) => x.chuyen + ':' + x.chiTiet.map((c) => c.cot[0][0] + '=' + c.cot[0][1]).join(','));
+  assert.deepEqual(ma(r.dsMay), ['VKY01:Mã máy=M01001,Mã máy=M01002', 'VKY02:Mã máy=M01003,Mã máy=M01004,Mã máy=M01005'], 'theo chuyền rồi số quạt, vẫn gộp');
+  assert.equal(r.dsMay.filter((x) => x.nhom === G).length, 2, 'không tách thành máy riêng');
+  const c1 = r.dsMay.find((x) => x.chuyen === 'VKY01' && x.nhom === G).chiTiet[1].cot;
+  assert.deepEqual(c1, [['Mã máy', 'M01002'], ['Tên', 'Quạt số 2'], ['Công suất (kW)', '11']], 'giữ nguyên thông số');
+  // Chạy lại: giữ nguyên, không đổi gì
+  assert.equal(ok(b.call('unitCodes', { nhom: G }, ql)).doiMa, 0);
+  // Mã hiển thị của máy khác không được trùng mã một quạt
+  const m0 = r.dsMay.find((x) => x.nhom !== G);
+  err(b.call('saveMachine', { ma: m0.ma, ten: m0.ten, nhom: m0.nhom, chuKy: m0.chuKy, hanKeTiep: m0.hanKeTiep, maHT: 'M01003' }, ql), 'MA_HT_TRUNG');
+  // Thêm quạt vào bản ghi VKY01 bằng nhập file: quạt mới tự lấy số kế tiếp, quạt cũ giữ mã
+  const q1 = r.dsMay.find((x) => x.chuyen === 'VKY01' && x.nhom === G);
+  const ct3 = q1.chiTiet.concat([{ cot: [['Tên', 'Quạt số 3'], ['Công suất (kW)', '12']] }]);
+  const nh = ok(b.call('importMachines', { rows: [{ ma: q1.ma, ten: q1.ten, nhom: G, chuyen: 'VKY01', chiTiet: ct3 }] }, ql));
+  assert.deepEqual(nh.dsMay.find((x) => x.ma === q1.ma).chiTiet.map((c) => c.cot[0][1]), ['M01001', 'M01002', 'M01006']);
+  // Máy mới của loại khác không lấy trúng mã quạt
+  const so = nh.dsMay.map((x) => x.ma);
+  const moi = ok(b.call('saveMachine', { ten: 'Máy lạ', nhom: 'Loại chưa có mã', chuKy: 0 }, ql)).may;
+  assert.ok(!['M01001', 'M01002', 'M01003', 'M01004', 'M01005', 'M01006'].includes(moi.ma) && !so.includes(moi.ma));
 });
 
 test('mã máy không bao giờ trùng: mã hệ thống bỏ qua mã hiển thị gõ tay; loại chưa đặt mã thì suy ra từ mã đã gõ trong Sheet', () => {
