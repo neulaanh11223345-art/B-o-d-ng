@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.53.0';
+var PHIEN_BAN = '2.54.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -3042,6 +3042,8 @@ function nhapThietBi(u, p) {
       m.chuKy = ck;
       if (!m.hanKeTiep || !hopLeNgay(m.hanKeTiep)) m.hanKeTiep = congNgay(homNayStr(), ck);
     }
+    // Ô chu kỳ ghi đúng số 0 (app gửi tatBD) = tắt theo dõi bảo dưỡng: chỉ ghi sổ (quạt gió, cáp điện…)
+    else if (r.tatBD === true) { m.chuKy = 0; m.hanKeTiep = ''; }
     if (r.maHT !== undefined && s(r.maHT)) {
       try { m.maHT = kiemMaHT(r.maHT, m.ma); } catch (e) { m.maHT = ''; }
     }
