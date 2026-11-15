@@ -2370,6 +2370,152 @@ assert.equal(await page.evaluate(() => (S.V.chByMa.VKY01.linhKien.find((x) => x.
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.46: bấm dòng linh kiện chưa khớp ERP để sửa tên / quy cách / mã, có gợi ý mã gần đúng; tự khớp theo quy cách');
 
+// 35. Tăng ca theo khoảng ngày: tuần vắt hai tháng thì tách riêng từng tháng cho đơn in và Excel
+await page.evaluate(async () => {
+  while (S.stack.length > 1) back();
+  for (const ng of ['2026-10-30', '2026-11-01']) await send('saveOT', { id: '', uid: S.me.id, ngay: ng, ca: tcCaDS()[0].k, tu: '17:30', den: '19:30', soGio: 2, lyDo: 'Thử khoảng ngày' });
+  S.f.tcUid = S.me.id; S.f.tcKieu = ''; S.f.tcTuan = '2026-10-26'; tab('tc');
+}); await wait(800);
+const tach35 = await page.$$eval('[data-act="tcChonKhoang"]', (e) => e.map((x) => x.dataset.tu + '>' + x.dataset.den));
+assert.deepEqual(tach35, ['2026-10-26>2026-10-31', '2026-11-01>2026-11-01'], 'tuần 26/10–01/11 tách thành phần tháng 10 và phần tháng 11');
+await page.click('[data-act="tcChonKhoang"][data-tu="2026-11-01"]'); await wait(600);
+assert.deepEqual(await page.evaluate(() => tcLoc(S.me.id, tcKhoang().tu, tcKhoang().den).map((x) => x.ngay)), ['2026-11-01'], 'chỉ còn lượt của tháng 11');
+await page.evaluate(() => go('tcXem')); await wait(700);
+assert.match(await text('.tcsheet .d3'), /01\/11\/2026/, 'đơn in ghi đúng ngày của phần tháng 11');
+assert.doesNotMatch(await text('.tcsheet .ot'), /30\/10/, 'đơn tháng 11 không lẫn ngày 30/10');
+await shot('71-tang-ca-tach-thang');
+// Tự chọn: cả tháng 10
+await page.click('[data-act="tcKhoangBuoc"][data-d="-1"]'); await wait(500);
+assert.equal(await page.evaluate(() => tcKhoang().tu + '>' + tcKhoang().den), '2026-10-01>2026-10-31', 'Tháng trước = cả tháng 10');
+const ten35 = await page.evaluate(async () => { let n = null; const g = window.saveFile; window.saveFile = async (bl, ten) => { n = ten; }; await ACT.tcXuatTuan(); window.saveFile = g; return n; });
+assert.ok(!ten35 || /_2026-10-01_2026-10-31\.xlsx$/.test(ten35), 'tên file Excel theo khoảng ngày: ' + ten35);
+await page.click('[data-act="tcKieu"][data-v="tuan"]'); await wait(400);
+assert.equal(await page.evaluate(() => tcKhoang().kieu), 'tuan', 'quay lại xem theo tuần');
+await page.evaluate(() => { S.f.tcKieu = ''; while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.47: tăng ca theo tuần hoặc từ ngày – đến ngày; tuần vắt hai tháng tách riêng từng tháng cho danh sách, đơn in, Excel');
+
+// 36. Xuất / nhập theo từng loại thiết bị, cùng một mẫu; nút quay lại luôn lùi được
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('list'); go('tbXuat'); }); await wait(600);
+assert.ok(await page.locator('[data-act="tbNhapNhom"]').count() >= 5, 'mỗi loại có nút Nhập lại cạnh Xuất Excel');
+const file36 = await page.evaluate(async () => {
+  const g = 'Máy hút bụi · 吸尘器', rows = await (await readXlsx(await tbXuatNhom(g).blob.arrayBuffer()))[0].rows();
+  const hi = rows.findIndex((r) => (r || []).includes('Mã máy')), h = rows[hi];
+  const dong = rows.slice(hi + 1).map((r) => h.map((_, i) => (r[i] === undefined ? '' : r[i])));
+  dong[0][h.indexOf('Vị trí')] = 'Vị trí sửa trong Excel';
+  const moi = h.map(() => ''); moi[h.indexOf('Tên thiết bị')] = 'Máy hút bụi mới E2E';
+  const khac = h.map(() => ''); khac[h.indexOf('Tên thiết bị')] = 'Bơm lạ E2E'; khac[h.indexOf('Nhóm')] = 'Bơm nước · 水泵';
+  const bl = XW.build([{ name: 'may hut bui', rows: [[g], h].concat(dong, [moi, khac]), cols: h.map(() => 15) }]);
+  return Array.from(new Uint8Array(await bl.arrayBuffer()));
+});
+await page.click('[data-act="tbNhapNhom"][data-g="Máy hút bụi · 吸尘器"]'); await wait(500);
+await page.setInputFiles('#tbFile', { name: 'may-hut-bui.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(file36) });
+await wait(1500);
+assert.match(await text('#main'), /Đang nhập cho loại: Máy hút bụi/, 'ghi rõ đang nhập cho loại nào');
+assert.match(await text('#main'), /1 dòng thuộc loại khác/, 'dòng của loại khác bị bỏ qua, có báo');
+await shot('72-nhap-theo-loai');
+await page.click('[data-act="tbNhapGo"]'); await wait(1800);
+assert.match(await text('.toast'), /1 thêm mới, \d+ cập nhật/, 'thông báo có đủ số thêm mới / cập nhật');
+const kq36 = await page.evaluate(() => ({ viTri: !!S.V.may.find((m) => m.viTri === 'Vị trí sửa trong Excel'),
+  moi: (S.V.may.find((m) => m.ten === 'Máy hút bụi mới E2E') || {}).nhom, bom: !!S.V.may.find((m) => m.ten === 'Bơm lạ E2E') }));
+assert.deepEqual(kq36, { viTri: true, moi: 'Máy hút bụi · 吸尘器', bom: false }, 'cập nhật máy cũ, thêm máy mới đúng loại, bỏ dòng loại khác');
+// Nút quay lại trên thanh tiêu đề
+await page.evaluate(() => go('may', { ma: 'M001' })); await wait(400);
+const sau36 = await page.evaluate(() => S.stack.length);
+await page.click('#barLead .back'); await wait(400);
+assert.equal(await page.evaluate(() => S.stack.length), sau36 - 1, 'bấm quay lại thì lùi một màn');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.48: xuất / nhập lại theo từng loại thiết bị cùng một mẫu; nút quay lại luôn lùi được');
+
+// 37. Mã máy theo loại: M + mã loại 2 số + số thứ tự (M01020); mã hệ thống giữ nguyên
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('maLoai'); }); await wait(600);
+const g37 = await page.$$eval('[data-ml]', (e) => e.map((x) => x.dataset.ml));
+assert.ok(g37.length >= 5, 'mỗi loại một ô mã loại');
+const hutBui = 'Máy hút bụi · 吸尘器';
+await page.fill(`[data-ml="${hutBui}"]`, '01'); await wait(200);
+assert.match(await text('#mlXem'), /trùng mã 01/, 'hai loại trùng mã thì báo ngay');
+// Đổi loại đang giữ 01 sang số khác cho khỏi trùng
+const giu01 = await page.evaluate((hb) => Object.keys(topV().p.ma).find((g) => g !== hb && topV().p.ma[g] === '01'), hutBui);
+if (giu01) { await page.fill(`[data-ml="${giu01}"]`, '99'); await wait(200); }
+assert.match(await text('#mlXem'), /Sẽ đổi mã \d+ máy/, 'xem trước số máy đổi mã');
+await shot('73-ma-may-theo-loai');
+await page.click('[data-act="maLoaiLuu"]'); await wait(1500);
+const kq37 = await page.evaluate((hb) => {
+  const a = S.V.may.filter((m) => m.nhom === hb).sort(sapMay);
+  return { ma: a.map((m) => m.maHT), heThong: a.every((m) => /^M\d{3}$/.test(m.ma)), quet: maTuNhap(a[0].maHT) === a[0].ma, hien: mh(a[0].ma) };
+}, hutBui);
+assert.equal(kq37.ma[0], 'M01001', 'máy đầu của loại 01 là M01001');
+assert.ok(kq37.ma.every((v, i) => v === 'M01' + String(i + 1).padStart(3, '0')), 'đánh số liên tiếp trong loại: ' + kq37.ma.join(','));
+assert.ok(kq37.heThong, 'mã hệ thống giữ nguyên');
+assert.ok(kq37.quet && kq37.hien === 'M01001', 'gõ / quét mã mới mở đúng máy, mọi màn hiện mã mới');
+ok('Bản 2.49: mã máy theo loại M + mã loại + số thứ tự (M01001…), xem trước trước khi đổi, báo trùng mã loại, mã hệ thống giữ nguyên');
+
+// 38. Tách bản ghi gộp quạt gió thành từng quạt, mỗi quạt một mã; quạt mới tự lấy số kế tiếp
+await page.evaluate(async () => {
+  while (S.stack.length > 1) back();
+  const ct = (n) => Array.from({ length: n }, (_, i) => ({ cot: [['Tên', 'Quạt số ' + (i + 1)], ['Công suất (kW)', String(15 + i)]] }));
+  await send('importMachines', { rows: [
+    { ten: 'Quạt gió chuyền VKY02 (3 quạt)', tenPhu: 'VKY02风机', nhom: 'Quạt gió · 风机', khoi: 'HCD', chuyen: 'VKY02', chiTiet: ct(3) },
+    { ten: 'Quạt gió chuyền VKY01 (2 quạt)', tenPhu: 'VKY01风机', nhom: 'Quạt gió · 风机', khoi: 'HCD', chuyen: 'VKY01', chiTiet: ct(2) }] });
+  rebuild(); tab('list'); go('tbXuat');
+}); await wait(700);
+await page.click('[data-act="tachNhom"][data-g="Quạt gió · 风机"]'); await wait(500);
+await page.fill('#tachCode', '05'); await wait(200);
+assert.match(await text('#tachXem'), /đã dùng cho/, 'mã loại đã thuộc loại khác thì báo ngay');
+await page.fill('#tachCode', '42'); await wait(200);
+assert.match(await text('#tachXem'), /2 bản ghi → 5 máy/, 'xem trước số máy sẽ tạo');
+assert.match(await text('#tachXem'), /M42001/, 'xem trước mã từng quạt');
+await shot('74-tach-quat-gio');
+await page.click('[data-act="tachOk"]'); await wait(1500);
+const q38 = await page.evaluate(() => S.V.may.filter((m) => m.nhom === 'Quạt gió · 风机').sort((a, b) => (a.maHT < b.maHT ? -1 : 1)).map((m) => m.maHT + '|' + m.ten));
+assert.deepEqual(q38, ['M42001|Quạt gió chuyền VKY01 · Quạt số 1', 'M42002|Quạt gió chuyền VKY01 · Quạt số 2',
+  'M42003|Quạt gió chuyền VKY02 · Quạt số 1', 'M42004|Quạt gió chuyền VKY02 · Quạt số 2', 'M42005|Quạt gió chuyền VKY02 · Quạt số 3'], 'mỗi quạt một mã riêng, theo chuyền rồi số quạt');
+const moi38 = await page.evaluate(async () => (await send('saveMachine', { ten: 'Quạt mới E2E', nhom: 'Quạt gió · 风机', chuKy: 0 })).data.may.maHT);
+assert.equal(moi38, 'M42006', 'quạt mới tự lấy số kế tiếp, không trùng');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.50: tách bản ghi gộp quạt gió thành từng quạt, mỗi quạt một mã riêng; máy mới tự lấy số kế tiếp, không trùng');
+
+// 39. Biên bản nghiệm thu: chọn quạt gió trong danh sách → điền sẵn thông số; động cơ thì ghi tay
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('ngtGhi', {}); }); await wait(700);
+assert.ok(await page.locator('[data-act="ngtChonQuat"]').count(), 'có nút chọn quạt gió');
+await page.click('[data-act="ngtChonQuat"]'); await wait(500);
+await page.locator('#ngtQDs .ksi', { hasText: 'Quạt số 2' }).first().click(); await wait(600);
+const ngt39 = await page.evaluate(() => { const q = topV().p; return { maTB: q.truoc.chung.maTB, cs: q.truoc.chung.congSuat, ten: q.truoc.chung.tenTB, sau: q.sau.chung.maTB }; });
+assert.match(ngt39.maTB, /^M42\d{3}$/, 'mã thiết bị điền sẵn: ' + ngt39.maTB);
+assert.equal(ngt39.sau, ngt39.maTB, 'mặt "sau sửa" cũng có mã');
+assert.equal(ngt39.cs, '16', 'công suất của đúng quạt số 2');
+assert.equal(await page.inputValue('[data-c="congSuat"]'), '16', 'ô công suất trên biên bản đã điền');
+await page.click('[data-act="ngtLoai"][data-v="dc"]'); await wait(300);
+assert.match(await text('#ngtF'), /Ghi tay tên, công suất/, 'chọn động cơ thì hướng dẫn ghi tay');
+await shot('75-nghiem-thu-chon-quat');
+// 40. Kho: phiếu đề nghị mua hàng — chọn hàng, số lượng, ghi chú, xuất Excel
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); }); await wait(600);
+await page.click('[data-act="datMua"]'); await wait(600);
+assert.ok(await page.locator('#dmDs .ksi').count() >= 1, 'gợi ý sẵn hàng cần mua');
+await page.click('[data-act="dmThemTatCa"]'); await wait(500);
+const n40 = await page.locator('.dmrow').count();
+assert.ok(n40 >= 1, 'thêm cả loạt hàng cần mua vào phiếu');
+await page.click('[data-act="dmLoc"][data-v="tatca"]'); await wait(300);
+await page.fill('#dmTim', 'vong bi'); await wait(400);
+const chua40 = page.locator('#dmDs .ksi:not([disabled])');
+if (await chua40.count()) { await chua40.first().click(); await wait(400); }
+await page.locator('summary', { hasText: 'chưa có mã ERP' }).click();
+await page.fill('#dmNTen', 'Động cơ 15kW'); await page.fill('#dmNSL', '2'); await page.click('[data-act="dmThemNgoai"]'); await wait(400);
+await page.fill('[data-dmsl="0"]', '5'); await page.fill('[data-dmgc="0"]', 'Gấp');
+const xl40 = await page.evaluate(async () => {
+  const d = dmLay(), u = new Uint8Array(await dmXlsx(d).arrayBuffer()), rows = await (await readXlsx(u.buffer))[0].rows();
+  return { n: d.ds.length, sl: d.ds[0].sl, gc: d.ds[0].gc, txt: rows.map((r) => (r || []).join('|')).join('\n') };
+});
+assert.equal(xl40.sl, '5'); assert.equal(xl40.gc, 'Gấp', 'số lượng, ghi chú lưu lại ngay');
+assert.match(xl40.txt, /PHIẾU ĐỀ NGHỊ MUA HÀNG/, 'Excel có tiêu đề phiếu');
+assert.match(xl40.txt, /Động cơ 15kW/, 'có cả hàng chưa có mã ERP');
+assert.match(xl40.txt, /Phê duyệt/, 'có chỗ ký duyệt');
+await shot('76-phieu-dat-mua');
+page.once('dialog', (dg) => dg.accept());
+await page.click('[data-act="dmXoaHet"]'); await wait(400);
+assert.equal(await page.locator('.dmrow').count(), 0, 'xoá hết phiếu');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.51: nghiệm thu chọn quạt gió điền sẵn thông số, động cơ ghi tay; phiếu đề nghị mua hàng xuất Excel');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
