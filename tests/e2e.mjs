@@ -2543,6 +2543,46 @@ assert.equal(await page.locator('.dmrow').count(), 0, 'xoá hết phiếu');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.51 + 2.52: nghiệm thu chọn quạt gió điền sẵn thông số, ghi đúng quạt, động cơ ghi tay; phiếu đề nghị mua hàng xuất Excel');
 
+// 40. Nghiệm thu sau sửa: quạt sửa về chưa lắp được → mục chưa kiểm tra ghi N/A, kết luận Chờ lắp đặt
+await page.evaluate(() => go('ngt')); await wait(600);
+await page.click('[data-act="ngtNew"]'); await wait(700);
+await page.evaluate(() => { topV().p.loai = 'dc'; render(); }); await wait(400);
+await page.fill('#ngtTen', 'Quạt hút bụi số 2 (chờ lắp)');
+await page.fill('#ngtDV', 'Cơ điện Minh Phát');
+await page.click('[data-act="ngtSeg"][data-v="sau"]'); await wait(600);
+await page.evaluate(() => {
+  const dat = (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
+  document.querySelectorAll('#ngtF [data-c]').forEach((el) => { if (!el.value.trim()) dat(el, 'x'); });
+  document.querySelectorAll('#ngtF [data-k]').forEach((el) => { if (!el.value.trim()) dat(el, 'Người ký'); });
+});
+await page.fill('[data-m="a1"][data-s="so"]', '50');
+await page.click('[data-act="ngtDg"][data-k="a1"][data-v="D"]'); await wait(300);
+await page.click('[data-act="ngtDg"][data-k="a7"][data-v="D"]'); await wait(300);
+await page.click('[data-act="ngtNAHet"]'); await wait(500);
+const na40 = await page.evaluate(() => { const d = topV().p.sau; return { na: ngtSoNA(d), kl: d.ketLuan }; });
+assert.equal(na40.na, 11, 'các mục chưa chấm thành N/A');
+assert.equal(na40.kl, 'CHO', 'kết luận tự chọn Chờ lắp đặt');
+assert.equal(await page.locator('#ngtF .chip.na').count(), 11, 'nút N/A sáng lên');
+// Còn N/A mà chọn Đạt thì bị chặn
+await page.click('[data-act="ngtKl"][data-v="DAT"]'); await wait(300);
+await page.click('#ngtOk'); await wait(500);
+assert.match(await text('#ngtErr'), /mục N\/A/, 'còn N/A thì chưa chọn Đạt được');
+await page.click('[data-act="ngtKl"][data-v="CHO"]'); await wait(300);
+await page.click('#ngtOk'); await wait(1500);
+const bb40 = await page.evaluate(() => ngtDS().find((x) => x.tenTB === 'Quạt hút bụi số 2 (chờ lắp)'));
+assert.equal(bb40.ketLuan, 'CHO', 'lưu kết luận chờ lắp đặt');
+assert.equal(bb40.sau.muc.a2.dg, 'NA');
+const in40 = await page.evaluate((id) => ngtToHtml(ngtGet(id), 'sau').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '), bb40.id);
+assert.ok(in40.includes('☑ N/A') && in40.includes('☑ Chờ lắp đặt'), 'tờ in có N/A và kết luận chờ lắp');
+assert.ok(in40.includes('chưa kiểm tra được'), 'tờ in có chú thích N/A');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
+await page.evaluate(() => go('ngt')); await wait(500);
+await page.click('[data-act="ngtLoc"][data-v="cho"]'); await wait(400);
+assert.match(await text('#main'), /Chờ lắp đặt — còn mục N\/A/, 'lọc được biên bản chờ lắp');
+await shot('77-nghiem-thu-cho-lap');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.55: nghiệm thu sau sửa ghi N/A cho mục chưa kiểm tra được, kết luận Chờ lắp đặt');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

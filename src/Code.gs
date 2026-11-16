@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.54.0';
+var PHIEN_BAN = '2.55.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -107,7 +107,7 @@ var BANG = {
   // Biên bản nghiệm thu động cơ / quạt gió gửi đơn vị ngoài sửa chữa.
   // Một dòng giữ CẢ HAI phần của một lần gửi sửa: Truoc (trước khi sửa) và Sau (nghiệm thu sau sửa), chung một số biên bản.
   // So: BBNT + năm.tháng.ngày / số thứ tự trong ngày, vd BBNT2026.10.08/3 — máy chủ tự đánh số, không trùng.
-  // Truoc / Sau (JSON): { chung: {...}, muc: { mã mục: {so, A, B, C, gc, dg} }, vanBan, vanBanDich, ky: {...}, ketLuan }
+  // Truoc / Sau (JSON): { chung: {...}, muc: { mã mục: {so, A, B, C, gc, dg: D | K | NA} }, vanBan, vanBanDich, ky: {...}, ketLuan: DAT | CHUA | CHO }
   NghiemThu: ['ID', 'SoBB', 'NgayNT', 'STT', 'Ma', 'TenTB', 'DonVi', 'CvId', 'Truoc', 'Sau', 'KetLuan',
     'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'Xoa', 'DvMay'],
   // Máy nén khí: mỗi máy một dòng. Danh sách riêng vì nhà máy chỉ có MỘT mã máy "Phòng máy nén khí"
@@ -2792,7 +2792,8 @@ function xoaMaLoi(u, p) {
 // Số biên bản do máy chủ đánh: BBNT + năm.tháng.ngày / số thứ tự trong ngày.
 var NGT_KHOA = ['id', 'soBB', 'ngayNT', 'stt', 'ma', 'tenTB', 'donVi', 'cvId', 'truoc', 'sau', 'ketLuan',
   'nguoiTao', 'uidTao', 'lucTao', 'capNhat', 'xoa', 'dvMay'];
-var NGT_KL = ['DAT', 'CHUA'];
+// CHO: quạt / động cơ sửa xong đã về nhưng chưa lắp vào máy được — các mục cần chạy thử để N/A, kiểm tra sau
+var NGT_KL = ['DAT', 'CHUA', 'CHO'];
 var NGT_CHU_TOI_DA = 2000;         // mỗi ô chữ trong biên bản
 // Truoc / Sau là object (không phải mảng) nên obThanhDong dùng chung không ghi được — đọc ghi riêng ở đây.
 function ngtThanhDong(x) {
@@ -2837,7 +2838,7 @@ function ngtSachPhan(v) {
     var o = v.muc[k] || {}, r = {};
     ['so', 'A', 'B', 'C'].forEach(function (f) { if (s(o[f]) !== '') r[f] = catChu(o[f], 30); });
     if (s(o.gc) !== '') r.gc = catChu(o.gc, 300);
-    if (o.dg === 'D' || o.dg === 'K') r.dg = o.dg;
+    if (o.dg === 'D' || o.dg === 'K' || o.dg === 'NA') r.dg = o.dg;   // NA: chưa kiểm tra được
     muc[s(k).slice(0, 30)] = r;
   });
   Object.keys(v.ky || {}).slice(0, 10).forEach(function (k) { ky[s(k).slice(0, 30)] = catChu(v.ky[k], 120); });

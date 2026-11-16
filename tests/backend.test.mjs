@@ -1823,6 +1823,20 @@ test('nghiệm thu sửa chữa ngoài: số biên bản tự đánh theo ngày,
   assert.equal(b.ctx.docNghiemThu().filter((r) => r.id === c.id)[0].xoa, true, 'dòng vẫn còn trên sheet');
 });
 
+test('nghiệm thu: thiết bị sửa về chưa lắp được thì mục chưa kiểm tra ghi N/A, kết luận Chờ lắp đặt', () => {
+  const b = setupSC();
+  const a = ok(b.call('saveAccept', { tenTB: 'Quạt hút bụi số 2', ma: 'M001',
+    sau: { muc: { a1: { so: '50', dg: 'D' }, a2: { dg: 'NA' }, b6: { dg: 'NA', gc: 'Chưa lắp' } }, ketLuan: 'CHO' } }, b.ql)).nghiemThu;
+  assert.equal(a.sau.muc.a2.dg, 'NA', 'giữ được mục N/A');
+  assert.deepEqual(a.sau.muc.b6, { gc: 'Chưa lắp', dg: 'NA' });
+  assert.equal(a.ketLuan, 'CHO', 'kết luận chờ lắp đặt lên dòng chính');
+  // Lắp xong: chấm nốt, đổi sang Đạt
+  const a2 = ok(b.call('saveAccept', { id: a.id, tenTB: a.tenTB, ma: a.ma,
+    sau: { muc: { a1: { so: '50', dg: 'D' }, a2: { A: '4', B: '4', C: '4', dg: 'D' }, b6: { so: '30', dg: 'D' } }, ketLuan: 'DAT' } }, b.ql)).nghiemThu;
+  assert.equal(a2.ketLuan, 'DAT');
+  assert.equal(a2.sau.muc.a2.dg, 'D');
+});
+
 test('ghi chú mã lỗi của nhà máy: chỉ Quản lý ghi, mã lỗi và cách xử lý tự dịch sang tiếng Trung', () => {
   const b = setupSC();
   err(b.call('saveFault', { ma: 'E.OC1', cachXuLy: 'x' }, b.kt), 'KHONG_QUYEN');
