@@ -496,6 +496,9 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .ngtmuc .dg{grid-column:2;display:flex;gap:7px;margin-top:8px}
 .ngtmuc .dg .chip.dat{background:var(--green-bg);border-color:var(--green);color:var(--green)}
 .ngtmuc .dg .chip.khong{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+.ngtmuc .dg .chip.na{background:var(--orange-bg);border-color:var(--orange);color:var(--orange)}
+.btn.cam{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn .stk .zi{white-space:normal}
 .codv{position:relative;display:block}
 .codv .inp{padding-right:46px}
 .codv i{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-style:normal;font-size:12px;font-weight:600;color:var(--ink3);pointer-events:none}
@@ -1691,7 +1694,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.54.0";
+const APP_VER = "2.55.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -2090,7 +2093,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.54.0';
+var PHIEN_BAN = '2.55.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -2180,7 +2183,7 @@ var BANG = {
   // Biên bản nghiệm thu động cơ / quạt gió gửi đơn vị ngoài sửa chữa.
   // Một dòng giữ CẢ HAI phần của một lần gửi sửa: Truoc (trước khi sửa) và Sau (nghiệm thu sau sửa), chung một số biên bản.
   // So: BBNT + năm.tháng.ngày / số thứ tự trong ngày, vd BBNT2026.10.08/3 — máy chủ tự đánh số, không trùng.
-  // Truoc / Sau (JSON): { chung: {...}, muc: { mã mục: {so, A, B, C, gc, dg} }, vanBan, vanBanDich, ky: {...}, ketLuan }
+  // Truoc / Sau (JSON): { chung: {...}, muc: { mã mục: {so, A, B, C, gc, dg: D | K | NA} }, vanBan, vanBanDich, ky: {...}, ketLuan: DAT | CHUA | CHO }
   NghiemThu: ['ID', 'SoBB', 'NgayNT', 'STT', 'Ma', 'TenTB', 'DonVi', 'CvId', 'Truoc', 'Sau', 'KetLuan',
     'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'Xoa', 'DvMay'],
   // Máy nén khí: mỗi máy một dòng. Danh sách riêng vì nhà máy chỉ có MỘT mã máy "Phòng máy nén khí"
@@ -4865,7 +4868,8 @@ function xoaMaLoi(u, p) {
 // Số biên bản do máy chủ đánh: BBNT + năm.tháng.ngày / số thứ tự trong ngày.
 var NGT_KHOA = ['id', 'soBB', 'ngayNT', 'stt', 'ma', 'tenTB', 'donVi', 'cvId', 'truoc', 'sau', 'ketLuan',
   'nguoiTao', 'uidTao', 'lucTao', 'capNhat', 'xoa', 'dvMay'];
-var NGT_KL = ['DAT', 'CHUA'];
+// CHO: quạt / động cơ sửa xong đã về nhưng chưa lắp vào máy được — các mục cần chạy thử để N/A, kiểm tra sau
+var NGT_KL = ['DAT', 'CHUA', 'CHO'];
 var NGT_CHU_TOI_DA = 2000;         // mỗi ô chữ trong biên bản
 // Truoc / Sau là object (không phải mảng) nên obThanhDong dùng chung không ghi được — đọc ghi riêng ở đây.
 function ngtThanhDong(x) {
@@ -4910,7 +4914,7 @@ function ngtSachPhan(v) {
     var o = v.muc[k] || {}, r = {};
     ['so', 'A', 'B', 'C'].forEach(function (f) { if (s(o[f]) !== '') r[f] = catChu(o[f], 30); });
     if (s(o.gc) !== '') r.gc = catChu(o.gc, 300);
-    if (o.dg === 'D' || o.dg === 'K') r.dg = o.dg;
+    if (o.dg === 'D' || o.dg === 'K' || o.dg === 'NA') r.dg = o.dg;   // NA: chưa kiểm tra được
     muc[s(k).slice(0, 30)] = r;
   });
   Object.keys(v.ky || {}).slice(0, 10).forEach(function (k) { ky[s(k).slice(0, 30)] = catChu(v.ky[k], 120); });
@@ -18427,6 +18431,15 @@ Object.assign(TX, {
   ngtDat: ['Đạt', '合格'], ngtKhong: ['Không đạt', '不合格'],
   ngtKlDat: ['Đạt yêu cầu — nghiệm thu thông qua, đưa vào hoạt động', '验收合格 — 投入使用'],
   ngtKlChua: ['Chưa đạt — yêu cầu xử lý bổ sung', '验收不合格 — 需要重新处理'],
+  ngtKlCho: ['Chờ lắp đặt — mục đã kiểm tra đạt, mục N/A kiểm tra sau khi lắp', '待安装 — 已检项目合格，N/A项目安装后再检'],
+  ngtNA: ['N/A', 'N/A'], ngtNATip: ['Chưa kiểm tra được (thiết bị chưa lắp đặt)', '暂无法检查（设备未安装）'],
+  ngtNAHet: ['Các mục chưa chấm → N/A', '未评定项目 → N/A'],
+  ngtNAHelp: ['Thiết bị sửa xong đã về nhưng chưa lắp vào máy được: chấm Đạt / Không đạt các mục kiểm tra được, các mục cần chạy thử bấm N/A (hoặc bấm nút trên để đánh N/A hết các mục chưa chấm), rồi chọn kết luận "Chờ lắp đặt". Khi lắp xong mở lại biên bản, chấm nốt và đổi kết luận.',
+    '设备修好已到厂但暂不能安装：可检查的项目评定合格/不合格，需试运行的项目选N/A（或点上方按钮把未评定项目全部设为N/A），结论选“待安装”。安装后重新打开验收单补评并修改结论。'],
+  ngtNADaDanh: ['Đã đánh N/A {n} mục', '已将{n}项设为N/A'], ngtNAKhong: ['Không còn mục nào chưa chấm', '没有未评定项目'],
+  ngtLoc_cho: ['Chờ lắp đặt', '待安装'], ngtChoLap: ['Chờ lắp đặt — còn mục N/A', '待安装 — 有N/A项目'],
+  ngtNAChua: ['{n} mục N/A chưa kiểm tra', '{n}项N/A未检查'],
+  srvMissNA: ['Máy chủ chưa lưu được mục N/A và kết luận "Chờ lắp đặt". Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不支持N/A项目及“待安装”结论。请更新 Code.gs 并重新部署。'],
   ngtTieuChuan: ['Tiêu chuẩn', '标准要求'], ngtThucTe: ['Kết quả thực tế / ghi chú', '实际结果'],
   ngtChuaCham: ['Chưa chấm', '未评定'],
   ngtLuu: ['Lưu biên bản', '保存验收单'], ngtIn: ['In / Lưu PDF', '打印 / 存PDF'],
@@ -18502,17 +18515,21 @@ function ngtDV(v, dv) {
   if (!v || !dv) return v;
   return new RegExp(dv.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i').test(v) ? v : v + ' ' + dv;
 }
-const ngtTT = (x) => (x.ketLuan === 'DAT' ? 'dat' : x.ketLuan === 'CHUA' ? 'chua' : 'dang');
-const NGT_PILL = { dat: 'p-ok', chua: 'p-qua', dang: 'p-cho' };
+const ngtTT = (x) => (x.ketLuan === 'DAT' ? 'dat' : x.ketLuan === 'CHUA' ? 'chua' : x.ketLuan === 'CHO' ? 'cho' : 'dang');
+const NGT_PILL = { dat: 'p-ok', chua: 'p-qua', dang: 'p-cho', cho: 'p-cho' };
+const NGT_TT_NHAN = { dat: 'ngtDat', chua: 'ngtKhong', dang: 'ngtDangSua', cho: 'ngtChoLap' };
+SRV_PHAN.push(['ngtna', '2.55.0', 'srvMissNA']);
+// Số mục N/A (chưa kiểm tra được) trong một phần biên bản
+const ngtSoNA = (d) => Object.keys((d && d.muc) || {}).filter((k) => d.muc[k] && d.muc[k].dg === 'NA').length;
 function ngtRow(x) {
   const tt = ngtTT(x), m = S.V.byMa[x.ma] || S.V.chByMa[x.ma];
   return `<button class="row" data-act="ngtMoBB" data-id="${esc(x.id)}">
     <div class="main"><div class="nm mono">${esc(x.soBB)}</div>
       <div class="sub">${esc(x.tenTB)}${m ? ' · ' + esc(mh(x.ma)) : ''}${x.donVi ? ' · ' + esc(x.donVi) : ''}</div>
       <div class="sub">${fmtD(x.ngayNT)}${x.sau ? '' : ' · ' + t('ngtChuaGhiSau')}</div></div>
-    <div class="end"><span class="pill ${NGT_PILL[tt]}">${t(tt === 'dat' ? 'ngtDat' : tt === 'chua' ? 'ngtKhong' : 'ngtDangSua')}</span>${IC.chev}</div></button>`;
+    <div class="end"><span class="pill ${NGT_PILL[tt]}">${t(NGT_TT_NHAN[tt])}</span>${IC.chev}</div></button>`;
 }
-const NGT_LOC = [['all', 'ngtLoc_all'], ['dang', 'ngtLoc_dang'], ['dat', 'ngtLoc_dat'], ['chua', 'ngtLoc_chua']];
+const NGT_LOC = [['all', 'ngtLoc_all'], ['dang', 'ngtLoc_dang'], ['cho', 'ngtLoc_cho'], ['dat', 'ngtLoc_dat'], ['chua', 'ngtLoc_chua']];
 VIEWS.ngt = {
   html() {
     if (srvOld('ngt')) return srvWarn('ngt');
@@ -18520,7 +18537,7 @@ VIEWS.ngt = {
     let ds = ngtDS();
     if (loc !== 'all') ds = ds.filter((x) => ngtTT(x) === loc);
     ds = ds.slice().sort((a, b) => String(b.ngayNT + b.soBB).localeCompare(String(a.ngayNT + a.soBB)));
-    const dem = { all: ngtDS().length, dang: 0, dat: 0, chua: 0 };
+    const dem = { all: ngtDS().length, dang: 0, cho: 0, dat: 0, chua: 0 };
     ngtDS().forEach((x) => { dem[ngtTT(x)]++; });
     return `<div class="hscroll stchips">${NGT_LOC.map(([v, k]) => `<button class="chip${loc === v ? ' on' : ''}" data-act="ngtLoc" data-v="${v}">${t(k)}${dem[v] ? ' (' + dem[v] + ')' : ''}</button>`).join('')}</div>
       <div class="btns" style="margin:12px 0"><button class="btn sm" data-act="ngtNew">${IC.plus} ${t('ngtThem')}</button></div>
@@ -18555,11 +18572,14 @@ function ngtThieu(p) {
     });
     m.nhom.forEach((n) => n.muc.forEach(([k, vi, zh, , , dv]) => {
       const q = (d.muc || {})[k] || {};
-      if (!q.dg) r.push(nhan(vi + ' — chưa chấm Đạt / Không đạt', zh + ' — 未评定'));
+      if (!q.dg) r.push(nhan(vi + ' — chưa chấm Đạt / Không đạt / N/A', zh + ' — 未评定'));
+      else if (q.dg === 'NA') return;              // chưa kiểm tra được thì không bắt ghi số đo
       else if (dv === 'A/B/C') { if (!['A', 'B', 'C'].every((ph) => String(q[ph] || '').trim())) r.push(nhan(vi + ' — thiếu số đo A/B/C', zh + ' — 缺A/B/C实测值')); }
       else if (dv && !String(q.so || '').trim()) r.push(nhan(vi + ' — thiếu số đo (' + dv + ')', zh + ' — 缺实测值'));
     }));
     if (m.ketLuan && !d.ketLuan) r.push(nhan('Kết luận nghiệm thu', '验收结论'));
+    // Còn mục N/A thì chưa thể kết luận "Đạt, đưa vào hoạt động"
+    if (m.ketLuan && d.ketLuan === 'DAT' && ngtSoNA(d)) r.push(nhan('Còn ' + ngtSoNA(d) + ' mục N/A — chọn kết luận "Chờ lắp đặt", hoặc kiểm tra nốt rồi mới chọn Đạt', '还有' + ngtSoNA(d) + '项N/A — 请选“待安装”或检查完毕后再选合格'));
   });
   return r;
 }
@@ -18609,6 +18629,8 @@ VIEWS.ngtGhi = {
     o += `</div></div>`;
 
     o += sec('ngtKetQua');
+    o += `${srvOld('ngtna') ? srvWarn('ngtna') : ''}<div class="help" style="margin:-2px 0 8px">${t('ngtNAHelp')}</div>
+      <div class="btns" style="margin:0 0 10px"><button type="button" class="btn ghost sm" data-act="ngtNAHet">${esc(tv('ngtNAHet'))}<span class="zi">${esc(tz('ngtNAHet'))}</span></button></div>`;
     m.nhom.forEach((n, ni) => {
       o += `<div class="ngtnhom">${String.fromCharCode(65 + ni)}. ${esc(n.ten)} <span class="zi" lang="zh-CN">${esc(n.zh)}</span></div><div class="card" style="margin-bottom:10px">`;
       n.muc.forEach(([k, vi, zh, tcv, tcz, dv], i) => {
@@ -18625,6 +18647,7 @@ VIEWS.ngtGhi = {
           <div class="dg">
             <button type="button" class="chip${q.dg === 'D' ? ' dat' : ''}" data-act="ngtDg" data-k="${k}" data-v="D">${t('ngtDat')}</button>
             <button type="button" class="chip${q.dg === 'K' ? ' khong' : ''}" data-act="ngtDg" data-k="${k}" data-v="K">${t('ngtKhong')}</button>
+            <button type="button" class="chip${q.dg === 'NA' ? ' na' : ''}" data-act="ngtDg" data-k="${k}" data-v="NA" title="${esc(tp('ngtNATip'))}">${esc(tv('ngtNA'))}</button>
           </div></div>`;
       });
       o += `</div>`;
@@ -18632,7 +18655,7 @@ VIEWS.ngtGhi = {
 
     if (m.ketLuan) {
       o += sec('ngtKetLuan') + `<div class="card pad"><div class="btns" style="flex-direction:column;align-items:stretch">
-        ${[['DAT', 'ngtKlDat'], ['CHUA', 'ngtKlChua']].map(([k, lb]) => `<button type="button" class="btn ${d.ketLuan === k ? (k === 'DAT' ? 'g' : 'danger') : 'ghost'}" data-act="ngtKl" data-v="${k}" style="justify-content:flex-start">${d.ketLuan === k ? IC.check : ''} <span class="stk">${tv(lb)}<span class="zi">${tz(lb)}</span></span></button>`).join('')}
+        ${[['DAT', 'ngtKlDat'], ['CHO', 'ngtKlCho'], ['CHUA', 'ngtKlChua']].map(([k, lb]) => `<button type="button" class="btn ${d.ketLuan === k ? (k === 'DAT' ? 'g' : k === 'CHO' ? 'cam' : 'danger') : 'ghost'}" data-act="ngtKl" data-v="${k}" style="justify-content:flex-start;flex:0 0 auto;white-space:normal;flex-wrap:nowrap;text-align:left">${d.ketLuan === k ? IC.check : ''} <span class="stk">${tv(lb)}<span class="zi">${tz(lb)}</span></span></button>`).join('')}
       </div></div>`;
     }
     o += `<div class="sec"><h2>${esc(m.vb[0])} <span class="zi" lang="zh-CN">${esc(m.vb[1])}</span></h2></div>
@@ -18720,19 +18743,21 @@ function ngtToHtml(x, seg) {
     n.muc.forEach(([k, vi, zh, tcv, tcz, dv], i) => {
       const q = muc[k] || {};
       let tx = '';
-      if (dv === 'A/B/C') tx = ['A', 'B', 'C'].map((ph) => ph + ': ' + (q[ph] || '…')).join('  ') + ' A';
+      if (dv === 'A/B/C') tx = q.dg === 'NA' && !['A', 'B', 'C'].some((ph) => q[ph]) ? '' : ['A', 'B', 'C'].map((ph) => ph + ': ' + (q[ph] || '…')).join('  ') + ' A';
       else if (dv) tx = (q.so ? q.so + ' ' + dv : '');
       if (q.gc) tx = tx ? tx + ' — ' + q.gc : q.gc;
       o += `<tr><td class="ctr">${i + 1}</td><td>${esc(vi)}<span class="zh">${esc(zh)}</span></td>
         <td>${esc(tcv)}<span class="zh">${esc(tcz)}</span></td><td>${esc(tx)}</td>
-        <td class="ctr">${q.dg === 'D' ? '☑ Đạt' : q.dg === 'K' ? '☒ Không đạt' : '☐'}</td></tr>`;
+        <td class="ctr">${q.dg === 'D' ? '☑ Đạt' : q.dg === 'K' ? '☒ Không đạt' : q.dg === 'NA' ? '☑ N/A' : '☐'}</td></tr>`;
     });
   });
   o += `</tbody></table>`;
+  if (ngtSoNA(d)) o += `<div class="ngtvb" style="min-height:0;border:0;padding:2px 0;font-size:11px"><i>N/A: chưa kiểm tra được (thiết bị chưa lắp đặt), kiểm tra lại sau khi lắp · 暂无法检查（设备未安装），安装后再检</i></div>`;
   let n = 3;
   if (m.ketLuan) {
     o += `<h4>${n++}. Kết luận nghiệm thu · 验收结论</h4>
       <div>${d.ketLuan === 'DAT' ? '☑' : '☐'} <b>Đạt yêu cầu</b> — nghiệm thu thông qua, đưa vào hoạt động · 验收合格，投入使用</div>
+      <div>${d.ketLuan === 'CHO' ? '☑' : '☐'} <b>Chờ lắp đặt</b> — các mục đã kiểm tra đạt; mục N/A kiểm tra lại sau khi lắp vào máy · 待安装 — 已检项目合格，N/A项目安装后再检</div>
       <div>${d.ketLuan === 'CHUA' ? '☑' : '☐'} <b>Chưa đạt</b> — yêu cầu xử lý bổ sung · 验收不合格，需要重新处理</div>`;
   }
   o += `<h4>${n++}. ${esc(m.vb[0])} · ${esc(m.vb[1])}</h4><div class="ngtvb">${esc(d.vanBan || '')}</div>`;
@@ -18752,6 +18777,8 @@ VIEWS.ngtXem = {
       <button class="btn ghost" data-act="ngtIn" data-id="${esc(x.id)}" data-v="truoc">${IC.print} ${t('ngtInTruoc')}</button>
       ${x.sau ? `<button class="btn ghost" data-act="ngtIn" data-id="${esc(x.id)}" data-v="sau">${IC.print} ${t('ngtInSau')}</button>`
     : `<button class="btn g" data-act="ngtSua" data-id="${esc(x.id)}" data-seg="sau">${IC.plus} ${t('ngtGhiSau')}</button>`}</div>
+      ${x.sau && ngtSoNA(x.sau) ? `<div class="card pad" style="margin-bottom:12px;border-color:var(--orange)"><b>${esc(tv('ngtNAChua', { n: ngtSoNA(x.sau) }))}</b> <span class="zi">${esc(tz('ngtNAChua', { n: ngtSoNA(x.sau) }))}</span>
+        <div class="btns" style="margin-top:8px"><button class="btn sm" data-act="ngtSua" data-id="${esc(x.id)}" data-seg="sau">${IC.edit} ${t('ngtGhiSau')}</button></div></div>` : ''}
       <div class="help" style="margin-bottom:12px">${t('ngtInHelp')}</div>
       <div class="ngtwrap">${ngtToHtml(x, 'truoc')}${x.sau ? ngtToHtml(x, 'sau') : ''}</div>`;
   }
@@ -18769,6 +18796,13 @@ Object.assign(ACT, {
     render();
   },
   ngtKl: (el) => { const p = topV().p; if (S.ngtSync) S.ngtSync(); const d = ngtPhan(p); d.ketLuan = d.ketLuan === el.dataset.v ? '' : el.dataset.v; render(); },
+  ngtNAHet: () => {
+    const p = topV().p; if (S.ngtSync) S.ngtSync();
+    const d = ngtPhan(p); let n = 0;
+    NGT_MAU[p.seg].nhom.forEach((g) => g.muc.forEach(([k]) => { const q = d.muc[k] = d.muc[k] || {}; if (!q.dg) { q.dg = 'NA'; n++; } }));
+    if (n && NGT_MAU[p.seg].ketLuan && !d.ketLuan) d.ketLuan = 'CHO';
+    toast(n ? t('ngtNADaDanh', { n }) : t('ngtNAKhong')); render();
+  },
   ngtIn: (el) => {
     const p = topV().p, x = el.dataset.id ? ngtGet(el.dataset.id) : null;
     let bb = x;
@@ -22849,7 +22883,7 @@ function qgXemMo(ma, i) {
     <div class="lshd">${t('qgLS')} <span class="nhomn">${sc.length + nt.length}</span></div>
     ${sc.length ? `<div class="list">${sc.map((x) => scRow(x, false)).join('')}</div>` : ''}
     ${nt.length ? `<div class="list">${nt.map((x) => `<button class="row" data-act="ngtMoBB" data-id="${esc(x.id)}"><div class="main"><div class="nm mono">${esc(x.soBB)}</div>
-      <div class="sub">${esc(fmtD(x.ngayNT))} · ${esc(x.donVi || '')}${x.ketLuan ? ' · ' + esc(x.ketLuan === 'DAT' ? tv('ngtDat') : tv('ngtKhong')) : ''}</div></div>${IC.chev}</button>`).join('')}</div>` : ''}
+      <div class="sub">${esc(fmtD(x.ngayNT))} · ${esc(x.donVi || '')}${x.ketLuan ? ' · ' + esc(tv(NGT_TT_NHAN[ngtTT(x)])) : ''}</div></div>${IC.chev}</button>`).join('')}</div>` : ''}
     ${!sc.length && !nt.length ? `<div class="card empty">${t('qgChuaSua')}</div>` : ''}`);
 }
 // Điền thông tin một quạt (hoặc một máy) vào cả hai mặt biên bản
