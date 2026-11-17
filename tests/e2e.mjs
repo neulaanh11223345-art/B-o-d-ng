@@ -2583,6 +2583,47 @@ await shot('77-nghiem-thu-cho-lap');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.55: nghiệm thu sau sửa ghi N/A cho mục chưa kiểm tra được, kết luận Chờ lắp đặt');
 
+// 41. Thêm / sửa / chuyển chuyền / bỏ một quạt ngay trong app (vẫn gộp theo chuyền)
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('quatGio', { ch: 'VKY01' }); }); await wait(600);
+const v41 = await page.evaluate(() => { const g = quatTheoChuyen(); const f = (c) => (g.find((x) => x.ch === c) || { ds: [] }).ds.length; return { v1: f('VKY01'), v2: f('VKY02'), dp: f('') }; });
+await page.click('[data-act="qgThem"][data-ch="VKY01"]'); await wait(600);
+assert.equal(await page.inputValue('#qgsTen'), 'Quạt số ' + (v41.v1 + 1), 'tên quạt mới tự gợi ý số kế tiếp');
+const mau41 = await page.evaluate(() => { const m = S.V.may.find((x) => x.chuyen === 'VKY02' && laQuatGio(x)); return m.ma + '|1'; });
+await page.selectOption('#qgsSao', mau41); await wait(500);
+assert.equal(await page.inputValue('[data-k="Công suất (kW)"]'), '16', 'sao chép thông số từ quạt khác');
+await page.fill('[data-k="Công suất (kW)"]', '18,5');
+await page.click('[data-act="qgsLuu"]'); await wait(1500);
+const moi41 = await page.evaluate(() => { const g = quatTheoChuyen().find((x) => x.ch === 'VKY01'); const q = g.ds[g.ds.length - 1]; return { n: g.ds.length, ten: q.ten, ma: q.maDV, cs: tsLay(q.ts, RE_CS, 1), ban: q.m.ten }; });
+assert.equal(moi41.n, v41.v1 + 1, 'chuyền VKY01 thêm một quạt, vẫn trong bản ghi gộp');
+assert.equal(moi41.cs, '18,5');
+assert.match(moi41.ma, /^M61\d{3}$/, 'quạt mới tự có mã riêng: ' + moi41.ma);
+assert.match(moi41.ban, /\(3 quạt\)$/, 'tên bản ghi cập nhật số quạt');
+assert.match(await text('.sheet'), new RegExp(moi41.ma), 'lưu xong mở tờ quạt mới');
+await shot('78-them-quat');
+await page.evaluate(() => closeSheet()); await wait(300);
+// Quạt số 2 của VKY02 (đã có lịch sử sửa) tháo xuống dự phòng: mã giữ, lịch sử đi theo
+const q41 = await page.evaluate(() => { const m = S.V.may.find((x) => x.chuyen === 'VKY02' && laQuatGio(x)); const q = quatCua(m)[1]; return { ma: m.ma, maDV: q.maDV, ls: scCuaQuat(q).length }; });
+await page.evaluate((ma) => go('qgSua', { ma, i: 1 }), q41.ma); await wait(600);
+await page.selectOption('#qgsCh', ''); await wait(300);
+assert.equal(await page.inputValue('#qgsTen'), 'Quạt số ' + (v41.dp + 1), 'đổi chuyền thì gợi ý tên kế tiếp của chuyền mới');
+await page.click('[data-act="qgsLuu"]'); await wait(1500);
+const dp41 = await page.evaluate((code) => { const r = dvTheoMa(code); return r && { ch: r.m.chuyen || '', ls: scCuaQuat(r.q).length, v2: quatCua(S.V.may.find((x) => x.chuyen === 'VKY02' && laQuatGio(x))).length }; }, q41.maDV);
+assert.deepEqual(dp41, { ch: '', ls: q41.ls, v2: v41.v2 - 1 }, 'quạt sang nhóm dự phòng, giữ mã, giữ lịch sử');
+await page.evaluate(() => closeSheet()); await wait(300);
+// Bỏ quạt thêm nhầm
+const bo41 = await page.evaluate((code) => { const r = dvTheoMa(code); return { ma: r.m.ma, i: r.q.i }; }, moi41.ma);
+await page.evaluate((x) => go('qgSua', x), bo41); await wait(600);
+await page.click('[data-act="qgsBoHoi"]'); await wait(400);
+await page.click('[data-act="qgsBo"]'); await wait(1500);
+assert.equal(await page.evaluate((code) => dvTheoMa(code), moi41.ma), null, 'bỏ được quạt thêm nhầm');
+// Quạt có lịch sử thì không bỏ được
+await page.evaluate((code) => { const r = dvTheoMa(code); go('qgSua', { ma: r.m.ma, i: r.q.i }); }, q41.maDV); await wait(600);
+await page.click('[data-act="qgsBoHoi"]'); await wait(400);
+await page.click('[data-act="qgsBo"]'); await wait(1200);
+assert.match(await text('#qgbErr'), /lịch sử sửa chữa/, 'quạt có lịch sử thì báo, không bỏ');
+await page.evaluate(() => { closeSheet(); while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.56: thêm quạt vào chuyền ngay trong app, sửa / chuyển chuyền (lắp quạt dự phòng), bỏ quạt thêm nhầm — mã giữ, lịch sử đi theo quạt');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
