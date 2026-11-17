@@ -1807,6 +1807,8 @@ const TX = {
   xRemain: ['Còn lại (ngày)', '剩余天数'], xStatus: ['Trạng thái', '状态'], xOnTime: ['Đúng hạn / trễ', '是否按时']
 };
 const ERR = {
+  CON_LICH_SU: ['Quạt này đã có lịch sử sửa chữa nên không bỏ được. Muốn đưa về kho dự phòng thì sửa quạt, chọn chuyền "Chưa gắn chuyền (dự phòng)".', '该风机已有维修记录，不能移除。如需放回备用，请修改风机并选择“未分配产线（备用）”。'],
+  TEN_TRUNG_DV: ['Chuyền này đã có quạt cùng tên — đặt tên khác.', '该产线已有同名风机，请改名。'],
   MANG: ['Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.', '无法连接服务器，请检查网络后重试。'],
   HET_PHIEN: ['Hết phiên đăng nhập, vui lòng đăng nhập lại.', '登录已过期，请重新登录。'],
   PIN_SAI: ['PIN không đúng', 'PIN码错误'],
@@ -2160,6 +2162,11 @@ async function flush() {
 }
 function mergeResult(d) {
   if (!d || !S.base) return;
+  // Biên bản nghiệm thu đổi theo (quạt chuyển chuyền / đổi tên thì biên bản đi theo quạt)
+  (d.dsNghiemThu || []).forEach((x) => {
+    const L = S.base.nghiemThu = S.base.nghiemThu || [], i = L.findIndex((y) => y.id === x.id);
+    if (i >= 0) L[i] = x; else L.push(x);
+  });
   if (d.ban) {
     const i = S.base.lichSu.findIndex((x) => x.id === d.ban.id);
     if (i >= 0) S.base.lichSu[i] = d.ban; else S.base.lichSu.push(d.ban);
@@ -16117,7 +16124,8 @@ VIEWS.quatGio = {
     let o = `<div class="card pad"><b>${esc(tv('qgSub', { n: tong, c: g.filter((x) => x.ch).length }))}</b> <span class="zi">${esc(tz('qgSub', { n: tong, c: g.filter((x) => x.ch).length }))}</span>
       <p class="help" style="margin:6px 0 0">${t('qgHelp')}</p>
       <input class="inp" id="qgTim" type="search" style="margin-top:10px" placeholder="${esc(tp('qgTim'))}" value="${esc(p.q || '')}" autocomplete="off">
-      ${qgThieuMaHtml()}</div>`;
+      ${qgThieuMaHtml()}
+      ${qgSuaDuoc() ? `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgThem">${IC.plus} ${t('qgThem')}</button></div>` : ''}</div>`;
     g.forEach(({ ch, ds }) => {
       const loc = q ? ds.filter((x) => norm([ch, x.maDV, x.ten, x.m.ten, x.ts.map((k) => k[1]).join(' ')].join(' ')).includes(q)) : ds;
       if (q && !loc.length) return;
@@ -16130,7 +16138,8 @@ VIEWS.quatGio = {
         ${mo ? `<div class="list">${loc.map((x) => { const n = scCuaQuat(x).length + ntCuaQuat(x).length, cs = tsLay(x.ts, RE_CS, 1), mdc = tsLay(x.ts, RE_MDC), mq = tsLay(x.ts, RE_MQ);
           return `<button class="row" data-act="qgXem" data-ma="${esc(x.m.ma)}" data-i="${x.i}"><div class="main"><div class="nm">${x.maDV ? `<span class="code">${esc(x.maDV)}</span> ` : ''}${esc(x.ten || x.m.ten)}</div>
             <div class="sub">${[cs ? cs + ' kW' : '', mq, mdc ? 'ĐC ' + mdc : ''].filter(Boolean).map(esc).join(' · ') || '—'}</div></div>
-            <div class="end">${n ? `<span class="pill p-nay">${esc(tv('qgSuaN', { n }))}</span>` : ''}${IC.chev}</div></button>`; }).join('')}</div>` : ''}</div>`;
+            <div class="end">${n ? `<span class="pill p-nay">${esc(tv('qgSuaN', { n }))}</span>` : ''}${IC.chev}</div></button>`; }).join('')}
+          ${qgSuaDuoc() && !q ? `<div class="pad" style="padding-top:8px"><button class="btn ghost sm" data-act="qgThem" data-ch="${esc(ch)}">${IC.plus} ${t('qgThemCh')}</button></div>` : ''}</div>` : ''}</div>`;
     });
     return o;
   },
@@ -16206,6 +16215,7 @@ function qgXemMo(ma, i) {
       ${m.viTri && !q.ts.some(([k]) => /^v[iị] tr[ií]/i.test(String(k || ''))) ? `<dt>${t('location')}</dt><dd>${esc(m.viTri)}</dd>` : ''}</dl></div>
     ${can('confirm') ? `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgGhiSC" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.wrench} ${t('qgGhiSC')}</button>
       <button class="btn ghost sm" data-act="qgNT" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.edit} ${t('qgNghiemThu')}</button></div>` : ''}
+    ${qgSuaDuoc() && (m.chiTiet || []).length ? `<div class="btns" style="margin-top:8px"><button class="btn ghost sm" data-act="qgSua" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.edit} ${t('qgSuaBtn')}</button></div>` : ''}
     <div class="lshd">${t('qgLS')} <span class="nhomn">${sc.length + nt.length}</span></div>
     ${sc.length ? `<div class="list">${sc.map((x) => scRow(x, false)).join('')}</div>` : ''}
     ${nt.length ? `<div class="list">${nt.map((x) => `<button class="row" data-act="ngtMoBB" data-id="${esc(x.id)}"><div class="main"><div class="nm mono">${esc(x.soBB)}</div>
@@ -16423,6 +16433,121 @@ function dmXlsx(d) {
     merges: ['A1:J1', 'A2:J2', 'A' + cuoi + ':J' + cuoi, 'A' + k + ':C' + k, 'D' + k + ':F' + k, 'G' + k + ':H' + k, 'I' + k + ':J' + k, 'A' + rows.length + ':C' + rows.length],
     heights: { 1: 28, 4: 34 }, freeze: { r: 4, c: 0 }, landscape: true }]);
 }
+
+// ===================== Thêm / sửa / chuyển chuyền / bỏ một quạt (v2.56) =====================
+// Quạt vẫn nằm trong bản ghi gộp của chuyền. Chuyền chưa có bản ghi thì máy chủ tự tạo.
+// Đổi chuyền (vd lắp quạt dự phòng lên chuyền) thì mã quạt giữ nguyên, lịch sử sửa chữa đi theo quạt.
+SRV_PHAN.push(['donvi', '2.56.0', 'srvMissDonVi']);
+Object.assign(TX, {
+  t_qgSua: ['Thông tin quạt', '风机信息'], qgThem: ['Thêm quạt', '新增风机'], qgThemCh: ['Thêm quạt vào chuyền này', '为该产线新增风机'],
+  qgSuaBtn: ['Sửa / chuyển chuyền', '修改 / 调换产线'], qgBo: ['Bỏ quạt', '移除风机'],
+  qgBoHoi: ['Bỏ {q} khỏi danh sách? Chỉ bỏ được quạt chưa có lịch sử sửa chữa (thêm nhầm). Quạt tháo xuống để dự phòng thì sửa quạt, chọn "Chưa gắn chuyền (dự phòng)".', '确定移除 {q}？只能移除没有维修记录的风机（误加）。拆下备用的风机请修改并选择“未分配产线（备用）”。'],
+  qgDuPhong: ['Chưa gắn chuyền (dự phòng)', '未分配产线（备用）'], qgChuyenDat: ['Chuyền đặt quạt', '安装产线'],
+  qgTenQuat: ['Tên quạt', '风机名称'], qgSaoChep: ['Sao chép thông số từ quạt khác', '从其他风机复制参数'], qgKhongSao: ['— Không sao chép —', '不复制'],
+  qgThongSo: ['Thông số', '参数'], qgMaSe: ['Mã quạt: {m}', '风机编号：{m}'], qgMaTu: ['Mã quạt tự cấp khi lưu (số kế tiếp)', '保存时自动分配编号（下一个序号）'],
+  qgSuaHelp: ['Đổi chuyền là chuyển quạt sang chuyền đó (vd lắp quạt dự phòng lên chuyền): mã quạt giữ nguyên, lịch sử sửa chữa đi theo quạt. Chuyền chưa có quạt nào thì app tự tạo bản ghi quạt gió cho chuyền đó.',
+    '更换产线即把风机调到该产线（例如把备用风机装到产线上）：编号不变，维修记录随风机转移。该产线还没有风机时，系统自动建立该产线的风机记录。'],
+  qgDaLuu: ['Đã lưu {q}', '已保存 {q}'], qgDaBo: ['Đã bỏ {q}', '已移除 {q}'],
+  srvMissDonVi: ['Máy chủ chưa thêm / sửa từng quạt được. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不支持新增 / 修改单台风机。请更新 Code.gs 并重新部署。']
+});
+const QG_COT_MAC_DINH = ['Chức năng (中文)', 'Model quạt (风机型号)', 'Điều khiển (控制方式)', 'Model motor (电机型号)', 'Dòng điện (A)', 'Công suất (kW)', 'Tốc độ (rpm)', 'Lưu lượng (m³/h)', 'Áp suất (Pa)', 'Vị trí', 'Ghi chú'];
+const qgSuaDuoc = () => can('may') && can('suatb');
+// Các cột thông số đang dùng cho quạt gió (theo thứ tự xuất hiện), để form thêm quạt mới có đủ ô như quạt cũ
+function qgCot() {
+  const out = [];
+  activeMay().filter(laQuatGio).forEach((m) => quatCua(m).forEach((q) => q.ts.forEach(([k]) => { k = String(k || '').trim(); if (k && out.indexOf(k) < 0) out.push(k); })));
+  return out.length ? out : QG_COT_MAC_DINH.slice();
+}
+// Tên gợi ý "Quạt số n" kế tiếp của một chuyền (bỏ qua quạt đang sửa)
+function qgTenKe(ch, boMa, boI) {
+  const g = quatTheoChuyen().find((x) => x.ch === ch), ds = g ? g.ds.filter((q) => !(q.m.ma === boMa && q.i === boI) && (q.m.chiTiet || []).length) : [];
+  let n = ds.length;
+  ds.forEach((q) => { const k = /s[oố]\s*(\d+)\s*$/i.exec(q.ten); if (k) n = Math.max(n, +k[1]); });
+  return 'Quạt số ' + (n + 1);
+}
+VIEWS.qgSua = {
+  html(p) {
+    if (!p.init) {
+      const m = p.ma && S.V.byMa[p.ma], q = m ? quatCua(m)[+p.i] : null;
+      p.init = 1; p.ch = m ? m.chuyen || '' : p.ch || ''; p.chGoc = p.ch;
+      p.ten = q ? q.ten : qgTenKe(p.ch); p.tenTu = !q;
+      p.v = {}; (q ? q.ts : []).forEach(([k, v]) => { p.v[String(k).trim()] = String(v === undefined ? '' : v); });
+      p.maDV = q ? q.maDV : '';
+    }
+    const cot = qgCot(); Object.keys(p.v).forEach((k) => { if (cot.indexOf(k) < 0) cot.push(k); });
+    const ch = S.V.ch || [], tatCaQ = quatTheoChuyen();
+    const coMa = activeMay().some((m) => laQuatGio(m) && quatCua(m).some((q) => q.maDV));
+    return `${srvOld('donvi') ? srvWarn('donvi') : ''}<div class="card pad">
+      ${p.maDV ? `<div class="mono" style="font-size:17px;font-weight:700;margin-bottom:6px">${esc(tv('qgMaSe', { m: p.maDV }))}</div>` : coMa ? `<div class="help" style="margin-bottom:6px">${t('qgMaTu')}</div>` : ''}
+      <div class="row2f"><label class="fld"><span>${t('qgChuyenDat')}</span><select class="inp" id="qgsCh">
+        <option value=""${!p.ch ? ' selected' : ''}>${esc(tp('qgDuPhong'))}</option>
+        ${ch.map((c) => `<option value="${esc(c.ma)}"${c.ma === p.ch ? ' selected' : ''}>${esc(mh(c.ma))}${c.ten ? ' · ' + esc(c.ten) : ''}</option>`).join('')}</select></label>
+      <label class="fld"><span>${t('qgTenQuat')}</span><input class="inp" id="qgsTen" maxlength="80" value="${esc(p.ten)}"></label></div>
+      <p class="help" style="margin:4px 0 0">${t('qgSuaHelp')}</p></div>
+      <div class="sec"><h2>${tv('qgThongSo')} <span class="zi">${tz('qgThongSo')}</span></h2></div>
+      <div class="card pad"><label class="fld"><span>${t('qgSaoChep')}</span><select class="inp" id="qgsSao"><option value="">${esc(tp('qgKhongSao'))}</option>
+        ${tatCaQ.map(({ ch: c, ds }) => `<optgroup label="${esc(c ? mh(c) : tp('qgDuPhong'))}">${ds.filter((q) => !(q.m.ma === p.ma && q.i === +p.i)).map((q) =>
+          `<option value="${esc(q.m.ma)}|${q.i}">${esc([q.maDV, q.ten || q.m.ten, tsLay(q.ts, RE_CS, 1) ? tsLay(q.ts, RE_CS, 1) + ' kW' : '', tsLay(q.ts, RE_MDC)].filter(Boolean).join(' · '))}</option>`).join('')}</optgroup>`).join('')}</select></label>
+      <div class="row2f" style="margin-top:6px">${cot.map((k, j) => `<label class="fld"><span>${esc(k)}</span><input class="inp" data-qgk="${j}" data-k="${esc(k)}" value="${esc(p.v[k] || '')}"></label>`).join('')}</div></div>
+      <div class="err" id="qgsErr" hidden></div>
+      <div class="btns" style="margin-top:14px"><button class="btn bigbtn" data-act="qgsLuu"${srvOld('donvi') ? ' disabled' : ''}>${IC.check} ${t('save')}</button>
+        ${p.ma ? `<button class="btn danger" data-act="qgsBoHoi">${t('qgBo')}</button>` : ''}</div>`;
+  },
+  after(p) {
+    const ten = $('#qgsTen'), chs = $('#qgsCh');
+    if (!ten) return;
+    ten.addEventListener('input', () => { p.ten = ten.value; p.tenTu = false; });
+    chs.addEventListener('change', () => {
+      p.ch = chs.value;
+      // Tên tự đặt, hoặc chuyển sang chuyền khác: gợi ý số kế tiếp của chuyền mới (vẫn sửa được)
+      if (p.tenTu || (p.ma && p.ch !== p.chGoc)) { p.ten = p.ch === p.chGoc && p.ma ? quatCua(S.V.byMa[p.ma])[+p.i].ten : qgTenKe(p.ch, p.ma, +p.i); ten.value = p.ten; p.tenTu = true; }
+    });
+    $$('[data-qgk]').forEach((el) => el.addEventListener('input', () => { p.v[el.dataset.k] = el.value; }));
+    $('#qgsSao').addEventListener('change', (e) => {
+      const [ma, i] = e.target.value.split('|'), m = S.V.byMa[ma], q = m && quatCua(m)[+i];
+      if (!q) return;
+      q.ts.forEach(([k, v]) => { k = String(k).trim(); if (!/^(ghi ch[uú]|v[iị] tr[ií])/i.test(k)) p.v[k] = String(v === undefined ? '' : v); });
+      render();
+    });
+  }
+};
+Object.assign(TITLES, { qgSua: 't_qgSua' });
+Object.assign(ACT, {
+  qgThem: (el) => { closeSheet(); go('qgSua', { ch: el.dataset.ch || '' }); },
+  qgSua: (el) => { closeSheet(); go('qgSua', { ma: el.dataset.ma, i: +el.dataset.i }); },
+  qgsLuu: async (el) => {
+    const p = topV().p, fe = $('#qgsErr'); fe.hidden = true;
+    const m = p.ma && S.V.byMa[p.ma], nhom = m ? m.nhom : ((activeMay().find(laQuatGio) || {}).nhom || 'Quạt gió');
+    const cot = Object.keys(p.v).filter((k) => String(p.v[k]).trim() !== '').map((k) => [k, String(p.v[k]).trim()]);
+    el.disabled = true;
+    try {
+      const d = await api('saveUnit', { nhom, ma: p.ma || '', i: p.ma ? +p.i : -1, chuyen: p.ch, ten: String(p.ten || '').trim(), cot });
+      mergeResult(d);
+      const dv = d.donVi || {};
+      S.f.qgMo = S.f.qgMo || {}; S.f.qgMo[p.ch] = true;
+      toast(t('qgDaLuu', { q: (dv.maDV ? dv.maDV + ' · ' : '') + (dv.ten || '') }));
+      back();
+      if (topV().v === 'quatGio') topV().p.ch = p.ch; else go('quatGio', { ch: p.ch });
+      render();
+      if (dv.ma) setTimeout(() => qgXemMo(dv.ma, dv.i), 60);
+    } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  },
+  qgsBoHoi: () => {
+    const p = topV().p, q = quatCua(S.V.byMa[p.ma])[+p.i];
+    openSheet(`<div class="grab"></div><h3>${tv('qgBo')}<span class="zi">${tz('qgBo')}</span></h3>
+      <p class="help">${esc(tv('qgBoHoi', { q: (q.maDV ? q.maDV + ' · ' : '') + q.ten }))}<span class="zi">${esc(tz('qgBoHoi', { q: q.ten }))}</span></p>
+      <div class="err" id="qgbErr" hidden></div>
+      <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="qgsBo">${t('qgBo')}</button></div>`);
+  },
+  qgsBo: async (el) => {
+    const p = topV().p, q = quatCua(S.V.byMa[p.ma])[+p.i];
+    el.disabled = true;
+    try {
+      const d = await api('saveUnit', { ma: p.ma, i: +p.i, xoa: true });
+      mergeResult(d); closeSheet(); toast(t('qgDaBo', { q: q.ten })); back(); render();
+    } catch (e) { el.disabled = false; const fe = $('#qgbErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  }
+});
 
 // Link từ tem QR: ...?m=M001
 try {
