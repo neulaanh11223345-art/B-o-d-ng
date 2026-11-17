@@ -823,6 +823,25 @@ test('thêm / sửa / chuyển chuyền / bỏ một quạt ngay trong app: vẫ
   assert.equal(new Set(tatCa).size, tatCa.length);
 });
 
+test('thêm / chuyển máy theo chuyền dùng được cho mọi nhóm có bản ghi gộp (vd máy keo); dịch tên hàng cho phiếu đặt mua', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const G = 'Máy keo · 热熔胶机';
+  ok(b.call('importMachines', { rows: [{ ten: 'Máy keo chuyền VKY01 (2 máy)', nhom: G, chuyen: 'VKY01',
+    chiTiet: [{ cot: [['Tên', 'Máy keo số 1'], ['Model', 'TEST-A']] }, { cot: [['Tên', 'Máy keo số 2'], ['Model', 'TEST-A']] }], thongSo: [['Số máy', '2']] }] }, ql));
+  err(b.call('saveUnit', { chuyen: 'VKY01', cot: [] }, ql), 'KHONG_CO');
+  let r = ok(b.call('saveUnit', { nhom: G, chuyen: 'VKY01', cot: [['Model', 'TEST-B']] }, ql));
+  assert.equal(r.donVi.ten, 'Máy keo số 3', 'tên theo kiểu đang dùng trong loại');
+  assert.equal(r.dsMay[0].ten, 'Máy keo chuyền VKY01 (3 máy)');
+  assert.deepEqual(r.dsMay[0].thongSo, [['Số máy', '3']]);
+  r = ok(b.call('saveUnit', { nhom: G, chuyen: 'VKY02', cot: [] }, ql));
+  assert.equal(r.dsMay[0].ten, 'Máy keo · 热熔胶机 chuyền VKY02 (1 máy)', 'chuyền mới: bản ghi gộp tự tạo, đếm bằng "máy"');
+  assert.equal(r.donVi.ten, 'Máy keo số 1');
+  // Dịch tên hàng chưa có mã (phiếu đặt mua): mọi tài khoản đăng nhập
+  b.ctx.__dichMau.push(['Cảm biến quang', '光电传感器']);
+  assert.deepEqual(ok(b.call('translate', { ds: ['Cảm biến quang', ''] }, kt)).dich, ['光电传感器', '']);
+});
+
 test('mỗi quạt một mã riêng nhưng vẫn gộp theo chuyền: đánh mã từng đơn vị, giữ mã cũ, không trùng, quạt mới tự lấy số', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');

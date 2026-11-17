@@ -2525,7 +2525,6 @@ await page.click('[data-act="dmLoc"][data-v="tatca"]'); await wait(300);
 await page.fill('#dmTim', 'vong bi'); await wait(400);
 const chua40 = page.locator('#dmDs .ksi:not([disabled])');
 if (await chua40.count()) { await chua40.first().click(); await wait(400); }
-await page.locator('summary', { hasText: 'chưa có mã ERP' }).click();
 await page.fill('#dmNTen', 'Động cơ 15kW'); await page.fill('#dmNSL', '2'); await page.click('[data-act="dmThemNgoai"]'); await wait(400);
 await page.fill('[data-dmsl="0"]', '5'); await page.fill('[data-dmgc="0"]', 'Gấp');
 const xl40 = await page.evaluate(async () => {
@@ -2623,6 +2622,44 @@ await page.click('[data-act="qgsBo"]'); await wait(1200);
 assert.match(await text('#qgbErr'), /lịch sử sửa chữa/, 'quạt có lịch sử thì báo, không bỏ');
 await page.evaluate(() => { closeSheet(); while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.56: thêm quạt vào chuyền ngay trong app, sửa / chuyển chuyền (lắp quạt dự phòng), bỏ quạt thêm nhầm — mã giữ, lịch sử đi theo quạt');
+
+// 42. Màn theo chuyền cho mọi nhóm máy; đặt mua hàng chưa có mã (tên TQ tự dịch, máy dùng) → Excel
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('list'); }); await wait(500);
+await page.click('#main [data-act="quatGio"]'); await wait(600);
+const nh42 = await page.$$eval('[data-act="qgNhom"]', (e) => e.map((x) => x.dataset.g));
+assert.ok(nh42.length >= 3, 'có chip chọn từng loại thiết bị: ' + nh42.length);
+const g42 = await page.evaluate(() => qgCacNhom().find((g) => !laQuatGio({ nhom: g }) && !coGop(g) && activeMay().some((m) => m.nhom === g && m.chuyen)));
+await page.click(`[data-act="qgNhom"][data-g="${g42}"]`); await wait(500);
+assert.equal(await page.evaluate(() => $('#barTitle').textContent), 'Thiết bị theo chuyền', 'tiêu đề chung cho loại không phải quạt');
+assert.match(await text('#main'), /\d+ máy · \d+ chuyền/, 'đếm bằng "máy"');
+const ch42 = await page.evaluate((g) => activeMay().find((m) => m.nhom === g && m.chuyen).chuyen, g42);
+await page.evaluate((ch) => { S.f.qgMo[ch] = true; render(); }, ch42); await wait(400);
+await page.locator('[data-act="qgXem"]').first().click(); await wait(500);
+assert.ok(await page.locator('.sheet [data-act="qgMoHS"]').count() === 1, 'máy riêng lẻ có nút mở hồ sơ');
+await page.evaluate(() => closeSheet()); await wait(300);
+await page.click(`[data-act="qgThem"][data-ch="${ch42}"]`); await wait(600);
+assert.deepEqual(await page.evaluate(() => ({ v: topV().v, nhom: $('#eNhom').value, ch: $('#eCh').value })), { v: 'mayEdit', nhom: g42, ch: ch42 }, 'loại máy riêng lẻ: mở form thêm thiết bị điền sẵn loại và chuyền');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+// Phiếu đặt mua: hàng chưa có mã, tên tiếng Trung tự dịch
+await page.evaluate(() => { tab('kho'); go('datMua', {}); }); await wait(700);
+await page.fill('#dmNTen', 'Cảm biến quang'); await page.fill('#dmNQC', 'TEST-E3Z-D61'); await page.fill('#dmNDV', 'cái'); await page.fill('#dmNSL', '3');
+await chonTB('dmNMay', 'M001');
+await page.click('[data-act="dmThemNgoai"]'); await wait(1500);
+const r42 = await page.evaluate(() => dmLay().ds.find((r) => r.ten === 'Cảm biến quang'));
+assert.deepEqual([r42.tenZh, r42.tuDich, r42.qc, r42.may, String(r42.sl)], ['光电传感器', true, 'TEST-E3Z-D61', 'M001', '3'], 'tên tiếng Trung tự dịch, đủ quy cách, máy dùng');
+assert.match(await text('#main'), /光电传感器/, 'hiện tên tiếng Trung trong phiếu');
+const xl42 = await page.evaluate(async () => {
+  const u = new Uint8Array(await dmXlsx(dmLay()).arrayBuffer()), rows = await (await readXlsx(u.buffer))[0].rows();
+  const r = rows.find((x) => (x || []).indexOf('Cảm biến quang') >= 0) || [];
+  return { mh: mh('M001') + ' ', r: r.map((v) => String(v === undefined || v === null ? '' : v)), hd: (rows.find((x) => (x || []).some((v) => /Tên tiếng Trung/.test(String(v)))) || []).length };
+});
+assert.equal(xl42.hd, 11, 'Excel có cột tên tiếng Trung');
+assert.ok(xl42.r.includes('光电传感器') && xl42.r.includes('TEST-E3Z-D61') && xl42.r.some((v) => v.indexOf(xl42.mh) === 0), 'dòng Excel có tên TQ, quy cách, máy dùng: ' + xl42.r.join(' | '));
+await shot('79-dat-mua-chua-co-ma');
+page.once('dialog', (dg) => dg.accept());
+await page.click('[data-act="dmXoaHet"]'); await wait(400);
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.57: màn theo chuyền cho mọi loại thiết bị; đặt mua hàng chưa có mã — tên tiếng Trung tự dịch, chọn máy dùng, xuất Excel');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
