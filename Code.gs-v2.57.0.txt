@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.56.0';
+var PHIEN_BAN = '2.57.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -347,6 +347,7 @@ function dieuHuong(a, p, req) {
     case 'saveMaLoai': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return luuMaLoai(u, p);
     case 'unitCodes': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return danhMaDV(u, p);
     case 'saveUnit': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return luuDonVi(u, p);
+    case 'translate': return dichNhieu(p);
     case 'deleteMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return xoaThietBi(u, p);
     case 'saveSpot': canQuyen(u, 'xacnhan'); return luuViTriMay(u, p);
     case 'saveLine': canQuyen(u, 'may'); return luuChuyen(u, p);
@@ -1922,6 +1923,11 @@ function dichChu(t) {
     return '';
   }
 }
+// Dịch một loạt chữ ngắn cho app (vd tên hàng chưa có mã trong phiếu đặt mua): tối đa 40 dòng, mỗi dòng 200 ký tự
+function dichNhieu(p) {
+  var ds = Array.isArray(p.ds) ? p.ds.slice(0, 40) : [];
+  return { dich: ds.map(function (t) { return dichChu(catChu(t, 200)); }) };
+}
 // Chữ người dùng gõ → [chữ gốc, bản dịch]
 function songNgu(t, dichTay) {
   t = s(t);
@@ -3376,17 +3382,34 @@ function tenDV(ct) {
 function banGhiGop(ds, nhom, chuyen) {
   var cung = ds.filter(function (m) { return !m.xoa && s(m.nhom) === nhom && s(m.chuyen) === chuyen; });
   return cung.filter(function (m) { return m.hoatDong && (m.chiTiet || []).length; })[0] ||
-    cung.filter(function (m) { return (m.chiTiet || []).length || /\(\s*\d+\s*qu[aạ]t\s*\)\s*$/i.test(m.ten); })[0] || null;
+    cung.filter(function (m) { return (m.chiTiet || []).length || RE_DEM_DV.test(m.ten); })[0] || null;
 }
-// Sau khi số quạt đổi: tên "(n quạt)", thông số Số quạt / Tổng công suất, bản ghi rỗng thì ngừng theo dõi
+// Đuôi tên bản ghi gộp: "(5 quạt)", "(3 máy)"…
+var RE_DEM_DV = /\(\s*\d+\s*([^\d()]{1,12}?)\s*\)\s*$/;
+var laNhomQuat = function (nhom) { return /qu[aạ]t\s*gi[oó]|风机/i.test(s(nhom)); };
+// Chữ gọi một đơn vị của loại: quạt gió → "quạt", loại khác → "máy"
+function chuDV(nhom) { return laNhomQuat(nhom) ? 'quạt' : 'máy'; }
+// Tên gợi ý của đơn vị kế tiếp: theo kiểu tên đang dùng nhiều nhất trong loại ("Quạt số n", "Máy keo số n"…)
+function tenDVKe(dich, tatCa, nhom) {
+  var dem = {}, best = '', n = 0;
+  tatCa.forEach(function (m) {
+    if (s(m.nhom) !== nhom) return;
+    (m.chiTiet || []).forEach(function (ct) { var k = /^(.*?)\s*s[oố]\s*\d+\s*$/i.exec(tenDV(ct)); if (k && k[1]) dem[k[1]] = (dem[k[1]] || 0) + 1; });
+  });
+  Object.keys(dem).forEach(function (k) { if (!best || dem[k] > dem[best]) best = k; });
+  if (!best) best = laNhomQuat(nhom) ? 'Quạt' : 'Máy';
+  dich.chiTiet.forEach(function (ct) { var k = /s[oố]\s*(\d+)\s*$/i.exec(tenDV(ct)); if (k) n = Math.max(n, Number(k[1])); });
+  return best + ' số ' + (Math.max(n, dich.chiTiet.length) + 1);
+}
+// Sau khi số đơn vị đổi: tên "(n quạt)", thông số Số quạt / Tổng công suất, bản ghi rỗng thì ngừng theo dõi
 function capNhatGop(m) {
   var n = (m.chiTiet || []).length, kw = 0;
   m.chiTiet.forEach(function (ct) {
     (ct.cot || []).forEach(function (kv) { if (/c[oô]ng su[aấ]t|功率/i.test(s(kv[0]))) { var v = parseFloat(s(kv[1]).replace(',', '.')); if (v) kw += v; } });
   });
-  m.ten = m.ten.replace(/\(\s*\d+\s*qu[aạ]t\s*\)\s*$/i, '(' + n + ' quạt)');
+  m.ten = m.ten.replace(RE_DEM_DV, function (a, chu) { return '(' + n + ' ' + chu + ')'; });
   m.thongSo = (m.thongSo || []).map(function (kv) {
-    if (/^s[oố] qu[aạ]t/i.test(s(kv[0]))) return [kv[0], String(n)];
+    if (/^s[oố] (qu[aạ]t|m[aá]y|l[uư][oợ]ng)/i.test(s(kv[0]))) return [kv[0], String(n)];
     if (/^t[oổ]ng c[oô]ng su[aấ]t/i.test(s(kv[0]))) return [kv[0], kw ? String(Math.round(kw * 10) / 10) : ''];
     return kv;
   });
@@ -3413,7 +3436,8 @@ function luuDonVi(u, p) {
   if (s(p.ma) && (!nguon || nguon.xoa)) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
   var i = Math.round(Number(p.i));
   if (nguon && !(i >= 0 && i < (nguon.chiTiet || []).length)) throw loi('KHONG_CO', 'Không tìm thấy quạt · 找不到该风机');
-  var nhom = nguon ? s(nguon.nhom) : catChu(p.nhom, 60) || 'Quạt gió';
+  var nhom = nguon ? s(nguon.nhom) : catChu(p.nhom, 60);
+  if (!nhom) throw loi('KHONG_CO', 'Chưa chọn loại thiết bị · 未选择设备类别');
   var ctCu = nguon ? nguon.chiTiet[i] : null, tenCu = ctCu ? tenDV(ctCu) : '', maCu = ctCu ? maDV(ctCu) : '';
   var lichSu = function (ten) {
     return nguon && (docCongViec().some(function (x) { return x.ma === nguon.ma && s(x.dvMay) === ten && x.trangThai !== 'HUY'; }) ||
@@ -3424,10 +3448,10 @@ function luuDonVi(u, p) {
   // --- Bỏ quạt ---
   if (p.xoa === true) {
     if (!nguon) throw loi('KHONG_CO', 'Không tìm thấy quạt · 找不到该风机');
-    if (lichSu(tenCu)) throw loi('CON_LICH_SU', 'Quạt này đã có lịch sử sửa chữa — chuyển sang "Chưa gắn chuyền" thay vì bỏ · 该风机有维修记录，请改为“未分配产线”');
+    if (lichSu(tenCu)) throw loi('CON_LICH_SU', 'Thiết bị này đã có lịch sử sửa chữa — chuyển sang "Chưa gắn chuyền" thay vì bỏ · 该设备有维修记录，请改为“未分配产线”');
     nguon.chiTiet.splice(i, 1); capNhatGop(nguon); nguon.capNhat = bay;
     suaDong('May', nguon._r, mayThanhDong(nguon));
-    ghiNhatKy(u, 'BO_DON_VI', 'May', nguon.ma, { quat: tenCu, ma: maCu }, {}, 'Bỏ quạt · 移除风机');
+    ghiNhatKy(u, 'BO_DON_VI', 'May', nguon.ma, { donVi: tenCu, ma: maCu }, {}, 'Bỏ đơn vị · 移除单台设备');
     return { dsMay: [sachMay(nguon)] };
   }
   var chuyen = s(p.chuyen).toUpperCase();
@@ -3439,8 +3463,8 @@ function luuDonVi(u, p) {
     var mau = tatCa.filter(function (m) { return !m.xoa && s(m.nhom) === nhom; })[0] || {};
     dich = { ma: maMoi(tatCa), hangMuc: [], linhKien: [], nhom: nhom, chuyen: chuyen, tenPhu: '', viTri: '', chuKy: 0, hanKeTiep: '',
       noiDung: '', hoatDong: true, phuTrach: '', ngayDuaVao: '', maHT: '', khoi: mau.khoi || '', chiTiet: [], _moi: true,
-      ten: nhom + (chuyen ? ' chuyền ' + chuyen : ' chưa gắn chuyền') + ' (0 quạt)',
-      thongSo: [['Số quạt', '0'], ['Tổng công suất (kW)', '']] };
+      ten: nhom + (chuyen ? ' chuyền ' + chuyen : ' chưa gắn chuyền') + ' (0 ' + chuDV(nhom) + ')',
+      thongSo: [['Số ' + chuDV(nhom), '0'], ['Tổng công suất (kW)', '']] };
     tatCa.push(dich); theoMa[dich.ma] = dich;
   }
   // Tên quạt: gõ tay, hoặc "Quạt số n" kế tiếp trong chuyền; không trùng tên trong cùng bản ghi
@@ -3448,14 +3472,10 @@ function luuDonVi(u, p) {
   var laQuatCu = function (ct, j) { return dich === nguon && j === i; };
   if (!ten) {
     if (dich === nguon && tenCu) ten = tenCu;
-    else {
-      var n = 0;
-      dich.chiTiet.forEach(function (ct) { var k = /s[oố]\s*(\d+)\s*$/i.exec(tenDV(ct)); if (k) n = Math.max(n, Number(k[1])); });
-      ten = 'Quạt số ' + (Math.max(n, dich.chiTiet.length) + 1);
-    }
+    else ten = tenDVKe(dich, tatCa, nhom);
   }
   if (dich.chiTiet.some(function (ct, j) { return !laQuatCu(ct, j) && tenDV(ct).toLowerCase() === ten.toLowerCase(); }))
-    throw loi('TEN_TRUNG_DV', 'Chuyền này đã có "' + ten + '" — đặt tên khác · 该产线已有同名风机，请改名');
+    throw loi('TEN_TRUNG_DV', 'Chuyền này đã có "' + ten + '" — đặt tên khác · 该产线已有同名设备，请改名');
   var moiCt = { cot: (maCu ? [[KHOA_MA_DV, maCu]] : []).concat([['Tên', ten]], cot) };
   if (!maCu) {
     // Quạt mới: cấp mã riêng kế tiếp nếu loại đã đánh mã từng quạt
@@ -3475,8 +3495,8 @@ function luuDonVi(u, p) {
   });
   var ls = nguon ? doiLichSuDV(nguon.ma, tenCu, dich.ma, ten) : { cv: [], nt: [] };
   ghiNhatKy(u, nguon ? (dich === nguon ? 'SUA_DON_VI' : 'CHUYEN_DON_VI') : 'THEM_DON_VI', 'May', dich.ma,
-    nguon ? { ban: nguon.ma, quat: tenCu } : {}, { ban: dich.ma, chuyen: chuyen, quat: ten, ma: maDV(moiCt) },
-    nguon ? (dich === nguon ? 'Sửa quạt · 修改风机' : 'Chuyển quạt sang chuyền khác · 风机调换产线') : 'Thêm quạt · 新增风机');
+    nguon ? { ban: nguon.ma, donVi: tenCu } : {}, { ban: dich.ma, chuyen: chuyen, donVi: ten, ma: maDV(moiCt) },
+    nguon ? (dich === nguon ? 'Sửa đơn vị · 修改单台设备' : 'Chuyển sang chuyền khác · 调换产线') : 'Thêm đơn vị · 新增单台设备');
   return { dsMay: Object.keys(doi).map(function (k) { return sachMay(doi[k]); }), dsCongViec: ls.cv, dsNghiemThu: ls.nt,
     donVi: { ma: dich.ma, i: dich.chiTiet.indexOf(moiCt), maDV: maDV(moiCt), ten: ten } };
 }

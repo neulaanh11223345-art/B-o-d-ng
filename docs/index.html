@@ -1694,7 +1694,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.56.0";
+const APP_VER = "2.57.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -2489,7 +2489,7 @@ function render() {
   $('#main').innerHTML = V.html(cur.p);
   if (V.after) V.after(cur.p);
   const tk = !xemDuoc(cur.v) ? 't_khongQuyen' : cur.v === 'mayEdit' && !cur.p.ma ? 't_mayNew' : cur.v === 'dsEdit' && cur.p.k === 'lk' ? 't_dsLK' : cur.v === 'cv' && !xemHet() ? 't_cvSC'
-    : cur.v === 'cvNew' && cur.p.xong ? 't_cvSuaXong' : cur.v === 'cvNew' && cur.p.sua ? 't_cvSuaViec' : TITLES[cur.v];
+    : cur.v === 'cvNew' && cur.p.xong ? 't_cvSuaXong' : cur.v === 'cvNew' && cur.p.sua ? 't_cvSuaViec' : K(TITLES[cur.v]);
   $('#barTitle').textContent = tv(tk); $('#barSub').textContent = tz(tk);
   $('#barLead').innerHTML = S.stack.length > 1
     ? `<button class="back" data-act="back" aria-label="${tp('back')}">${IC.left}</button>`
@@ -3233,7 +3233,7 @@ VIEWS.may = {
           (x.cot || []).forEach(([k, v]) => { o2[k] = v; });
           return `<tr>${nhan.map((k, i) => `<td class="${i ? 'mono' : ''}"${i ? '' : ' style="font-weight:600"'}>${esc(o2[k] === undefined ? '' : o2[k])}</td>`).join('')}</tr>`;
         }).join('');
-        if (laQuatGio(m)) o += `<div class="btns" style="margin:12px 0 0"><button class="btn sm" data-act="quatGio" data-ch="${esc(m.chuyen || '')}">${IC.list} ${t('qgXemDS')} (${ct.length})</button></div>`;
+        o += `<div class="btns" style="margin:12px 0 0"><button class="btn sm" data-act="quatGio" data-ch="${esc(m.chuyen || '')}" data-g="${esc(m.nhom || '')}">${IC.list} ${t(laQuatGio(m) ? 'qgXemDS' : 'tbTheoCh')} (${ct.length})</button></div>`;
         o += sec('tbChiTiet', ct.length) + `<div class="card"><div class="tblwrap"><table class="dt ctbang">
           <thead><tr>${nhan.map((k) => `<th>${esc(k)}</th>`).join('')}</tr></thead><tbody>${tr}</tbody></table></div></div>`;
       }
@@ -4046,7 +4046,7 @@ VIEWS.list = {
     const nut = [];
     if (can('may') && can('suatb')) nut.push(`<button class="btn sm" data-act="newMay">${IC.plus} ${t('addMachine')}</button>`,
       `<button class="btn ghost sm" data-act="go" data-v="tbNhap">${IC.dl} ${t('tbNhapBtn')}</button>`);
-    if (activeMay().some(laQuatGio)) nut.push(`<button class="btn ghost sm" data-act="quatGio">${IC.list} ${t('t_quatGio')}</button>`);
+    if (activeMay().length) nut.push(`<button class="btn ghost sm" data-act="quatGio"${f.grp && f.grp.indexOf('__') !== 0 ? ` data-g="${esc(f.grp)}"` : ''}>${IC.list} ${t('tbTheoCh')}</button>`);
     if (can('xuattb')) nut.push(`<button class="btn ghost sm" data-act="go" data-v="tbXuat">${IC.share} ${t(can('may') && can('suatb') ? 'tbXuatNhapBtn' : 'tbXuatBtn')}</button>`);
     if (can('may')) nut.push(`<button class="btn ghost sm" data-act="labels">${IC.qr} ${t('printQR')}</button>`);
     if (nut.length) o += `<div class="btns" style="margin-bottom:14px">${nut.join('')}</div>`;
@@ -4368,7 +4368,7 @@ VIEWS.tbXuat = {
 VIEWS.mayEdit = {
   html(p) {
     const m = p.ma ? S.V.byMa[p.ma] : null;
-    const v = m || { ten: '', tenPhu: '', nhom: S.f.grp && S.f.grp !== '__stop' ? S.f.grp : '', viTri: '', chuKy: 30, hanKeTiep: TODAY(), noiDung: '', hoatDong: true, phuTrach: '', ngayDuaVao: '', chuyen: p.chuyen || '' };
+    const v = m || { ten: '', tenPhu: '', nhom: p.nhom || (S.f.grp && S.f.grp.indexOf('__') !== 0 ? S.f.grp : ''), viTri: '', chuKy: 30, hanKeTiep: TODAY(), noiDung: '', hoatDong: true, phuTrach: '', ngayDuaVao: '', chuyen: p.chuyen || '' };
     if (p.bdOff === undefined) p.bdOff = !!(m && !(m.chuKy > 0));
     const chOpt = (S.V.ch || []).length ? `<label class="fld"><span>${t('chuyen')}</span><select class="inp" id="eCh"><option value="">${esc(tp('chKhong'))}</option>${S.V.ch.map((c) => `<option value="${esc(c.ma)}"${(v.chuyen || '') === c.ma ? ' selected' : ''}>${esc(mh(c.ma) + (c.tenZh ? ' · ' + c.tenZh : ''))}</option>`).join('')}</select></label>` : '';
     return `<form id="mayForm" class="card pad" autocomplete="off">
@@ -16068,6 +16068,38 @@ Object.assign(TX, {
   ngtDaDien: ['Đã điền thông số của {m}', '已填入 {m} 的参数']
 });
 const laQuatGio = (m) => /qu[aạ]t\s*gi[oó]|风机/i.test(String((m && m.nhom) || ''));
+// Màn "theo chuyền" dùng cho mọi nhóm máy (v2.57): nhóm đang xem là S.qgG. Nhóm khác quạt gió thì
+// chữ "quạt" đổi thành "máy" — khoá TX có đuôi TB là bản chữ chung.
+function K(k) { return k && TX[k + 'TB'] && S.qgG && !/qu[aạ]t\s*gi[oó]|风机/i.test(S.qgG) ? k + 'TB' : k; }
+const tbLoc = (g) => (g ? (m) => (m.nhom || '') === g : laQuatGio);
+// Nhóm có bản ghi gộp (một bản ghi chứa nhiều máy con) — thêm máy thì thêm vào bản ghi gộp của chuyền
+const coGop = (g) => /qu[aạ]t\s*gi[oó]|风机/i.test(g || '') || (S.V.may || []).some((m) => (m.nhom || '') === g && (m.chiTiet || []).length);
+// Nhóm mặc định khi mở màn: nhóm vừa xem, không thì nhóm quạt gió, không thì nhóm đầu tiên
+function qgNhomMacDinh() {
+  const gs = qgCacNhom();
+  if (S.f.qgG && gs.indexOf(S.f.qgG) >= 0) return S.f.qgG;
+  return gs.find((g) => laQuatGio({ nhom: g })) || gs[0] || '';
+}
+const qgCacNhom = () => (S.V.groups || []).filter((g) => g && activeMay().some((m) => m.nhom === g));
+Object.assign(TX, {
+  t_quatGioTB: ['Thiết bị theo chuyền', '各产线设备'], qgSubTB: ['{n} máy · {c} chuyền', '{n}台设备 · {c}条产线'], qgNTB: ['{n} máy', '{n}台'],
+  qgHelpTB: ['Chọn loại thiết bị ở trên. Bấm số máy của một chuyền để xem từng máy; bấm một máy để xem thông số và lịch sử sửa chữa của đúng máy đó.',
+    '在上方选择设备类别。点击某产线的设备数量查看每台设备；点击某台设备查看参数和该台的维修记录。'],
+  qgTimTB: ['Tìm: mã máy, chuyền, tên, model', '搜索：设备编号、产线、名称、型号'], qgKhongTB: ['Loại này chưa có thiết bị nào', '该类别暂无设备'],
+  qgDanhMaTB: ['Đánh mã cho từng máy ({n} máy chưa có mã)', '为每台设备编号（{n}台未编号）'], qgDanhMaTDTB: ['Đánh mã cho từng máy', '为每台设备编号'],
+  qgDanhMaHelpTB: ['Mỗi máy trong bản ghi gộp một mã riêng = M + mã loại 2 số + số thứ tự, vẫn gộp theo chuyền như cũ. Máy đã có mã giữ nguyên; máy thêm sau tự lấy số kế tiếp.',
+    '合并记录中的每台设备一个独立编号 = M + 2位类别代码 + 序号，仍按产线合并。已有编号的保持不变；之后新增的自动取下一个序号。'],
+  qgDanhMaXongTB: ['Đã đánh mã {n} máy', '已为{n}台设备编号'],
+  qgLSTB: ['Lịch sử sửa chữa của máy này', '该设备维修记录'], qgGhiSCTB: ['Ghi sửa chữa máy này', '记录该设备维修'],
+  qgThemTB: ['Thêm máy', '新增设备'], qgThemChTB: ['Thêm máy vào chuyền này', '为该产线新增设备'], qgBoTB: ['Bỏ máy', '移除设备'],
+  qgBoHoiTB: ['Bỏ {q} khỏi danh sách? Chỉ bỏ được máy chưa có lịch sử sửa chữa (thêm nhầm). Máy tháo xuống để dự phòng thì sửa, chọn "Chưa gắn chuyền (dự phòng)".', '确定移除 {q}？只能移除没有维修记录的设备（误加）。拆下备用的设备请修改并选择“未分配产线（备用）”。'],
+  qgChuyenDatTB: ['Chuyền đặt máy', '安装产线'], qgTenQuatTB: ['Tên máy', '设备名称'], qgSaoChepTB: ['Sao chép thông số từ máy khác', '从其他设备复制参数'],
+  qgMaSeTB: ['Mã máy: {m}', '设备编号：{m}'], qgMaTuTB: ['Mã máy tự cấp khi lưu (số kế tiếp)', '保存时自动分配编号（下一个序号）'],
+  qgSuaHelpTB: ['Đổi chuyền là chuyển máy sang chuyền đó (vd lắp máy dự phòng lên chuyền): mã giữ nguyên, lịch sử sửa chữa đi theo máy. Chuyền chưa có máy loại này thì app tự tạo bản ghi cho chuyền đó.',
+    '更换产线即把设备调到该产线（例如把备用设备装到产线上）：编号不变，维修记录随设备转移。该产线还没有此类设备时，系统自动建立记录。'],
+  t_qgSuaTB: ['Thông tin máy', '设备信息'],
+  qgNhom: ['Loại thiết bị', '设备类别'], qgMoHS: ['Mở hồ sơ máy', '打开设备档案'], tbTheoCh: ['Xem theo chuyền', '按产线查看']
+});
 const KHOA_TEN_DV = /^(tên|ten|name|名称)$/i, KHOA_MA_DV = 'Mã máy';
 // Các quạt của một bản ghi: bản ghi gộp → từng dòng chi tiết (mỗi quạt một mã riêng ở cột "Mã máy");
 // bản ghi một quạt → chính nó
@@ -16100,9 +16132,9 @@ function moQuat(code) {
 }
 const tenQuat = (q) => (q.ten ? q.m.ten.replace(/\s*\(\s*\d+[^)]*\)\s*$/, '') + ' · ' + q.ten : q.m.ten);
 // Gom theo chuyền (VKY01, VKY02…, chưa gắn chuyền để cuối)
-function quatTheoChuyen() {
+function quatTheoChuyen(g) {
   const by = {};
-  activeMay().filter(laQuatGio).forEach((m) => { const k = m.chuyen || ''; (by[k] = by[k] || []).push(...quatCua(m)); });
+  activeMay().filter(tbLoc(g)).forEach((m) => { const k = m.chuyen || ''; (by[k] = by[k] || []).push(...quatCua(m)); });
   return Object.keys(by).sort((a, b) => (a || 'ZZZ').localeCompare(b || 'ZZZ')).map((ch) => ({ ch, ds: by[ch] }));
 }
 // Lấy một thông số theo tên cột; ô số thì bỏ đơn vị ở cuối, model giữ nguyên (No6.3A)
@@ -16119,30 +16151,35 @@ const scCuaQuat = (q) => (S.V.cvAll || []).filter((x) => x.loai === 'SUA' && x.t
 const ntCuaQuat = (q) => ((S.base && S.base.nghiemThu) || []).filter((x) => !x.xoa && x.ma === q.m.ma && (x.dvMay || '') === q.ten);
 VIEWS.quatGio = {
   html(p) {
-    const g = quatTheoChuyen(), tong = g.reduce((a, x) => a + x.ds.length, 0);
-    if (!g.length) return `<div class="card empty">${t('qgKhong')}</div>`;
+    if (!p.g) p.g = qgNhomMacDinh();
+    S.qgG = S.f.qgG = p.g;
+    const gs = qgCacNhom(), chip = gs.length > 1 ? `<div class="hscroll" style="margin-bottom:10px" aria-label="${esc(tp('qgNhom'))}">${gs.map((x) =>
+      `<button class="chip${x === p.g ? ' on' : ''}" data-act="qgNhom" data-g="${esc(x)}">${esc(grpLabel(x))} <span class="nhomn">${activeMay().filter((m) => m.nhom === x).reduce((a, m) => a + quatCua(m).length, 0)}</span></button>`).join('')}</div>` : '';
+    const g = quatTheoChuyen(p.g), tong = g.reduce((a, x) => a + x.ds.length, 0);
+    if (!g.length) return chip + `<div class="card empty">${t(K('qgKhong'))}</div>`;
     S.f.qgMo = S.f.qgMo || {};
     if (p.ch !== undefined && S.f.qgMo[p.ch] === undefined) S.f.qgMo[p.ch] = true;
     const q = norm(p.q || '');
-    let o = `<div class="card pad"><b>${esc(tv('qgSub', { n: tong, c: g.filter((x) => x.ch).length }))}</b> <span class="zi">${esc(tz('qgSub', { n: tong, c: g.filter((x) => x.ch).length }))}</span>
-      <p class="help" style="margin:6px 0 0">${t('qgHelp')}</p>
-      <input class="inp" id="qgTim" type="search" style="margin-top:10px" placeholder="${esc(tp('qgTim'))}" value="${esc(p.q || '')}" autocomplete="off">
-      ${qgThieuMaHtml()}
-      ${qgSuaDuoc() ? `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgThem">${IC.plus} ${t('qgThem')}</button></div>` : ''}</div>`;
+    let o = chip + `<div class="card pad"><b>${esc(tv(K('qgSub'), { n: tong, c: g.filter((x) => x.ch).length }))}</b> <span class="zi">${esc(tz(K('qgSub'), { n: tong, c: g.filter((x) => x.ch).length }))}</span>
+      <p class="help" style="margin:6px 0 0">${t(K('qgHelp'))}</p>
+      <input class="inp" id="qgTim" type="search" style="margin-top:10px" placeholder="${esc(tp(K('qgTim')))}" value="${esc(p.q || '')}" autocomplete="off">
+      ${qgThieuMaHtml(p.g)}
+      ${qgSuaDuoc() ? `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgThem">${IC.plus} ${t(K('qgThem'))}</button></div>` : ''}</div>`;
     g.forEach(({ ch, ds }) => {
       const loc = q ? ds.filter((x) => norm([ch, x.maDV, x.ten, x.m.ten, x.ts.map((k) => k[1]).join(' ')].join(' ')).includes(q)) : ds;
       if (q && !loc.length) return;
       const kw = ds.reduce((a, x) => a + (parseFloat(tsLay(x.ts, RE_CS, 1).replace(',', '.')) || 0), 0);
       const sua = ds.reduce((a, x) => a + scCuaQuat(x).length + ntCuaQuat(x).length, 0), c = S.V.chByMa[ch], mo = q || S.f.qgMo[ch];
       o += `<div class="card" style="margin-top:10px"><button class="row qgrow" data-act="qgMo" data-ch="${esc(ch)}" aria-expanded="${mo ? 'true' : 'false'}">
-        <div class="main"><div class="nm">${ch ? esc(tv('chuyenNgan') + ' ' + mh(ch)) : t('qgChuaGan')}</div>
-          <div class="sub">${c && c.tenZh ? esc(c.tenZh) + ' · ' : ''}${kw ? esc(tv('qgKw', { k: fmtNum(kw, 1) })) : ''}${sua ? ' · ' + esc(tv('qgSuaN', { n: sua })) : ''}</div></div>
-        <div class="end"><span class="qgso"><b>${ds.length}</b> ${esc(tv('qgN', { n: '' }).trim())}<small>${esc(tz('qgN', { n: '' }).trim())}</small></span>${IC.chev}</div></button>
+        <div class="main"><div class="nm">${ch ? esc(tv('chuyenNgan') + ' ' + mh(ch)) : t(K('qgChuaGan'))}</div>
+          <div class="sub">${c && c.tenZh ? esc(c.tenZh) + ' · ' : ''}${kw ? esc(tv(K('qgKw'), { k: fmtNum(kw, 1) })) : ''}${sua ? ' · ' + esc(tv(K('qgSuaN'), { n: sua })) : ''}</div></div>
+        <div class="end"><span class="qgso"><b>${ds.length}</b> ${esc(tv(K('qgN'), { n: '' }).trim())}<small>${esc(tz(K('qgN'), { n: '' }).trim())}</small></span>${IC.chev}</div></button>
         ${mo ? `<div class="list">${loc.map((x) => { const n = scCuaQuat(x).length + ntCuaQuat(x).length, cs = tsLay(x.ts, RE_CS, 1), mdc = tsLay(x.ts, RE_MDC), mq = tsLay(x.ts, RE_MQ);
-          return `<button class="row" data-act="qgXem" data-ma="${esc(x.m.ma)}" data-i="${x.i}"><div class="main"><div class="nm">${x.maDV ? `<span class="code">${esc(x.maDV)}</span> ` : ''}${esc(x.ten || x.m.ten)}</div>
+          const code = x.maDV || ((x.m.chiTiet || []).length ? '' : mh(x.m.ma));
+          return `<button class="row" data-act="qgXem" data-ma="${esc(x.m.ma)}" data-i="${x.i}"><div class="main"><div class="nm">${code ? `<span class="code">${esc(code)}</span> ` : ''}${esc(x.ten || x.m.ten)}</div>
             <div class="sub">${[cs ? cs + ' kW' : '', mq, mdc ? 'ĐC ' + mdc : ''].filter(Boolean).map(esc).join(' · ') || '—'}</div></div>
-            <div class="end">${n ? `<span class="pill p-nay">${esc(tv('qgSuaN', { n }))}</span>` : ''}${IC.chev}</div></button>`; }).join('')}
-          ${qgSuaDuoc() && !q ? `<div class="pad" style="padding-top:8px"><button class="btn ghost sm" data-act="qgThem" data-ch="${esc(ch)}">${IC.plus} ${t('qgThemCh')}</button></div>` : ''}</div>` : ''}</div>`;
+            <div class="end">${n ? `<span class="pill p-nay">${esc(tv(K('qgSuaN'), { n }))}</span>` : ''}${IC.chev}</div></button>`; }).join('')}
+          ${qgSuaDuoc() && !q ? `<div class="pad" style="padding-top:8px"><button class="btn ghost sm" data-act="qgThem" data-ch="${esc(ch)}">${IC.plus} ${t(K('qgThemCh'))}</button></div>` : ''}</div>` : ''}</div>`;
     });
     return o;
   },
@@ -16155,11 +16192,11 @@ Object.assign(TITLES, { quatGio: 't_quatGio' });
 // Các loại có quạt chưa có mã riêng → nút đánh mã (mỗi loại một nút)
 // Nhãn quạt trong lịch sử: "M01003 · Quạt số 3"
 function dvNhan(ma, ten) { const m = S.V.byMa[ma], q = m && quatCua(m).find((x) => x.ten === ten); return q && q.maDV ? q.maDV + ' · ' + ten : ten; }
-function qgThieuMaHtml() {
+function qgThieuMaHtml(g0) {
   if (!(can('may') && can('suatb'))) return '';
   const by = {};
-  activeMay().filter((m) => laQuatGio(m) && (m.chiTiet || []).length).forEach((m) => { quatCua(m).forEach((q) => { if (!q.maDV) by[m.nhom] = (by[m.nhom] || 0) + 1; }); });
-  return Object.keys(by).map((g) => `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgDanhMa" data-g="${esc(g)}">${IC.qr} ${esc(tv('qgDanhMa', { n: by[g] }))}<span class="zi">${esc(tz('qgDanhMa', { n: by[g] }))}</span></button></div>`).join('');
+  activeMay().filter((m) => tbLoc(g0)(m) && (m.chiTiet || []).length).forEach((m) => { quatCua(m).forEach((q) => { if (!q.maDV) by[m.nhom] = (by[m.nhom] || 0) + 1; }); });
+  return Object.keys(by).map((g) => `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgDanhMa" data-g="${esc(g)}">${IC.qr} ${esc(tv(K('qgDanhMa'), { n: by[g] }))}<span class="zi">${esc(tz(K('qgDanhMa'), { n: by[g] }))}</span></button></div>`).join('');
 }
 // Mã loại gợi ý: đã đặt / suy ra từ mã quạt đã có / số trống đầu tiên
 function qgMaLoaiGoiY(g) {
@@ -16186,44 +16223,47 @@ function qgDanhMaMo(g) {
     const f = S.f.qgDM, sai = !/^\d{2}$/.test(f.code || '') || f.code === '00';
     if (sai) return `<div class="err">${t('maLoaiSai')}</div>`;
     const khac = qgMaKhac(f.g, f.code);
-    if (khac) return `<div class="err">${esc(tv('qgMaDung', { c: f.code, g: khac }))}</div>`;
+    if (khac) return `<div class="err">${esc(tv(K('qgMaDung'), { c: f.code, g: khac }))}</div>`;
     // Xem trước: theo chuyền rồi thứ tự quạt; quạt đã có mã đúng loại giữ nguyên
     let n = 0;
     (S.V.may || []).forEach((m) => { const k = ML_RE.exec(String(m.maHT || '').toUpperCase()); if (k && k[1] === f.code) n = Math.max(n, +k[2]); quatCua(m).forEach((q) => { const k2 = ML_RE.exec(q.maDV); if (k2 && k2[1] === f.code) n = Math.max(n, +k2[2]); }); });
     const out = [];
-    quatTheoChuyen().forEach(({ ch, ds }) => ds.filter((q) => q.m.nhom === f.g && (q.m.chiTiet || []).length).forEach((q) => {
+    quatTheoChuyen(f.g).forEach(({ ch, ds }) => ds.filter((q) => q.m.nhom === f.g && (q.m.chiTiet || []).length).forEach((q) => {
       const k = ML_RE.exec(q.maDV);
       out.push({ ch, ten: q.ten, ma: k && k[1] === f.code ? q.maDV : 'M' + f.code + String(++n).padStart(3, '0'), giu: !!(k && k[1] === f.code) });
     }));
-    return `<div class="lshd">${esc(tv('qgSub', { n: out.length, c: new Set(out.map((x) => x.ch).filter(Boolean)).size }))}</div>
+    return `<div class="lshd">${esc(tv(K('qgSub'), { n: out.length, c: new Set(out.map((x) => x.ch).filter(Boolean)).size }))}</div>
       <div class="list">${out.slice(0, 120).map((x) => `<div class="row"><div class="main"><div class="nm"><span class="code">${esc(x.ma)}</span> ${esc(x.ten)}</div>
-        <div class="sub">${esc(x.ch ? tv('chuyenNgan') + ' ' + x.ch : tv('qgChuaGan'))}${x.giu ? ' · ✓' : ''}</div></div></div>`).join('')}</div>`;
+        <div class="sub">${esc(x.ch ? tv('chuyenNgan') + ' ' + x.ch : tv(K('qgChuaGan')))}${x.giu ? ' · ✓' : ''}</div></div></div>`).join('')}</div>`;
   };
-  openSheet(`<div class="grab"></div><h3>${tv('qgDanhMaTD')}<span class="zi">${tz('qgDanhMaTD')}</span></h3>
+  openSheet(`<div class="grab"></div><h3>${tv(K('qgDanhMaTD'))}<span class="zi">${tz(K('qgDanhMaTD'))}</span></h3>
     ${srvOld('madv') ? srvWarn('madv') : ''}
-    <p class="help" style="margin:4px 0 10px">${t('qgDanhMaHelp')}</p>
-    <label class="fld"><span>${esc(tv('qgMaLoai'))} · ${esc(g)}<span class="zi">${esc(tz('qgMaLoai'))}</span></span><input class="inp mono mlinp" id="qgCode" inputmode="numeric" maxlength="2" value="${esc(S.f.qgDM.code)}" style="width:90px"></label>
+    <p class="help" style="margin:4px 0 10px">${t(K('qgDanhMaHelp'))}</p>
+    <label class="fld"><span>${esc(tv(K('qgMaLoai')))} · ${esc(g)}<span class="zi">${esc(tz(K('qgMaLoai')))}</span></span><input class="inp mono mlinp" id="qgCode" inputmode="numeric" maxlength="2" value="${esc(S.f.qgDM.code)}" style="width:90px"></label>
     <div id="qgDMXem" style="margin-top:8px">${ve()}</div><div class="err" id="qgDMErr" hidden></div>
     <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
-      <button class="btn" data-act="qgDanhMaOk"${srvOld('madv') ? ' disabled' : ''}>${IC.check} ${t('qgDanhMaOk')}</button></div>`, (bg) => {
+      <button class="btn" data-act="qgDanhMaOk"${srvOld('madv') ? ' disabled' : ''}>${IC.check} ${t(K('qgDanhMaOk'))}</button></div>`, (bg) => {
     $('#qgCode', bg).addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); S.f.qgDM.code = e.target.value; $('#qgDMXem').innerHTML = ve(); });
   });
 }
 function qgXemMo(ma, i) {
   const m = S.V.byMa[ma]; if (!m) return;
   const q = quatCua(m)[+i || 0]; if (!q) return;
-  const sc = scCuaQuat(q), nt = ntCuaQuat(q);
-  openSheet(`<div class="grab"></div><h3>${q.maDV ? `<span class="code" style="font-size:15px">${esc(q.maDV)}</span> ` : ''}${esc(q.ten || m.ten)}<span class="zi">${esc(m.chuyen ? tv('chuyenNgan') + ' ' + mh(m.chuyen) : tv('qgChuaGan'))} · <span class="mono">${esc(mh(m.ma))}</span></span></h3>
+  S.qgG = m.nhom || '';
+  const sc = scCuaQuat(q), nt = ntCuaQuat(q), gop = (m.chiTiet || []).length, code = q.maDV || (gop ? '' : mh(m.ma));
+  openSheet(`<div class="grab"></div><h3>${code ? `<span class="code" style="font-size:15px">${esc(code)}</span> ` : ''}${esc(q.ten || m.ten)}<span class="zi">${esc(m.chuyen ? tv('chuyenNgan') + ' ' + mh(m.chuyen) : tv(K('qgChuaGan')))} · <span class="mono">${esc(mh(m.ma))}</span></span></h3>
     <div class="card pad"><dl class="kv kvwide">${q.ts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(String(v === undefined ? '' : v)) || '—'}</dd>`).join('')}
       ${m.viTri && !q.ts.some(([k]) => /^v[iị] tr[ií]/i.test(String(k || ''))) ? `<dt>${t('location')}</dt><dd>${esc(m.viTri)}</dd>` : ''}</dl></div>
-    ${can('confirm') ? `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgGhiSC" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.wrench} ${t('qgGhiSC')}</button>
-      <button class="btn ghost sm" data-act="qgNT" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.edit} ${t('qgNghiemThu')}</button></div>` : ''}
-    ${qgSuaDuoc() && (m.chiTiet || []).length ? `<div class="btns" style="margin-top:8px"><button class="btn ghost sm" data-act="qgSua" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.edit} ${t('qgSuaBtn')}</button></div>` : ''}
-    <div class="lshd">${t('qgLS')} <span class="nhomn">${sc.length + nt.length}</span></div>
+    ${can('confirm') ? `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="qgGhiSC" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.wrench} ${t(K('qgGhiSC'))}</button>
+      <button class="btn ghost sm" data-act="qgNT" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.edit} ${t(K('qgNghiemThu'))}</button></div>` : ''}
+    <div class="btns" style="margin-top:8px">${qgSuaDuoc() ? (gop ? `<button class="btn ghost sm" data-act="qgSua" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.edit} ${t(K('qgSuaBtn'))}</button>`
+      : `<button class="btn ghost sm" data-act="qgSuaMay" data-ma="${esc(m.ma)}">${IC.edit} ${t(K('qgSuaBtn'))}</button>`) : ''}
+      ${gop ? '' : `<button class="btn ghost sm" data-act="qgMoHS" data-ma="${esc(m.ma)}">${IC.list} ${t('qgMoHS')}</button>`}</div>
+    <div class="lshd">${t(K('qgLS'))} <span class="nhomn">${sc.length + nt.length}</span></div>
     ${sc.length ? `<div class="list">${sc.map((x) => scRow(x, false)).join('')}</div>` : ''}
     ${nt.length ? `<div class="list">${nt.map((x) => `<button class="row" data-act="ngtMoBB" data-id="${esc(x.id)}"><div class="main"><div class="nm mono">${esc(x.soBB)}</div>
       <div class="sub">${esc(fmtD(x.ngayNT))} · ${esc(x.donVi || '')}${x.ketLuan ? ' · ' + esc(tv(NGT_TT_NHAN[ngtTT(x)])) : ''}</div></div>${IC.chev}</button>`).join('')}</div>` : ''}
-    ${!sc.length && !nt.length ? `<div class="card empty">${t('qgChuaSua')}</div>` : ''}`);
+    ${!sc.length && !nt.length ? `<div class="card empty">${t(K('qgChuaSua'))}</div>` : ''}`);
 }
 // Điền thông tin một quạt (hoặc một máy) vào cả hai mặt biên bản
 function ngtApMay(p, m, q) {
@@ -16249,7 +16289,7 @@ function ngtQuatList(qs) {
   g.forEach(({ ch, ds }) => {
     const loc = n ? ds.filter((x) => norm([ch, x.maDV, x.ten, x.m.ten, x.ts.map((k) => k[1]).join(' ')].join(' ')).includes(n)) : ds;
     if (!loc.length) return;
-    o += `<div class="lshd">${esc(ch ? tv('chuyenNgan') + ' ' + mh(ch) : tv('qgChuaGan'))} <span class="nhomn">${ds.length}</span></div>`;
+    o += `<div class="lshd">${esc(ch ? tv('chuyenNgan') + ' ' + mh(ch) : tv(K('qgChuaGan')))} <span class="nhomn">${ds.length}</span></div>`;
     o += loc.map((x) => { const cs = tsLay(x.ts, RE_CS, 1), mdc = tsLay(x.ts, RE_MDC);
       return `<button type="button" class="ksi" data-act="ngtQuatDung" data-ma="${esc(x.m.ma)}" data-i="${x.i}"><span class="kn">${esc(x.ten || x.m.ten)}<small>${[x.maDV, cs ? cs + ' kW' : '', mdc].filter(Boolean).map(esc).join(' · ')}</small></span></button>`; }).join('');
   });
@@ -16259,11 +16299,11 @@ function ngtQuatList(qs) {
 function dvChonHtml(id, ma, cur) {
   const m = ma && S.V.byMa[ma];
   if (!m || !(m.chiTiet || []).length || srvOld('dvmay')) return '';
-  return `<label class="fld"><span>${t('qgQuatNao')}</span><select class="inp" id="${id}"><option value="">${esc(tp('qgChonQuat'))}</option>
+  return `<label class="fld"><span>${t(K('qgQuatNao'))}</span><select class="inp" id="${id}"><option value="">${esc(tp(K('qgChonQuat')))}</option>
     ${quatCua(m).map((q) => `<option value="${esc(q.ten)}"${q.ten === cur ? ' selected' : ''}>${q.maDV ? esc(q.maDV) + ' · ' : ''}${esc(q.ten)}${tsLay(q.ts, RE_CS, 1) ? ' · ' + esc(tsLay(q.ts, RE_CS, 1)) + ' kW' : ''}</option>`).join('')}</select></label>`;
 }
 Object.assign(ACT, {
-  quatGio: (el) => go('quatGio', el && el.dataset.ch !== undefined ? { ch: el.dataset.ch } : {}),
+  quatGio: (el) => go('quatGio', Object.assign(el && el.dataset.ch !== undefined ? { ch: el.dataset.ch } : {}, el && el.dataset.g ? { g: el.dataset.g } : {})),
   qgMo: (el) => { S.f.qgMo = S.f.qgMo || {}; S.f.qgMo[el.dataset.ch] = !S.f.qgMo[el.dataset.ch]; render(); },
   qgDanhMa: (el) => qgDanhMaMo(el.dataset.g),
   qgDanhMaOk: async (el) => {
@@ -16271,7 +16311,7 @@ Object.assign(ACT, {
     const fe = $('#qgDMErr');
     if (!/^\d{2}$/.test(f.code || '') || f.code === '00' || qgMaKhac(f.g, f.code)) return;
     el.disabled = true;
-    try { const d = await api('unitCodes', { nhom: f.g, maLoai: f.code }); mergeResult(d); closeSheet(); toast(t('qgDanhMaXong', { n: d.doiMa || 0 })); render(); }
+    try { const d = await api('unitCodes', { nhom: f.g, maLoai: f.code }); mergeResult(d); closeSheet(); toast(t(K('qgDanhMaXong'), { n: d.doiMa || 0 })); render(); }
     catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
   },
   qgXem: (el) => qgXemMo(el.dataset.ma, el.dataset.i),
@@ -16310,8 +16350,30 @@ Object.assign(TX, {
   dmXuat: ['Xuất Excel phiếu đặt mua', '导出请购单Excel'], dmXoaHet: ['Xoá hết phiếu', '清空请购单'], dmXoaHoi: ['Xoá hết hàng trong phiếu?', '确定清空请购单？'],
   dmSLSai: ['Số lượng đặt phải lớn hơn 0: {m}', '请购数量须大于0：{m}'], dmBoPhan: ['Bộ phận đề nghị', '申请部门'],
   dmNguoi: ['Người lập', '申请人'], dmGoiY: ['gợi ý {n}', '建议{n}'], dmTongMH: ['{n} mặt hàng', '{n}项物料'],
-  dmThemOk: ['Đã thêm {n} mặt hàng', '已添加{n}项'], dmCanTenDV: ['Nhập tên hàng và số lượng', '请填写物料名称和数量']
+  dmThemOk: ['Đã thêm {n} mặt hàng', '已添加{n}项'], dmCanTenDV: ['Nhập tên hàng và số lượng', '请填写物料名称和数量'],
+  dmNgoaiTD: ['Đặt mua hàng chưa có mã linh kiện', '无编号物料请购'],
+  dmNgoaiHelp: ['Hàng chưa có trong kho / chưa có mã: chỉ cần tên tiếng Việt, quy cách, số lượng và máy dùng. Tên tiếng Trung để trống thì app tự dịch.', '库存中没有或尚无编号的物料：只需填写越南语名称、规格、数量和使用设备。中文名称留空则自动翻译。'],
+  dmNgoaiTenVi: ['Tên tiếng Việt', '越南语名称'], dmNgoaiTenZh: ['Tên tiếng Trung (để trống tự dịch)', '中文名称（留空自动翻译）'],
+  dmMay: ['Dùng cho máy', '使用设备'], dmKhongMay: ['— Chọn máy dùng —', '选择使用设备'], dmTuDich: ['tự dịch', '自动翻译'],
+  dmDangDich: ['Đang dịch tên tiếng Trung…', '正在翻译中文名称…'], dmDichLoi: ['Chưa dịch được tên tiếng Trung (mất mạng?) — sẽ thử lại khi xuất Excel, hoặc gõ tay.', '暂未能翻译中文名称（网络问题？）——导出时会重试，或手动填写。'],
+  srvMissDich: ['Máy chủ chưa tự dịch tên hàng được. Cập nhật Code.gs rồi Triển khai lại (vẫn gõ tay tên tiếng Trung được).', '服务器尚不支持自动翻译物料名称。请更新 Code.gs 并重新部署（仍可手动填写中文名称）。']
 });
+SRV_PHAN.push(['dich', '2.57.0', 'srvMissDich']);
+// Dịch tên tiếng Trung cho các dòng hàng chưa có mã mà để trống tên TQ. Trả về số dòng dịch được.
+async function dmDich() {
+  if (srvOld('dich') || !navigator.onLine) return 0;
+  const d = dmLay(), can = d.ds.filter((r) => !r.ma && r.ten && !String(r.tenZh || '').trim());
+  if (!can.length) return 0;
+  let kq;
+  try { kq = await api('translate', { ds: can.map((r) => r.ten) }); } catch (e) { return 0; }
+  const d2 = dmLay(); let n = 0;
+  can.forEach((r, i) => {
+    const v = String(((kq && kq.dich) || [])[i] || '').trim(), r2 = d2.ds.find((x) => !x.ma && x.ten === r.ten && !String(x.tenZh || '').trim());
+    if (v && r2) { r2.tenZh = v; r2.tuDich = true; n++; }
+  });
+  if (n) dmLuu(d2);
+  return n;
+}
 const DM_KEY = 'bd_datMua';
 const dmLay = () => { const v = store.get(DM_KEY, null); return v && Array.isArray(v.ds) ? v : { ds: [], boPhan: '' }; };
 const dmLuu = (v) => store.set(DM_KEY, v);
@@ -16327,7 +16389,7 @@ function dmThemMa(v, ma, sl) {
   return true;
 }
 function dmDongHtml(r, i) {
-  const x = r.ma ? khoGet(r.ma) : null, ten = x ? x.ten : r.ten, qc = x ? x.qc : r.qc, dv = x ? dvTxt(x.dv || '') : r.dv;
+  const x = r.ma ? khoGet(r.ma) : null, ten = x ? x.ten : (r.ten + (r.tenZh ? ' · ' + r.tenZh : '')), qc = x ? x.qc : r.qc, dv = x ? dvTxt(x.dv || '') : r.dv;
   return `<div class="card pad dmrow" style="margin-bottom:8px"><div style="display:flex;gap:10px;align-items:flex-start">
     <div style="flex:1;min-width:0"><div class="nm" style="font-weight:700">${lkTenH(ten || '')}</div>
       <div class="sub">${x ? `<span class="code">${esc(x.ma)}</span> ` : `<span class="tag">${esc(tv('dmNgoai'))}</span> `}${qc ? '<span class="mono">' + esc(qc) + '</span> · ' : ''}${esc(dv || '')}
@@ -16335,7 +16397,9 @@ function dmDongHtml(r, i) {
     <button type="button" class="btn ghost sm" data-act="dmBo" data-i="${i}">${t('dmBo')}</button></div>
     <div class="dsgrid" style="grid-template-columns:110px 1fr;margin-top:8px">
       <label class="mini"><span>${tv('dmSL')}<span class="zi">${tz('dmSL')}</span></span><input class="inp mono" inputmode="decimal" data-dmsl="${i}" value="${esc(r.sl)}"></label>
-      <label class="mini"><span>${tv('dmGhiChu')}<span class="zi">${tz('dmGhiChu')}</span></span><input class="inp" maxlength="120" data-dmgc="${i}" value="${esc(r.gc || '')}"></label></div></div>`;
+      <label class="mini"><span>${tv('dmGhiChu')}<span class="zi">${tz('dmGhiChu')}</span></span><input class="inp" maxlength="120" data-dmgc="${i}" value="${esc(r.gc || '')}"></label></div>
+    ${x ? '' : `<label class="mini" style="margin-top:6px"><span>${tv('dmNgoaiTenZh')}${r.tuDich ? ` <span class="tag">${esc(tv('dmTuDich'))}</span>` : ''}<span class="zi">${tz('dmNgoaiTenZh')}</span></span><input class="inp" maxlength="120" lang="zh-CN" data-dmzh="${i}" value="${esc(r.tenZh || '')}"></label>`}
+    <div class="mini" style="margin-top:6px"><span>${tv('dmMay')}<span class="zi">${tz('dmMay')}</span></span>${tbChon('dmMay' + i, r.may || '', 'dmKhongMay', false)}</div></div>`;
 }
 function dmChonHtml(p, v) {
   const co = new Set(v.ds.map((r) => r.ma).filter(Boolean)), q = norm(p.q || '');
@@ -16360,25 +16424,29 @@ VIEWS.datMua = {
     o += `<div class="err" id="dmErr" hidden></div>`;
     if (v.ds.length) o += `<div class="btns" style="margin-top:10px"><button class="btn" data-act="dmXuat">${IC.dl} ${t('dmXuat')}</button>
       <button class="btn ghost" data-act="dmXoaHet">${t('dmXoaHet')}</button></div>`;
+    o += sec('dmNgoaiTD') + `<div class="card pad" id="dmNgoaiBox"><p class="help" style="margin:0 0 8px">${t('dmNgoaiHelp')}</p>${srvOld('dich') ? srvWarn('dich') : ''}
+      <div class="row2f"><label class="fld"><span>${tv('dmNgoaiTenVi')} *<span class="zi">${tz('dmNgoaiTenVi')}</span></span><input class="inp" id="dmNTen" maxlength="120"></label>
+        <label class="fld"><span>${t('dmNgoaiTenZh')}</span><input class="inp" id="dmNZh" maxlength="120" lang="zh-CN"></label></div>
+      <div class="dsgrid" style="grid-template-columns:2fr 70px 90px">
+        <label class="mini"><span>${t('dmNgoaiQC')}</span><input class="inp" id="dmNQC" maxlength="80"></label>
+        <label class="mini"><span>${t('dmNgoaiDV')}</span><input class="inp" id="dmNDV" maxlength="12"></label>
+        <label class="mini"><span>${tv('dmSL')} *<span class="zi">${tz('dmSL')}</span></span><input class="inp mono" id="dmNSL" inputmode="decimal"></label></div>
+      <div class="mini" style="margin-top:6px"><span>${t('dmMay')}</span>${tbChon('dmNMay', '', 'dmKhongMay', false)}</div>
+      <div class="btns" style="margin-top:10px"><button class="btn sm" data-act="dmThemNgoai">${IC.plus} ${t('dmNgoaiThem')}</button></div></div>`;
     o += sec('dmThem');
     if (canN) o += `<div class="btns" style="margin-bottom:8px"><button class="btn ghost sm" data-act="dmThemTatCa">${IC.plus} ${esc(tv('dmThemTatCa', { n: canN }))}<span class="zi">${esc(tz('dmThemTatCa', { n: canN }))}</span></button></div>`;
     o += `<div class="hscroll" style="margin-bottom:8px">${[['can', 'dmCanMua'], ['het', 'dmHet'], ['tatca', 'dmTatCa']].map(([k, lb]) =>
       `<button class="chip${p.loc === k ? ' on' : ''}" data-act="dmLoc" data-v="${k}">${tv(lb)} <span class="zi">${tz(lb)}</span></button>`).join('')}</div>
       <input class="inp" id="dmTim" type="search" placeholder="${esc(tp('dmTim'))}" value="${esc(p.q || '')}" autocomplete="off">
       <div class="ksug" id="dmDs" style="margin-top:8px">${dmChonHtml(p, v)}</div>`;
-    o += `<details class="kdet" style="margin-top:14px"><summary>${t('dmNgoai')}</summary>
-      <div class="dsgrid" style="grid-template-columns:2fr 1.4fr 70px 80px;margin-top:8px">
-        <label class="mini"><span>${t('dmNgoaiTen')}</span><input class="inp" id="dmNTen" maxlength="120"></label>
-        <label class="mini"><span>${t('dmNgoaiQC')}</span><input class="inp" id="dmNQC" maxlength="80"></label>
-        <label class="mini"><span>${t('dmNgoaiDV')}</span><input class="inp" id="dmNDV" maxlength="12"></label>
-        <label class="mini"><span>${t('dmSL')}</span><input class="inp mono" id="dmNSL" inputmode="decimal"></label></div>
-      <div class="btns" style="margin-top:8px"><button class="btn ghost sm" data-act="dmThemNgoai">${IC.plus} ${t('dmNgoaiThem')}</button></div></details>`;
     return o;
   },
   after(p) {
     const v = () => dmLay();
     $$('[data-dmsl]').forEach((el) => el.addEventListener('input', () => { const d = v(), r = d.ds[+el.dataset.dmsl]; if (r) { r.sl = el.value.trim(); dmLuu(d); } }));
     $$('[data-dmgc]').forEach((el) => el.addEventListener('input', () => { const d = v(), r = d.ds[+el.dataset.dmgc]; if (r) { r.gc = el.value; dmLuu(d); } }));
+    $$('[data-dmzh]').forEach((el) => el.addEventListener('input', () => { const d = v(), r = d.ds[+el.dataset.dmzh]; if (r) { r.tenZh = el.value.trim(); r.tuDich = false; dmLuu(d); } }));
+    v().ds.forEach((r, i) => { const el = $('#dmMay' + i); if (el) el.addEventListener('change', () => { const d = v(); if (d.ds[i]) { d.ds[i].may = el.value; dmLuu(d); } }); });
     const bp = $('#dmBP'); if (bp) bp.addEventListener('input', () => { const d = v(); d.boPhan = bp.value; dmLuu(d); });
     const tim = $('#dmTim'); if (tim) tim.addEventListener('input', () => { p.q = tim.value; $('#dmDs').innerHTML = dmChonHtml(p, v()); });
   }
@@ -16391,19 +16459,29 @@ Object.assign(ACT, {
   dmThemTatCa: () => { const d = dmLay(); let n = 0; dmCanMuaDS().forEach((o) => { if (dmThemMa(d, o.x.ma, o.can || dmGoiY(o.x))) n++; }); dmLuu(d); toast(t('dmThemOk', { n })); render(); },
   dmBo: (el) => { const d = dmLay(); d.ds.splice(+el.dataset.i, 1); dmLuu(d); render(); },
   dmXoaHet: () => { if (!confirm(tp('dmXoaHoi'))) return; const d = dmLay(); d.ds = []; dmLuu(d); render(); },
-  dmThemNgoai: () => {
-    const ten = $('#dmNTen').value.trim(), sl = parseSo($('#dmNSL').value);
+  dmThemNgoai: async () => {
+    const ten = $('#dmNTen').value.trim(), sl = parseSo($('#dmNSL').value), zh = $('#dmNZh').value.trim();
     if (!ten || !(sl > 0)) { toast(t('dmCanTenDV'), true); return; }
-    const d = dmLay(); d.ds.push({ ma: '', ten, qc: $('#dmNQC').value.trim(), dv: $('#dmNDV').value.trim(), sl, gc: '' }); dmLuu(d); render();
+    const d = dmLay();
+    d.ds.push({ ma: '', ten, tenZh: zh, tuDich: false, qc: $('#dmNQC').value.trim(), dv: $('#dmNDV').value.trim(), sl, gc: '', may: $('#dmNMay').value || '' });
+    dmLuu(d); render();
+    // Tên tiếng Trung để trống: nhờ máy chủ dịch, xong thì vẽ lại
+    if (!zh && !srvOld('dich')) {
+      const n = await dmDich();
+      if (!n) toast(t('dmDichLoi'), true);
+      if (topV().v === 'datMua') render();
+    }
   },
   dmXuat: async () => {
     const d = dmLay(), fe = $('#dmErr');
     const sai = d.ds.filter((r) => !(parseSo(String(r.sl)) > 0));
     if (sai.length) { const r = sai[0], x = r.ma ? khoGet(r.ma) : null; fe.innerHTML = t('dmSLSai', { m: (x ? x.ten : r.ten) || '' }); fe.hidden = false; return; }
     fe.hidden = true;
-    toast(t('exporting')); await sleep(30);
+    toast(t('exporting'));
+    await dmDich();            // còn dòng chưa có tên tiếng Trung thì thử dịch lần nữa
+    await sleep(30);
     let blob;
-    try { blob = dmXlsx(d); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    try { blob = dmXlsx(dmLay()); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
     const tt = $('.toast'); if (tt) tt.remove();
     await saveFile(blob, 'De-nghi-mua-hang_' + TODAY() + '.xlsx');
   }
@@ -16416,24 +16494,26 @@ function dmXlsx(d) {
   const dung = khoDaDungMap();
   const rows = [[{ v: 'PHIẾU ĐỀ NGHỊ MUA HÀNG · 请购单', s: { b: 1, sz: 15, align: 'center' } }],
     [{ v: 'Ngày lập · 日期: ' + fmtD(TODAY()) + '     Người lập · 申请人: ' + ((S.me && S.me.ten) || '') + (d.boPhan ? '     Bộ phận · 部门: ' + d.boPhan : ''), s: { i: 1, color: '#33413E' } }], [],
-    ['STT\n序号', 'Mã ERP\nERP编号', 'Tên hàng\n物料名称', 'Quy cách\n规格', 'ĐVT\n单位', 'Tồn kho\n库存', 'Tồn an toàn\n安全库存', 'SL đề nghị mua\n请购数量', 'Dùng cho máy\n使用设备', 'Ghi chú\n备注']
+    ['STT\n序号', 'Mã ERP\nERP编号', 'Tên hàng (tiếng Việt)\n越南语名称', 'Tên tiếng Trung\n中文名称', 'Quy cách\n规格', 'ĐVT\n单位', 'Tồn kho\n库存', 'Tồn an toàn\n安全库存', 'SL đề nghị mua\n请购数量', 'Dùng cho máy\n使用设备', 'Ghi chú\n备注']
       .map((v) => ({ v, s: H }))];
   d.ds.forEach((r, i) => {
     const x = r.ma ? khoGet(r.ma) : null, n = x ? tonOf(x) : null;
-    const may = x ? (dung[x.ma] || []).map((u) => mh(u.m.ma) + ' ' + u.m.ten).slice(0, 4).join('\n') : '';
+    const chon = r.may && (S.V.byMa[r.may] || S.V.chByMa[r.may]);
+    const may = chon ? mh(r.may) + ' ' + (chon.ten || '') : x ? (dung[x.ma] || []).map((u) => mh(u.m.ma) + ' ' + u.m.ten).slice(0, 4).join('\n') : '';
     const erp = x && lsLaERP(x);    // mã tự đặt APP-… không phải mã ERP: để trống, ghi chú cho người mua biết
-    rows.push([c(i + 1, { align: 'center' }), c(erp ? x.ma : '', { align: 'center' }), c(x ? x.ten : r.ten), c(x ? x.qc || '' : r.qc || ''),
+    const tt = x ? lkTach(x.ten) : { vi: r.ten, zh: r.tenZh || '' };
+    rows.push([c(i + 1, { align: 'center' }), c(erp ? x.ma : '', { align: 'center' }), c(tt.vi), c(tt.zh || ''), c(x ? x.qc || '' : r.qc || ''),
       c(x ? dvTxt(x.dv || '') : r.dv || '', { align: 'center' }), num(n === null ? '' : n),
       num(x && x.tonMin !== undefined && x.tonMin !== '' ? x.tonMin : ''), Object.assign(num(parseSo(String(r.sl))), { s: { border: true, align: 'center', b: 1, fmt: '0.###', fill: '#FFF4D6' } }),
       c(may), c([erp ? '' : 'Chưa có mã ERP · 无ERP编号', r.gc || ''].filter(Boolean).join('\n'))]);
   });
   const cuoi = rows.length + 1;
   rows.push([c('Tổng · 合计: ' + d.ds.length + ' mặt hàng · 项', { b: 1 })], [], [],
-    ['Người lập · 申请人', '', '', 'Trưởng bộ phận · 部门负责人', '', '', 'Phê duyệt · 批准', '', 'Mua hàng · 采购', ''].map((v) => ({ v, s: { b: 1, align: 'center' } })),
+    ['Người lập · 申请人', '', '', 'Trưởng bộ phận · 部门负责人', '', '', 'Phê duyệt · 批准', '', 'Mua hàng · 采购', '', ''].map((v) => ({ v, s: { b: 1, align: 'center' } })),
     [], [], [], [{ v: (S.me && S.me.ten) || '', s: { align: 'center' } }]);
   const k = rows.length - 4;
-  return XW.build([{ name: 'De nghi mua hang', rows, cols: [6, 14, 34, 22, 9, 9, 10, 12, 28, 26],
-    merges: ['A1:J1', 'A2:J2', 'A' + cuoi + ':J' + cuoi, 'A' + k + ':C' + k, 'D' + k + ':F' + k, 'G' + k + ':H' + k, 'I' + k + ':J' + k, 'A' + rows.length + ':C' + rows.length],
+  return XW.build([{ name: 'De nghi mua hang', rows, cols: [6, 14, 30, 22, 22, 8, 9, 10, 12, 26, 24],
+    merges: ['A1:K1', 'A2:K2', 'A' + cuoi + ':K' + cuoi, 'A' + k + ':C' + k, 'D' + k + ':F' + k, 'G' + k + ':H' + k, 'I' + k + ':K' + k, 'A' + rows.length + ':C' + rows.length],
     heights: { 1: 28, 4: 34 }, freeze: { r: 4, c: 0 }, landscape: true }]);
 }
 
@@ -16456,45 +16536,51 @@ Object.assign(TX, {
 const QG_COT_MAC_DINH = ['Chức năng (中文)', 'Model quạt (风机型号)', 'Điều khiển (控制方式)', 'Model motor (电机型号)', 'Dòng điện (A)', 'Công suất (kW)', 'Tốc độ (rpm)', 'Lưu lượng (m³/h)', 'Áp suất (Pa)', 'Vị trí', 'Ghi chú'];
 const qgSuaDuoc = () => can('may') && can('suatb');
 // Các cột thông số đang dùng cho quạt gió (theo thứ tự xuất hiện), để form thêm quạt mới có đủ ô như quạt cũ
-function qgCot() {
+function qgCot(g) {
   const out = [];
-  activeMay().filter(laQuatGio).forEach((m) => quatCua(m).forEach((q) => q.ts.forEach(([k]) => { k = String(k || '').trim(); if (k && out.indexOf(k) < 0) out.push(k); })));
-  return out.length ? out : QG_COT_MAC_DINH.slice();
+  activeMay().filter(tbLoc(g)).forEach((m) => quatCua(m).forEach((q) => q.ts.forEach(([k]) => { k = String(k || '').trim(); if (k && out.indexOf(k) < 0) out.push(k); })));
+  return out.length ? out : laQuatGio({ nhom: g }) || !g ? QG_COT_MAC_DINH.slice() : ['Model', 'Công suất (kW)', 'Vị trí', 'Ghi chú'];
 }
 // Tên gợi ý "Quạt số n" kế tiếp của một chuyền (bỏ qua quạt đang sửa)
-function qgTenKe(ch, boMa, boI) {
-  const g = quatTheoChuyen().find((x) => x.ch === ch), ds = g ? g.ds.filter((q) => !(q.m.ma === boMa && q.i === boI) && (q.m.chiTiet || []).length) : [];
+function qgTenKe(ch, boMa, boI, nhom) {
+  const tat = quatTheoChuyen(nhom), g = tat.find((x) => x.ch === ch), ds = g ? g.ds.filter((q) => !(q.m.ma === boMa && q.i === boI) && (q.m.chiTiet || []).length) : [];
+  // Kiểu tên đang dùng nhiều nhất trong loại: "Quạt số n", "Máy keo số n"…
+  const dem = {};
+  tat.forEach((x) => x.ds.forEach((q) => { const k = /^(.*?)\s*s[oố]\s*\d+\s*$/i.exec(q.ten); if (k && k[1]) dem[k[1]] = (dem[k[1]] || 0) + 1; }));
+  const goc = Object.keys(dem).sort((a, b) => dem[b] - dem[a])[0] || (laQuatGio({ nhom }) || !nhom ? 'Quạt' : 'Máy');
   let n = ds.length;
   ds.forEach((q) => { const k = /s[oố]\s*(\d+)\s*$/i.exec(q.ten); if (k) n = Math.max(n, +k[1]); });
-  return 'Quạt số ' + (n + 1);
+  return goc + ' số ' + (n + 1);
 }
 VIEWS.qgSua = {
   html(p) {
     if (!p.init) {
       const m = p.ma && S.V.byMa[p.ma], q = m ? quatCua(m)[+p.i] : null;
       p.init = 1; p.ch = m ? m.chuyen || '' : p.ch || ''; p.chGoc = p.ch;
-      p.ten = q ? q.ten : qgTenKe(p.ch); p.tenTu = !q;
+      p.g = m ? m.nhom || '' : p.g || S.qgG || qgNhomMacDinh();
+      p.ten = q ? q.ten : qgTenKe(p.ch, '', -1, p.g); p.tenTu = !q;
       p.v = {}; (q ? q.ts : []).forEach(([k, v]) => { p.v[String(k).trim()] = String(v === undefined ? '' : v); });
       p.maDV = q ? q.maDV : '';
     }
-    const cot = qgCot(); Object.keys(p.v).forEach((k) => { if (cot.indexOf(k) < 0) cot.push(k); });
-    const ch = S.V.ch || [], tatCaQ = quatTheoChuyen();
-    const coMa = activeMay().some((m) => laQuatGio(m) && quatCua(m).some((q) => q.maDV));
+    S.qgG = p.g;
+    const cot = qgCot(p.g); Object.keys(p.v).forEach((k) => { if (cot.indexOf(k) < 0) cot.push(k); });
+    const ch = S.V.ch || [], tatCaQ = quatTheoChuyen(p.g);
+    const coMa = activeMay().some((m) => tbLoc(p.g)(m) && quatCua(m).some((q) => q.maDV));
     return `${srvOld('donvi') ? srvWarn('donvi') : ''}<div class="card pad">
-      ${p.maDV ? `<div class="mono" style="font-size:17px;font-weight:700;margin-bottom:6px">${esc(tv('qgMaSe', { m: p.maDV }))}</div>` : coMa ? `<div class="help" style="margin-bottom:6px">${t('qgMaTu')}</div>` : ''}
-      <div class="row2f"><label class="fld"><span>${t('qgChuyenDat')}</span><select class="inp" id="qgsCh">
-        <option value=""${!p.ch ? ' selected' : ''}>${esc(tp('qgDuPhong'))}</option>
+      ${p.maDV ? `<div class="mono" style="font-size:17px;font-weight:700;margin-bottom:6px">${esc(tv(K('qgMaSe'), { m: p.maDV }))}</div>` : coMa ? `<div class="help" style="margin-bottom:6px">${t(K('qgMaTu'))}</div>` : ''}
+      <div class="row2f"><label class="fld"><span>${t(K('qgChuyenDat'))}</span><select class="inp" id="qgsCh">
+        <option value=""${!p.ch ? ' selected' : ''}>${esc(tp(K('qgDuPhong')))}</option>
         ${ch.map((c) => `<option value="${esc(c.ma)}"${c.ma === p.ch ? ' selected' : ''}>${esc(mh(c.ma))}${c.ten ? ' · ' + esc(c.ten) : ''}</option>`).join('')}</select></label>
-      <label class="fld"><span>${t('qgTenQuat')}</span><input class="inp" id="qgsTen" maxlength="80" value="${esc(p.ten)}"></label></div>
-      <p class="help" style="margin:4px 0 0">${t('qgSuaHelp')}</p></div>
-      <div class="sec"><h2>${tv('qgThongSo')} <span class="zi">${tz('qgThongSo')}</span></h2></div>
-      <div class="card pad"><label class="fld"><span>${t('qgSaoChep')}</span><select class="inp" id="qgsSao"><option value="">${esc(tp('qgKhongSao'))}</option>
-        ${tatCaQ.map(({ ch: c, ds }) => `<optgroup label="${esc(c ? mh(c) : tp('qgDuPhong'))}">${ds.filter((q) => !(q.m.ma === p.ma && q.i === +p.i)).map((q) =>
+      <label class="fld"><span>${t(K('qgTenQuat'))}</span><input class="inp" id="qgsTen" maxlength="80" value="${esc(p.ten)}"></label></div>
+      <p class="help" style="margin:4px 0 0">${t(K('qgSuaHelp'))}</p></div>
+      <div class="sec"><h2>${tv(K('qgThongSo'))} <span class="zi">${tz(K('qgThongSo'))}</span></h2></div>
+      <div class="card pad"><label class="fld"><span>${t(K('qgSaoChep'))}</span><select class="inp" id="qgsSao"><option value="">${esc(tp(K('qgKhongSao')))}</option>
+        ${tatCaQ.map(({ ch: c, ds }) => `<optgroup label="${esc(c ? mh(c) : tp(K('qgDuPhong')))}">${ds.filter((q) => !(q.m.ma === p.ma && q.i === +p.i)).map((q) =>
           `<option value="${esc(q.m.ma)}|${q.i}">${esc([q.maDV, q.ten || q.m.ten, tsLay(q.ts, RE_CS, 1) ? tsLay(q.ts, RE_CS, 1) + ' kW' : '', tsLay(q.ts, RE_MDC)].filter(Boolean).join(' · '))}</option>`).join('')}</optgroup>`).join('')}</select></label>
       <div class="row2f" style="margin-top:6px">${cot.map((k, j) => `<label class="fld"><span>${esc(k)}</span><input class="inp" data-qgk="${j}" data-k="${esc(k)}" value="${esc(p.v[k] || '')}"></label>`).join('')}</div></div>
       <div class="err" id="qgsErr" hidden></div>
       <div class="btns" style="margin-top:14px"><button class="btn bigbtn" data-act="qgsLuu"${srvOld('donvi') ? ' disabled' : ''}>${IC.check} ${t('save')}</button>
-        ${p.ma ? `<button class="btn danger" data-act="qgsBoHoi">${t('qgBo')}</button>` : ''}</div>`;
+        ${p.ma ? `<button class="btn danger" data-act="qgsBoHoi">${t(K('qgBo'))}</button>` : ''}</div>`;
   },
   after(p) {
     const ten = $('#qgsTen'), chs = $('#qgsCh');
@@ -16503,7 +16589,7 @@ VIEWS.qgSua = {
     chs.addEventListener('change', () => {
       p.ch = chs.value;
       // Tên tự đặt, hoặc chuyển sang chuyền khác: gợi ý số kế tiếp của chuyền mới (vẫn sửa được)
-      if (p.tenTu || (p.ma && p.ch !== p.chGoc)) { p.ten = p.ch === p.chGoc && p.ma ? quatCua(S.V.byMa[p.ma])[+p.i].ten : qgTenKe(p.ch, p.ma, +p.i); ten.value = p.ten; p.tenTu = true; }
+      if (p.tenTu || (p.ma && p.ch !== p.chGoc)) { p.ten = p.ch === p.chGoc && p.ma ? quatCua(S.V.byMa[p.ma])[+p.i].ten : qgTenKe(p.ch, p.ma, +p.i, p.g); ten.value = p.ten; p.tenTu = true; }
     });
     $$('[data-qgk]').forEach((el) => el.addEventListener('input', () => { p.v[el.dataset.k] = el.value; }));
     $('#qgsSao').addEventListener('change', (e) => {
@@ -16516,11 +16602,15 @@ VIEWS.qgSua = {
 };
 Object.assign(TITLES, { qgSua: 't_qgSua' });
 Object.assign(ACT, {
-  qgThem: (el) => { closeSheet(); go('qgSua', { ch: el.dataset.ch || '' }); },
+  // Nhóm có bản ghi gộp (quạt gió…) thêm vào bản ghi gộp của chuyền; nhóm máy riêng lẻ thì mở form thêm thiết bị
+  qgThem: (el) => { closeSheet(); const g = S.qgG || qgNhomMacDinh(), ch = el.dataset.ch || ''; if (coGop(g)) go('qgSua', { ch, g }); else go('mayEdit', { chuyen: ch, nhom: g }); },
+  qgNhom: (el) => { const p = topV().p; p.g = el.dataset.g; p.q = ''; render(); },
+  qgSuaMay: (el) => { closeSheet(); go('mayEdit', { ma: el.dataset.ma }); },
+  qgMoHS: (el) => { closeSheet(); go('may', { ma: el.dataset.ma }); },
   qgSua: (el) => { closeSheet(); go('qgSua', { ma: el.dataset.ma, i: +el.dataset.i }); },
   qgsLuu: async (el) => {
     const p = topV().p, fe = $('#qgsErr'); fe.hidden = true;
-    const m = p.ma && S.V.byMa[p.ma], nhom = m ? m.nhom : ((activeMay().find(laQuatGio) || {}).nhom || 'Quạt gió');
+    const m = p.ma && S.V.byMa[p.ma], nhom = m ? m.nhom : p.g || ((activeMay().find(laQuatGio) || {}).nhom || 'Quạt gió');
     const cot = Object.keys(p.v).filter((k) => String(p.v[k]).trim() !== '').map((k) => [k, String(p.v[k]).trim()]);
     el.disabled = true;
     try {
@@ -16528,26 +16618,26 @@ Object.assign(ACT, {
       mergeResult(d);
       const dv = d.donVi || {};
       S.f.qgMo = S.f.qgMo || {}; S.f.qgMo[p.ch] = true;
-      toast(t('qgDaLuu', { q: (dv.maDV ? dv.maDV + ' · ' : '') + (dv.ten || '') }));
+      toast(t(K('qgDaLuu'), { q: (dv.maDV ? dv.maDV + ' · ' : '') + (dv.ten || '') }));
       back();
-      if (topV().v === 'quatGio') topV().p.ch = p.ch; else go('quatGio', { ch: p.ch });
+      if (topV().v === 'quatGio') Object.assign(topV().p, { ch: p.ch, g: nhom }); else go('quatGio', { ch: p.ch, g: nhom });
       render();
       if (dv.ma) setTimeout(() => qgXemMo(dv.ma, dv.i), 60);
     } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
   },
   qgsBoHoi: () => {
     const p = topV().p, q = quatCua(S.V.byMa[p.ma])[+p.i];
-    openSheet(`<div class="grab"></div><h3>${tv('qgBo')}<span class="zi">${tz('qgBo')}</span></h3>
-      <p class="help">${esc(tv('qgBoHoi', { q: (q.maDV ? q.maDV + ' · ' : '') + q.ten }))}<span class="zi">${esc(tz('qgBoHoi', { q: q.ten }))}</span></p>
+    openSheet(`<div class="grab"></div><h3>${tv(K('qgBo'))}<span class="zi">${tz(K('qgBo'))}</span></h3>
+      <p class="help">${esc(tv(K('qgBoHoi'), { q: (q.maDV ? q.maDV + ' · ' : '') + q.ten }))}<span class="zi">${esc(tz(K('qgBoHoi'), { q: q.ten }))}</span></p>
       <div class="err" id="qgbErr" hidden></div>
-      <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="qgsBo">${t('qgBo')}</button></div>`);
+      <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="qgsBo">${t(K('qgBo'))}</button></div>`);
   },
   qgsBo: async (el) => {
     const p = topV().p, q = quatCua(S.V.byMa[p.ma])[+p.i];
     el.disabled = true;
     try {
       const d = await api('saveUnit', { ma: p.ma, i: +p.i, xoa: true });
-      mergeResult(d); closeSheet(); toast(t('qgDaBo', { q: q.ten })); back(); render();
+      mergeResult(d); closeSheet(); toast(t(K('qgDaBo'), { q: q.ten })); back(); render();
     } catch (e) { el.disabled = false; const fe = $('#qgbErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
   }
 });

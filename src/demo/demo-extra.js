@@ -220,6 +220,7 @@ function ganMauVaoMay(ma) {
 
 // Câu mẫu cho Google Dịch giả của bản xem thử (bản thật dùng Google Dịch, dịch được mọi câu)
 __dichMau.push(
+  ['Cảm biến quang', '光电传感器'], ['Dây curoa', '皮带'], ['Động cơ 15kW', '15kW电机'],
   ['Thay vòi nước nhà vệ sinh xưởng 1', '更换一车间卫生间水龙头'], ['Máy hút bụi VKY03 không chạy', '吸尘器VKY03不运转'],
   ['Thay chổi than motor', '更换电机碳刷'], ['Đã thay 2 vòi, hết rò', '已更换2个水龙头，不再漏水'],
   ['Đã thay 4 bóng LED, kiểm tra sáng đều', '已更换4个LED灯，检查亮度均匀'], ['Thay aptomat 3 pha, siết lại đầu cốt motor', '更换三相空气开关，重新紧固电机接线端子'],
