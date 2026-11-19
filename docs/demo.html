@@ -1694,7 +1694,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.58.0";
+const APP_VER = "2.59.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -2093,7 +2093,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.58.0';
+var PHIEN_BAN = '2.59.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -8573,7 +8573,10 @@ const TX = {
   lblSize: ['Cỡ tem', '标签尺寸'], s24: ['Nhỏ · 24 tem/A4', '小 · 每张24个'], s8: ['Lớn · 8 tem/A4', '大 · 每张8个'],
   selAll: ['Chọn tất cả', '全选'], selNone: ['Bỏ chọn', '取消全选'], selected: ['Đã chọn {n} máy', '已选{n}台'],
   print: ['In', '打印'], printDemo: ['Bản xem thử không in được. App thật in ra giấy A4 (hoặc lưu PDF).', '预览版不能打印，正式版可打印A4纸或存为PDF。'],
-  lblScan: ['Quét để xem thông tin máy', '扫码查看设备信息'], lblKhongBD: ['Không bảo dưỡng định kỳ', '不做定期保养'],
+  lblScan: ['Quét để xem thông tin máy', '扫码查看设备信息'], lblCam: ['Quét bằng camera điện thoại để xem thông tin', '用手机相机扫码查看设备信息'],
+  lblQr: ['Nội dung mã QR', '二维码内容'], lblQrTT: ['Thông tin máy · không cần tài khoản', '设备信息 · 无需账号'], lblQrLink: ['Link mở app · cần đăng nhập', '应用链接 · 需登录'],
+  lblQrHelp: ['Thông tin máy: mã QR chứa sẵn mã, tên, loại, chuyền, vị trí và thông số chính — quét bằng camera điện thoại nào cũng hiện chữ ngay, không mở link, không cần tài khoản. Thông tin là lúc in tem: máy chuyển chuyền hay đổi thông số thì in lại tem. Quét bằng nút Quét trong app vẫn mở đúng máy.',
+    '设备信息：二维码内含编号、名称、类别、产线、位置和主要参数——任何手机相机扫码即可直接显示文字，无需打开链接，无需账号。内容为打印时的信息：设备调换产线或参数变更后请重新打印。用应用内扫码仍可打开对应设备。'], lblKhongBD: ['Không bảo dưỡng định kỳ', '不做定期保养'],
   lblDVSec: ['Từng máy trong bản ghi gộp (từng quạt…)', '合并记录中的单台设备（每台风机…）'], lblHead: ['BẢO DƯỠNG', '保养'],
   preview: ['Xem trước', '预览'], noSel: ['Chưa chọn máy nào', '未选择设备'],
   histEmpty: ['Tháng này chưa có lần bảo dưỡng nào', '本月还没有保养记录'], times: ['{n} lần', '{n}次'],
@@ -8837,7 +8840,7 @@ const LOGO = `<span class="lgo"><img src="${LOGO_MARK}" alt="Credible"></span>`;
 // ===================== Trạng thái =====================
 const S = {
   tk: null, me: null, base: null, V: null, Q: [], stack: [], offline: false, simOff: false,
-  f: { grp: '', calGrp: '', q: '', calMode: 'tong', calYear: +localToday().slice(0, 4), calMonth: +localToday().slice(5, 7), histMonth: localToday().slice(0, 7), histGrp: '', histQ: '', lblSize: 's24' },
+  f: { grp: '', calGrp: '', q: '', calMode: 'tong', calYear: +localToday().slice(0, 4), calMonth: +localToday().slice(5, 7), histMonth: localToday().slice(0, 7), histGrp: '', histQ: '', lblSize: 's24', lblQr: '' },
   oldHist: {}, oldCS: {}, scanner: null, lastLoad: 0, lastSync: 0
 };
 S.lastSync = store.get('bd_sync', 0);
@@ -9749,6 +9752,7 @@ function stopScan() {
 function parseCode(text) {
   let s = String(text || '').trim();
   try { const u = new URL(s); const m = u.searchParams.get('m'); if (m) s = m; } catch (e) { /* không phải link */ }
+  const kc = /编号:\s*(\S+)/.exec(s); if (kc) s = kc[1];       // tem dạng chữ (v2.59)
   s = s.replace(/^BD[:\-]/i, '').trim().toUpperCase();
   return S.V.ctByMa[s] ? s : maTuNhap(s) || (dvTheoMa(s) ? 'DV:' + s : null);
 }
@@ -11239,11 +11243,56 @@ async function saveMay(ma) {
 // ---------- Tem QR ----------
 function appLink() { return location.origin + location.pathname; }
 function qrText(ma) { return IS_DEMO || !/^https?:/.test(location.protocol) ? ma : appLink() + '?m=' + encodeURIComponent(ma); }
+// Mã QR dạng chữ (v2.59): thông tin máy nằm luôn trong mã, camera điện thoại đọc ra chữ, không cần link hay tài khoản.
+// Giữ dưới ~380 byte để tem nhỏ (30 mm) vẫn quét được; thông số thêm dần tới khi đầy.
+const QR_TOI_DA = 380;
+// Kiểu nội dung mã QR đã chọn (nhớ trên máy này): 'tt' thông tin máy (mặc định) | 'link' link mở app
+const lblQrChe = () => S.f.lblQr || store.get('bd_lblQr', 'tt');
+const qrByte = (x) => new TextEncoder().encode(x).length;
+function qrChu(v) {
+  const dong = ['CREDIBLE VIỆT NAM · 可悦'], ts = [];
+  const them = (nhan, gt) => { gt = String(gt === undefined || gt === null ? '' : gt).replace(/\s+/g, ' ').trim(); if (gt) dong.push(nhan + ': ' + gt); };
+  if (v.dv) {
+    const q = v.dv, m = q.m;
+    them('Mã · 编号', q.maDV); them('Tên · 名称', tenQuat(q)); them('Loại · 类别', m.nhom);
+    const c = m.chuyen && S.V.chByMa[m.chuyen];
+    them('Chuyền · 产线', m.chuyen ? mh(m.chuyen) + (c && c.tenZh ? ' ' + c.tenZh : '') : '');
+    q.ts.forEach(([k, x]) => ts.push([k, x]));
+  } else if (S.V.chByMa[v.ma] === v) {
+    them('Mã · 编号', mh(v.ma)); them('Chuyền · 产线', v.ten || v.ma); them('名称', v.tenZh);
+  } else {
+    them('Mã · 编号', mh(v.ma)); them('Tên · 名称', v.ten + (v.tenPhu ? ' / ' + v.tenPhu : '')); them('Loại · 类别', v.nhom);
+    const c = v.chuyen && S.V.chByMa[v.chuyen];
+    them('Chuyền · 产线', v.chuyen ? mh(v.chuyen) + (c && c.tenZh ? ' ' + c.tenZh : '') : '');
+    them('Vị trí · 位置', v.viTri);
+    if (v.chuKy > 0) them('Bảo dưỡng · 保养', v.chuKy + ' ngày/lần · 每' + v.chuKy + '天');
+    (v.thongSo || []).forEach(([k, x]) => ts.push([k, x]));
+  }
+  let out = dong.join('\n');
+  // Thông số quan trọng ghi trước (vị trí, công suất, model motor / quạt, dòng điện), còn chỗ mới ghi phần còn lại
+  const UU = [/^v[iị] tr[ií]/i, RE_CS, RE_MDC, RE_MQ, RE_DONG], hang = (k) => { const i = UU.findIndex((re) => re.test(String(k || ''))); return i < 0 ? 99 : i; };
+  ts.sort((a, b) => hang(a[0]) - hang(b[0]));
+  ts.forEach(([k, x]) => {
+    x = String(x === undefined || x === null ? '' : x).replace(/\s+/g, ' ').trim();
+    if (!x || /^(c[aầ]n ki[eể]m tra|待确认)$/i.test(String(k).trim())) return;
+    const dd = out + '\n' + String(k).trim() + ': ' + x;
+    if (qrByte(dd) <= QR_TOI_DA) out = dd;
+  });
+  return out;
+}
+// Nội dung đặt vào mã QR của một tem: công tơ luôn là link (để ghi chỉ số); máy / chuyền theo lựa chọn
+function qrNoiDung(v) {
+  if (v.dv) return lblQrChe() === 'link' ? qrText(v.dv.maDV) : qrChu(v);
+  if (S.V.ctByMa[v.ma] === v || lblQrChe() === 'link') return qrText(v.ma);
+  return qrChu(v);
+}
 function qrSvg(text) {
-  const q = qrcode(0, 'M'); q.addData(text); q.make();
+  // Chữ tiếng Việt / tiếng Trung: mã hoá UTF-8 (thư viện mặc định chỉ 8 bit); mã chữ dài dùng mức sửa lỗi L cho gọn
+  if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+  const q = qrcode(0, qrByte(text) > 120 ? 'L' : 'M'); q.addData(text, 'Byte'); q.make();
   const n = q.getModuleCount(), qz = 2; let d = '';
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += 'M' + (c + qz) + ' ' + (r + qz) + 'h1v1h-1z';
-  return `<svg viewBox="0 0 ${n + qz * 2} ${n + qz * 2}" shape-rendering="crispEdges" role="img" aria-label="QR ${esc(text)}"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n + qz * 2} ${n + qz * 2}" shape-rendering="crispEdges" role="img" aria-label="QR ${esc(text)}"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
 }
 // Khoá chọn tem: mã máy / công tơ / chuyền, hoặc "DV:<mã riêng>" cho một máy trong bản ghi gộp (một quạt)
 function lblVat(k) {
@@ -11255,9 +11304,9 @@ const lblDVs = () => activeMay().filter((m) => (m.chiTiet || []).length).flatMap
 function labelInner(m, big) {
   if (m.dv) {
     const q = m.dv, cs = tsLay(q.ts, RE_CS, 1);
-    const body = `${qrSvg(qrText(q.maDV))}<div class="ti"><div class="cd">${esc(q.maDV)}</div><div class="nm">${esc(tenQuat(q))}</div>
+    const body = `${qrSvg(qrNoiDung(m))}<div class="ti"><div class="cd">${esc(q.maDV)}</div><div class="nm">${esc(tenQuat(q))}</div>
       <div class="ck">${esc([q.m.chuyen ? tv('chuyenNgan') + ' ' + mh(q.m.chuyen) : '', cs ? cs + ' kW' : ''].filter(Boolean).join(' · '))}</div>
-      <div class="hn">${esc(tv('lblScan'))}<br>${esc(tz('lblScan'))}</div></div>`;
+      <div class="hn">${esc(tv(lblQrChe() === 'link' ? 'lblScan' : 'lblCam'))}<br>${esc(tz(lblQrChe() === 'link' ? 'lblScan' : 'lblCam'))}</div></div>`;
     return big ? `<div class="hz"></div><div class="bd">${body}</div>` : body;
   }
   const ct = S.V.ctByMa[m.ma] === m, ch = S.V.chByMa[m.ma] === m;
@@ -11265,8 +11314,8 @@ function labelInner(m, big) {
     : ch ? esc(m.tenZh || '') + (m.maHT ? ' · ' + esc(m.ma) : '')
     : m.chuKy > 0 ? `${esc(tv('cycle'))} ${m.chuKy} ${esc(tv('days', { n: '' }).trim())} · ${esc(tz('cycle'))}${m.chuKy}${esc(tz('days', { n: '' }))}`
     : esc([m.chuyen ? tv('chuyenNgan') + ' ' + mh(m.chuyen) : '', m.tenPhu || ''].filter(Boolean).join(' · ') || tv('lblKhongBD'));
-  const hint = ct ? 'lblDien' : ch ? 'lblCh' : 'lblScan';
-  const body = `${qrSvg(qrText(m.ma))}<div class="ti"><div class="cd">${esc(ct ? m.ma : mh(m.ma))}</div><div class="nm">${esc(ch ? (m.ten || m.ma) : m.ten)}</div>
+  const hint = ct ? 'lblDien' : lblQrChe() !== 'link' ? 'lblCam' : ch ? 'lblCh' : 'lblScan';
+  const body = `${qrSvg(qrNoiDung(m))}<div class="ti"><div class="cd">${esc(ct ? m.ma : mh(m.ma))}</div><div class="nm">${esc(ch ? (m.ten || m.ma) : m.ten)}</div>
     <div class="ck">${info}</div>
     <div class="hn">${esc(tv(hint))}<br>${esc(tz(hint))}</div></div>`;
   return big ? `<div class="hz"></div><div class="bd">${body}</div>` : body;
@@ -11278,7 +11327,10 @@ VIEWS.labels = {
     const list = S.V.may.filter((m) => m.hoatDong || sel.has(m.ma));
     const cts = S.V.ct.filter((m) => m.hoatDong || sel.has(m.ma)), chs = S.V.ch || [];
     let o = `<div class="card pad"><div class="fld" style="margin:0"><span>${t('lblSize')}</span>
-      <div class="seg"><button class="${f.lblSize === 's24' ? 'on' : ''}" data-act="lblSize" data-s="s24">${esc(tp('s24'))}</button><button class="${f.lblSize === 's8' ? 'on' : ''}" data-act="lblSize" data-s="s8">${esc(tp('s8'))}</button></div></div></div>
+      <div class="seg"><button class="${f.lblSize === 's24' ? 'on' : ''}" data-act="lblSize" data-s="s24">${esc(tp('s24'))}</button><button class="${f.lblSize === 's8' ? 'on' : ''}" data-act="lblSize" data-s="s8">${esc(tp('s8'))}</button></div></div>
+      <div class="fld" style="margin:12px 0 0"><span>${t('lblQr')}</span>
+      <div class="seg">${[['tt', 'lblQrTT'], ['link', 'lblQrLink']].map(([k, lb]) => `<button class="${lblQrChe() === k ? 'on' : ''}" data-act="lblQr" data-s="${k}">${tv(lb)}<small>${tz(lb)}</small></button>`).join('')}</div>
+      <div class="help">${t('lblQrHelp')}</div></div></div>
       <div class="btns" style="margin:14px 0"><button class="btn y" data-act="doPrint" ${sel.size ? '' : 'disabled'}>${IC.print}<span class="stk">${tv('print')} (${sel.size})<span class="zi">${tz('print')}</span></span></button></div>
       ${IS_DEMO ? `<p class="help">${t('printDemo')}</p>` : ''}
       ${sec('preview')}<div class="lblprev" id="lblPrev"><div class="empty">${t('loading')}</div></div>
@@ -12003,6 +12055,7 @@ const ACT = {
   labels: () => go('labels', {}),
   labelsOne: (el) => { closeSheet(); go('labels', { only: el.dataset.ma }); },
   lblSize: (el) => { S.f.lblSize = el.dataset.s; render(); },
+  lblQr: (el) => { S.f.lblQr = el.dataset.s; store.set('bd_lblQr', el.dataset.s); render(); },
   lblAll: () => { topV().p.sel = activeMay().map((m) => m.ma).concat(activeCT().map((m) => m.ma)); render(); },
   lblNone: () => { topV().p.sel = []; render(); },
   doPrint: () => doPrint(),

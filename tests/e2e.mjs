@@ -2680,13 +2680,32 @@ const lb43 = await page.evaluate((c) => { const p = { only: 'DV:' + c }; const h
 assert.deepEqual(lb43.sel, ['DV:' + dv43], 'in tem từ tờ quạt: chọn sẵn đúng quạt');
 // Thư viện vẽ QR tải từ mạng (máy kiểm thử không có mạng): thay bằng hình rỗng để xem chữ trên tem
 const tem43 = await page.evaluate((c) => { window.qrSvg = () => '<svg></svg>'; return labelInner(lblVat('DV:' + c), false).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '); }, dv43);
-assert.match(tem43, new RegExp(dv43 + '.*Quạt.*Quét để xem thông tin máy'), 'tem quạt có mã riêng, tên quạt, lời nhắc xem thông tin: ' + tem43);
+assert.match(tem43, new RegExp(dv43 + '.*Quạt.*Quét bằng camera điện thoại để xem thông tin'), 'tem quạt có mã riêng, tên quạt, lời nhắc xem thông tin: ' + tem43);
 assert.ok(lb43.n >= 3, 'màn in tem có mục từng quạt');
-const t43 = await page.evaluate(() => { const m = activeMay().find((x) => !(x.chuKy > 0) && !(x.chiTiet || []).length); return m ? labelInner(m, false).replace(/<[^>]+>/g, ' ') : 'x Quét để xem thông tin máy'; });
-assert.ok(!/Chu kỳ 0/.test(t43) && /Quét để xem thông tin máy/.test(t43), 'tem máy không bảo dưỡng không ghi "chu kỳ 0": ' + t43.replace(/\s+/g, ' ').slice(0, 120));
+const t43 = await page.evaluate(() => { const m = activeMay().find((x) => !(x.chuKy > 0) && !(x.chiTiet || []).length); window.qrSvg = () => '<svg></svg>'; return m ? labelInner(m, false).replace(/<[^>]+>/g, ' ') : 'x Quét để xem thông tin máy'; });
+assert.ok(!/Chu kỳ 0/.test(t43) && /Quét (bằng camera điện thoại )?để xem thông tin/.test(t43), 'tem máy không bảo dưỡng không ghi "chu kỳ 0": ' + t43.replace(/\s+/g, ' ').slice(0, 120));
 await shot('80-tem-qr');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.58: quét QR / link tem của máy nào cũng ra trang thông tin máy đó (cả từng quạt); in tem QR cho từng quạt');
+
+// 44. Mã QR dạng chữ: thông tin máy nằm luôn trong mã (camera nào cũng đọc, không cần tài khoản); app vẫn quét ra đúng máy
+const q44 = await page.evaluate(() => {
+  const dv = lblDVs()[0], m = S.V.byMa['M001'];
+  const a = qrNoiDung(m), b = qrNoiDung(lblVat('DV:' + dv.maDV));
+  S.f.lblQr = 'link'; const c = qrNoiDung(m); S.f.lblQr = '';
+  return { mh: mh('M001'), che: lblQrChe(), a, b, c, pa: parseCode(a), pb: parseCode(b), byte: qrByte(b), dv: dv.maDV, ct: qrNoiDung(activeCT()[0] || m) };
+});
+assert.equal(q44.che, 'tt', 'mặc định: mã QR chứa thông tin máy');
+assert.ok(q44.a.includes('Mã · 编号: ' + q44.mh), 'có mã máy (mã hiển thị)'); assert.match(q44.a, /Tên · 名称: /); assert.match(q44.a, /Chuyền · 产线: VKY01/);
+assert.ok(!/^https?:|\?m=/.test(q44.a), 'không phải link');
+assert.match(q44.b, new RegExp('Mã · 编号: ' + q44.dv)); assert.ok(q44.byte <= 380, 'mã chữ đủ gọn cho tem nhỏ: ' + q44.byte);
+assert.equal(q44.pa, 'M001', 'quét mã chữ bằng app ra đúng máy');
+assert.equal(q44.pb, 'DV:' + q44.dv, 'quét mã chữ của quạt ra đúng quạt');
+assert.equal(q44.c, 'M001', 'chọn "Link mở app" thì mã là link / mã như cũ');
+await page.evaluate((x) => { while (S.stack.length > 1) back(); S.scanBusy = false; onScan(x); }, q44.a); await wait(800);
+assert.deepEqual(await page.evaluate(() => [topV().v, topV().p.ma]), ['may', 'M001'], 'màn Quét đọc tem chữ mở trang máy');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.59: mã QR chứa sẵn thông tin máy (quét bằng camera, không cần tài khoản); app vẫn quét ra đúng máy');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
