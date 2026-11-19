@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.59.0';
+var PHIEN_BAN = '2.60.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -128,14 +128,18 @@ var BANG = {
   // Số đo tủ điện nhánh: mỗi tủ mỗi ngày một dòng. MaCT = mã công tơ của lộ đó (E10…E25).
   // NhietDo = chỗ nóng nhất đo được (°C) · DienAp (V) · IA/IB/IC = dòng điện ba pha (A).
   // Ô nào không đo thì để trống, không ghi 0, để biểu đồ không bị kéo xuống.
-  DoTu: ['ID', 'Ngay', 'MaCT', 'NhietDo', 'DienAp', 'IA', 'IB', 'IC', 'NguoiDo', 'UID', 'GhiChu', 'OpId', 'Luc', 'CapNhat', 'Xoa']
+  DoTu: ['ID', 'Ngay', 'MaCT', 'NhietDo', 'DienAp', 'IA', 'IB', 'IC', 'NguoiDo', 'UID', 'GhiChu', 'OpId', 'Luc', 'CapNhat', 'Xoa'],
+  // Phiếu đề nghị mua hàng đã lập (v2.60). SoPhieu: DNMH + năm.tháng.ngày / số thứ tự trong ngày, máy chủ tự đánh.
+  // DsHang (JSON): ảnh chụp từng dòng lúc lưu [{ma, erp, ten, tenZh, qc, dv, ton, tonMin, sl, may, mayTen, gc}]
+  // — kho đổi sau này thì phiếu cũ vẫn in ra đúng như lúc lập. TrangThai: CHO (chờ đặt) · DA_DAT · DA_VE
+  DatMua: ['ID', 'SoPhieu', 'Ngay', 'STT', 'BoPhan', 'DsHang', 'SoMH', 'TrangThai', 'GhiChu', 'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'Xoa']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
   NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'], KiemDinh: ['NamSX', 'ChuKy', 'NghiemNgat', 'HoatDong'], MaLoi: ['HoatDong'], NghiemThu: ['STT', 'Xoa'],
   NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop'],
   MayNen: ['BienTan', 'ChuKyGio', 'GioBD', 'ThuTu', 'HoatDong', 'CongSuat'], GioChay: ['Gio'], LichMNK: [],
-  DoTu: ['NhietDo', 'DienAp', 'IA', 'IB', 'IC'] };
+  DoTu: ['NhietDo', 'DienAp', 'IA', 'IB', 'IC'], DatMua: ['STT', 'SoMH', 'Xoa'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' },
   MayNen: { GioBD: '#,##0.#', CongSuat: '#,##0.##' }, GioChay: { Gio: '#,##0.#' }, Chuyen: { KhiNen: '#,##0.##' },
@@ -192,7 +196,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'importMachines', 'delete
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'importInspect', 'saveFault', 'deleteFault', 'saveAccept', 'deleteAccept',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy', 'dutyCfg',
-  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay'];
+  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay', 'savePurchase', 'setPurchase'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
@@ -392,6 +396,8 @@ function dieuHuong(a, p, req) {
     case 'catalog': canQuyen(u, 'xemhet'); return layKho();
     case 'importKho': canQuyen(u, 'may'); return nhapKho(u, p);
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
+    case 'savePurchase': canQuyen(u, 'xemhet'); return luuDatMua(u, p);
+    case 'setPurchase': canQuyen(u, 'xemhet'); return suaDatMua(u, p);
     case 'saveKhoCfg': canQuyen(u, 'may'); return luuKhoCfg(u, p);
     case 'saveInspect': canQuyen(u, 'may'); return luuKiemDinh(u, p);
     case 'doInspect': canQuyen(u, 'may'); return ghiKiemDinh(u, p);
@@ -964,6 +970,7 @@ function layDuLieu(u) {
     kiemDinh: coQuyen(u, 'may') ? docKiemDinh().map(sachKD) : [],
     maLoi: coQuyen(u, 'may') ? docMaLoi().map(sachML) : [],
     nghiemThu: docNghiemThu().filter(function (x) { return !x.xoa && x.ngayNT >= tu; }).map(sachNGT),
+    datMua: coQuyen(u, 'xemhet') ? docDatMua().filter(function (x) { return !x.xoa && x.ngay >= tu; }).map(sachDM) : [],
     mayNen: docMayNen().map(sachMNK),
     gioChay: docGioChay().filter(function (x) { return x.ngayGhi >= tu; }).map(sachGC),
     doTu: docDoTu().filter(function (x) { return x.ngayGhi >= tu; }).map(sachDT),
@@ -2900,6 +2907,78 @@ function xoaNghiemThu(u, p) {
   suaDong('NghiemThu', x._r, ngtThanhDong(x));
   ghiNhatKy(u, 'XOA_NGHIEM_THU', 'NghiemThu', x.id, x.soBB, '', catChu(p.lyDo, 200));
   return { nghiemThu: sachNGT(x) };
+}
+
+// ===================== Phiếu đề nghị mua hàng đã lập · 请购单 (v2.60) =====================
+// App soạn phiếu trên máy, bấm Lưu thì phiếu vào danh sách ở đây (dùng chung mọi máy), app xoá bản nháp
+// để lập phiếu mới. Mỗi dòng hàng lưu nguyên ảnh chụp lúc lập.
+var DM_KHOA = ['id', 'soPhieu', 'ngay', 'stt', 'boPhan', 'ds', 'soMH', 'trangThai', 'ghiChu', 'nguoiTao', 'uidTao', 'lucTao', 'capNhat', 'xoa'];
+var DM_TT = ['CHO', 'DA_DAT', 'DA_VE'];
+function dmThanhDong(x) {
+  return DM_KHOA.map(function (k) {
+    if (k === 'ds') return x.ds && x.ds.length ? JSON.stringify(x.ds) : '';
+    if (k === 'xoa') return x.xoa ? 1 : 0;
+    var v = x[k];
+    if (v === undefined || v === null) return '';
+    return typeof v === 'string' ? anToan(v) : v;
+  });
+}
+function dmTuDong(r, i) {
+  var o = { _r: i + 2 };
+  DM_KHOA.forEach(function (k, j) {
+    var v = r[j];
+    if (k === 'ds') o[k] = docJson(v, []);
+    else if (k === 'xoa') o[k] = s(v) !== '' && hd(v);
+    else if (k === 'ngay') o[k] = ngayStr(v);
+    else if (k === 'stt' || k === 'soMH') o[k] = Math.round(Number(v)) || 0;
+    else o[k] = v instanceof Date ? tgStr(v) : s(v);
+  });
+  return o;
+}
+function docDatMua() { return docTho('DatMua').map(dmTuDong).filter(function (x) { return x.id; }); }
+function sachDM(x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; }); return o; }
+function dmHangSach(ds) {
+  var out = [];
+  (Array.isArray(ds) ? ds : []).slice(0, 200).forEach(function (r) {
+    if (!r) return;
+    var sl = soHoacRong(r.sl), ten = catChu(r.ten, 150);
+    if (!ten || !(sl > 0)) return;
+    out.push({ ma: catChu(r.ma, 40), erp: r.erp === true, ten: ten, tenZh: catChu(r.tenZh, 150), qc: catChu(r.qc, 120), dv: catChu(r.dv, 20),
+      ton: soHoacRong(r.ton), tonMin: soHoacRong(r.tonMin), sl: sl, may: catChu(r.may, 30).toUpperCase(), mayTen: catNhieuDong(r.mayTen, 300), gc: catChu(r.gc, 150) });
+  });
+  return out;
+}
+function luuDatMua(u, p) {
+  var ds = docDatMua(), hang = dmHangSach(p.ds);
+  if (!hang.length) throw loi('DM_TRONG', 'Phiếu chưa có hàng nào (tên và số lượng > 0) · 请购单没有物料');
+  var ngay = homNayStr(), stt = 0;
+  ds.forEach(function (x) { if (x.ngay === ngay && x.stt > stt) stt = x.stt; });
+  stt++;
+  var bay = thoiGianStr();
+  var x = { id: idMoi('DM', dsIdCo(ds)), soPhieu: 'DNMH' + ngay.slice(0, 4) + '.' + ngay.slice(5, 7) + '.' + ngay.slice(8, 10) + '/' + stt,
+    ngay: ngay, stt: stt, boPhan: catChu(p.boPhan, 60), ds: hang, soMH: hang.length, trangThai: 'CHO', ghiChu: catChu(p.ghiChu, 200),
+    nguoiTao: u.ten, uidTao: u.id, lucTao: bay, capNhat: bay, xoa: false };
+  capNhatTieuDe('DatMua');
+  themDong('DatMua', dmThanhDong(x));
+  ghiNhatKy(u, 'LAP_PHIEU_MUA', 'DatMua', x.id, '', x.soPhieu + ' · ' + hang.length + ' mặt hàng', '');
+  return { datMua: sachDM(x) };
+}
+// Đổi trạng thái (chờ đặt → đã đặt → đã về), ghi chú, hoặc xoá phiếu
+function suaDatMua(u, p) {
+  var x = docDatMua().filter(function (r) { return r.id === s(p.id); })[0];
+  if (!x || x.xoa) throw loi('KHONG_CO', 'Không tìm thấy phiếu · 找不到请购单');
+  var cu = x.trangThai;
+  if (p.xoa === true) x.xoa = true;
+  if (p.trangThai !== undefined) {
+    if (DM_TT.indexOf(s(p.trangThai)) < 0) throw loi('SAI_TRANG_THAI', s(p.trangThai));
+    x.trangThai = s(p.trangThai);
+  }
+  if (p.ghiChu !== undefined) x.ghiChu = catChu(p.ghiChu, 200);
+  x.capNhat = thoiGianStr();
+  capNhatTieuDe('DatMua');
+  suaDong('DatMua', x._r, dmThanhDong(x));
+  ghiNhatKy(u, x.xoa ? 'XOA_PHIEU_MUA' : 'SUA_PHIEU_MUA', 'DatMua', x.id, { trangThai: cu }, { trangThai: x.trangThai }, x.soPhieu);
+  return { datMua: sachDM(x) };
 }
 
 // ===================== Danh mục máy =====================
