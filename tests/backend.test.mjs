@@ -842,6 +842,26 @@ test('thêm / chuyển máy theo chuyền dùng được cho mọi nhóm có b�
   assert.deepEqual(ok(b.call('translate', { ds: ['Cảm biến quang', ''] }, kt)).dich, ['光电传感器', '']);
 });
 
+test('phiếu đặt mua: lưu thành phiếu có số vào danh sách dùng chung, đổi trạng thái, xoá; kỹ thuật không lập được', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const hang = [{ ma: '', ten: 'Cảm biến quang', tenZh: '光电传感器', qc: 'TEST-E3Z', dv: 'cái', sl: 3, may: 'm001', mayTen: 'M001 Máy in' },
+    { ten: 'Dòng thiếu số lượng', sl: 0 }];
+  err(b.call('savePurchase', { ds: hang }, kt), 'KHONG_QUYEN');
+  err(b.call('savePurchase', { ds: [{ ten: 'x', sl: 0 }] }, ql), 'DM_TRONG');
+  const a = ok(b.call('savePurchase', { boPhan: 'Bảo trì', ds: hang }, ql)).datMua;
+  assert.equal(a.soPhieu, 'DNMH2026.10.14/1'); assert.equal(a.trangThai, 'CHO'); assert.equal(a.soMH, 1, 'bỏ dòng số lượng 0');
+  assert.deepEqual([a.ds[0].tenZh, a.ds[0].sl, a.ds[0].may], ['光电传感器', 3, 'M001']);
+  const a2 = ok(b.call('savePurchase', { ds: hang }, ql)).datMua;
+  assert.equal(a2.soPhieu, 'DNMH2026.10.14/2', 'phiếu thứ hai cùng ngày tự nhận số kế tiếp');
+  err(b.call('setPurchase', { id: a.id, trangThai: 'LA' }, ql), 'SAI_TRANG_THAI');
+  assert.equal(ok(b.call('setPurchase', { id: a.id, trangThai: 'DA_DAT' }, ql)).datMua.trangThai, 'DA_DAT');
+  ok(b.call('setPurchase', { id: a2.id, xoa: true }, ql));
+  const ds = ok(b.call('data', {}, ql)).datMua;
+  assert.deepEqual(ds.map((x) => [x.soPhieu, x.trangThai]), [['DNMH2026.10.14/1', 'DA_DAT']], 'danh sách: phiếu đã xoá không gửi về');
+  assert.deepEqual(ok(b.call('data', {}, kt)).datMua, [], 'kỹ thuật không nhận danh sách phiếu');
+});
+
 test('mỗi quạt một mã riêng nhưng vẫn gộp theo chuyền: đánh mã từng đơn vị, giữ mã cũ, không trùng, quạt mới tự lấy số', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');

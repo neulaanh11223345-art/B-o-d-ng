@@ -2680,13 +2680,65 @@ const lb43 = await page.evaluate((c) => { const p = { only: 'DV:' + c }; const h
 assert.deepEqual(lb43.sel, ['DV:' + dv43], 'in tem từ tờ quạt: chọn sẵn đúng quạt');
 // Thư viện vẽ QR tải từ mạng (máy kiểm thử không có mạng): thay bằng hình rỗng để xem chữ trên tem
 const tem43 = await page.evaluate((c) => { window.qrSvg = () => '<svg></svg>'; return labelInner(lblVat('DV:' + c), false).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '); }, dv43);
-assert.match(tem43, new RegExp(dv43 + '.*Quạt.*Quét để xem thông tin máy'), 'tem quạt có mã riêng, tên quạt, lời nhắc xem thông tin: ' + tem43);
+assert.match(tem43, new RegExp(dv43 + '.*Quạt.*Quét bằng camera điện thoại để xem thông tin'), 'tem quạt có mã riêng, tên quạt, lời nhắc xem thông tin: ' + tem43);
 assert.ok(lb43.n >= 3, 'màn in tem có mục từng quạt');
-const t43 = await page.evaluate(() => { const m = activeMay().find((x) => !(x.chuKy > 0) && !(x.chiTiet || []).length); return m ? labelInner(m, false).replace(/<[^>]+>/g, ' ') : 'x Quét để xem thông tin máy'; });
-assert.ok(!/Chu kỳ 0/.test(t43) && /Quét để xem thông tin máy/.test(t43), 'tem máy không bảo dưỡng không ghi "chu kỳ 0": ' + t43.replace(/\s+/g, ' ').slice(0, 120));
+const t43 = await page.evaluate(() => { const m = activeMay().find((x) => !(x.chuKy > 0) && !(x.chiTiet || []).length); window.qrSvg = () => '<svg></svg>'; return m ? labelInner(m, false).replace(/<[^>]+>/g, ' ') : 'x Quét để xem thông tin máy'; });
+assert.ok(!/Chu kỳ 0/.test(t43) && /Quét (bằng camera điện thoại )?để xem thông tin/.test(t43), 'tem máy không bảo dưỡng không ghi "chu kỳ 0": ' + t43.replace(/\s+/g, ' ').slice(0, 120));
 await shot('80-tem-qr');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.58: quét QR / link tem của máy nào cũng ra trang thông tin máy đó (cả từng quạt); in tem QR cho từng quạt');
+
+// 44. Mã QR dạng chữ: thông tin máy nằm luôn trong mã (camera nào cũng đọc, không cần tài khoản); app vẫn quét ra đúng máy
+const q44 = await page.evaluate(() => {
+  const dv = lblDVs()[0], m = S.V.byMa['M001'];
+  const a = qrNoiDung(m), b = qrNoiDung(lblVat('DV:' + dv.maDV));
+  S.f.lblQr = 'link'; const c = qrNoiDung(m); S.f.lblQr = '';
+  return { mh: mh('M001'), che: lblQrChe(), a, b, c, pa: parseCode(a), pb: parseCode(b), byte: qrByte(b), dv: dv.maDV, ct: qrNoiDung(activeCT()[0] || m) };
+});
+assert.equal(q44.che, 'tt', 'mặc định: mã QR chứa thông tin máy');
+assert.ok(q44.a.includes('Mã · 编号: ' + q44.mh), 'có mã máy (mã hiển thị)'); assert.match(q44.a, /Tên · 名称: /); assert.match(q44.a, /Chuyền · 产线: VKY01/);
+assert.ok(!/^https?:|\?m=/.test(q44.a), 'không phải link');
+assert.match(q44.b, new RegExp('Mã · 编号: ' + q44.dv)); assert.ok(q44.byte <= 380, 'mã chữ đủ gọn cho tem nhỏ: ' + q44.byte);
+assert.equal(q44.pa, 'M001', 'quét mã chữ bằng app ra đúng máy');
+assert.equal(q44.pb, 'DV:' + q44.dv, 'quét mã chữ của quạt ra đúng quạt');
+assert.equal(q44.c, 'M001', 'chọn "Link mở app" thì mã là link / mã như cũ');
+await page.evaluate((x) => { while (S.stack.length > 1) back(); S.scanBusy = false; onScan(x); }, q44.a); await wait(800);
+assert.deepEqual(await page.evaluate(() => [topV().v, topV().p.ma]), ['may', 'M001'], 'màn Quét đọc tem chữ mở trang máy');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.59: mã QR chứa sẵn thông tin máy (quét bằng camera, không cần tài khoản); app vẫn quét ra đúng máy');
+
+// 45. Phiếu đặt mua: Lưu phiếu → vào danh sách, phiếu đang soạn trống để lập phiếu mới; xem, đổi trạng thái, Excel, sao chép, xoá
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); go('datMua', {}); }); await wait(700);
+await page.fill('#dmNTen', 'Dây curoa'); await page.fill('#dmNQC', 'TEST-B-56'); await page.fill('#dmNSL', '4');
+await page.click('[data-act="dmThemNgoai"]'); await wait(1200);
+await page.click('[data-act="dmThem"]'); await wait(400);
+const n45 = await page.evaluate(() => dmLay().ds.length);
+assert.ok(n45 >= 2, 'phiếu đang soạn có hàng');
+await page.click('[data-act="dmLuuPhieu"]'); await wait(1500);
+const p45 = await page.evaluate(() => ({ nhap: dmLay().ds.length, ds: dmDS().map((x) => ({ so: x.soPhieu, n: x.ds.length, tt: x.trangThai, zh: (x.ds.find((r) => r.ten === 'Dây curoa') || {}).tenZh })) }));
+assert.equal(p45.nhap, 0, 'lưu xong phiếu đang soạn trống để lập phiếu mới');
+assert.equal(p45.ds.length, 1); assert.match(p45.ds[0].so, /^DNMH\d{4}\.\d{2}\.\d{2}\/1$/, 'phiếu có số: ' + p45.ds[0].so);
+assert.deepEqual([p45.ds[0].n, p45.ds[0].tt, p45.ds[0].zh], [n45, 'CHO', '皮带'], 'đủ hàng, chờ đặt, tên tiếng Trung lưu theo');
+assert.match(await text('#main'), new RegExp(p45.ds[0].so.replace(/[./]/g, '\\$&')), 'phiếu vừa lưu hiện ngay trên màn');
+assert.equal(await page.locator('.dmrow').count(), 0);
+await page.click('[data-act="dmDSMo"]'); await wait(500);
+await page.click('[data-act="dmXemPhieu"]'); await wait(500);
+await page.click('[data-act="dmTT"][data-v="DA_DAT"]'); await wait(1000);
+assert.equal(await page.evaluate(() => dmDS()[0].trangThai), 'DA_DAT', 'đổi trạng thái đã đặt hàng');
+const x45 = await page.evaluate(async () => { const x = dmDS()[0]; const u = new Uint8Array(await dmXlsx(Object.assign({}, x, { ds: x.ds.map((r) => Object.assign({ chup: 1 }, r)) })).arrayBuffer()); const rows = await (await readXlsx(u.buffer))[0].rows(); return rows.map((r) => (r || []).join('|')).join('\n'); });
+assert.match(x45, /Số phiếu · 编号: DNMH/, 'Excel phiếu đã lưu có số phiếu'); assert.match(x45, /Dây curoa\|皮带\|TEST-B-56/);
+await page.click('[data-act="dmSaoChep"]'); await wait(700);
+assert.equal(await page.evaluate(() => [topV().v, dmLay().ds.length].join()), 'datMua,' + n45, 'sao chép phiếu cũ vào phiếu đang soạn');
+page.once('dialog', (dg) => dg.accept());
+await page.click('[data-act="dmXoaHet"]'); await wait(400);
+await page.click('[data-act="dmDSMo"]'); await wait(400);
+await page.click('[data-act="dmXemPhieu"]'); await wait(400);
+await page.click('[data-act="dmXoaPhieuHoi"]'); await wait(300);
+await page.click('[data-act="dmXoaPhieuGo"]'); await wait(1200);
+assert.equal(await page.evaluate(() => dmDS().length), 0, 'xoá phiếu');
+await shot('81-phieu-dat-mua-da-lap');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.60: lưu phiếu đặt mua vào danh sách, phiếu đang soạn trống để lập mới; xem, đổi trạng thái, xuất lại Excel, sao chép, xoá');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

@@ -1694,7 +1694,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.58.0";
+const APP_VER = "2.60.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -1762,7 +1762,10 @@ const TX = {
   lblSize: ['Cỡ tem', '标签尺寸'], s24: ['Nhỏ · 24 tem/A4', '小 · 每张24个'], s8: ['Lớn · 8 tem/A4', '大 · 每张8个'],
   selAll: ['Chọn tất cả', '全选'], selNone: ['Bỏ chọn', '取消全选'], selected: ['Đã chọn {n} máy', '已选{n}台'],
   print: ['In', '打印'], printDemo: ['Bản xem thử không in được. App thật in ra giấy A4 (hoặc lưu PDF).', '预览版不能打印，正式版可打印A4纸或存为PDF。'],
-  lblScan: ['Quét để xem thông tin máy', '扫码查看设备信息'], lblKhongBD: ['Không bảo dưỡng định kỳ', '不做定期保养'],
+  lblScan: ['Quét để xem thông tin máy', '扫码查看设备信息'], lblCam: ['Quét bằng camera điện thoại để xem thông tin', '用手机相机扫码查看设备信息'],
+  lblQr: ['Nội dung mã QR', '二维码内容'], lblQrTT: ['Thông tin máy · không cần tài khoản', '设备信息 · 无需账号'], lblQrLink: ['Link mở app · cần đăng nhập', '应用链接 · 需登录'],
+  lblQrHelp: ['Thông tin máy: mã QR chứa sẵn mã, tên, loại, chuyền, vị trí và thông số chính — quét bằng camera điện thoại nào cũng hiện chữ ngay, không mở link, không cần tài khoản. Thông tin là lúc in tem: máy chuyển chuyền hay đổi thông số thì in lại tem. Quét bằng nút Quét trong app vẫn mở đúng máy.',
+    '设备信息：二维码内含编号、名称、类别、产线、位置和主要参数——任何手机相机扫码即可直接显示文字，无需打开链接，无需账号。内容为打印时的信息：设备调换产线或参数变更后请重新打印。用应用内扫码仍可打开对应设备。'], lblKhongBD: ['Không bảo dưỡng định kỳ', '不做定期保养'],
   lblDVSec: ['Từng máy trong bản ghi gộp (từng quạt…)', '合并记录中的单台设备（每台风机…）'], lblHead: ['BẢO DƯỠNG', '保养'],
   preview: ['Xem trước', '预览'], noSel: ['Chưa chọn máy nào', '未选择设备'],
   histEmpty: ['Tháng này chưa có lần bảo dưỡng nào', '本月还没有保养记录'], times: ['{n} lần', '{n}次'],
@@ -2026,7 +2029,7 @@ const LOGO = `<span class="lgo"><img src="${LOGO_MARK}" alt="Credible"></span>`;
 // ===================== Trạng thái =====================
 const S = {
   tk: null, me: null, base: null, V: null, Q: [], stack: [], offline: false, simOff: false,
-  f: { grp: '', calGrp: '', q: '', calMode: 'tong', calYear: +localToday().slice(0, 4), calMonth: +localToday().slice(5, 7), histMonth: localToday().slice(0, 7), histGrp: '', histQ: '', lblSize: 's24' },
+  f: { grp: '', calGrp: '', q: '', calMode: 'tong', calYear: +localToday().slice(0, 4), calMonth: +localToday().slice(5, 7), histMonth: localToday().slice(0, 7), histGrp: '', histQ: '', lblSize: 's24', lblQr: '' },
   oldHist: {}, oldCS: {}, scanner: null, lastLoad: 0, lastSync: 0
 };
 S.lastSync = store.get('bd_sync', 0);
@@ -2166,6 +2169,10 @@ async function flush() {
 }
 function mergeResult(d) {
   if (!d || !S.base) return;
+  if (d.datMua && d.datMua.id) {
+    const L = S.base.datMua = S.base.datMua || [], i = L.findIndex((y) => y.id === d.datMua.id);
+    if (i >= 0) L[i] = d.datMua; else L.push(d.datMua);
+  }
   // Biên bản nghiệm thu đổi theo (quạt chuyển chuyền / đổi tên thì biên bản đi theo quạt)
   (d.dsNghiemThu || []).forEach((x) => {
     const L = S.base.nghiemThu = S.base.nghiemThu || [], i = L.findIndex((y) => y.id === x.id);
@@ -2409,7 +2416,7 @@ const sec = (k, extra, v) => `<div class="sec"><h2>${t(k, v)}${extra !== undefin
 const xemHet = () => can('xemhet');
 const HAN_CHE = new Set(['cvNew', 'list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
   'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
-  'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit', 'tlTb', 'mnkDS']);
+  'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit', 'tlTb', 'mnkDS', 'datMua', 'dmDS', 'dmXem']);
 const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
@@ -2938,6 +2945,7 @@ function stopScan() {
 function parseCode(text) {
   let s = String(text || '').trim();
   try { const u = new URL(s); const m = u.searchParams.get('m'); if (m) s = m; } catch (e) { /* không phải link */ }
+  const kc = /编号:\s*(\S+)/.exec(s); if (kc) s = kc[1];       // tem dạng chữ (v2.59)
   s = s.replace(/^BD[:\-]/i, '').trim().toUpperCase();
   return S.V.ctByMa[s] ? s : maTuNhap(s) || (dvTheoMa(s) ? 'DV:' + s : null);
 }
@@ -4428,11 +4436,56 @@ async function saveMay(ma) {
 // ---------- Tem QR ----------
 function appLink() { return location.origin + location.pathname; }
 function qrText(ma) { return IS_DEMO || !/^https?:/.test(location.protocol) ? ma : appLink() + '?m=' + encodeURIComponent(ma); }
+// Mã QR dạng chữ (v2.59): thông tin máy nằm luôn trong mã, camera điện thoại đọc ra chữ, không cần link hay tài khoản.
+// Giữ dưới ~380 byte để tem nhỏ (30 mm) vẫn quét được; thông số thêm dần tới khi đầy.
+const QR_TOI_DA = 380;
+// Kiểu nội dung mã QR đã chọn (nhớ trên máy này): 'tt' thông tin máy (mặc định) | 'link' link mở app
+const lblQrChe = () => S.f.lblQr || store.get('bd_lblQr', 'tt');
+const qrByte = (x) => new TextEncoder().encode(x).length;
+function qrChu(v) {
+  const dong = ['CREDIBLE VIỆT NAM · 可悦'], ts = [];
+  const them = (nhan, gt) => { gt = String(gt === undefined || gt === null ? '' : gt).replace(/\s+/g, ' ').trim(); if (gt) dong.push(nhan + ': ' + gt); };
+  if (v.dv) {
+    const q = v.dv, m = q.m;
+    them('Mã · 编号', q.maDV); them('Tên · 名称', tenQuat(q)); them('Loại · 类别', m.nhom);
+    const c = m.chuyen && S.V.chByMa[m.chuyen];
+    them('Chuyền · 产线', m.chuyen ? mh(m.chuyen) + (c && c.tenZh ? ' ' + c.tenZh : '') : '');
+    q.ts.forEach(([k, x]) => ts.push([k, x]));
+  } else if (S.V.chByMa[v.ma] === v) {
+    them('Mã · 编号', mh(v.ma)); them('Chuyền · 产线', v.ten || v.ma); them('名称', v.tenZh);
+  } else {
+    them('Mã · 编号', mh(v.ma)); them('Tên · 名称', v.ten + (v.tenPhu ? ' / ' + v.tenPhu : '')); them('Loại · 类别', v.nhom);
+    const c = v.chuyen && S.V.chByMa[v.chuyen];
+    them('Chuyền · 产线', v.chuyen ? mh(v.chuyen) + (c && c.tenZh ? ' ' + c.tenZh : '') : '');
+    them('Vị trí · 位置', v.viTri);
+    if (v.chuKy > 0) them('Bảo dưỡng · 保养', v.chuKy + ' ngày/lần · 每' + v.chuKy + '天');
+    (v.thongSo || []).forEach(([k, x]) => ts.push([k, x]));
+  }
+  let out = dong.join('\n');
+  // Thông số quan trọng ghi trước (vị trí, công suất, model motor / quạt, dòng điện), còn chỗ mới ghi phần còn lại
+  const UU = [/^v[iị] tr[ií]/i, RE_CS, RE_MDC, RE_MQ, RE_DONG], hang = (k) => { const i = UU.findIndex((re) => re.test(String(k || ''))); return i < 0 ? 99 : i; };
+  ts.sort((a, b) => hang(a[0]) - hang(b[0]));
+  ts.forEach(([k, x]) => {
+    x = String(x === undefined || x === null ? '' : x).replace(/\s+/g, ' ').trim();
+    if (!x || /^(c[aầ]n ki[eể]m tra|待确认)$/i.test(String(k).trim())) return;
+    const dd = out + '\n' + String(k).trim() + ': ' + x;
+    if (qrByte(dd) <= QR_TOI_DA) out = dd;
+  });
+  return out;
+}
+// Nội dung đặt vào mã QR của một tem: công tơ luôn là link (để ghi chỉ số); máy / chuyền theo lựa chọn
+function qrNoiDung(v) {
+  if (v.dv) return lblQrChe() === 'link' ? qrText(v.dv.maDV) : qrChu(v);
+  if (S.V.ctByMa[v.ma] === v || lblQrChe() === 'link') return qrText(v.ma);
+  return qrChu(v);
+}
 function qrSvg(text) {
-  const q = qrcode(0, 'M'); q.addData(text); q.make();
+  // Chữ tiếng Việt / tiếng Trung: mã hoá UTF-8 (thư viện mặc định chỉ 8 bit); mã chữ dài dùng mức sửa lỗi L cho gọn
+  if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+  const q = qrcode(0, qrByte(text) > 120 ? 'L' : 'M'); q.addData(text, 'Byte'); q.make();
   const n = q.getModuleCount(), qz = 2; let d = '';
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += 'M' + (c + qz) + ' ' + (r + qz) + 'h1v1h-1z';
-  return `<svg viewBox="0 0 ${n + qz * 2} ${n + qz * 2}" shape-rendering="crispEdges" role="img" aria-label="QR ${esc(text)}"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n + qz * 2} ${n + qz * 2}" shape-rendering="crispEdges" role="img" aria-label="QR ${esc(text)}"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
 }
 // Khoá chọn tem: mã máy / công tơ / chuyền, hoặc "DV:<mã riêng>" cho một máy trong bản ghi gộp (một quạt)
 function lblVat(k) {
@@ -4444,9 +4497,9 @@ const lblDVs = () => activeMay().filter((m) => (m.chiTiet || []).length).flatMap
 function labelInner(m, big) {
   if (m.dv) {
     const q = m.dv, cs = tsLay(q.ts, RE_CS, 1);
-    const body = `${qrSvg(qrText(q.maDV))}<div class="ti"><div class="cd">${esc(q.maDV)}</div><div class="nm">${esc(tenQuat(q))}</div>
+    const body = `${qrSvg(qrNoiDung(m))}<div class="ti"><div class="cd">${esc(q.maDV)}</div><div class="nm">${esc(tenQuat(q))}</div>
       <div class="ck">${esc([q.m.chuyen ? tv('chuyenNgan') + ' ' + mh(q.m.chuyen) : '', cs ? cs + ' kW' : ''].filter(Boolean).join(' · '))}</div>
-      <div class="hn">${esc(tv('lblScan'))}<br>${esc(tz('lblScan'))}</div></div>`;
+      <div class="hn">${esc(tv(lblQrChe() === 'link' ? 'lblScan' : 'lblCam'))}<br>${esc(tz(lblQrChe() === 'link' ? 'lblScan' : 'lblCam'))}</div></div>`;
     return big ? `<div class="hz"></div><div class="bd">${body}</div>` : body;
   }
   const ct = S.V.ctByMa[m.ma] === m, ch = S.V.chByMa[m.ma] === m;
@@ -4454,8 +4507,8 @@ function labelInner(m, big) {
     : ch ? esc(m.tenZh || '') + (m.maHT ? ' · ' + esc(m.ma) : '')
     : m.chuKy > 0 ? `${esc(tv('cycle'))} ${m.chuKy} ${esc(tv('days', { n: '' }).trim())} · ${esc(tz('cycle'))}${m.chuKy}${esc(tz('days', { n: '' }))}`
     : esc([m.chuyen ? tv('chuyenNgan') + ' ' + mh(m.chuyen) : '', m.tenPhu || ''].filter(Boolean).join(' · ') || tv('lblKhongBD'));
-  const hint = ct ? 'lblDien' : ch ? 'lblCh' : 'lblScan';
-  const body = `${qrSvg(qrText(m.ma))}<div class="ti"><div class="cd">${esc(ct ? m.ma : mh(m.ma))}</div><div class="nm">${esc(ch ? (m.ten || m.ma) : m.ten)}</div>
+  const hint = ct ? 'lblDien' : lblQrChe() !== 'link' ? 'lblCam' : ch ? 'lblCh' : 'lblScan';
+  const body = `${qrSvg(qrNoiDung(m))}<div class="ti"><div class="cd">${esc(ct ? m.ma : mh(m.ma))}</div><div class="nm">${esc(ch ? (m.ten || m.ma) : m.ten)}</div>
     <div class="ck">${info}</div>
     <div class="hn">${esc(tv(hint))}<br>${esc(tz(hint))}</div></div>`;
   return big ? `<div class="hz"></div><div class="bd">${body}</div>` : body;
@@ -4467,7 +4520,10 @@ VIEWS.labels = {
     const list = S.V.may.filter((m) => m.hoatDong || sel.has(m.ma));
     const cts = S.V.ct.filter((m) => m.hoatDong || sel.has(m.ma)), chs = S.V.ch || [];
     let o = `<div class="card pad"><div class="fld" style="margin:0"><span>${t('lblSize')}</span>
-      <div class="seg"><button class="${f.lblSize === 's24' ? 'on' : ''}" data-act="lblSize" data-s="s24">${esc(tp('s24'))}</button><button class="${f.lblSize === 's8' ? 'on' : ''}" data-act="lblSize" data-s="s8">${esc(tp('s8'))}</button></div></div></div>
+      <div class="seg"><button class="${f.lblSize === 's24' ? 'on' : ''}" data-act="lblSize" data-s="s24">${esc(tp('s24'))}</button><button class="${f.lblSize === 's8' ? 'on' : ''}" data-act="lblSize" data-s="s8">${esc(tp('s8'))}</button></div></div>
+      <div class="fld" style="margin:12px 0 0"><span>${t('lblQr')}</span>
+      <div class="seg">${[['tt', 'lblQrTT'], ['link', 'lblQrLink']].map(([k, lb]) => `<button class="${lblQrChe() === k ? 'on' : ''}" data-act="lblQr" data-s="${k}">${tv(lb)}<small>${tz(lb)}</small></button>`).join('')}</div>
+      <div class="help">${t('lblQrHelp')}</div></div></div>
       <div class="btns" style="margin:14px 0"><button class="btn y" data-act="doPrint" ${sel.size ? '' : 'disabled'}>${IC.print}<span class="stk">${tv('print')} (${sel.size})<span class="zi">${tz('print')}</span></span></button></div>
       ${IS_DEMO ? `<p class="help">${t('printDemo')}</p>` : ''}
       ${sec('preview')}<div class="lblprev" id="lblPrev"><div class="empty">${t('loading')}</div></div>
@@ -5192,6 +5248,7 @@ const ACT = {
   labels: () => go('labels', {}),
   labelsOne: (el) => { closeSheet(); go('labels', { only: el.dataset.ma }); },
   lblSize: (el) => { S.f.lblSize = el.dataset.s; render(); },
+  lblQr: (el) => { S.f.lblQr = el.dataset.s; store.set('bd_lblQr', el.dataset.s); render(); },
   lblAll: () => { topV().p.sel = activeMay().map((m) => m.ma).concat(activeCT().map((m) => m.ma)); render(); },
   lblNone: () => { topV().p.sel = []; render(); },
   doPrint: () => doPrint(),
@@ -16440,11 +16497,15 @@ VIEWS.datMua = {
   html(p) {
     const v = dmLay(); p.loc = p.loc || 'can';
     const canN = S.kho.ds.length ? dmCanMuaDS().filter((o) => !v.ds.some((r) => r.ma === o.x.ma)).length : 0;
-    let o = `<div class="card pad"><p class="help" style="margin:0;font-size:13.5px">${t('dmHelp')}</p>
+    const daLap = dmDS().length;
+    let o = `${srvOld('datmua') ? srvWarn('datmua') : ''}<div class="btns" style="margin-bottom:10px"><button class="btn ghost" data-act="dmDSMo">${IC.list} ${esc(tv('dmDSMo', { n: daLap }))}<span class="zi">${esc(tz('dmDSMo', { n: daLap }))}</span></button></div>
+      ${dmDS().slice(0, 2).length ? `<div class="list" style="margin-bottom:12px">${dmDS().slice(0, 2).map(dmPhieuRow).join('')}</div>` : ''}
+      <div class="card pad"><p class="help" style="margin:0;font-size:13.5px">${t('dmHelp')}</p><p class="help" style="margin:6px 0 0">${t('dmLuuHelp')}</p>
       <label class="fld" style="margin-top:10px"><span>${t('dmBoPhan')}</span><input class="inp" id="dmBP" maxlength="60" value="${esc(v.boPhan || '')}" placeholder="Bảo trì · 设备维修"></label></div>`;
-    o += sec('dmPhieu', v.ds.length) + (v.ds.length ? v.ds.map(dmDongHtml).join('') : `<div class="card empty">${t('dmTrong')}</div>`);
+    o += sec('dmDangSoan', v.ds.length) + (v.ds.length ? v.ds.map(dmDongHtml).join('') : `<div class="card empty">${t('dmTrong')}</div>`);
     o += `<div class="err" id="dmErr" hidden></div>`;
-    if (v.ds.length) o += `<div class="btns" style="margin-top:10px"><button class="btn" data-act="dmXuat">${IC.dl} ${t('dmXuat')}</button>
+    if (v.ds.length) o += `<div class="btns" style="margin-top:10px"><button class="btn bigbtn" data-act="dmLuuPhieu"${srvOld('datmua') ? ' disabled' : ''}>${IC.check} ${t('dmLuuPhieu')}</button></div>
+      <div class="btns" style="margin-top:8px"><button class="btn ghost" data-act="dmXuat">${IC.dl} ${t('dmXuat')}</button>
       <button class="btn ghost" data-act="dmXoaHet">${t('dmXoaHet')}</button></div>`;
     o += sec('dmNgoaiTD') + `<div class="card pad" id="dmNgoaiBox"><p class="help" style="margin:0 0 8px">${t('dmNgoaiHelp')}</p>${srvOld('dich') ? srvWarn('dich') : ''}
       <div class="row2f"><label class="fld"><span>${tv('dmNgoaiTenVi')} *<span class="zi">${tz('dmNgoaiTenVi')}</span></span><input class="inp" id="dmNTen" maxlength="120"></label>
@@ -16509,35 +16570,147 @@ Object.assign(ACT, {
   }
 });
 // Excel phiếu đề nghị mua hàng: logo, người lập, bộ phận, bảng hàng, chữ ký
+// Ảnh chụp một dòng hàng lúc lập phiếu: tên VI / TQ, quy cách, tồn, máy dùng… (lưu vào phiếu, in lại không đổi)
+function dmChup(r, dung) {
+  if (r.chup) return r;
+  const x = r.ma ? khoGet(r.ma) : null, tt = x ? lkTach(x.ten) : { vi: r.ten, zh: r.tenZh || '' };
+  const chon = r.may && (S.V.byMa[r.may] || S.V.chByMa[r.may]);
+  const mayTen = chon ? mh(r.may) + ' ' + (chon.ten || '') : x ? ((dung || khoDaDungMap())[x.ma] || []).map((u) => mh(u.m.ma) + ' ' + u.m.ten).slice(0, 4).join('\n') : '';
+  const n = x ? tonOf(x) : null;
+  return { chup: 1, ma: x ? x.ma : '', erp: !!(x && lsLaERP(x)), ten: tt.vi || '', tenZh: tt.zh || '', qc: x ? x.qc || '' : r.qc || '',
+    dv: x ? dvTxt(x.dv || '') : r.dv || '', ton: n === null ? '' : n, tonMin: x && x.tonMin !== undefined && x.tonMin !== '' ? x.tonMin : '',
+    sl: parseSo(String(r.sl)), may: r.may || '', mayTen, gc: r.gc || '' };
+}
+// Excel phiếu đề nghị mua hàng: logo, số phiếu, người lập, bộ phận, bảng hàng, chữ ký.
+// d: bản nháp { ds, boPhan } hoặc phiếu đã lưu { soPhieu, ngay, nguoiTao, boPhan, ds (ảnh chụp) }
 function dmXlsx(d) {
   const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
   const num = (v) => c(v === '' || v === undefined || v === null ? '' : +v, { align: 'center', fmt: '0.###' });
-  const dung = khoDaDungMap();
+  const dung = khoDaDungMap(), nguoi = d.nguoiTao || (S.me && S.me.ten) || '';
   const rows = [[{ v: 'PHIẾU ĐỀ NGHỊ MUA HÀNG · 请购单', s: { b: 1, sz: 15, align: 'center' } }],
-    [{ v: 'Ngày lập · 日期: ' + fmtD(TODAY()) + '     Người lập · 申请人: ' + ((S.me && S.me.ten) || '') + (d.boPhan ? '     Bộ phận · 部门: ' + d.boPhan : ''), s: { i: 1, color: '#33413E' } }], [],
+    [{ v: (d.soPhieu ? 'Số phiếu · 编号: ' + d.soPhieu + '     ' : '') + 'Ngày lập · 日期: ' + fmtD(d.ngay || TODAY()) + '     Người lập · 申请人: ' + nguoi + (d.boPhan ? '     Bộ phận · 部门: ' + d.boPhan : ''), s: { i: 1, color: '#33413E' } }], [],
     ['STT\n序号', 'Mã ERP\nERP编号', 'Tên hàng (tiếng Việt)\n越南语名称', 'Tên tiếng Trung\n中文名称', 'Quy cách\n规格', 'ĐVT\n单位', 'Tồn kho\n库存', 'Tồn an toàn\n安全库存', 'SL đề nghị mua\n请购数量', 'Dùng cho máy\n使用设备', 'Ghi chú\n备注']
       .map((v) => ({ v, s: H }))];
   d.ds.forEach((r, i) => {
-    const x = r.ma ? khoGet(r.ma) : null, n = x ? tonOf(x) : null;
-    const chon = r.may && (S.V.byMa[r.may] || S.V.chByMa[r.may]);
-    const may = chon ? mh(r.may) + ' ' + (chon.ten || '') : x ? (dung[x.ma] || []).map((u) => mh(u.m.ma) + ' ' + u.m.ten).slice(0, 4).join('\n') : '';
-    const erp = x && lsLaERP(x);    // mã tự đặt APP-… không phải mã ERP: để trống, ghi chú cho người mua biết
-    const tt = x ? lkTach(x.ten) : { vi: r.ten, zh: r.tenZh || '' };
-    rows.push([c(i + 1, { align: 'center' }), c(erp ? x.ma : '', { align: 'center' }), c(tt.vi), c(tt.zh || ''), c(x ? x.qc || '' : r.qc || ''),
-      c(x ? dvTxt(x.dv || '') : r.dv || '', { align: 'center' }), num(n === null ? '' : n),
-      num(x && x.tonMin !== undefined && x.tonMin !== '' ? x.tonMin : ''), Object.assign(num(parseSo(String(r.sl))), { s: { border: true, align: 'center', b: 1, fmt: '0.###', fill: '#FFF4D6' } }),
-      c(may), c([erp ? '' : 'Chưa có mã ERP · 无ERP编号', r.gc || ''].filter(Boolean).join('\n'))]);
+    const z = r.chup || d.soPhieu ? r : dmChup(r, dung);
+    rows.push([c(i + 1, { align: 'center' }), c(z.erp ? z.ma : '', { align: 'center' }), c(z.ten), c(z.tenZh || ''), c(z.qc || ''),
+      c(z.dv || '', { align: 'center' }), num(z.ton), num(z.tonMin), Object.assign(num(z.sl), { s: { border: true, align: 'center', b: 1, fmt: '0.###', fill: '#FFF4D6' } }),
+      c(z.mayTen || ''), c([z.erp ? '' : 'Chưa có mã ERP · 无ERP编号', z.gc || ''].filter(Boolean).join('\n'))]);
   });
   const cuoi = rows.length + 1;
   rows.push([c('Tổng · 合计: ' + d.ds.length + ' mặt hàng · 项', { b: 1 })], [], [],
     ['Người lập · 申请人', '', '', 'Trưởng bộ phận · 部门负责人', '', '', 'Phê duyệt · 批准', '', 'Mua hàng · 采购', '', ''].map((v) => ({ v, s: { b: 1, align: 'center' } })),
-    [], [], [], [{ v: (S.me && S.me.ten) || '', s: { align: 'center' } }]);
+    [], [], [], [{ v: nguoi, s: { align: 'center' } }]);
   const k = rows.length - 4;
   return XW.build([{ name: 'De nghi mua hang', rows, cols: [6, 14, 30, 22, 22, 8, 9, 10, 12, 26, 24],
     merges: ['A1:K1', 'A2:K2', 'A' + cuoi + ':K' + cuoi, 'A' + k + ':C' + k, 'D' + k + ':F' + k, 'G' + k + ':H' + k, 'I' + k + ':K' + k, 'A' + rows.length + ':C' + rows.length],
     heights: { 1: 28, 4: 34 }, freeze: { r: 4, c: 0 }, landscape: true }]);
 }
+
+// ===================== Danh sách phiếu đặt mua đã lập (v2.60) =====================
+// Bấm "Lưu phiếu" thì phiếu đang soạn lên máy chủ thành một phiếu có số (DNMH…), vào danh sách dùng chung,
+// bản nháp trên máy trống ra để lập phiếu mới. Phiếu đã lưu: đổi trạng thái, xuất lại Excel, sao chép, xoá.
+SRV_PHAN.push(['datmua', '2.60.0', 'srvMissDM']);
+Object.assign(TX, {
+  t_dmDS: ['Phiếu đặt mua đã lập', '已建请购单'], t_dmXem: ['Phiếu đặt mua', '请购单'],
+  dmLuuPhieu: ['Lưu phiếu vào danh sách', '保存请购单'], dmDaLuu: ['Đã lưu phiếu {s} — phiếu mới trống để lập tiếp', '已保存请购单 {s}——可继续新建'],
+  dmDSMo: ['Phiếu đã lập ({n})', '已建请购单（{n}）'], dmDSTrong: ['Chưa có phiếu nào được lưu', '暂无已保存的请购单'],
+  dmDangSoan: ['Phiếu đang soạn', '正在填写的请购单'], dmLuuHelp: ['Soạn xong bấm Lưu phiếu: phiếu được đánh số, vào danh sách dùng chung, và chỗ này trống để lập phiếu mới. Xuất Excel lại được từ danh sách.', '填写完成后点击保存：请购单自动编号并进入共享列表，此处清空以便新建。可在列表中重新导出Excel。'],
+  dmTT_CHO: ['Chờ đặt hàng', '待采购'], dmTT_DA_DAT: ['Đã đặt hàng', '已下单'], dmTT_DA_VE: ['Hàng đã về', '已到货'], dmLoc_all: ['Tất cả', '全部'],
+  dmSaoChep: ['Sao chép vào phiếu đang soạn', '复制到正在填写的请购单'], dmDaSaoChep: ['Đã chép {n} mặt hàng vào phiếu đang soạn', '已复制{n}项到正在填写的请购单'],
+  dmXoaPhieu: ['Xoá phiếu', '删除请购单'], dmXoaPhieuHoi: ['Xoá phiếu {s}? Phiếu không còn trong danh sách (dòng vẫn giữ trên sheet).', '确定删除请购单 {s}？列表中将不再显示（表格中仍保留）。'],
+  dmMHn: ['{n} mặt hàng', '{n}项'], dmNguoiLap: ['Người lập', '申请人'],
+  srvMissDM: ['Máy chủ chưa lưu được phiếu đặt mua. Cập nhật Code.gs rồi Triển khai lại (vẫn xuất Excel phiếu đang soạn được).', '服务器尚不能保存请购单。请更新 Code.gs 并重新部署（仍可导出正在填写的请购单）。']
+});
+const dmDS = () => ((S.base && S.base.datMua) || []).filter((x) => !x.xoa).sort((a, b) => String(b.lucTao).localeCompare(String(a.lucTao)));
+const DM_PILL = { CHO: 'p-cho', DA_DAT: 'p-nay', DA_VE: 'p-ok' };
+function dmPhieuRow(x) {
+  return `<button class="row" data-act="dmXemPhieu" data-id="${esc(x.id)}"><div class="main"><div class="nm mono">${esc(x.soPhieu)}</div>
+    <div class="sub">${esc(fmtD(x.ngay))} · ${esc(x.nguoiTao || '')}${x.boPhan ? ' · ' + esc(x.boPhan) : ''} · ${esc(tv('dmMHn', { n: x.soMH || (x.ds || []).length }))}</div>
+    <div class="sub" style="margin-top:2px">${esc((x.ds || []).slice(0, 3).map((r) => r.ten).join(' · '))}${(x.ds || []).length > 3 ? ' …' : ''}</div></div>
+    <div class="end"><span class="pill ${DM_PILL[x.trangThai] || 'p-cho'}">${esc(tv('dmTT_' + (x.trangThai || 'CHO')))}</span>${IC.chev}</div></button>`;
+}
+VIEWS.dmDS = {
+  html(p) {
+    const loc = p.loc || 'all', ds = dmDS().filter((x) => loc === 'all' || x.trangThai === loc);
+    const dem = { all: dmDS().length }; dmDS().forEach((x) => { dem[x.trangThai] = (dem[x.trangThai] || 0) + 1; });
+    return `<div class="hscroll stchips">${[['all', 'dmLoc_all'], ['CHO', 'dmTT_CHO'], ['DA_DAT', 'dmTT_DA_DAT'], ['DA_VE', 'dmTT_DA_VE']].map(([k, lb]) =>
+      `<button class="chip${loc === k ? ' on' : ''}" data-act="dmLocDS" data-v="${k}">${t(lb)}${dem[k] ? ' (' + dem[k] + ')' : ''}</button>`).join('')}</div>
+      <div class="list" style="margin-top:10px">${ds.length ? ds.map(dmPhieuRow).join('') : `<div class="card empty">${t('dmDSTrong')}</div>`}</div>`;
+  }
+};
+VIEWS.dmXem = {
+  html(p) {
+    const x = dmDS().find((y) => y.id === p.id);
+    if (!x) return `<div class="card empty">${t('notFound')}</div>`;
+    return `<div class="card pad"><div class="mono" style="font-size:18px;font-weight:800">${esc(x.soPhieu)}</div>
+      <div class="help" style="margin-top:4px">${esc(fmtD(x.ngay))} · ${esc(tv('dmNguoiLap'))}: ${esc(x.nguoiTao || '')}${x.boPhan ? ' · ' + esc(x.boPhan) : ''}</div>
+      <div class="seg" style="margin-top:10px">${['CHO', 'DA_DAT', 'DA_VE'].map((k) => `<button class="${x.trangThai === k ? 'on' : ''}" data-act="dmTT" data-v="${k}"><span class="stk">${tv('dmTT_' + k)}<span class="zi">${tz('dmTT_' + k)}</span></span></button>`).join('')}</div></div>
+      ${sec('dmPhieu', (x.ds || []).length)}<div class="list">${(x.ds || []).map((r) => `<div class="row"><div class="main">
+        <div class="nm">${esc(r.ten)}${r.tenZh ? `<span class="zi" lang="zh-CN">${esc(r.tenZh)}</span>` : ''}</div>
+        <div class="sub">${r.erp ? `<span class="code">${esc(r.ma)}</span> ` : `<span class="tag">${esc(tv('dmNgoai'))}</span> `}${[r.qc ? '<span class="mono">' + esc(r.qc) + '</span>' : '', esc(r.dv || ''), r.mayTen ? esc(String(r.mayTen).split('\n')[0]) : '', esc(r.gc || '')].filter(Boolean).join(' · ')}</div></div>
+        <div class="end"><b class="mono" style="font-size:17px">${esc(soG(r.sl))}</b></div></div>`).join('')}</div>
+      <div class="err" id="dmxErr" hidden></div>
+      <div class="btns" style="margin-top:12px"><button class="btn" data-act="dmXuatPhieu">${IC.dl} ${t('dmXuat')}</button>
+        <button class="btn ghost" data-act="dmSaoChep">${IC.plus} ${t('dmSaoChep')}</button>
+        <button class="btn danger" data-act="dmXoaPhieuHoi">${t('dmXoaPhieu')}</button></div>`;
+  }
+};
+Object.assign(TITLES, { dmDS: 't_dmDS', dmXem: 't_dmXem' });
+async function dmSua(pl) {
+  const fe = $('#dmxErr');
+  try { const d = await api('setPurchase', pl); mergeResult(d); return d; }
+  catch (e) { if (fe) { fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; } return null; }
+}
+Object.assign(ACT, {
+  dmDSMo: () => go('dmDS', {}),
+  dmLocDS: (el) => { topV().p.loc = el.dataset.v; render(); },
+  dmXemPhieu: (el) => go('dmXem', { id: el.dataset.id }),
+  dmTT: async (el) => { const p = topV().p; el.disabled = true; if (await dmSua({ id: p.id, trangThai: el.dataset.v })) render(); else el.disabled = false; },
+  dmXuatPhieu: async () => {
+    const x = dmDS().find((y) => y.id === topV().p.id); if (!x) return;
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try { blob = dmXlsx(Object.assign({}, x, { ds: (x.ds || []).map((r) => Object.assign({ chup: 1 }, r)) })); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'De-nghi-mua-hang_' + String(x.soPhieu).replace(/[^\w.-]+/g, '-') + '.xlsx');
+  },
+  // Chép hàng của phiếu cũ sang phiếu đang soạn (đặt lại lần nữa): hàng có mã trong kho chép theo mã, còn lại chép nguyên dòng
+  dmSaoChep: () => {
+    const x = dmDS().find((y) => y.id === topV().p.id); if (!x) return;
+    const d = dmLay(); let n = 0;
+    (x.ds || []).forEach((r) => {
+      if (r.ma && khoGet(r.ma)) { if (d.ds.some((y) => y.ma === r.ma)) return; d.ds.push({ ma: r.ma, sl: r.sl, gc: r.gc || '', may: r.may || '' }); }
+      else d.ds.push({ ma: '', ten: r.ten, tenZh: r.tenZh || '', tuDich: false, qc: r.qc || '', dv: r.dv || '', sl: r.sl, gc: r.gc || '', may: r.may || '' });
+      n++;
+    });
+    dmLuu(d); toast(t('dmDaSaoChep', { n })); go('datMua', {});
+  },
+  dmXoaPhieuHoi: () => {
+    const x = dmDS().find((y) => y.id === topV().p.id); if (!x) return;
+    openSheet(`<div class="grab"></div><h3>${tv('dmXoaPhieu')}<span class="zi">${tz('dmXoaPhieu')}</span></h3>
+      <p class="help">${esc(tv('dmXoaPhieuHoi', { s: x.soPhieu }))}<span class="zi">${esc(tz('dmXoaPhieuHoi', { s: x.soPhieu }))}</span></p>
+      <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button><button class="btn danger" data-act="dmXoaPhieuGo">${t('dmXoaPhieu')}</button></div>`);
+  },
+  dmXoaPhieuGo: async (el) => { el.disabled = true; closeSheet(); if (await dmSua({ id: topV().p.id, xoa: true })) { toast(t('scDaXoa')); back(); } },
+  dmLuuPhieu: async (el) => {
+    const d = dmLay(), fe = $('#dmErr');
+    const sai = d.ds.filter((r) => !(parseSo(String(r.sl)) > 0));
+    if (sai.length) { const r = sai[0], x = r.ma ? khoGet(r.ma) : null; fe.innerHTML = t('dmSLSai', { m: (x ? x.ten : r.ten) || '' }); fe.hidden = false; return; }
+    fe.hidden = true; el.disabled = true;
+    await dmDich();
+    const d2 = dmLay(), dung = khoDaDungMap();
+    try {
+      const kq = await api('savePurchase', { boPhan: d2.boPhan || '', ds: d2.ds.map((r) => { const z = dmChup(r, dung); delete z.chup; return z; }) });
+      mergeResult(kq);
+      // Nhường chỗ cho phiếu mới: xoá hàng, giữ bộ phận đề nghị
+      dmLuu({ ds: [], boPhan: d2.boPhan || '' });
+      toast(t('dmDaLuu', { s: kq.datMua.soPhieu }));
+      render();
+    } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  }
+});
 
 // ===================== Thêm / sửa / chuyển chuyền / bỏ một quạt (v2.56) =====================
 // Quạt vẫn nằm trong bản ghi gộp của chuyền. Chuyền chưa có bản ghi thì máy chủ tự tạo.
