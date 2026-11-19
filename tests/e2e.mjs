@@ -2661,6 +2661,33 @@ await page.click('[data-act="dmXoaHet"]'); await wait(400);
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.57: màn theo chuyền cho mọi loại thiết bị; đặt mua hàng chưa có mã — tên tiếng Trung tự dịch, chọn máy dùng, xuất Excel');
 
+// 43. Quét QR / mở link tem của máy nào cũng ra trang thông tin của máy đó; in được tem từng quạt
+await page.evaluate(() => { closeSheet(); while (S.stack.length > 1) back(); onScan('M001'); }); await wait(900);
+const q43 = await page.evaluate(() => ({ v: topV().v, ma: topV().p.ma, tab: topV().p.tab, sheet: !!document.querySelector('#sheetBg') }));
+assert.deepEqual(q43, { v: 'may', ma: 'M001', tab: 'tt', sheet: false }, 'quét QR máy: mở trang thông tin, không bật bảng xác nhận đè lên');
+assert.match(await text('#main'), /Thông tin|基本/, 'đang ở mục thông tin máy');
+assert.ok(await page.locator('#main .bigbtn[data-act="xn"]').count() === 1, 'vẫn có nút xác nhận bảo dưỡng ngay trên trang');
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.deepMa = 'M001'; openDeep(true); }); await wait(800);
+assert.deepEqual(await page.evaluate(() => ({ v: topV().v, sheet: !!document.querySelector('#sheetBg') })), { v: 'may', sheet: false }, 'mở link tem (?m=) cũng ra trang thông tin');
+// Mã riêng một quạt → tờ thông tin quạt đó
+const dv43 = await page.evaluate(() => lblDVs()[0] && lblDVs()[0].maDV);
+await page.evaluate((c) => { while (S.stack.length > 1) back(); onScan(c); }, dv43); await wait(900);
+assert.match(await text('.sheet'), new RegExp(dv43), 'quét mã quạt ra đúng quạt');
+// Tem: chữ đúng, có mục từng quạt, in tem cho một quạt
+// (Không mở màn in tem vì màn đó tải thư viện QR từ mạng; kiểm tra nút và phần HTML của màn)
+assert.equal(await page.getAttribute('.sheet [data-act="labelsOne"]', 'data-ma'), 'DV:' + dv43, 'tờ quạt có nút in tem QR của đúng quạt');
+const lb43 = await page.evaluate((c) => { const p = { only: 'DV:' + c }; const h = VIEWS.labels.html(p); return { sel: p.sel, n: (h.match(/data-ma="DV:/g) || []).length }; }, dv43);
+assert.deepEqual(lb43.sel, ['DV:' + dv43], 'in tem từ tờ quạt: chọn sẵn đúng quạt');
+// Thư viện vẽ QR tải từ mạng (máy kiểm thử không có mạng): thay bằng hình rỗng để xem chữ trên tem
+const tem43 = await page.evaluate((c) => { window.qrSvg = () => '<svg></svg>'; return labelInner(lblVat('DV:' + c), false).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '); }, dv43);
+assert.match(tem43, new RegExp(dv43 + '.*Quạt.*Quét để xem thông tin máy'), 'tem quạt có mã riêng, tên quạt, lời nhắc xem thông tin: ' + tem43);
+assert.ok(lb43.n >= 3, 'màn in tem có mục từng quạt');
+const t43 = await page.evaluate(() => { const m = activeMay().find((x) => !(x.chuKy > 0) && !(x.chiTiet || []).length); return m ? labelInner(m, false).replace(/<[^>]+>/g, ' ') : 'x Quét để xem thông tin máy'; });
+assert.ok(!/Chu kỳ 0/.test(t43) && /Quét để xem thông tin máy/.test(t43), 'tem máy không bảo dưỡng không ghi "chu kỳ 0": ' + t43.replace(/\s+/g, ' ').slice(0, 120));
+await shot('80-tem-qr');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.58: quét QR / link tem của máy nào cũng ra trang thông tin máy đó (cả từng quạt); in tem QR cho từng quạt');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

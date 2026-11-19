@@ -1694,7 +1694,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.57.0";
+const APP_VER = "2.58.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -2093,7 +2093,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.57.0';
+var PHIEN_BAN = '2.58.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -8573,7 +8573,8 @@ const TX = {
   lblSize: ['Cỡ tem', '标签尺寸'], s24: ['Nhỏ · 24 tem/A4', '小 · 每张24个'], s8: ['Lớn · 8 tem/A4', '大 · 每张8个'],
   selAll: ['Chọn tất cả', '全选'], selNone: ['Bỏ chọn', '取消全选'], selected: ['Đã chọn {n} máy', '已选{n}台'],
   print: ['In', '打印'], printDemo: ['Bản xem thử không in được. App thật in ra giấy A4 (hoặc lưu PDF).', '预览版不能打印，正式版可打印A4纸或存为PDF。'],
-  lblScan: ['Quét để xác nhận bảo dưỡng', '扫码确认保养'], lblHead: ['BẢO DƯỠNG', '保养'],
+  lblScan: ['Quét để xem thông tin máy', '扫码查看设备信息'], lblKhongBD: ['Không bảo dưỡng định kỳ', '不做定期保养'],
+  lblDVSec: ['Từng máy trong bản ghi gộp (từng quạt…)', '合并记录中的单台设备（每台风机…）'], lblHead: ['BẢO DƯỠNG', '保养'],
   preview: ['Xem trước', '预览'], noSel: ['Chưa chọn máy nào', '未选择设备'],
   histEmpty: ['Tháng này chưa có lần bảo dưỡng nào', '本月还没有保养记录'], times: ['{n} lần', '{n}次'],
   users: ['Người dùng', '用户'], addUser: ['Thêm người dùng', '添加用户'], tenZh: ['Tên tiếng Trung (tự nhập)', '中文姓名'], hoTen: ['Họ tên', '姓名'], tuDong: ['Tự cấp', '自动生成'], role: ['Vai trò', '角色'], email: ['Email nhận nhắc', '接收提醒的邮箱'],
@@ -9759,7 +9760,7 @@ function onScan(text) {
   try { navigator.vibrate && navigator.vibrate(60); } catch (e) { /* bỏ qua */ }
   stopScan();
   if (ma.indexOf('DV:') === 0) { moQuat(ma.slice(3)); return; }
-  if (S.V.ctByMa[ma]) go('dienNhap', { ma }); else if (S.V.chByMa[ma]) go('chuyen', { ma }); else go('may', { ma, xn: true });
+  if (S.V.ctByMa[ma]) go('dienNhap', { ma }); else if (S.V.chByMa[ma]) go('chuyen', { ma }); else go('may', { ma, tab: 'tt' });
 }
 async function scanFromFile(e) {
   const f = e.target.files && e.target.files[0]; e.target.value = '';
@@ -11244,11 +11245,26 @@ function qrSvg(text) {
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += 'M' + (c + qz) + ' ' + (r + qz) + 'h1v1h-1z';
   return `<svg viewBox="0 0 ${n + qz * 2} ${n + qz * 2}" shape-rendering="crispEdges" role="img" aria-label="QR ${esc(text)}"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
 }
+// Khoá chọn tem: mã máy / công tơ / chuyền, hoặc "DV:<mã riêng>" cho một máy trong bản ghi gộp (một quạt)
+function lblVat(k) {
+  if (String(k).indexOf('DV:') === 0) { const r = dvTheoMa(k.slice(3)); return r ? { dv: r.q, m: r.m, ma: k } : null; }
+  return S.V.byMa[k] || S.V.ctByMa[k] || S.V.chByMa[k] || null;
+}
+// Mọi máy con có mã riêng trong các bản ghi gộp đang dùng
+const lblDVs = () => activeMay().filter((m) => (m.chiTiet || []).length).flatMap((m) => quatCua(m).filter((q) => q.maDV));
 function labelInner(m, big) {
+  if (m.dv) {
+    const q = m.dv, cs = tsLay(q.ts, RE_CS, 1);
+    const body = `${qrSvg(qrText(q.maDV))}<div class="ti"><div class="cd">${esc(q.maDV)}</div><div class="nm">${esc(tenQuat(q))}</div>
+      <div class="ck">${esc([q.m.chuyen ? tv('chuyenNgan') + ' ' + mh(q.m.chuyen) : '', cs ? cs + ' kW' : ''].filter(Boolean).join(' · '))}</div>
+      <div class="hn">${esc(tv('lblScan'))}<br>${esc(tz('lblScan'))}</div></div>`;
+    return big ? `<div class="hz"></div><div class="bd">${body}</div>` : body;
+  }
   const ct = S.V.ctByMa[m.ma] === m, ch = S.V.chByMa[m.ma] === m;
   const info = ct ? `${esc(tv('heSo'))} ×${fmtNum(m.heSo, 'raw')}${m.soCongTo ? ' · ' + esc(m.soCongTo) : ''}`
     : ch ? esc(m.tenZh || '') + (m.maHT ? ' · ' + esc(m.ma) : '')
-    : `${esc(tv('cycle'))} ${m.chuKy} ${esc(tv('days', { n: '' }).trim())} · ${esc(tz('cycle'))}${m.chuKy}${esc(tz('days', { n: '' }))}`;
+    : m.chuKy > 0 ? `${esc(tv('cycle'))} ${m.chuKy} ${esc(tv('days', { n: '' }).trim())} · ${esc(tz('cycle'))}${m.chuKy}${esc(tz('days', { n: '' }))}`
+    : esc([m.chuyen ? tv('chuyenNgan') + ' ' + mh(m.chuyen) : '', m.tenPhu || ''].filter(Boolean).join(' · ') || tv('lblKhongBD'));
   const hint = ct ? 'lblDien' : ch ? 'lblCh' : 'lblScan';
   const body = `${qrSvg(qrText(m.ma))}<div class="ti"><div class="cd">${esc(ct ? m.ma : mh(m.ma))}</div><div class="nm">${esc(ch ? (m.ten || m.ma) : m.ten)}</div>
     <div class="ck">${info}</div>
@@ -11275,6 +11291,11 @@ VIEWS.labels = {
       o += `<div class="sec"><h2 style="font-size:13px;color:var(--ink2)">${t('chLblSec')}</h2></div><div class="list">${chs.map((c) =>
         `<label class="checkrow"><input type="checkbox" data-ma="${esc(c.ma)}" ${sel.has(c.ma) ? 'checked' : ''}><span class="main"><span class="nm" style="font-weight:600">${esc(c.tenZh || c.ten || c.ma)}</span><br><span class="code">${esc(mh(c.ma))}</span></span></label>`).join('')}</div>`;
     }
+    const dvs = lblDVs();
+    if (dvs.length) {
+      o += `<div class="sec"><h2 style="font-size:13px;color:var(--ink2)">${t('lblDVSec')}</h2></div><div class="list">${dvs.map((q) =>
+        `<label class="checkrow"><input type="checkbox" data-ma="DV:${esc(q.maDV)}" ${sel.has('DV:' + q.maDV) ? 'checked' : ''}><span class="main"><span class="nm" style="font-weight:600">${esc(tenQuat(q))}</span><br><span class="code">${esc(q.maDV)}</span></span></label>`).join('')}</div>`;
+    }
     if (cts.length) {
       o += `<div class="sec"><h2 style="font-size:13px;color:var(--ink2)">${t('meterSec')}</h2></div><div class="list">${cts.map((m) =>
         `<label class="checkrow"><input type="checkbox" data-ma="${esc(m.ma)}" ${sel.has(m.ma) ? 'checked' : ''}><span class="main"><span class="nm" style="font-weight:600">${esc(m.ten)}</span><br><span class="code">${esc(m.ma)}</span></span></label>`).join('')}</div>`;
@@ -11284,11 +11305,11 @@ VIEWS.labels = {
   after(p) {
     $$('.checkrow input').forEach((c) => c.addEventListener('change', () => {
       const s = new Set(p.sel); if (c.checked) s.add(c.dataset.ma); else s.delete(c.dataset.ma);
-      p.sel = S.V.may.map((m) => m.ma).concat(S.V.ct.map((m) => m.ma), (S.V.ch || []).map((c) => c.ma)).filter((ma) => s.has(ma)); render();
+      p.sel = S.V.may.map((m) => m.ma).concat(lblDVs().map((q) => 'DV:' + q.maDV), S.V.ct.map((m) => m.ma), (S.V.ch || []).map((c) => c.ma)).filter((ma) => s.has(ma)); render();
     }));
     loadScript(LIB.qr).then(() => {
       const el = $('#lblPrev'); if (!el) return;
-      const ms = p.sel.slice(0, 6).map((ma) => S.V.byMa[ma] || S.V.ctByMa[ma] || S.V.chByMa[ma]).filter(Boolean);
+      const ms = p.sel.slice(0, 6).map(lblVat).filter(Boolean);
       el.innerHTML = ms.length ? ms.map((m) => `<div class="qlabel">${labelInner(m, false)}</div>`).join('') : `<div class="empty">${t('noSel')}</div>`;
     }).catch(() => { const el = $('#lblPrev'); if (el) el.innerHTML = `<div class="empty">${t('MANG')}</div>`; });
   }
@@ -11297,7 +11318,7 @@ async function doPrint() {
   const p = topV().p;
   if (IS_DEMO) { toast(t('printDemo'), true); return; }
   try { await loadScript(LIB.qr); } catch (e) { toast(t('MANG'), true); return; }
-  const size = S.f.lblSize, per = size === 's8' ? 8 : 24, ms = p.sel.map((ma) => S.V.byMa[ma] || S.V.ctByMa[ma] || S.V.chByMa[ma]).filter(Boolean);
+  const size = S.f.lblSize, per = size === 's8' ? 8 : 24, ms = p.sel.map(lblVat).filter(Boolean);
   let h = '';
   for (let i = 0; i < ms.length; i += per) {
     h += `<div class="psheet ${size}">${ms.slice(i, i + per).map((m) => `<div class="pl">${labelInner(m, size === 's8')}</div>`).join('')}</div>`;
@@ -11863,7 +11884,7 @@ function renderSetup(msg) {
 function openDeep(final) {
   const dm = S.deepMa; if (!dm || !S.V || !$('#main')) return;
   const mm = S.V.ctByMa[dm] ? '' : maTuNhap(dm);
-  if (S.V.byMa[mm]) { S.deepMa = null; go('may', { ma: mm, xn: true }); }
+  if (S.V.byMa[mm]) { S.deepMa = null; go('may', { ma: mm, tab: 'tt' }); }
   else if (S.V.chByMa[mm]) { S.deepMa = null; go('chuyen', { ma: mm }); }
   else if (S.V.ctByMa[dm]) { S.deepMa = null; go('dienNhap', { ma: dm }); }
   else if (dvTheoMa(dm)) { S.deepMa = null; moQuat(dm); }
@@ -11980,7 +12001,7 @@ const ACT = {
   editMay: (el) => go('mayEdit', { ma: el.dataset.ma }),
   recalc: () => { const p = topV().p; S.hanTouched = false; recalcHan(p.ma); },
   labels: () => go('labels', {}),
-  labelsOne: (el) => go('labels', { only: el.dataset.ma }),
+  labelsOne: (el) => { closeSheet(); go('labels', { only: el.dataset.ma }); },
   lblSize: (el) => { S.f.lblSize = el.dataset.s; render(); },
   lblAll: () => { topV().p.sel = activeMay().map((m) => m.ma).concat(activeCT().map((m) => m.ma)); render(); },
   lblNone: () => { topV().p.sel = []; render(); },
@@ -23069,7 +23090,8 @@ function qgXemMo(ma, i) {
       <button class="btn ghost sm" data-act="qgNT" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.edit} ${t(K('qgNghiemThu'))}</button></div>` : ''}
     <div class="btns" style="margin-top:8px">${qgSuaDuoc() ? (gop ? `<button class="btn ghost sm" data-act="qgSua" data-ma="${esc(m.ma)}" data-i="${q.i}">${IC.edit} ${t(K('qgSuaBtn'))}</button>`
       : `<button class="btn ghost sm" data-act="qgSuaMay" data-ma="${esc(m.ma)}">${IC.edit} ${t(K('qgSuaBtn'))}</button>`) : ''}
-      ${gop ? '' : `<button class="btn ghost sm" data-act="qgMoHS" data-ma="${esc(m.ma)}">${IC.list} ${t('qgMoHS')}</button>`}</div>
+      ${gop ? '' : `<button class="btn ghost sm" data-act="qgMoHS" data-ma="${esc(m.ma)}">${IC.list} ${t('qgMoHS')}</button>`}
+      ${can('may') && code ? `<button class="btn ghost sm" data-act="labelsOne" data-ma="${esc(q.maDV ? 'DV:' + q.maDV : m.ma)}">${IC.qr} ${t('printQR')}</button>` : ''}</div>
     <div class="lshd">${t(K('qgLS'))} <span class="nhomn">${sc.length + nt.length}</span></div>
     ${sc.length ? `<div class="list">${sc.map((x) => scRow(x, false)).join('')}</div>` : ''}
     ${nt.length ? `<div class="list">${nt.map((x) => `<button class="row" data-act="ngtMoBB" data-id="${esc(x.id)}"><div class="main"><div class="nm mono">${esc(x.soBB)}</div>
