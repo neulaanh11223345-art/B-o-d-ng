@@ -1694,7 +1694,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.60.0";
+const APP_VER = "2.61.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -2093,7 +2093,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.60.0';
+var PHIEN_BAN = '2.61.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -22421,6 +22421,11 @@ Object.assign(TX, {
   dtKhongCoTu: ['Chưa có tủ nhánh nào của chuyền sản xuất trong danh sách công tơ',
     '电表名单中还没有产线分路柜'],
   dtDoN: ['Hôm nay đã đo {n}/{t} tủ', '今天已测 {n}/{t} 个柜'],
+  dtDoNgay: ['Ngày {d} đã đo {n}/{t} tủ', '{d} 已测 {n}/{t} 个柜'], dtChuaDoNgay: ['Chưa đo', '未测'],
+  dtNgayGhi: ['Ghi cho ngày', '录入日期'], dtHomNay: ['Hôm nay', '今天'],
+  dtThieu: ['Ngày còn thiếu (14 ngày gần đây) — bấm để ghi bù', '近14天未测完的日期——点击补录'],
+  dtDuHet: ['14 ngày gần đây đã đo đủ mọi tủ', '近14天所有柜均已测量'],
+  dtBuHelp: ['Đang ghi bù cho ngày {d}. Số đo lưu đúng ngày đó, biểu đồ và Excel tự cập nhật.', '正在补录 {d} 的数据，按该日期保存，曲线和Excel自动更新。'],
   dtXuat: ['Xuất Excel có biểu đồ', '导出带图表的Excel'],
   dtTong: ['Tổng hợp nhiệt độ', '温度汇总'],
   dtSoLan: ['{n} ngày có số đo', '{n}天有数据'],
@@ -22456,10 +22461,21 @@ const dtTrongThang = (ma, thang) => (S.V.doTu || []).filter((x) => x.maCT === ma
 const dtCuaNgay = (ma, ngay) => (S.V.doTu || []).find((x) => x.maCT === ma && x.ngay === ngay) || null;
 const dtGanNhat = (ma) => (S.V.doTu || []).filter((x) => x.maCT === ma).sort((a, b) => (a.ngay < b.ngay ? 1 : -1))[0] || null;
 const dtSo = (v) => (v === '' || v === null || v === undefined || isNaN(Number(v)) ? '' : Number(v));
+const dtCong = (ngay, n) => { const d = new Date(ngay + 'T00:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+// Những ngày trong 14 ngày gần đây (trước hôm nay) còn tủ chưa đo
+function dtNgayThieu(tu) {
+  const ra = [];
+  for (let i = 1; i <= 14; i++) {
+    const ng = dtCong(TODAY(), -i), n = tu.filter((c) => dtCuaNgay(c.ma, ng)).length;
+    if (n < tu.length) ra.push({ ng, n });
+  }
+  return ra;
+}
 
 function dtState() {
   const tu = tuChuyen();
   S.dt = S.dt || { tab: 'ghi', thang: dtThangNay(), ma: '' };
+  if (!S.dt.ngay || S.dt.ngay > TODAY()) S.dt.ngay = TODAY();
   if (!tu.some((c) => c.ma === S.dt.ma)) S.dt.ma = tu.length ? tu[0].ma : '';
   return tu;
 }
@@ -22532,8 +22548,18 @@ VIEWS.doTu = {
       <button class="${S.dt.tab === 'ghi' ? 'on' : ''}" data-act="dtTab" data-v="ghi" role="tab">${t('dtTabGhi')}</button>
       <button class="${S.dt.tab === 'bd' ? 'on' : ''}" data-act="dtTab" data-v="bd" role="tab">${t('dtTabBD')}</button></div>`;
     if (S.dt.tab === 'ghi') {
-      const nay = TODAY(), xong = tu.filter((c) => dtCuaNgay(c.ma, nay)).length;
-      o += `<div class="note" style="margin:12px 0">${t('dtDoN', { n: xong, t: tu.length })}</div>`;
+      const nay = S.dt.ngay, laHomNay = nay === TODAY(), xong = tu.filter((c) => dtCuaNgay(c.ma, nay)).length, thieu = dtNgayThieu(tu);
+      // Chọn ngày ghi: mặc định hôm nay, lùi về ngày trước để ghi bù
+      o += `<div class="card pad" style="margin-top:12px"><div class="fld" style="margin:0"><span>${t('dtNgayGhi')}</span>
+        <div style="display:flex;gap:8px;align-items:center"><button class="btn ghost sm" data-act="dtNgayLui" data-d="-1" aria-label="-1">${IC.left}</button>
+          <input class="inp" id="dtNgayGhi" type="date" value="${esc(nay)}" max="${esc(TODAY())}" style="flex:1">
+          <button class="btn ghost sm" data-act="dtNgayLui" data-d="1" aria-label="+1"${laHomNay ? ' disabled' : ''}>${IC.right}</button>
+          ${laHomNay ? '' : `<button class="btn ghost sm" data-act="dtNgayLui" data-d="0">${t('dtHomNay')}</button>`}</div></div>
+        ${thieu.length ? `<div class="help" style="margin:10px 0 6px">${t('dtThieu')}</div><div class="hscroll">${thieu.map((x) =>
+          `<button class="chip${x.ng === nay ? ' on' : ''}" data-act="dtChonNgay" data-v="${esc(x.ng)}">${esc(fmtDM(x.ng))} <span class="nhomn">${x.n}/${tu.length}</span></button>`).join('')}</div>`
+        : `<div class="help" style="margin-top:8px">${t('dtDuHet')}</div>`}</div>`;
+      o += `<div class="note" style="margin:12px 0">${laHomNay ? t('dtDoN', { n: xong, t: tu.length }) : t('dtDoNgay', { d: fmtD(nay), n: xong, t: tu.length })}</div>`;
+      if (!laHomNay) o += `<div class="note srvwarn" style="margin:-4px 0 12px">${t('dtBuHelp', { d: fmtD(nay) })}</div>`;
       o += `<div class="card"><div class="list">${tu.map((c) => {
         const x = dtCuaNgay(c.ma, nay), gan = x || dtGanNhat(c.ma);
         const phu = x ? `${t('dtNhiet')} ${dtSo(x.nhietDo) === '' ? '—' : dtSo(x.nhietDo) + ' °C'} · ${dtSo(x.dienAp) === '' ? '—' : dtSo(x.dienAp) + ' V'} · ${
@@ -22542,7 +22568,7 @@ VIEWS.doTu = {
         return `<button class="row" data-act="dtMo" data-ma="${esc(c.ma)}">
           <div class="main"><div class="nm">${esc(c.maCh)}<span class="zi" lang="zh-CN">${esc(c.ch.tenZh || '')}</span></div>
           <div class="sub"><span class="code">${esc(c.ma)}</span> · ${phu}</div></div>
-          <div class="end">${x ? `<span class="pill p-ok">${t('dtDaDo')}</span>` : `<span class="pill p-nay">${t('dtChuaDo')}</span>`}${IC.chev}</div></button>`;
+          <div class="end">${x ? `<span class="pill p-ok">${t('dtDaDo')}</span>` : `<span class="pill p-nay">${t(laHomNay ? 'dtChuaDo' : 'dtChuaDoNgay')}</span>`}${IC.chev}</div></button>`;
       }).join('')}</div></div>`;
       return o;
     }
@@ -22558,7 +22584,8 @@ VIEWS.doTu = {
     return o;
   },
   after() {
-    const th = $('#dtThang'), tu = $('#dtTu');
+    const th = $('#dtThang'), tu = $('#dtTu'), ng = $('#dtNgayGhi');
+    if (ng) ng.addEventListener('change', () => { const v = ng.value; S.dt.ngay = v && v <= TODAY() ? v : TODAY(); render(); });
     if (th) th.addEventListener('change', (e) => { S.dt.thang = e.target.value || dtThangNay(); render(); });
     if (tu) tu.addEventListener('change', (e) => { S.dt.ma = e.target.value; render(); });
   }
@@ -22566,7 +22593,9 @@ VIEWS.doTu = {
 
 Object.assign(ACT, {
   dtTab: (el) => { S.dt.tab = el.dataset.v; render(); },
-  dtMo: (el) => dtForm(el.dataset.ma, TODAY()),
+  dtMo: (el) => dtForm(el.dataset.ma, (S.dt && S.dt.ngay) || TODAY()),
+  dtNgayLui: (el) => { const d = +el.dataset.d; S.dt.ngay = d === 0 ? TODAY() : dtCong(S.dt.ngay, d); if (S.dt.ngay > TODAY()) S.dt.ngay = TODAY(); render(); },
+  dtChonNgay: (el) => { S.dt.ngay = el.dataset.v; render(); },
   dtXuat: () => dtXuatExcel(S.dt.thang),
   dtLuu: async (el) => {
     const fe = $('#dtErr'), ma = el.dataset.ma;
@@ -22623,7 +22652,7 @@ function dtForm(ma, ngay) {
     ${x.id && !x.cho && can('giaoviec') ? `<div class="btns" style="margin-top:8px"><button class="btn ghost red" data-act="dtXoa" data-id="${esc(x.id)}">${IC.out} ${t('dtXoa')}</button></div>` : ''}`,
   (bg) => {
     const nd = $('#dtNgay', bg);
-    if (nd) nd.addEventListener('change', () => { closeSheet(); dtForm(ma, nd.value || TODAY()); });
+    if (nd) nd.addEventListener('change', () => { const v = nd.value && nd.value <= TODAY() ? nd.value : TODAY(); if (S.dt) S.dt.ngay = v; closeSheet(); render(); dtForm(ma, v); });
   });
 }
 
@@ -23357,18 +23386,37 @@ function dmThemMa(v, ma, sl) {
   v.ds.push({ ma, sl: sl || dmGoiY(x) || 1, gc: '' });
   return true;
 }
+// Mặt hàng đã có trong phiếu đã lập nào gần nhất: so theo mã kho; hàng chưa có mã so theo tên + quy cách
+const dmKhoa = (r) => (r.ma ? 'M:' + String(r.ma).toUpperCase() : 'T:' + norm(r.ten || '') + '|' + norm(r.qc || ''));
+function dmDaDat(r) {
+  const k = dmKhoa(r);
+  for (const x of dmDS()) { const h = (x.ds || []).find((y) => dmKhoa(y) === k); if (h) return { x, h }; }
+  return null;
+}
+// Dòng nhắc: "Đã đặt ngày 12/11 · phiếu DNMH… · SL 4 · Chờ đặt hàng"
+function dmNhacHtml(dd) {
+  if (!dd) return '';
+  const chua = dd.x.trangThai !== 'DA_VE';
+  return `<div class="note${chua ? ' srvwarn' : ''}" style="margin-top:8px;font-size:13px">${IC.warn || '⚠'} ${esc(tv('dmDaDatNgay', { d: fmtD(dd.x.ngay), s: dd.x.soPhieu, n: soG(dd.h.sl), tt: tv('dmTT_' + (dd.x.trangThai || 'CHO')) }))}
+    <span class="zi">${esc(tz('dmDaDatNgay', { d: fmtD(dd.x.ngay), s: dd.x.soPhieu, n: soG(dd.h.sl), tt: tz('dmTT_' + (dd.x.trangThai || 'CHO')) }))}</span></div>`;
+}
+function dmNhacToast(r) {
+  const dd = dmDaDat(r);
+  if (dd) toast(t('dmDaDatNgay', { d: fmtD(dd.x.ngay), s: dd.x.soPhieu, n: soG(dd.h.sl), tt: tv('dmTT_' + (dd.x.trangThai || 'CHO')) }), true);
+}
 function dmDongHtml(r, i) {
   const x = r.ma ? khoGet(r.ma) : null, ten = x ? x.ten : (r.ten + (r.tenZh ? ' · ' + r.tenZh : '')), qc = x ? x.qc : r.qc, dv = x ? dvTxt(x.dv || '') : r.dv;
   return `<div class="card pad dmrow" style="margin-bottom:8px"><div style="display:flex;gap:10px;align-items:flex-start">
     <div style="flex:1;min-width:0"><div class="nm" style="font-weight:700">${lkTenH(ten || '')}</div>
-      <div class="sub">${x ? `<span class="code">${esc(x.ma)}</span> ` : `<span class="tag">${esc(tv('dmNgoai'))}</span> `}${qc ? '<span class="mono">' + esc(qc) + '</span> · ' : ''}${esc(dv || '')}
+      <div class="sub">${x ? `<span class="code">${esc(x.ma)}</span> ` : `<span class="tag">${esc(tv('dmNgoai'))}</span> `}${[qc ? '<span class="mono">' + esc(qc) + '</span>' : '', esc(dv || '')].filter(Boolean).join(' · ')}
         ${x ? ` · ${tv('tonKho')} <b class="mono">${tonOf(x) === null ? '—' : esc(soG(tonOf(x)))}</b>${x.tonMin !== undefined && x.tonMin !== '' ? ` · ${esc(tv('xlMinAT'))} <b class="mono">${esc(soG(x.tonMin))}</b>` : ''}` : ''}</div></div>
     <button type="button" class="btn ghost sm" data-act="dmBo" data-i="${i}">${t('dmBo')}</button></div>
     <div class="dsgrid" style="grid-template-columns:110px 1fr;margin-top:8px">
       <label class="mini"><span>${tv('dmSL')}<span class="zi">${tz('dmSL')}</span></span><input class="inp mono" inputmode="decimal" data-dmsl="${i}" value="${esc(r.sl)}"></label>
       <label class="mini"><span>${tv('dmGhiChu')}<span class="zi">${tz('dmGhiChu')}</span></span><input class="inp" maxlength="120" data-dmgc="${i}" value="${esc(r.gc || '')}"></label></div>
     ${x ? '' : `<label class="mini" style="margin-top:6px"><span>${tv('dmNgoaiTenZh')}${r.tuDich ? ` <span class="tag">${esc(tv('dmTuDich'))}</span>` : ''}<span class="zi">${tz('dmNgoaiTenZh')}</span></span><input class="inp" maxlength="120" lang="zh-CN" data-dmzh="${i}" value="${esc(r.tenZh || '')}"></label>`}
-    <div class="mini" style="margin-top:6px"><span>${tv('dmMay')}<span class="zi">${tz('dmMay')}</span></span>${tbChon('dmMay' + i, r.may || '', 'dmKhongMay', false)}</div></div>`;
+    <div class="mini" style="margin-top:6px"><span>${tv('dmMay')}<span class="zi">${tz('dmMay')}</span></span>${tbChon('dmMay' + i, r.may || '', 'dmKhongMay', false)}</div>
+    ${dmNhacHtml(dmDaDat(r))}</div>`;
 }
 function dmChonHtml(p, v) {
   const co = new Set(v.ds.map((r) => r.ma).filter(Boolean)), q = norm(p.q || '');
@@ -23380,7 +23428,7 @@ function dmChonHtml(p, v) {
   if (!ds.length) return `<div class="help">${p.loc === 'tatca' && q.length < 2 ? esc(tp('dmTim')) : t('khoKhongThay')}</div>`;
   return ds.slice(0, 80).map((o) => { const x = o.x, gy = dmGoiY(x);
     return `<button type="button" class="ksi" data-act="dmThem" data-ma="${esc(x.ma)}"${co.has(x.ma) ? ' disabled' : ''}>
-      <span class="kn">${lkTenH(x.ten)}<small><span class="mono">${esc(x.ma)}</span>${x.qc ? ' · ' + esc(x.qc) : ''}${gy ? ' · ' + esc(tv('dmGoiY', { n: soG(gy) })) : ''}</small></span>${tonHtml(x)}
+      <span class="kn">${lkTenH(x.ten)}<small><span class="mono">${esc(x.ma)}</span>${x.qc ? ' · ' + esc(x.qc) : ''}${gy ? ' · ' + esc(tv('dmGoiY', { n: soG(gy) })) : ''}${(() => { const dd = dmDaDat({ ma: x.ma }); return dd ? ` · <b style="color:var(--orange)">${esc(tv('dmDaDatNgan', { d: fmtDM(dd.x.ngay) }))}</b>` : ''; })()}</small></span>${tonHtml(x)}
       <span class="chip sm">${co.has(x.ma) ? esc(tv('dmDaCo')) : '+'}</span></button>`; }).join('') + (ds.length > 80 ? `<div class="help">… ${ds.length - 80}</div>` : '');
 }
 VIEWS.datMua = {
@@ -23428,7 +23476,7 @@ Object.assign(TITLES, { datMua: 't_datMua' });
 Object.assign(ACT, {
   datMua: () => go('datMua', {}),
   dmLoc: (el) => { topV().p.loc = el.dataset.v; render(); },
-  dmThem: (el) => { const d = dmLay(); if (dmThemMa(d, el.dataset.ma)) { dmLuu(d); render(); } },
+  dmThem: (el) => { const d = dmLay(); if (dmThemMa(d, el.dataset.ma)) { dmLuu(d); render(); dmNhacToast({ ma: el.dataset.ma }); } },
   dmThemTatCa: () => { const d = dmLay(); let n = 0; dmCanMuaDS().forEach((o) => { if (dmThemMa(d, o.x.ma, o.can || dmGoiY(o.x))) n++; }); dmLuu(d); toast(t('dmThemOk', { n })); render(); },
   dmBo: (el) => { const d = dmLay(); d.ds.splice(+el.dataset.i, 1); dmLuu(d); render(); },
   dmXoaHet: () => { if (!confirm(tp('dmXoaHoi'))) return; const d = dmLay(); d.ds = []; dmLuu(d); render(); },
@@ -23438,6 +23486,7 @@ Object.assign(ACT, {
     const d = dmLay();
     d.ds.push({ ma: '', ten, tenZh: zh, tuDich: false, qc: $('#dmNQC').value.trim(), dv: $('#dmNDV').value.trim(), sl, gc: '', may: $('#dmNMay').value || '' });
     dmLuu(d); render();
+    dmNhacToast(d.ds[d.ds.length - 1]);
     // Tên tiếng Trung để trống: nhờ máy chủ dịch, xong thì vẽ lại
     if (!zh && !srvOld('dich')) {
       const n = await dmDich();
@@ -23511,6 +23560,8 @@ Object.assign(TX, {
   dmSaoChep: ['Sao chép vào phiếu đang soạn', '复制到正在填写的请购单'], dmDaSaoChep: ['Đã chép {n} mặt hàng vào phiếu đang soạn', '已复制{n}项到正在填写的请购单'],
   dmXoaPhieu: ['Xoá phiếu', '删除请购单'], dmXoaPhieuHoi: ['Xoá phiếu {s}? Phiếu không còn trong danh sách (dòng vẫn giữ trên sheet).', '确定删除请购单 {s}？列表中将不再显示（表格中仍保留）。'],
   dmMHn: ['{n} mặt hàng', '{n}项'], dmNguoiLap: ['Người lập', '申请人'],
+  dmDaDatNgay: ['Đã đặt ngày {d} trong phiếu {s} (SL {n} · {tt})', '已于 {d} 在请购单 {s} 中申请（数量 {n} · {tt}）'], dmDaDatNgan: ['đã đặt {d}', '已申请 {d}'],
+  dmTrungHoi: ['Có hàng đã đặt trong phiếu trước mà chưa về. Vẫn lưu phiếu này?', '有物料已在之前的请购单中申请且尚未到货。仍要保存吗？'],
   srvMissDM: ['Máy chủ chưa lưu được phiếu đặt mua. Cập nhật Code.gs rồi Triển khai lại (vẫn xuất Excel phiếu đang soạn được).', '服务器尚不能保存请购单。请更新 Code.gs 并重新部署（仍可导出正在填写的请购单）。']
 });
 const dmDS = () => ((S.base && S.base.datMua) || []).filter((x) => !x.xoa).sort((a, b) => String(b.lucTao).localeCompare(String(a.lucTao)));
@@ -23588,6 +23639,8 @@ Object.assign(ACT, {
     const d = dmLay(), fe = $('#dmErr');
     const sai = d.ds.filter((r) => !(parseSo(String(r.sl)) > 0));
     if (sai.length) { const r = sai[0], x = r.ma ? khoGet(r.ma) : null; fe.innerHTML = t('dmSLSai', { m: (x ? x.ten : r.ten) || '' }); fe.hidden = false; return; }
+    const trung = d.ds.map((r) => ({ r, dd: dmDaDat(r) })).filter((o) => o.dd && o.dd.x.trangThai !== 'DA_VE');
+    if (trung.length && !confirm(tp('dmTrungHoi') + '\n\n' + trung.slice(0, 8).map((o) => '• ' + (o.r.ma ? (khoGet(o.r.ma) || {}).ten || o.r.ma : o.r.ten) + ' — ' + fmtD(o.dd.x.ngay) + ' · ' + o.dd.x.soPhieu).join('\n'))) return;
     fe.hidden = true; el.disabled = true;
     await dmDich();
     const d2 = dmLay(), dung = khoDaDungMap();

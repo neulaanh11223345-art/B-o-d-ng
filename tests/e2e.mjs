@@ -2740,6 +2740,50 @@ await shot('81-phieu-dat-mua-da-lap');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.60: lưu phiếu đặt mua vào danh sách, phiếu đang soạn trống để lập mới; xem, đổi trạng thái, xuất lại Excel, sao chép, xoá');
 
+// 46. Đo tủ điện: chọn ngày để ghi bù ngày hôm trước; dải ngày còn thiếu
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.dt = null; go('doTu'); }); await wait(600);
+assert.equal(await page.inputValue('#dtNgayGhi'), await page.evaluate(() => TODAY()), 'mặc định ghi cho hôm nay');
+assert.ok(await page.locator('[data-act="dtChonNgay"]').count() >= 1, 'có dải ngày còn thiếu để ghi bù');
+await page.click('[data-act="dtNgayLui"][data-d="-1"]'); await wait(400);
+const hq46 = await page.evaluate(() => dtCong(TODAY(), -1));
+assert.equal(await page.inputValue('#dtNgayGhi'), hq46, 'lùi về hôm qua');
+assert.match(await text('#main'), /Đang ghi bù cho ngày/, 'báo đang ghi bù');
+const tu46 = await page.evaluate((ng) => tuChuyen().find((c) => !dtCuaNgay(c.ma, ng)).ma, hq46);
+await page.click(`[data-act="dtMo"][data-ma="${tu46}"]`); await wait(600);
+assert.equal(await page.inputValue('#dtNgay'), hq46, 'form mở đúng ngày đang ghi bù');
+await page.fill('#dtND', '47.5'); await page.fill('#dtUU', '381');
+await page.click('[data-act="dtLuu"]'); await wait(1800);
+const x46 = await page.evaluate(([ma, ng]) => { const x = dtCuaNgay(ma, ng); return x && [x.nhietDo, x.dienAp]; }, [tu46, hq46]);
+assert.deepEqual(x46, [47.5, 381], 'số đo lưu đúng ngày hôm qua');
+assert.equal(await page.locator(`[data-act="dtMo"][data-ma="${tu46}"] .pill.p-ok`).count(), 1, 'tủ đó hiện Đã đo cho ngày hôm qua');
+await shot('82-do-tu-ghi-bu');
+await page.click('[data-act="dtNgayLui"][data-d="0"]'); await wait(400);
+assert.equal(await page.inputValue('#dtNgayGhi'), await page.evaluate(() => TODAY()), 'nút Hôm nay quay về hôm nay');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.61: đo tủ điện — chọn ngày ghi bù ngày hôm trước, dải ngày còn thiếu 14 ngày gần đây');
+
+// 47. Đặt mua: mặt hàng đã có trong phiếu đã lập thì nhắc đã đặt ngày nào; lưu thì hỏi lại
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); go('datMua', {}); }); await wait(700);
+const themN47 = async () => { await page.fill('#dmNTen', 'Vòng bi TEST'); await page.fill('#dmNQC', 'TEST-6205'); await page.fill('#dmNSL', '2'); await page.click('[data-act="dmThemNgoai"]'); await wait(1200); };
+await themN47();
+assert.equal(await page.locator('.dmrow .note').count(), 0, 'chưa đặt bao giờ thì không nhắc');
+await page.click('[data-act="dmLuuPhieu"]'); await wait(1500);
+const so47 = await page.evaluate(() => dmDS()[0].soPhieu);
+await themN47();
+assert.match(await text('.dmrow'), new RegExp('Đã đặt ngày .*' + so47.replace(/[./]/g, '\\$&')), 'nhắc đã đặt ngày nào, phiếu nào');
+let hoi47 = '';
+page.once('dialog', (dg) => { hoi47 = dg.message(); dg.dismiss(); });
+await page.click('[data-act="dmLuuPhieu"]'); await wait(600);
+assert.match(hoi47, /đã đặt trong phiếu trước/, 'lưu phiếu có hàng trùng thì hỏi lại');
+assert.equal(await page.evaluate(() => [dmLay().ds.length, dmDS().length].join()), '1,1', 'bấm Huỷ thì chưa lưu');
+// Phiếu cũ đã về hàng thì chỉ nhắc nhẹ, lưu không hỏi
+await page.evaluate(async () => { mergeResult(await send('setPurchase', { id: dmDS()[0].id, trangThai: 'DA_VE' })); render(); }); await wait(500);
+await page.click('[data-act="dmLuuPhieu"]'); await wait(1500);
+assert.equal(await page.evaluate(() => [dmLay().ds.length, dmDS().length].join()), '0,2', 'hàng phiếu cũ đã về thì lưu luôn');
+await shot('83-dat-mua-nhac-trung');
+await page.evaluate(async () => { for (const x of dmDS()) mergeResult(await send('setPurchase', { id: x.id, xoa: true })); while (S.stack.length > 1) back(); }); await wait(500);
+ok('Bản 2.61: đặt mua hàng đã có trong phiếu gần đây thì nhắc đã đặt ngày nào, lưu phiếu thì hỏi lại');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
