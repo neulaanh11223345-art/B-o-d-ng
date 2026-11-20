@@ -599,9 +599,10 @@ assert.match(don, /Trực sự cố máy nén khí/, 'lý do in ở dòng Lý do
 ['Lập biểu', 'Người xác nhận', 'Trưởng bộ phận', 'Hành chính nhân sự', 'Phê duyệt']
   .forEach((k) => assert.ok(don.includes(k), 'đủ ô ký ' + k));
 assert.equal(await page.locator('.tcsheet.don').count(), 1, 'một tờ');
-assert.equal(await page.locator('.tcsheet.don .ot tr').count(), 17, 'hai dòng tiêu đề + đúng 15 dòng như mẫu giấy');
+assert.equal(await page.locator('.tcsheet.don .ot tr:not(.tg)').count(), 17, 'hai dòng tiêu đề + đúng 15 dòng như mẫu giấy');
+assert.equal(await page.locator('.tcsheet.don .ot tr.tg').count(), 1, 'thêm một dòng tổng số tiếng ở cuối bảng');
 // Mỗi dòng là một lượt tăng ca: mã thẻ, giờ kiểu 22h00, số tiếng, ngày ở cột Ghi chú
-const hangDon = await page.evaluate(() => Array.from(document.querySelectorAll('.tcsheet.don .ot tr'))
+const hangDon = await page.evaluate(() => Array.from(document.querySelectorAll('.tcsheet.don .ot tr:not(.tg)'))
   .slice(2).map((tr) => Array.from(tr.children).map((td) => td.textContent.trim())).filter((r) => r[1]));
 assert.ok(hangDon.length >= 1, 'có ít nhất một lượt tăng ca trong đơn');
 assert.match(hangDon[0][1], /^V\d+$/, 'cột mã số thẻ');
@@ -629,7 +630,7 @@ await logout(); await login('NV002', '222222');
 await page.evaluate(() => { S.f.tcDonMot = ''; go('tcXem'); }); await wait(700);
 assert.equal(await page.locator('[data-act="tcDonChe"]').count(), 2, 'Quản lý chọn được mỗi người một tờ / chỉ mình tôi');
 const toQL = await page.evaluate(() => Array.from(document.querySelectorAll('.tcsheet.don')).map((sh) => {
-  const r = Array.from(sh.querySelectorAll('.ot tr')).slice(2)
+  const r = Array.from(sh.querySelectorAll('.ot tr:not(.tg)')).slice(2)
     .map((tr) => Array.from(tr.children).map((td) => td.textContent.trim())).filter((x) => x[1]);
   return { the: Array.from(new Set(r.map((x) => x[1]))), ten: r[0] ? r[0][2] : '', dong: r.length };
 }));
@@ -2795,6 +2796,28 @@ assert.equal(await page.evaluate(() => [dmLay().ds.length, dmDS().length].join()
 await shot('83-dat-mua-nhac-trung');
 await page.evaluate(async () => { for (const x of dmDS()) mergeResult(await send('setPurchase', { id: x.id, xoa: true })); while (S.stack.length > 1) back(); }); await wait(500);
 ok('Bản 2.61: đặt mua hàng đã có trong phiếu gần đây thì nhắc đã đặt ngày nào, lưu phiếu thì hỏi lại');
+
+// 48. Đơn tăng ca in theo khoảng ngày có dòng tổng số tiếng (một tờ, nhiều tờ)
+await page.evaluate(async () => {
+  while (S.stack.length > 1) back();
+  const ds = ['2026-09-01', '2026-09-02', '2026-09-03'];
+  for (const ng of ds) await send('saveOT', { id: '', uid: S.me.id, ngay: ng, ca: tcCaDS()[0].k, tu: '17:30', den: '20:00', soGio: 2.5, lyDo: 'Thử tổng giờ' });
+  S.f.tcUid = S.me.id; S.f.tcKieu = 'khoang'; S.f.tcTu = '2026-09-01'; S.f.tcDen = '2026-09-03'; S.f.tcDonMot = '1'; tab('tc'); go('tcXem');
+}); await wait(800);
+assert.match(await text('.tcsheet .ot'), /Tổng số tiếng tăng ca[\s\S]*7[.,]5/, 'đơn in có dòng tổng 7,5 giờ: ' + (await text('.tcsheet .ot')).slice(-120));
+assert.match(await text('#main .help'), /tổng 7[.,]5 giờ/, 'màn in ghi tổng giờ');
+// Nhiều tờ (quá 15 lượt): mỗi tờ cộng riêng, tờ cuối có tổng cả khoảng; số giờ từ 100 trở lên không bị cắt
+const nhieu48 = await page.evaluate(() => {
+  const goc = S.V.tc;
+  S.V.tc = Array.from({ length: 20 }, (_, i) => ({ id: 'X' + i, uid: S.me.id, ngay: '2026-08-' + String(i + 1).padStart(2, '0'), ca: tcCaDS()[0].k, tu: '08:00', den: '14:00', soGio: 6, lyDo: '' }));
+  const h = tcDonHtml(S.me.id, '2026-08-01', '2026-08-20').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  S.V.tc = goc;
+  return { h, so: tcSoDon(120) };
+});
+assert.match(nhieu48.h, /Cộng tờ này .*? 90 .*Cộng tờ này .*? 30 .*Tổng số tiếng tăng ca \(cả 2 tờ\) .*? 120/, 'nhiều tờ: cộng từng tờ, tờ cuối tổng cả khoảng');
+assert.equal(nhieu48.so, '120', 'số giờ từ 100 trở lên in đủ');
+await page.evaluate(() => { S.f.tcKieu = ''; S.f.tcDonMot = ''; while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.63: đơn tăng ca in theo khoảng ngày có tổng số tiếng; nhiều tờ thì cộng từng tờ và tổng cả khoảng');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
