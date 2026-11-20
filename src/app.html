@@ -2414,7 +2414,10 @@ const xemHet = () => can('xemhet');
 const HAN_CHE = new Set(['cvNew', 'list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
   'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
   'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit', 'tlTb', 'mnkDS', 'datMua', 'dmDS', 'dmXem']);
-const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
+// Danh mục thiết bị: tài khoản nhân viên có quyền xem khối nào (Phân quyền → Xem thiết bị chuyền sản xuất /
+// phụ trợ) thì mở được màn Thiết bị để xem — chỉ xem, các nút thêm / sửa / xuất vẫn theo quyền riêng (v2.62)
+const xemTB = () => xemHet() || can('xemsx') || can('xemhcd');
+const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v) || (v === 'list' && xemTB());
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
 // Chức năng gom theo nhóm thay vì một danh sách phẳng. Mỗi dòng: [màn, nhãn, biểu tượng].
@@ -2432,7 +2435,9 @@ const NHOM = [
 // Nhóm đã lọc theo quyền. Tài khoản không xem được danh mục máy thì dòng đó thành Bảo dưỡng
 // (cùng một màn, chỉ khác tab mặc định) — giống cách tabGoc vẫn đổi từ trước.
 const nhomDong = (r) => (r[0] === 'list' && !xemHet() ? ['cal', 'navBD', 'cal'] : r);
-const nhomDS = () => NHOM.map(([k, ds]) => [k, ds.map(nhomDong).filter(([v]) => xemDuoc(v))]).filter(([, ds]) => ds.length);
+// Nhân viên xem được thiết bị: thêm dòng Thiết bị ngay sau Bảo dưỡng
+const nhomDS = () => NHOM.map(([k, ds]) => [k, ds.reduce((a, r) => a.concat(r[0] === 'list' && !xemHet() && xemTB() ? [nhomDong(r), r] : [nhomDong(r)]), [])
+  .filter(([v]) => xemDuoc(v))]).filter(([, ds]) => ds.length);
 const sideDS = () => [['home', 'home', 'home']].concat(nhomDS().reduce((a, [, ds]) => a.concat(ds), []));
 const tabGoc = (v) => { const g = TAB_OF[v] || v; return !xemHet() && g === 'list' ? 'cal' : g; };
 function shell() {
@@ -2701,7 +2706,7 @@ function modTiles() {
   const act = activeMay(), done = S.V.ls.filter((x) => x.trangThai !== 'HUY' && x.ngay.slice(0, 7) === ym).length;
   let plan = 0; act.forEach((m) => planFor(m, +today.slice(0, 4), today).forEach((k, d) => { if (d.slice(0, 7) === ym) plan++; }));
   const tile = (cls, ic, k, v, big, sub, a) => `<button class="mtile ${cls}" ${a}><span class="mic">${IC[ic]}</span><span class="mtx"><span>${tv(k, v)}<small>${tz(k, v)}</small></span><b>${big}</b>${sub ? `<em>${sub}</em>` : ''}</span></button>`;
-  let h = xemHet() ? tile('mt-blue', 'gear', 'mThietBi', null, act.length, t('mDangTD'), 'data-act="tab" data-v="list"') : '';
+  let h = xemTB() ? tile('mt-blue', 'gear', 'mThietBi', null, act.length, t('mDangTD'), 'data-act="tab" data-v="list"') : '';
   const cvm = S.V.cv.filter(cvMo), cvq = cvm.filter(cvQua).length, cvc = cvm.filter((x) => x.trangThai === 'CHO_GIAO').length;
   if (xemHet()) h += tile('mt-orange', 'list', 'mCongViec', null, `${cvm.length}<small> ${esc(tv('mCvMo'))}</small>`,
     cvq ? `<span class="warnx">${t('mCvQua', { n: cvq })}</span>` : cvc ? t('mCvCho', { n: cvc }) : t('mCvOk'), 'data-act="cvLoc" data-v="' + (can('giaoviec') ? 'mo' : 'toi') + '"');
@@ -3746,7 +3751,7 @@ async function lkNhapOk(el) {
 const chDangDung = () => (S.V.ch || []).filter((c) => c.hoatDong !== false);
 function chSecHtml(today) {
   const chs = chDangDung();
-  return chs.length ? sec('chSec', chs.length) + `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div><div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>` : '';
+  return chs.length ? sec('chSec', chs.length) + (xemDuoc('lkChuyen') ? `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div>` : '') + `<div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>` : '';
 }
 // Máy không thuộc chuyền, gom theo nhóm; mỗi nhóm một dòng, bấm mới hiện máy
 function nhomGonHtml(list, today, pre) {
@@ -3994,7 +3999,7 @@ Object.assign(TX, {
     '每类一个独立文件，列与工厂台帐一致。在文件中修改后，在对应类别点“重新导入”：保留设备编号的行更新原设备，编号留空的行新增设备。“chi tiet”明细表（每台风机、胶机）也可重新导入。'],
   tbXuatTat: ['Xuất tất cả (mỗi loại một file)', '全部导出（每类一个文件）'],
 });
-const listSeg = (cur) => `<div class="seg wide3${xemHet() ? ' seg4' : ''}" style="margin-bottom:12px">${(xemHet() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history'], ['kho', 'segKho']] : [['cal', 'segLich'], ['hist', 'history']]).map(([v, k]) =>
+const listSeg = (cur) => `<div class="seg wide3${xemHet() ? ' seg4' : ''}" style="margin-bottom:12px">${(xemHet() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history'], ['kho', 'segKho']] : xemTB() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history']] : [['cal', 'segLich'], ['hist', 'history']]).map(([v, k]) =>
   `<button class="${cur === v ? 'on' : ''}" data-act="tab" data-v="${v}">${tv(k)}<small>${tz(k)}</small></button>`).join('')}</div>`;
 // ----- Bảng dữ liệu cho máy tính: tiêu đề cố định khi cuộn, phân trang, tổng số kết quả -----
 const PER_PAGE = 50;
@@ -4109,7 +4114,7 @@ function khoiSXHtml(list, today) {
   if (!chs.length && !list.length) return o + `<div class="card empty">${t('khoiTrong')}</div>`;
   if (chs.length) {
     o += sec('chSec', chs.length)
-      + `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div>`
+      + (xemDuoc('lkChuyen') ? `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div>` : '')
       + `<div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>`;
   }
   const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
@@ -10765,7 +10770,7 @@ Object.assign(TX, {
   tcTuanHaiThang: ['Tuần này vắt qua hai tháng. Tăng ca chốt theo tháng thì xem / in / xuất riêng từng phần:', '本周跨两个月。加班按月结算，可分别查看 / 打印 / 导出：'],
   tcPhanThang: ['Phần tháng {m}: {a} – {b}', '{m}月部分：{a} – {b}'], tcCaThang: ['Cả tháng {m}', '{m}月整月'],
   tcThangTruoc: ['Tháng trước', '上月'], tcThangSau: ['Tháng sau', '下月'],
-  tcKhoangDai: ['Chọn tối đa {n} ngày một lần', '一次最多选择{n}天'], tcTongKhoang: ['Tổng giờ {a}', '{a} 合计'],
+  tcKhoangDai: ['Chọn tối đa {n} ngày một lần', '一次最多选择{n}天'], tcTongGioIn: ['tổng {h} giờ', '合计 {h} 小时'], tcTongKhoang: ['Tổng giờ {a}', '{a} 合计'],
   tcDonSoLuotK: ['{a}: {n} lượt tăng ca · {m} tờ đơn', '{a}：共 {n} 次加班 · {m} 张申请表'],
   tcXuatKhoang: ['Xuất Excel', '导出Excel'], tcDS: ['Danh sách tăng ca', '加班明细'], tcLanN: ['{n} lần', '{n}次'],
   tcTrong: ['Tuần này chưa có lần tăng ca nào', '本周暂无加班记录'], tcThem: ['Thêm ngày tăng ca', '添加加班日期'],
@@ -11039,7 +11044,7 @@ const tcGioDon = (t0) => String(t0 || '').replace(':', 'h');
 // Số tiếng viết như mẫu: số nguyên thì hai chữ số (01, 02), lẻ thì giữ phần thập phân (2,5)
 function tcSoDon(n) {
   const v = Math.round((+n || 0) * 100) / 100;
-  return Number.isInteger(v) ? ('0' + v).slice(-2) : fmtNum(v, 'raw');
+  return Number.isInteger(v) ? (v < 10 ? '0' + v : String(v)) : fmtNum(v, 'raw');
 }
 // Các lượt tăng ca của một khoảng ngày: Quản lý in cả nhà máy, nhân viên in của chính mình
 function tcDonDS(tu, den, uid) {
@@ -11080,6 +11085,15 @@ function tcDonHtml(uid, tu, den) {
         <td class="l">${esc(n.ten)}${tenZh}</td><td></td><td class="l">${esc(n.chucVu || n.boPhan)}</td>
         <td class="mono">${esc(tcGioDon(x.tu))}</td><td class="mono">${esc(tcGioDon(x.den))}</td>
         <td class="mono">${tcSoDon(x.soGio)}</td><td class="mono">${fmtDM(x.ngay)}</td></tr>`;
+    }
+    // Dòng tổng số tiếng: một tờ thì tổng của tờ; nhiều tờ thì cộng tờ này, tờ cuối thêm tổng cả khoảng (v2.63)
+    const cong = (ds) => ds.reduce((s0, x) => s0 + (+x.soGio || 0), 0);
+    const dongTong = (vi, zh, v) => `<tr class="tg"><td colspan="7" style="text-align:right;padding-right:10px">${vi} <span class="zh" style="display:inline">${zh}</span></td>
+      <td class="mono">${tcSoDon(Math.round(v * 100) / 100)}</td><td></td></tr>`;
+    const tatCa = to.filter((y) => y.uid === to[k].uid).reduce((s0, y) => s0 + cong(y.a), 0);
+    if (a.length || so > 1) {
+      tr += so > 1 ? dongTong('Cộng tờ này', '本页合计', cong(a)) : dongTong('Tổng số tiếng tăng ca', '加班总小时数', cong(a));
+      if (so > 1 && to[k].i === so - 1) tr += dongTong('Tổng số tiếng tăng ca (cả ' + so + ' tờ)', '加班总小时数（共' + so + '页）', tatCa);
     }
     const ly = [];
     a.forEach((x) => { const v = String(x.lyDo || '').trim(); if (v && ly.indexOf(v) < 0) ly.push(v); });
@@ -11124,8 +11138,9 @@ VIEWS.tcXem = {
     }
     o += tcKhoangHtml();
     const kd = kh.kieu === 'tuan' ? 'tcDonSoLuot' : 'tcDonSoLuotK', a = tcKhoangNhan(kh);
-    o += `<div class="help" style="margin:10px 0">${esc(tv(kd, { n, m, a }))}
-      <span class="zi" lang="zh-CN">${esc(tz(kd, { n, m, a }))}</span></div>`;
+    const gio = tcCong(ds0);
+    o += `<div class="help" style="margin:10px 0">${esc(tv(kd, { n, m, a }))} · <b>${esc(tv('tcTongGioIn', { h: tcSo(gio) }))}</b>
+      <span class="zi" lang="zh-CN">${esc(tz(kd, { n, m, a }))} · ${esc(tz('tcTongGioIn', { h: tcSo(gio) }))}</span></div>`;
     o += `<div class="card" style="padding:10px"><div class="tcwrap">${tcDonHtml(uid, tu, kh.den)}</div></div>
       <div class="btns" style="margin-top:13px"><button class="btn pri" data-act="tcIn">${IC.dl} ${t('tcInPdf')}</button>
         <button class="btn ghost" data-act="tcXuatTuan">${IC.dl} ${t(kh.kieu === 'tuan' ? 'tcXuatTuan' : 'tcXuatKhoang')}</button></div>
