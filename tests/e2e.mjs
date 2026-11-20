@@ -2831,14 +2831,20 @@ const nd49 = await page.evaluate(async () => {
 }); await wait(900);
 assert.match(await text('#barTitle'), /Nhận định chuyền/);
 assert.ok(await page.locator('[data-act="ndMo"]').count() >= 10, 'mỗi chuyền một dòng');
-const k49 = await page.evaluate((ch) => { const r = ndPhanTich(S.V.chByMa[ch], 30); return { muc: r.muc, k: r.ds.map((x) => x.muc + ':' + x.k), diem: r.diem }; }, nd49.ch);
-['scTang', 'lapMay', 'lapNN', 'lkLap'].forEach((k) => assert.ok(k49.k.some((x) => x.endsWith(':' + k)), 'có nhận định ' + k + ': ' + k49.k.join(',')));
+assert.equal(await page.locator('#main table').count(), 0, 'không còn bảng lặp lại danh sách chuyền');
+const k49 = await page.evaluate((ch) => { const r = ndPhanTich(S.V.chByMa[ch], 30); return { muc: r.muc, k: r.ds.map((x) => x.muc + ':' + x.k), diem: r.diem, lap: (r.ds.find((x) => x.k === 'lapMay') || { b: {} }).b }; }, nd49.ch);
+['scTang', 'lapMay'].forEach((k) => assert.ok(k49.k.some((x) => x.endsWith(':' + k)), 'có nhận định ' + k + ': ' + k49.k.join(',')));
+// Cùng một gốc (4 lần sửa một máy, lần nào cũng thay vòng bi) không tách thành nhiều nhận định trùng
+['dungNhieu', 'lapNN', 'lkLap'].forEach((k) => assert.ok(!k49.k.some((x) => x.endsWith(':' + k)), 'không tách riêng ' + k + ': ' + k49.k.join(',')));
+assert.match(k49.lap.lk, /Vòng bi TEST-6205 ×8/, 'linh kiện thay ghi gộp vào nhận định lỗi lặp');
+assert.equal(new Set(k49.k).size, k49.k.length, 'không có nhận định trùng');
 if (nd49.tu) { assert.ok(k49.k.includes('do:nhiet') && k49.k.some((x) => x.endsWith(':lechPha')), 'nhiệt tủ đỏ + lệch pha'); assert.ok(k49.k.includes('do:cheoDien'), 'nhận định chéo điện'); }
 assert.equal(k49.muc, 'do'); assert.ok(k49.diem < 60, 'điểm thấp: ' + k49.diem);
 assert.equal(await page.evaluate(() => ndCacChuyen(30)[0].c.ma), nd49.ch, 'chuyền đáng lo nhất đứng đầu xếp hạng');
 await page.click(`[data-act="ndMo"][data-ma="${nd49.ch}"] >> nth=0`); await wait(600);
-assert.match(await text('#main'), /Số liệu: .*lần trong 30 ngày/, 'nhận định ghi rõ số liệu');
-assert.match(await text('#main'), /Nên làm: /, 'có gợi ý việc nên làm');
+assert.match(await text('#main'), /lần trong 30 ngày/, 'nhận định ghi rõ số liệu');
+assert.match(await text('#main'), /→ /, 'có gợi ý việc nên làm');
+assert.equal(await page.locator('#main .ndth .pill').count(), 0, 'thẻ nhận định không lặp nhãn mức (đã có tiêu đề nhóm)');
 await shot('84-nhan-dinh-chuyen');
 // Ngưỡng: nâng ngưỡng đỏ nhiệt độ lên 80 °C thì nhiệt tủ chỉ còn vàng
 if (nd49.tu) {
