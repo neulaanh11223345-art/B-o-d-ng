@@ -2819,6 +2819,44 @@ assert.equal(nhieu48.so, '120', 'số giờ từ 100 trở lên in đủ');
 await page.evaluate(() => { S.f.tcKieu = ''; S.f.tcDonMot = ''; while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.63: đơn tăng ca in theo khoảng ngày có tổng số tiếng; nhiều tờ thì cộng từng tờ và tổng cả khoảng');
 
+// 49. Nhận định chuyền (chỉ Quản lý): nối sự cố, linh kiện, bảo dưỡng, đo tủ → nhận định có bằng chứng, xếp hạng, Excel, ngưỡng
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+const nd49 = await page.evaluate(async () => {
+  const m = mayCuaCh('VKY02')[0] || mayCuaCh('VKY01')[0], ch = m.chuyen, tu = tuChuyen().find((x) => x.maCh === ch);
+  for (let i = 0; i < 4; i++) await send('saveRepair', { moTa: 'Động cơ quá nhiệt', nguyenNhan: 'Mòn vòng bi TEST', ketQua: 'Thay vòng bi', ma: m.ma, ngay: addD(TODAY(), -3 * i - 1), gioDung: 2.5, uidLam: S.me.id,
+    linhKien: [{ ten: 'Vòng bi', quyCach: 'TEST-6205', sl: 2, dv: 'cái', loai: 'THAY' }] });
+  if (tu) for (let i = 0; i < 3; i++) await send('tuGhi', { maCT: tu.ma, ngay: addD(TODAY(), -i), nhietDo: 66 + i * 3, dienAp: 381, ia: 120, ib: 95, ic: 124, ghiChu: '' });
+  rebuild(); go('nhanDinh');
+  return { ch, tu: tu && tu.ma };
+}); await wait(900);
+assert.match(await text('#barTitle'), /Nhận định chuyền/);
+assert.ok(await page.locator('[data-act="ndMo"]').count() >= 10, 'mỗi chuyền một dòng');
+const k49 = await page.evaluate((ch) => { const r = ndPhanTich(S.V.chByMa[ch], 30); return { muc: r.muc, k: r.ds.map((x) => x.muc + ':' + x.k), diem: r.diem }; }, nd49.ch);
+['scTang', 'lapMay', 'lapNN', 'lkLap'].forEach((k) => assert.ok(k49.k.some((x) => x.endsWith(':' + k)), 'có nhận định ' + k + ': ' + k49.k.join(',')));
+if (nd49.tu) { assert.ok(k49.k.includes('do:nhiet') && k49.k.some((x) => x.endsWith(':lechPha')), 'nhiệt tủ đỏ + lệch pha'); assert.ok(k49.k.includes('do:cheoDien'), 'nhận định chéo điện'); }
+assert.equal(k49.muc, 'do'); assert.ok(k49.diem < 60, 'điểm thấp: ' + k49.diem);
+assert.equal(await page.evaluate(() => ndCacChuyen(30)[0].c.ma), nd49.ch, 'chuyền đáng lo nhất đứng đầu xếp hạng');
+await page.click(`[data-act="ndMo"][data-ma="${nd49.ch}"] >> nth=0`); await wait(600);
+assert.match(await text('#main'), /Số liệu: .*lần trong 30 ngày/, 'nhận định ghi rõ số liệu');
+assert.match(await text('#main'), /Nên làm: /, 'có gợi ý việc nên làm');
+await shot('84-nhan-dinh-chuyen');
+// Ngưỡng: nâng ngưỡng đỏ nhiệt độ lên 80 °C thì nhiệt tủ chỉ còn vàng
+if (nd49.tu) {
+  const v49 = await page.evaluate((ch) => { store.set('bd_ndNguong', { ndDo: 80 }); const r = ndPhanTich(S.V.chByMa[ch], 30).ds.find((x) => x.k === 'nhiet'); store.set('bd_ndNguong', {}); return r && r.muc; }, nd49.ch);
+  assert.equal(v49, 'vang', 'sửa ngưỡng có tác dụng');
+}
+const x49 = await page.evaluate(async () => { const sh = await readXlsx(await ndXlsx(30).arrayBuffer()); const a = await sh[0].rows(), b = await sh[1].rows(); return { n: sh.length, a: a.map((r) => (r || []).join('|')).join('\n'), b: b.map((r) => (r || []).join('|')).join('\n') }; });
+assert.equal(x49.n, 2, 'Excel hai sheet: xếp hạng và chi tiết');
+assert.match(x49.a, /NHẬN ĐỊNH CHUYỀN/); assert.match(x49.b, /Lỗi lặp lại trên một máy[\s\S]*同一设备重复故障/, 'chi tiết song ngữ');
+// Kỹ thuật không vào được
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+await logout(); await login('NV003', '333333');
+await page.evaluate(() => go('nhanDinh')); await wait(500);
+assert.match(await text('#main'), /chỉ xem được Điện\/Nước/, 'kỹ thuật không vào được Nhận định');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+await logout(); await login('NV002', '222222');
+ok('Bản 2.64: nhận định chuyền cho Quản lý — sự cố, lỗi lặp, linh kiện, bảo dưỡng, nhiệt tủ, lệch pha, nhận định chéo; xếp hạng, Excel, ngưỡng sửa được');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

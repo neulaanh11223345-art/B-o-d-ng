@@ -1031,6 +1031,9 @@ table.mtab tr.child th.nmc button{font-weight:500;padding-left:10px}
 .mdseg button,.mdseg2 button{padding:7px 10px;font-size:12.5px}
 /* ===================== v2.1: sửa chữa, bảo dưỡng ===================== */
 .mt-red{background:linear-gradient(135deg,#F0645C,#D63B33)}
+.ndso{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.ndso div{background:var(--soft);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+.ndso b{font-size:18px}.ndso span{font-size:12px;color:var(--ink2)}.ndso small{font-size:11px;color:var(--ink3)}
 .cta2{margin-top:10px;width:100%;border:1px solid color-mix(in srgb,var(--red) 40%,var(--line));border-radius:16px;background:color-mix(in srgb,var(--red-bg) 55%,var(--card));color:var(--red);display:flex;align-items:center;gap:14px;padding:10px 14px 10px 16px;text-align:left;font-weight:700;font-size:16px;min-height:58px}
 .cta2>span:not(.ic){flex:1;min-width:0}
 .cta2 .ic{width:38px;height:38px;border-radius:11px;background:var(--red);color:#fff;display:grid;place-items:center;flex:none}
@@ -2708,6 +2711,10 @@ function modTiles() {
   const tile = (cls, ic, k, v, big, sub, a) => `<button class="mtile ${cls}" ${a}><span class="mic">${IC[ic]}</span><span class="mtx"><span>${tv(k, v)}<small>${tz(k, v)}</small></span><b>${big}</b>${sub ? `<em>${sub}</em>` : ''}</span></button>`;
   let h = xemTB() ? tile('mt-blue', 'gear', 'mThietBi', null, act.length, t('mDangTD'), 'data-act="tab" data-v="list"') : '';
   const cvm = S.V.cv.filter(cvMo), cvq = cvm.filter(cvQua).length, cvc = cvm.filter((x) => x.trangThai === 'CHO_GIAO').length;
+  if (xemHet() && (S.V.ch || []).length) {
+    const nd = ndCacChuyen(30).filter((r) => r.muc === 'do').length;
+    h += tile(nd ? 'mt-red' : 'mt-teal', 'warn', 't_nhanDinh', null, nd, nd ? `<span class="warnx">${t('ndTileSub', { n: nd })}</span>` : t('ndTileOk'), 'data-act="go" data-v="nhanDinh"');
+  }
   if (xemHet()) h += tile('mt-orange', 'list', 'mCongViec', null, `${cvm.length}<small> ${esc(tv('mCvMo'))}</small>`,
     cvq ? `<span class="warnx">${t('mCvQua', { n: cvq })}</span>` : cvc ? t('mCvCho', { n: cvc }) : t('mCvOk'), 'data-act="cvLoc" data-v="' + (can('giaoviec') ? 'mo' : 'toi') + '"');
   if (!xemHet()) {
@@ -16900,6 +16907,268 @@ Object.assign(ACT, {
       mergeResult(d); closeSheet(); toast(t(K('qgDaBo'), { q: q.ten })); back(); render();
     } catch (e) { el.disabled = false; const fe = $('#qgbErr'); fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
   }
+});
+
+// ===================== Nhận định chuyền sản xuất (v2.64) — chỉ Quản lý, Quản trị =====================
+// Nối dữ liệu đã có trong app theo từng chuyền: sự cố / sửa chữa, linh kiện đã thay, bảo dưỡng, số đo tủ điện
+// (nhiệt độ, điện áp, dòng ba pha) → các nhận định theo quy tắc rõ ràng, mỗi nhận định kèm số liệu làm bằng chứng
+// và gợi ý việc nên làm. Tính ngay trên máy từ dữ liệu đã tải: không gửi dữ liệu ra ngoài, không cần máy chủ.
+Object.assign(TX, {
+  t_nhanDinh: ['Nhận định chuyền', '产线分析'], t_ndChuyen: ['Nhận định một chuyền', '产线分析详情'], navNhanDinh: ['Nhận định chuyền', '产线分析'],
+  ndHelp: ['App nối sự cố, linh kiện đã thay, bảo dưỡng và số đo tủ điện của từng chuyền (gồm cả máy phụ trợ gắn chuyền như quạt gió), so với kỳ trước để đưa ra nhận định. Mỗi nhận định ghi rõ dựa trên số liệu nào. Chỗ thiếu số liệu thì ghi "chưa đủ số liệu", không đoán.',
+    '系统把每条产线（含挂在产线上的辅助设备，如风机）的故障、更换配件、保养和配电柜测量数据关联起来，并与上一周期比较，给出分析。每条分析都注明依据的数据。数据不足时注明“数据不足”，不做猜测。'],
+  ndKy: ['Khoảng xem', '统计周期'], ndKy30: ['30 ngày', '30天'], ndKy90: ['90 ngày', '90天'], ndKy365: ['1 năm', '1年'],
+  ndDo: ['Cần xử lý', '需处理'], ndVang: ['Cần theo dõi', '需关注'], ndXanh: ['Ổn định', '稳定'],
+  ndDiem: ['Điểm', '得分'], ndXepHang: ['Bảng xếp hạng chuyền', '产线排名'], ndCacChuyen: ['Từng chuyền', '各产线'],
+  ndCotSC: ['Sự cố', '故障'], ndCotDung: ['Giờ dừng', '停机(h)'], ndCotLK: ['Lượt thay LK', '换件次数'], ndCotND: ['Nhiệt tủ max', '柜温最高'],
+  ndCotLP: ['Lệch pha max', '最大三相不平衡'], ndCotBD: ['BD quá hạn', '保养逾期'],
+  ndKhongCo: ['Không có điểm bất thường trong khoảng này', '本周期无异常'], ndNguong: ['Ngưỡng cảnh báo', '预警阈值'],
+  ndNguongHelp: ['Ngưỡng lưu trên máy này. Để trống thì dùng mặc định.', '阈值保存在本机。留空则使用默认值。'],
+  ndNgNdVang: ['Nhiệt độ tủ — vàng từ (°C)', '柜温 — 黄色起（°C）'], ndNgNdDo: ['Nhiệt độ tủ — đỏ từ (°C)', '柜温 — 红色起（°C）'],
+  ndNgLpVang: ['Lệch pha — vàng từ (%)', '三相不平衡 — 黄色起（%）'], ndNgLpDo: ['Lệch pha — đỏ từ (%)', '三相不平衡 — 红色起（%）'],
+  ndNgU: ['Điện áp chuẩn (V)', '标准电压（V）'], ndNgUL: ['Điện áp lệch quá (%)', '电压偏差超过（%）'],
+  ndNgLap: ['Lỗi lặp: số lần', '重复故障：次数'], ndNgLapN: ['Lỗi lặp: trong số ngày', '重复故障：天数内'],
+  ndXuat: ['Xuất Excel nhận định', '导出分析Excel'], ndBangChung: ['Số liệu', '数据'], ndGoiY: ['Nên làm', '建议'],
+  ndThieuSo: ['Chưa đủ số liệu', '数据不足'], ndMoMay: ['Mở máy', '打开设备'], ndMoSC: ['Xem sự cố', '查看故障'], ndMoDT: ['Xem đo tủ', '查看测量'],
+  ndMacDinh: ['Về mặc định', '恢复默认'], ndKhongChuyen: ['Chưa có chuyền sản xuất nào', '暂无产线'],
+  ndTileSub: ['{n} chuyền cần xử lý', '{n}条产线需处理'], ndTileOk: ['Không chuyền nào màu đỏ', '无红色产线'],
+  // Nhận định: [tiêu đề, bằng chứng, gợi ý] mỗi cái hai thứ tiếng
+  nd_scTang: ['Sự cố tăng', '故障增加'], nd_scTangB: ['{n} sự cố trong kỳ, kỳ trước {c} ({p})', '本期 {n} 次故障，上期 {c} 次（{p}）'],
+  nd_scTangG: ['Xem các sự cố gần đây, tìm điểm chung (máy, ca, nguyên nhân)', '查看近期故障，找共同点（设备、班次、原因）'],
+  nd_dungNhieu: ['Thời gian dừng máy cao', '停机时间长'], nd_dungNhieuB: ['Dừng {h} giờ trong kỳ, kỳ trước {c} giờ', '本期停机 {h} 小时，上期 {c} 小时'],
+  nd_dungNhieuG: ['Ưu tiên máy dừng lâu nhất: {m}', '优先处理停机最久的设备：{m}'],
+  nd_lapMay: ['Lỗi lặp lại trên một máy', '同一设备重复故障'], nd_lapMayB: ['{m}: {n} lần trong {d} ngày', '{m}：{d} 天内 {n} 次'],
+  nd_lapMayG: ['Tìm nguyên nhân gốc thay vì sửa tạm; xem lại cách lắp, vật tư, điều kiện vận hành', '查找根本原因而非临时修理；检查安装、配件、运行条件'],
+  nd_lapNN: ['Nguyên nhân lặp lại', '原因重复'], nd_lapNNB: ['"{x}": {n} lần trong kỳ', '“{x}”：本期 {n} 次'],
+  nd_lapNNG: ['Lập biện pháp phòng ngừa cho nguyên nhân này', '针对该原因制定预防措施'],
+  nd_lkLap: ['Linh kiện thay nhiều lần', '配件频繁更换'], nd_lkLapB: ['{x}: thay {n} lần ({sl}) trong kỳ', '{x}：本期更换 {n} 次（{sl}）'],
+  nd_lkLapG: ['Kiểm tra vì sao linh kiện nhanh hỏng (lắp lệch, quá tải, chất lượng hàng); cân nhắc tăng tồn an toàn', '检查配件为何易损（安装偏差、过载、质量）；考虑提高安全库存'],
+  nd_lkTang: ['Vật tư dùng tăng', '配件用量增加'], nd_lkTangB: ['{n} lượt thay linh kiện, kỳ trước {c}', '本期更换配件 {n} 次，上期 {c} 次'],
+  nd_lkTangG: ['Đối chiếu với sự cố tăng; xem có thay nhầm / thay thừa không', '与故障增加对照；检查是否误换/多换'],
+  nd_nhiet: ['Nhiệt độ tủ điện cao', '配电柜温度高'], nd_nhietB: ['Cao nhất {v} °C ngày {d} (ngưỡng {n} °C)', '最高 {v} °C（{d}），阈值 {n} °C'],
+  nd_nhietG: ['Kiểm tra quạt / thông gió tủ, siết đầu cốt, đo nhiệt từng điểm đấu', '检查柜内风扇/通风，紧固接线端子，逐点测温'],
+  nd_nhietTang: ['Nhiệt độ tủ tăng dần', '柜温持续上升'], nd_nhietTangB: ['Trung bình 7 lần đo gần nhất {a} °C, 7 lần trước {b} °C', '最近7次平均 {a} °C，之前7次 {b} °C'],
+  nd_nhietTangG: ['Theo dõi sát, kiểm tra tải và tiếp điểm trước khi vượt ngưỡng', '密切关注，在超阈值前检查负载和触点'],
+  nd_lechPha: ['Lệch pha dòng điện', '三相电流不平衡'], nd_lechPhaB: ['Lệch {v}% ngày {d} (A {a} · B {b} · C {c} A)', '{d} 不平衡 {v}%（A {a} · B {b} · C {c} A）'],
+  nd_lechPhaG: ['Kiểm tra tải phân bố trên ba pha, đầu cốt, cầu dao; lệch pha kéo dài làm nóng và cháy động cơ', '检查三相负载分配、端子、开关；长期不平衡会使电机发热烧毁'],
+  nd_dienAp: ['Điện áp lệch chuẩn', '电压偏差'], nd_dienApB: ['{v} V ngày {d} (lệch {p}% so với {u} V)', '{d} {v} V（偏离 {u} V {p}%）'],
+  nd_dienApG: ['Báo bộ phận điện kiểm tra nguồn cấp, nấc biến áp', '通知电工检查供电、变压器档位'],
+  nd_dongTang: ['Dòng điện tăng', '电流上升'], nd_dongTangB: ['Dòng trung bình {a} A, kỳ trước {b} A (+{p}%)', '平均电流 {a} A，上期 {b} A（+{p}%）'],
+  nd_dongTangG: ['Xem chuyền có chạy thêm tải không; nếu không thì kiểm tra động cơ, ổ bi, quạt', '检查产线是否增加负载；若无则检查电机、轴承、风机'],
+  nd_bdQua: ['Bảo dưỡng quá hạn', '保养逾期'], nd_bdQuaB: ['{n} máy quá hạn: {m}', '{n} 台逾期：{m}'],
+  nd_bdQuaG: ['Xếp lịch bảo dưỡng các máy này sớm', '尽快安排这些设备保养'],
+  nd_cheoDien: ['Lệch pha / nóng tủ + sự cố điện', '三相不平衡/柜温高 + 电气故障'], nd_cheoDienB: ['{n} sự cố liên quan điện / động cơ trong kỳ, cùng lúc số đo tủ bất thường', '本期 {n} 次电气/电机相关故障，同时柜测量异常'],
+  nd_cheoDienG: ['Nhiều khả năng cùng một gốc: kiểm tra nguồn cấp và đấu nối của chuyền trước khi thay thêm động cơ / linh kiện', '很可能同一根源：先检查产线供电和接线，再考虑更换电机/配件'],
+  nd_cheoBD: ['Bảo dưỡng quá hạn + sự cố tăng', '保养逾期 + 故障增加'], nd_cheoBDB: ['{q} máy quá hạn bảo dưỡng trong lúc sự cố tăng', '{q} 台保养逾期，同时故障增加'],
+  nd_cheoBDG: ['Ưu tiên làm bảo dưỡng cho chuyền này', '优先为该产线做保养'],
+  nd_khongDT: ['Chưa có số đo tủ điện trong kỳ', '本期无配电柜测量数据'], nd_khongDTG: ['Ghi số đo tủ điện đều đặn để nhận định phần điện', '定期记录配电柜测量数据，以便分析电气部分']
+});
+Object.assign(TITLES, { nhanDinh: 't_nhanDinh', ndChuyen: 't_ndChuyen' });
+ROOTS.push('nhanDinh');
+(NHOM.find((x) => x[0] === 'nhomViec') || [0, []])[1].push(['nhanDinh', 'navNhanDinh', 'warn']);
+HAN_CHE.add('nhanDinh'); HAN_CHE.add('ndChuyen');
+
+const ND_MAC_DINH = { ndVang: 60, ndDo: 70, lpVang: 10, lpDo: 20, uChuan: 380, uLech: 5, lap: 3, lapNgay: 30 };
+const ndNguong = () => Object.assign({}, ND_MAC_DINH, store.get('bd_ndNguong', {}) || {});
+const ND_DIEN_RE = /đi[eệ]n|m[oô] ?t[oơ]|motor|đ[oộ]ng c[oơ]|ch[aá]y|aptomat|cb\b|contactor|kh[oở]i đ[oộ]ng t[uừ]|c[aầ]u ch[iì]|bi[eế]n t[aầ]n|d[aâ]y d[aẫ]n|ch[aậ]p|电|马达|接触器|变频|短路|烧/i;
+const ndR = (v, n) => Math.round(v * Math.pow(10, n || 0)) / Math.pow(10, n || 0);
+// Một dòng nhận định
+const ndDong = (muc, k, b, g, link) => ({ muc, k, b, g, link: link || null });
+// Lệch pha: độ lệch lớn nhất so với trung bình ba pha, tính theo %
+function ndLechPha(x) {
+  const v = [x.ia, x.ib, x.ic].map(dtSo).filter((y) => y !== '' && y > 0);
+  if (v.length < 3) return null;
+  const tb = (v[0] + v[1] + v[2]) / 3;
+  return tb > 0 ? Math.max(...v.map((y) => Math.abs(y - tb))) / tb * 100 : null;
+}
+// Phân tích một chuyền trong khoảng [tu, den], so với khoảng liền trước cùng độ dài
+function ndPhanTich(c, ngay) {
+  const N = ndNguong(), den = TODAY(), tu = addD(den, -(ngay - 1)), tuT = addD(tu, -ngay), denT = addD(tu, -1);
+  const trong = (d, a, b) => d >= a && d <= b;
+  const may = mayCuaCh(c.ma), maSet = new Set(may.map((m) => m.ma).concat([c.ma]));
+  const ds = [], so = {};
+  // --- Sự cố ---
+  const scAll = (S.V.cvAll || []).filter((x) => x.loai === 'SUA' && x.trangThai !== 'HUY' && maSet.has(x.ma));
+  const sc = scAll.filter((x) => trong(scNgay(x), tu, den)), scT = scAll.filter((x) => trong(scNgay(x), tuT, denT));
+  const gio = (a) => a.reduce((s0, x) => s0 + (+x.phutDung || 0), 0) / 60;
+  so.sc = sc.length; so.scT = scT.length; so.dung = ndR(gio(sc), 1); so.dungT = ndR(gio(scT), 1);
+  if (sc.length >= 3 && sc.length >= scT.length * 1.5) {
+    ds.push(ndDong(sc.length >= 5 && sc.length >= scT.length * 2 ? 'do' : 'vang', 'scTang',
+      { n: sc.length, c: scT.length, p: scT.length ? '+' + Math.round((sc.length / scT.length - 1) * 100) + '%' : 'mới · 新' }, null, { act: 'chuyen', ma: c.ma }));
+  }
+  if (so.dung >= 4 && so.dung >= so.dungT * 1.5) {
+    const theoMay = {};
+    sc.forEach((x) => { theoMay[x.ma] = (theoMay[x.ma] || 0) + (+x.phutDung || 0); });
+    const top = Object.keys(theoMay).sort((a, b) => theoMay[b] - theoMay[a])[0];
+    ds.push(ndDong(so.dung >= 12 ? 'do' : 'vang', 'dungNhieu', { h: fmtNum(so.dung, 1), c: fmtNum(so.dungT, 1), m: top ? mh(top) + ' ' + tbTen(top) : '' }, null, top && S.V.byMa[top] ? { act: 'may', ma: top } : null));
+  }
+  // Lỗi lặp trên một máy (một quạt): ≥ N.lap lần trong N.lapNgay ngày bất kỳ của kỳ
+  const theoDV = {};
+  sc.forEach((x) => { const k = x.ma + '|' + (x.dvMay || ''); (theoDV[k] = theoDV[k] || []).push(scNgay(x)); });
+  Object.keys(theoDV).forEach((k) => {
+    const d = theoDV[k].sort();
+    for (let i = 0; i + N.lap - 1 < d.length; i++) {
+      if (diffD(d[i + N.lap - 1], d[i]) < N.lapNgay) {
+        const [ma, dv] = k.split('|');
+        ds.push(ndDong(d.length >= N.lap + 2 ? 'do' : 'vang', 'lapMay', { m: mh(ma) + ' ' + tbTen(ma) + (dv ? ' · ' + dv : ''), n: d.length, d: N.lapNgay }, null, S.V.byMa[ma] ? { act: 'may', ma } : null));
+        break;
+      }
+    }
+  });
+  // Nguyên nhân lặp lại (so chữ đã bỏ dấu)
+  const theoNN = {};
+  sc.forEach((x) => { const v = String(x.nguyenNhan || '').trim(); if (v.length >= 3) { const k = norm(v); (theoNN[k] = theoNN[k] || { v, n: 0 }).n++; } });
+  Object.values(theoNN).filter((o) => o.n >= N.lap).sort((a, b) => b.n - a.n).slice(0, 2)
+    .forEach((o) => ds.push(ndDong('vang', 'lapNN', { x: o.v.slice(0, 60), n: o.n })));
+  // --- Linh kiện đã thay: sửa chữa + bảo dưỡng ---
+  const lk = [], lkT = [];
+  const gom = (ngayX, ds0, ra) => (ds0 || []).forEach((k) => ra.push({ ngay: ngayX, k }));
+  scAll.forEach((x) => { const d = scNgay(x); if (trong(d, tu, den)) gom(d, x.linhKien, lk); else if (trong(d, tuT, denT)) gom(d, x.linhKien, lkT); });
+  (S.V.ls || []).forEach((h) => {
+    if (h.trangThai === 'HUY' || !maSet.has(h.ma) || !h.chiTiet || !h.chiTiet.lk) return;
+    if (trong(h.ngay, tu, den)) gom(h.ngay, h.chiTiet.lk, lk); else if (trong(h.ngay, tuT, denT)) gom(h.ngay, h.chiTiet.lk, lkT);
+  });
+  so.lk = lk.length; so.lkT = lkT.length;
+  const theoLK = {};
+  lk.forEach((o) => { const k = o.k.maKho || norm((o.k.ten || '') + ' ' + (o.k.quyCach || '')); const g = theoLK[k] = theoLK[k] || { ten: lkTach(o.k.ten || '').vi + (o.k.quyCach ? ' ' + o.k.quyCach : ''), n: 0, sl: 0, dv: o.k.dv || '' }; g.n++; g.sl += +o.k.sl || 0; });
+  Object.values(theoLK).filter((g) => g.n >= N.lap).sort((a, b) => b.n - a.n).slice(0, 3)
+    .forEach((g) => ds.push(ndDong(g.n >= N.lap + 2 ? 'do' : 'vang', 'lkLap', { x: g.ten, n: g.n, sl: soG(g.sl) + (g.dv ? ' ' + dvTxt(g.dv) : '') })));
+  if (lk.length >= 5 && lk.length >= lkT.length * 1.5) ds.push(ndDong('vang', 'lkTang', { n: lk.length, c: lkT.length }));
+  // --- Bảo dưỡng quá hạn ---
+  const qua = may.filter((m) => m.chuKy > 0 && stOf(m, den).k === 'qua');
+  so.bd = qua.length;
+  if (qua.length) ds.push(ndDong(qua.length >= 3 ? 'do' : 'vang', 'bdQua', { n: qua.length, m: qua.slice(0, 4).map((m) => mh(m.ma)).join(', ') + (qua.length > 4 ? '…' : '') }, null, { act: 'may', ma: qua[0].ma }));
+  // --- Số đo tủ điện của chuyền ---
+  const tus = (typeof tuChuyen === 'function' ? tuChuyen() : []).filter((x) => x.maCh === c.ma);
+  const dt = (S.V.doTu || []).filter((x) => tus.some((y) => y.ma === x.maCT)), dtK = dt.filter((x) => trong(x.ngay, tu, den)), dtT = dt.filter((x) => trong(x.ngay, tuT, denT));
+  so.nd = ''; so.lp = '';
+  let dienXau = false;
+  if (tus.length && !dtK.length) ds.push(ndDong('tt', 'khongDT', {}, null, { act: 'doTu' }));
+  if (dtK.length) {
+    const nd = dtK.filter((x) => dtSo(x.nhietDo) !== '').sort((a, b) => dtSo(b.nhietDo) - dtSo(a.nhietDo))[0];
+    if (nd) {
+      so.nd = dtSo(nd.nhietDo);
+      if (so.nd >= N.ndVang) { dienXau = true; ds.push(ndDong(so.nd >= N.ndDo ? 'do' : 'vang', 'nhiet', { v: fmtNum(so.nd, 1), d: fmtDM(nd.ngay), n: so.nd >= N.ndDo ? N.ndDo : N.ndVang }, null, { act: 'doTu' })); }
+    }
+    const theoNgay = dt.filter((x) => dtSo(x.nhietDo) !== '' && x.ngay <= den).sort((a, b) => (a.ngay < b.ngay ? -1 : 1)).map((x) => dtSo(x.nhietDo));
+    if (theoNgay.length >= 14) {
+      const tb = (a) => a.reduce((s0, v) => s0 + v, 0) / a.length, a7 = tb(theoNgay.slice(-7)), b7 = tb(theoNgay.slice(-14, -7));
+      if (a7 - b7 >= 5) { dienXau = true; ds.push(ndDong('vang', 'nhietTang', { a: fmtNum(a7, 1), b: fmtNum(b7, 1) }, null, { act: 'doTu' })); }
+    }
+    const lp = dtK.map((x) => ({ x, v: ndLechPha(x) })).filter((o) => o.v !== null).sort((a, b) => b.v - a.v)[0];
+    if (lp) {
+      so.lp = ndR(lp.v, 1);
+      if (lp.v >= N.lpVang) { dienXau = true; ds.push(ndDong(lp.v >= N.lpDo ? 'do' : 'vang', 'lechPha', { v: fmtNum(lp.v, 1), d: fmtDM(lp.x.ngay), a: dtSo(lp.x.ia), b: dtSo(lp.x.ib), c: dtSo(lp.x.ic) }, null, { act: 'doTu' })); }
+    }
+    const u = dtK.filter((x) => dtSo(x.dienAp) !== '').map((x) => ({ x, p: Math.abs(dtSo(x.dienAp) - N.uChuan) / N.uChuan * 100 })).sort((a, b) => b.p - a.p)[0];
+    if (u && u.p > N.uLech) { dienXau = true; ds.push(ndDong(u.p > N.uLech * 2 ? 'do' : 'vang', 'dienAp', { v: dtSo(u.x.dienAp), d: fmtDM(u.x.ngay), p: fmtNum(u.p, 1), u: N.uChuan }, null, { act: 'doTu' })); }
+    const tbI = (a) => { const v = []; a.forEach((x) => [x.ia, x.ib, x.ic].map(dtSo).forEach((y) => { if (y !== '' && y > 0) v.push(y); })); return v.length ? v.reduce((s0, y) => s0 + y, 0) / v.length : 0; };
+    const iK = tbI(dtK), iT = tbI(dtT);
+    if (iK && iT && iK >= iT * 1.2) ds.push(ndDong('vang', 'dongTang', { a: fmtNum(iK, 1), b: fmtNum(iT, 1), p: Math.round((iK / iT - 1) * 100) }, null, { act: 'doTu' }));
+  }
+  // --- Nhận định chéo ---
+  const scDien = sc.filter((x) => ND_DIEN_RE.test([x.tieuDe, x.moTa, x.nguyenNhan, x.ketQua].join(' '))).length;
+  if (dienXau && scDien >= 2) ds.push(ndDong('do', 'cheoDien', { n: scDien }, null, { act: 'chuyen', ma: c.ma }));
+  if (qua.length && sc.length >= 3 && sc.length > scT.length) ds.push(ndDong(qua.length >= 2 ? 'do' : 'vang', 'cheoBD', { q: qua.length }));
+  // Điểm: 100 trừ 25 mỗi mục đỏ, 10 mỗi mục vàng
+  const diem = Math.max(0, 100 - ds.reduce((s0, x) => s0 + (x.muc === 'do' ? 25 : x.muc === 'vang' ? 10 : 0), 0));
+  const muc = ds.some((x) => x.muc === 'do') ? 'do' : ds.some((x) => x.muc === 'vang') ? 'vang' : 'xanh';
+  const thu = { do: 0, vang: 1, tt: 2 };
+  ds.sort((a, b) => thu[a.muc] - thu[b.muc]);
+  return { c, ds, so, diem, muc, coTu: tus.length > 0 };
+}
+const ndCacChuyen = (ngay) => (S.V.ch || []).filter((c) => c.hoatDong !== false).map((c) => ndPhanTich(c, ngay))
+  .sort((a, b) => a.diem - b.diem || b.so.sc - a.so.sc || a.c.ma.localeCompare(b.c.ma));
+const ND_MAU = { do: 'p-qua', vang: 'p-nay', xanh: 'p-ok', tt: 'p-ngung' };
+function ndDongHtml(x) {
+  const coG = TX['nd_' + x.k + 'G'];
+  const nut = x.link ? (x.link.act === 'may' ? `<button class="btn ghost sm" data-act="may" data-ma="${esc(x.link.ma)}">${t('ndMoMay')}</button>`
+    : x.link.act === 'chuyen' ? `<button class="btn ghost sm" data-act="chuyen" data-ma="${esc(x.link.ma)}">${t('ndMoSC')}</button>`
+    : `<button class="btn ghost sm" data-act="go" data-v="doTu">${t('ndMoDT')}</button>`) : '';
+  return `<div class="card pad" style="margin-bottom:8px;border-left:4px solid ${x.muc === 'do' ? 'var(--red)' : x.muc === 'vang' ? 'var(--orange)' : 'var(--line)'}">
+    <div style="display:flex;gap:8px;align-items:flex-start"><span class="pill ${ND_MAU[x.muc]}">${x.muc === 'do' ? t('ndDo') : x.muc === 'vang' ? t('ndVang') : t('ndThieuSo')}</span>
+      <b style="flex:1">${esc(tv('nd_' + x.k))}<span class="zi">${esc(tz('nd_' + x.k))}</span></b></div>
+    ${TX['nd_' + x.k + 'B'] && Object.keys(x.b).length ? `<div class="help" style="margin-top:6px"><b>${esc(tv('ndBangChung'))}:</b> ${esc(tv('nd_' + x.k + 'B', x.b))}<span class="zi">${esc(tz('nd_' + x.k + 'B', x.b))}</span></div>` : ''}
+    ${coG ? `<div class="help" style="margin-top:4px"><b>${esc(tv('ndGoiY'))}:</b> ${esc(tv('nd_' + x.k + 'G', x.b))}<span class="zi">${esc(tz('nd_' + x.k + 'G', x.b))}</span></div>` : ''}
+    ${nut ? `<div class="btns" style="margin-top:8px">${nut}</div>` : ''}</div>`;
+}
+VIEWS.nhanDinh = {
+  html(p) {
+    const ngay = +(p.ky || S.f.ndKy || 30); S.f.ndKy = ngay;
+    const kq = ndCacChuyen(ngay), dem = { do: 0, vang: 0, xanh: 0 };
+    kq.forEach((r) => { dem[r.muc]++; });
+    const cot = (v, dv) => (v === '' || v === undefined ? '—' : esc(String(v)) + (dv || ''));
+    let o = `<div class="card pad"><p class="help" style="margin:0">${t('ndHelp')}</p>
+      <div class="seg" style="margin-top:10px">${[30, 90, 365].map((n) => `<button class="${ngay === n ? 'on' : ''}" data-act="ndKy" data-v="${n}">${t('ndKy' + n)}</button>`).join('')}</div>
+      <div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="ndNguongMo">${IC.gear} ${t('ndNguong')}</button>
+        <button class="btn ghost sm" data-act="ndXuat">${IC.dl} ${t('ndXuat')}</button></div></div>
+      <div class="hscroll stchips" style="margin-top:10px"><span class="chip"><span class="pill p-qua">${dem.do}</span> ${t('ndDo')}</span>
+        <span class="chip"><span class="pill p-nay">${dem.vang}</span> ${t('ndVang')}</span><span class="chip"><span class="pill p-ok">${dem.xanh}</span> ${t('ndXanh')}</span></div>`;
+    if (!kq.length) return o + `<div class="card empty">${t('ndKhongChuyen')}</div>`;
+    o += sec('ndCacChuyen', kq.length) + `<div class="list">${kq.map((r) => `<button class="row" data-act="ndMo" data-ma="${esc(r.c.ma)}">
+      <div class="main"><div class="nm">${esc(mh(r.c.ma))}${r.c.tenZh ? `<span class="zi" lang="zh-CN">${esc(r.c.tenZh)}</span>` : ''}</div>
+        <div class="sub">${r.ds.filter((x) => x.muc !== 'tt').slice(0, 2).map((x) => esc(tv('nd_' + x.k))).join(' · ') || esc(tv('ndKhongCo'))}</div></div>
+      <div class="end"><span class="pill ${ND_MAU[r.muc]}">${r.diem}</span>${IC.chev}</div></button>`).join('')}</div>`;
+    o += sec('ndXepHang') + `<div class="card"><div class="tblwrap"><table class="dt"><thead><tr><th>#</th><th>${t('chuyen')}</th><th>${t('ndDiem')}</th><th>${t('ndCotSC')}</th><th>${t('ndCotDung')}</th>
+      <th>${t('ndCotLK')}</th><th>${t('ndCotND')}</th><th>${t('ndCotLP')}</th><th>${t('ndCotBD')}</th></tr></thead><tbody>${kq.map((r, i) => `<tr>
+      <td>${i + 1}</td><td><button class="lnk" data-act="ndMo" data-ma="${esc(r.c.ma)}">${esc(mh(r.c.ma))}</button></td><td><span class="pill ${ND_MAU[r.muc]}">${r.diem}</span></td>
+      <td class="num">${r.so.sc}</td><td class="num">${fmtNum(r.so.dung, 1)}</td><td class="num">${r.so.lk}</td><td class="num">${cot(r.so.nd, ' °C')}</td><td class="num">${cot(r.so.lp, '%')}</td><td class="num">${r.so.bd}</td></tr>`).join('')}</tbody></table></div></div>`;
+    return o;
+  }
+};
+VIEWS.ndChuyen = {
+  html(p) {
+    const c = S.V.chByMa[p.ma]; if (!c) return `<div class="card empty">${t('notFound')}</div>`;
+    const ngay = +(S.f.ndKy || 30), r = ndPhanTich(c, ngay);
+    return `<div class="card pad"><div style="display:flex;align-items:center;gap:10px"><b style="font-size:20px">${esc(mh(c.ma))}</b><span class="pill ${ND_MAU[r.muc]}">${esc(tv('ndDiem'))} ${r.diem}</span></div>
+      <div class="help">${esc(c.ten || '')}${c.tenZh ? ' · ' + esc(c.tenZh) : ''} · ${t('ndKy' + ngay)}</div>
+      <div class="ndso">${[['ndCotSC', r.so.sc], ['ndCotDung', fmtNum(r.so.dung, 1)], ['ndCotLK', r.so.lk], ['ndCotBD', r.so.bd],
+        ['ndCotND', r.so.nd === '' ? '—' : r.so.nd + ' °C'], ['ndCotLP', r.so.lp === '' ? '—' : r.so.lp + '%']].map(([k, v]) =>
+        `<div><b class="mono">${esc(String(v))}</b><span>${esc(tv(k))}</span><small>${esc(tz(k))}</small></div>`).join('')}</div></div>
+      <div style="margin-top:12px">${r.ds.length ? r.ds.map(ndDongHtml).join('') : `<div class="card empty">${t('ndKhongCo')}</div>`}</div>
+      <div class="btns" style="margin-top:10px"><button class="btn ghost" data-act="chuyen" data-ma="${esc(c.ma)}">${t('ndMoSC')}</button></div>`;
+  }
+};
+function ndXlsx(ngay) {
+  const kq = ndCacChuyen(ngay);
+  const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1, border: true }, x || {}) });
+  const MAU = { do: '#F8CBAD', vang: '#FFF2CC', xanh: '#E2F0D9', tt: '#EEEEEE' };
+  const nhan = (m) => (m === 'do' ? 'Cần xử lý · 需处理' : m === 'vang' ? 'Cần theo dõi · 需关注' : m === 'xanh' ? 'Ổn định · 稳定' : 'Chưa đủ số liệu · 数据不足');
+  const r1 = [[{ v: 'NHẬN ĐỊNH CHUYỀN SẢN XUẤT · 产线分析 — ' + ngay + ' ngày · ' + ngay + '天 (đến ' + fmtD(TODAY()) + ')', s: { b: 1, sz: 14 } }], [],
+    ['#', 'Chuyền\n产线', 'Đánh giá\n评估', 'Điểm\n得分', 'Sự cố\n故障', 'Giờ dừng\n停机(h)', 'Lượt thay LK\n换件次数', 'Nhiệt tủ max\n柜温最高(°C)', 'Lệch pha max\n不平衡(%)', 'BD quá hạn\n保养逾期'].map((v) => ({ v, s: H }))];
+  kq.forEach((r, i) => r1.push([c(i + 1, { align: 'center' }), c(mh(r.c.ma) + (r.c.tenZh ? '\n' + r.c.tenZh : '')), c(nhan(r.muc), { fill: MAU[r.muc] }), c(r.diem, { align: 'center' }),
+    c(r.so.sc, { align: 'center' }), c(r.so.dung, { align: 'center', fmt: '0.#' }), c(r.so.lk, { align: 'center' }), c(r.so.nd, { align: 'center' }), c(r.so.lp, { align: 'center' }), c(r.so.bd, { align: 'center' })]));
+  const r2 = [[{ v: 'CHI TIẾT NHẬN ĐỊNH · 分析明细', s: { b: 1, sz: 14 } }], [],
+    ['Chuyền\n产线', 'Mức\n等级', 'Nhận định\n分析', 'Số liệu\n数据', 'Nên làm\n建议'].map((v) => ({ v, s: H }))];
+  kq.forEach((r) => r.ds.forEach((x) => r2.push([c(mh(r.c.ma)), c(nhan(x.muc), { fill: MAU[x.muc] }), c(tv('nd_' + x.k) + '\n' + tz('nd_' + x.k)),
+    c(TX['nd_' + x.k + 'B'] && Object.keys(x.b).length ? tv('nd_' + x.k + 'B', x.b) + '\n' + tz('nd_' + x.k + 'B', x.b) : ''),
+    c(TX['nd_' + x.k + 'G'] ? tv('nd_' + x.k + 'G', x.b) + '\n' + tz('nd_' + x.k + 'G', x.b) : '')])));
+  return XW.build([{ name: 'Xep hang', rows: r1, cols: [5, 26, 20, 8, 8, 10, 11, 12, 12, 10], merges: ['A1:J1'], heights: { 1: 28, 3: 34 }, freeze: { r: 3, c: 2 }, landscape: true },
+    { name: 'Chi tiet', rows: r2, cols: [10, 18, 30, 50, 55], merges: ['A1:E1'], heights: { 1: 28, 3: 34 }, freeze: { r: 3, c: 1 }, landscape: true }]);
+}
+Object.assign(ACT, {
+  ndKy: (el) => { S.f.ndKy = +el.dataset.v; topV().p.ky = +el.dataset.v; render(); },
+  ndMo: (el) => go('ndChuyen', { ma: el.dataset.ma }),
+  ndXuat: async () => {
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try { blob = ndXlsx(+(S.f.ndKy || 30)); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'Nhan-dinh-chuyen_' + TODAY() + '_' + (S.f.ndKy || 30) + 'ngay.xlsx');
+  },
+  ndNguongMo: () => {
+    const N = ndNguong(), o = (k, lb) => `<label class="fld"><span>${t(lb)}</span><input class="inp mono" inputmode="decimal" data-ndng="${k}" value="${esc(String(N[k]))}"></label>`;
+    openSheet(`<div class="grab"></div><h3>${tv('ndNguong')}<span class="zi">${tz('ndNguong')}</span></h3><p class="help">${t('ndNguongHelp')}</p>
+      <div class="row2f">${o('ndVang', 'ndNgNdVang')}${o('ndDo', 'ndNgNdDo')}${o('lpVang', 'ndNgLpVang')}${o('lpDo', 'ndNgLpDo')}${o('uChuan', 'ndNgU')}${o('uLech', 'ndNgUL')}${o('lap', 'ndNgLap')}${o('lapNgay', 'ndNgLapN')}</div>
+      <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="ndNguongMacDinh">${t('ndMacDinh')}</button><button class="btn" data-act="ndNguongLuu">${IC.check} ${t('save')}</button></div>`);
+  },
+  ndNguongLuu: () => {
+    const v = {};
+    $$('[data-ndng]').forEach((el) => { const x = parseSo(el.value); if (x > 0) v[el.dataset.ndng] = x; });
+    store.set('bd_ndNguong', v); closeSheet(); render();
+  },
+  ndNguongMacDinh: () => { store.set('bd_ndNguong', {}); closeSheet(); render(); }
 });
 
 // Link từ tem QR: ...?m=M001
