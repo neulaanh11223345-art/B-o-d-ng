@@ -150,13 +150,25 @@ assert.match(await text('.tabs .tab[data-v="cv"]'), /Sửa chữa/);
 // Đo tủ điện thì có, vì chính kỹ thuật là người đi đo.
 await page.click('.tabs .tab[data-v="them"]'); await wait(600);
 const them7 = await page.locator('#main .row .nm').allTextContents();
-assert.deepEqual(them7, ['Công việc', 'Nghiệm thu sửa chữa', 'Máy nén khí', 'Bảo dưỡng', 'Điện / Nước', 'Đo tủ điện', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
-  'kỹ thuật thấy đúng chín mục: ' + JSON.stringify(them7));
+assert.deepEqual(them7, ['Công việc', 'Nghiệm thu sửa chữa', 'Máy nén khí', 'Bảo dưỡng', 'Thiết bị', 'Điện / Nước', 'Đo tủ điện', 'Tăng ca', 'Lịch trực', 'Cá nhân'],
+  'kỹ thuật thấy đúng mười mục (có Thiết bị để xem): ' + JSON.stringify(them7));
 await page.click('.tabs .tab[data-v="home"]'); await wait();
 assert.match(await text('.mtiles'), /Sửa chữa/);
-assert.doesNotMatch(await text('.mtiles'), /Linh kiện|Thiết bị|Công việc/, 'Tổng quan chỉ còn Sửa chữa, Bảo dưỡng, Điện, Nước');
+assert.doesNotMatch(await text('.mtiles'), /Linh kiện|Công việc/, 'Tổng quan: không có Linh kiện, Công việc');
+assert.match(await text('.mtiles'), /Thiết bị/, 'có ô Thiết bị để xem');
 await shot('16-ky-thuat-trang-chu');
-for (const v of ['list', 'kho', 'cvBC', 'labels']) {
+// Thiết bị: kỹ thuật xem được (chỉ xem), không có nút thêm / sửa / in tem
+await page.evaluate(() => tab('list')); await wait(900);
+assert.doesNotMatch(await text('#main'), /chỉ xem được Điện\/Nước/, 'kỹ thuật mở được màn Thiết bị');
+assert.ok(await page.locator('#main .khoibtn').count() >= 1, 'có sổ thiết bị theo khối');
+assert.equal(await page.locator('#main [data-act="newMay"], #main [data-act="labels"], #main [data-v="tbNhap"], #main [data-v="lkChuyen"]').count(), 0, 'không có nút thêm máy, nhập file, in tem, linh kiện');
+assert.match(await text('.tabs .tab.on'), /Bảo dưỡng/, 'tab đang sáng vẫn là Bảo dưỡng');
+assert.ok(await page.locator('.seg [data-v="list"]').count() === 1, 'thanh chọn Thiết bị · Lịch · Lịch sử');
+await page.evaluate(() => go('may', { ma: activeMay()[0].ma })); await wait(700);
+assert.equal(await page.evaluate(() => topV().v), 'may', 'mở được hồ sơ một máy');
+assert.equal(await page.locator('#main [data-act="editMay"]').count(), 0, 'không có nút sửa máy');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+for (const v of ['kho', 'cvBC', 'labels']) {
   await page.evaluate((x) => go(x), v); await wait();
   assert.match(await text('#main'), /chỉ xem được Điện\/Nước, Sửa chữa và Bảo dưỡng/, 'chặn màn ' + v);
 }

@@ -1694,7 +1694,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.61.0";
+const APP_VER = "2.62.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -2417,7 +2417,10 @@ const xemHet = () => can('xemhet');
 const HAN_CHE = new Set(['cvNew', 'list', 'kho', 'khoNhap', 'khoNhac', 'khoMin', 'lkChuyen', 'lkNhap', 'cvBC', 'cvLap', 'cvLapEdit', 'cvGiao', 'labels', 'mayEdit', 'chEdit', 'dsEdit',
   'admin', 'users', 'notify', 'saoLuu', 'nhatKy', 'duyet', 'giaDien', 'dienCfg', 'ctEdit', 'thongSo', 'tcCfg', 'tlCfg', 'tlGan', 'tlDS',
   'trucGhi', 'trucNguoi', 'kd', 'kdEdit', 'kdGhi', 'kdXem', 'tt', 'ttLoiEdit', 'tlTb', 'mnkDS', 'datMua', 'dmDS', 'dmXem']);
-const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v);
+// Danh mục thiết bị: tài khoản nhân viên có quyền xem khối nào (Phân quyền → Xem thiết bị chuyền sản xuất /
+// phụ trợ) thì mở được màn Thiết bị để xem — chỉ xem, các nút thêm / sửa / xuất vẫn theo quyền riêng (v2.62)
+const xemTB = () => xemHet() || can('xemsx') || can('xemhcd');
+const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v) || (v === 'list' && xemTB());
 // Thanh tab điện thoại: Trang chủ · Thiết bị · [Quét] · Công việc · Điện/Nước (Cá nhân: nút tròn góc trên). Máy tính: sidebar bên trái.
 // Tài khoản kỹ thuật: Trang chủ · Bảo dưỡng · [Quét] · Sửa chữa · Điện/Nước
 // Chức năng gom theo nhóm thay vì một danh sách phẳng. Mỗi dòng: [màn, nhãn, biểu tượng].
@@ -2435,7 +2438,9 @@ const NHOM = [
 // Nhóm đã lọc theo quyền. Tài khoản không xem được danh mục máy thì dòng đó thành Bảo dưỡng
 // (cùng một màn, chỉ khác tab mặc định) — giống cách tabGoc vẫn đổi từ trước.
 const nhomDong = (r) => (r[0] === 'list' && !xemHet() ? ['cal', 'navBD', 'cal'] : r);
-const nhomDS = () => NHOM.map(([k, ds]) => [k, ds.map(nhomDong).filter(([v]) => xemDuoc(v))]).filter(([, ds]) => ds.length);
+// Nhân viên xem được thiết bị: thêm dòng Thiết bị ngay sau Bảo dưỡng
+const nhomDS = () => NHOM.map(([k, ds]) => [k, ds.reduce((a, r) => a.concat(r[0] === 'list' && !xemHet() && xemTB() ? [nhomDong(r), r] : [nhomDong(r)]), [])
+  .filter(([v]) => xemDuoc(v))]).filter(([, ds]) => ds.length);
 const sideDS = () => [['home', 'home', 'home']].concat(nhomDS().reduce((a, [, ds]) => a.concat(ds), []));
 const tabGoc = (v) => { const g = TAB_OF[v] || v; return !xemHet() && g === 'list' ? 'cal' : g; };
 function shell() {
@@ -2704,7 +2709,7 @@ function modTiles() {
   const act = activeMay(), done = S.V.ls.filter((x) => x.trangThai !== 'HUY' && x.ngay.slice(0, 7) === ym).length;
   let plan = 0; act.forEach((m) => planFor(m, +today.slice(0, 4), today).forEach((k, d) => { if (d.slice(0, 7) === ym) plan++; }));
   const tile = (cls, ic, k, v, big, sub, a) => `<button class="mtile ${cls}" ${a}><span class="mic">${IC[ic]}</span><span class="mtx"><span>${tv(k, v)}<small>${tz(k, v)}</small></span><b>${big}</b>${sub ? `<em>${sub}</em>` : ''}</span></button>`;
-  let h = xemHet() ? tile('mt-blue', 'gear', 'mThietBi', null, act.length, t('mDangTD'), 'data-act="tab" data-v="list"') : '';
+  let h = xemTB() ? tile('mt-blue', 'gear', 'mThietBi', null, act.length, t('mDangTD'), 'data-act="tab" data-v="list"') : '';
   const cvm = S.V.cv.filter(cvMo), cvq = cvm.filter(cvQua).length, cvc = cvm.filter((x) => x.trangThai === 'CHO_GIAO').length;
   if (xemHet()) h += tile('mt-orange', 'list', 'mCongViec', null, `${cvm.length}<small> ${esc(tv('mCvMo'))}</small>`,
     cvq ? `<span class="warnx">${t('mCvQua', { n: cvq })}</span>` : cvc ? t('mCvCho', { n: cvc }) : t('mCvOk'), 'data-act="cvLoc" data-v="' + (can('giaoviec') ? 'mo' : 'toi') + '"');
@@ -3749,7 +3754,7 @@ async function lkNhapOk(el) {
 const chDangDung = () => (S.V.ch || []).filter((c) => c.hoatDong !== false);
 function chSecHtml(today) {
   const chs = chDangDung();
-  return chs.length ? sec('chSec', chs.length) + `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div><div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>` : '';
+  return chs.length ? sec('chSec', chs.length) + (xemDuoc('lkChuyen') ? `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div>` : '') + `<div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>` : '';
 }
 // Máy không thuộc chuyền, gom theo nhóm; mỗi nhóm một dòng, bấm mới hiện máy
 function nhomGonHtml(list, today, pre) {
@@ -3997,7 +4002,7 @@ Object.assign(TX, {
     '每类一个独立文件，列与工厂台帐一致。在文件中修改后，在对应类别点“重新导入”：保留设备编号的行更新原设备，编号留空的行新增设备。“chi tiet”明细表（每台风机、胶机）也可重新导入。'],
   tbXuatTat: ['Xuất tất cả (mỗi loại một file)', '全部导出（每类一个文件）'],
 });
-const listSeg = (cur) => `<div class="seg wide3${xemHet() ? ' seg4' : ''}" style="margin-bottom:12px">${(xemHet() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history'], ['kho', 'segKho']] : [['cal', 'segLich'], ['hist', 'history']]).map(([v, k]) =>
+const listSeg = (cur) => `<div class="seg wide3${xemHet() ? ' seg4' : ''}" style="margin-bottom:12px">${(xemHet() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history'], ['kho', 'segKho']] : xemTB() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history']] : [['cal', 'segLich'], ['hist', 'history']]).map(([v, k]) =>
   `<button class="${cur === v ? 'on' : ''}" data-act="tab" data-v="${v}">${tv(k)}<small>${tz(k)}</small></button>`).join('')}</div>`;
 // ----- Bảng dữ liệu cho máy tính: tiêu đề cố định khi cuộn, phân trang, tổng số kết quả -----
 const PER_PAGE = 50;
@@ -4112,7 +4117,7 @@ function khoiSXHtml(list, today) {
   if (!chs.length && !list.length) return o + `<div class="card empty">${t('khoiTrong')}</div>`;
   if (chs.length) {
     o += sec('chSec', chs.length)
-      + `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div>`
+      + (xemDuoc('lkChuyen') ? `<div class="btns" style="margin:-4px 0 8px"><button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button></div>` : '')
       + `<div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>`;
   }
   const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
