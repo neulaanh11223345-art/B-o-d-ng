@@ -3100,6 +3100,27 @@ assert.equal(await page.evaluate(() => S.f.khoLoai), 'mayin', 'xong mở luôn m
 await page.evaluate((ma) => send('setKhoLoai', { loai: '', ds: ma }), ma56); await wait(500);
 ok('Bản 2.69: máy in nhận số hãng 2100… ở bất kỳ đâu trong quy cách; nhập danh sách mã từ file để đưa cả loạt vào một mục');
 
+// 57. Phiếu đặt mua mở nhanh: chỉ mục "mặt hàng → phiếu gần nhất" dựng một lần, lưu / sửa phiếu thì dựng lại;
+// Theo dõi hàng về vẽ 40 dòng, bấm xem thêm
+const p57 = await page.evaluate(() => {
+  const L0 = S.base.datMua, L = [];
+  for (let p = 0; p < 30; p++) L.push({ id: 'TESTDM' + p, soPhieu: 'TEST/' + p, ngay: '2026-10-01', lucTao: '2026-10-01 08:' + String(p).padStart(2, '0'), trangThai: 'CHO',
+    ds: [1, 2, 3].map((j) => ({ ma: '', erp: false, ten: 'TEST hàng ' + p + '-' + j, qc: 'TEST', sl: 1 })) });
+  S.base.datMua = L;
+  const a = dmDaDat({ ten: 'TEST hàng 5-2', qc: 'TEST' });
+  mergeResult({ datMua: Object.assign({}, L[0], { id: 'TESTDMX', soPhieu: 'TEST/X', lucTao: '2026-10-02 09:00', ds: [{ ma: '', erp: false, ten: 'TEST hàng 5-2', qc: 'TEST', sl: 2 }] }) });
+  const b2 = dmDaDat({ ten: 'TEST hàng 5-2', qc: 'TEST' });
+  while (S.stack.length > 1) back();
+  S.f.khoTab = 'mua'; S.f.dmVeLoc = 'cho'; S.f.dmVeLim = 40; tab('kho');
+  const n1 = document.querySelectorAll('[data-act="dmVeDanh"]').length, them = !!document.querySelector('[data-act="dmVeThem"]');
+  ACT.dmVeThem();
+  const n2 = document.querySelectorAll('[data-act="dmVeDanh"]').length;
+  S.base.datMua = L0; S.dmVer = (S.dmVer || 0) + 1; render();
+  return { a: a && a.x.soPhieu, b: b2 && b2.x.soPhieu, n1, them, n2 };
+});
+assert.deepEqual(p57, { a: 'TEST/5', b: 'TEST/X', n1: 40, them: true, n2: 91 }, 'tra phiếu đã đặt bằng chỉ mục, cập nhật khi có phiếu mới; vẽ từng phần');
+ok('Bản 2.69.1: màn phiếu đặt mua mở nhanh (chỉ mục phiếu dựng một lần, danh sách hàng về vẽ từng phần)');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

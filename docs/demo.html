@@ -1727,7 +1727,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.69.0";
+const APP_VER = "2.69.1";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -2126,7 +2126,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.69.0';
+var PHIEN_BAN = '2.69.1';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -9319,6 +9319,7 @@ function mergeResult(d) {
   (d.datMua && d.datMua.id ? [d.datMua] : []).concat(d.dsDatMua || []).forEach((x) => {
     const L = S.base.datMua = S.base.datMua || [], i = L.findIndex((y) => y.id === x.id);
     if (i >= 0) L[i] = x; else L.push(x);
+    S.dmVer = (S.dmVer || 0) + 1;     // chỉ mục phiếu đặt mua dựng lại ở lần vẽ sau
   });
   // Biên bản nghiệm thu đổi theo (quạt chuyển chuyền / đổi tên thì biên bản đi theo quạt)
   (d.dsNghiemThu || []).forEach((x) => {
@@ -16027,10 +16028,18 @@ S.kho = { ver: '', ds: [], nhap: null, moc: [], nhatKy: [] };
 function khoSet(o) {
   S.kho = { ver: o.ver || '', ds: o.ds || [], nhap: o.nhap || null, moc: o.moc || [], nhatKy: o.nhatKy || [] };
   store.set('bd_kho', S.kho);
+  khoChuanBi();
 }
 function khoTuMay() {
   const o = store.get('bd_kho', null);
-  if (o && Array.isArray(o.ds)) S.kho = { ver: o.ver || '', ds: o.ds, nhap: o.nhap || null, moc: o.moc || [], nhatKy: o.nhatKy || [] };
+  if (o && Array.isArray(o.ds)) { S.kho = { ver: o.ver || '', ds: o.ds, nhap: o.nhap || null, moc: o.moc || [], nhatKy: o.nhatKy || [] }; khoChuanBi(); }
+}
+// Kho nhiều mã thì dựng chỉ mục tìm kiếm + phân loại mất vài trăm mili giây trên điện thoại. Dựng sẵn lúc app rảnh
+// ngay sau khi có dữ liệu kho, để lần đầu mở màn kho / lập phiếu đặt mua không phải chờ.
+function khoChuanBi() {
+  if (!S.kho.ds.length) return;
+  const f = () => { try { khoIx(); if (typeof khoMucMap === 'function') khoMucMap(); } catch (e) { /* lần vẽ sau tự dựng */ } };
+  if (window.requestIdleCallback) window.requestIdleCallback(f, { timeout: 4000 }); else setTimeout(f, 600);
 }
 let KHO_IX = null, KHO_IX_DS = null, KHO_BY = {}, KHO_TEN = {};
 // Tên kho ngắn để phân biệt cùng một ô ở hai kho: bỏ phần đầu giống nhau ("越-备品备件仓" / "越-备品备件仓2" → K1 / K2)
@@ -16351,17 +16360,21 @@ function dmVeRow(o) {
 }
 function khoTheoDoiVeHtml() {
   const all = dmDongDS(), cho = all.filter((o) => !o.ve), da = all.filter((o) => o.ve);
-  const loc = S.f.dmVeLoc === 'da' ? 'da' : 'cho';
-  let ds = loc === 'da' ? da.sort((a, b) => String(b.r.ngayVe || b.x.capNhat || '').localeCompare(String(a.r.ngayVe || a.x.capNhat || ''))).slice(0, 60)
+  const loc = S.f.dmVeLoc === 'da' ? 'da' : 'cho', lim = S.f.dmVeLim || 40;
+  const tat = loc === 'da' ? da.sort((a, b) => String(b.r.ngayVe || b.x.capNhat || '').localeCompare(String(a.r.ngayVe || a.x.capNhat || '')))
     : cho.sort((a, b) => String(a.x.ngay).localeCompare(String(b.x.ngay)));
+  // Vẽ từng phần (40 dòng, bấm xem thêm): nhiều phiếu thì danh sách dòng hàng rất dài, vẽ hết một lần làm màn mở chậm
+  const ds = tat.slice(0, lim);
   if (srvOld('hangve')) return sec('dmTheoDoiVe') + srvWarn('hangve');
   let o = sec('dmTheoDoiVe') + `<div class="hscroll stchips">${[['cho', 'dmChoVe', cho.length], ['da', 'dmTT_DA_VE', da.length]].map(([k, lb, n]) =>
     `<button class="chip${loc === k ? ' on' : ''}" data-act="dmVeLoc" data-v="${k}">${t(lb)} (${n})</button>`).join('')}</div>
     <p class="help" style="margin:8px 0 10px">${t('dmVeHelp')}</p>`;
   if (!ds.length) return o + `<div class="card empty" style="padding:16px">${t(loc === 'da' ? 'dmVeChuaCo' : 'dmChoVeHet')}</div>`;
   const coMa = ds.filter((o2) => o2.r.erp), chua = ds.filter((o2) => !o2.r.erp);
-  if (coMa.length) o += `<div class="lshd">${esc(tv('dmCoMa'))}<span class="zi">${esc(tz('dmCoMa'))}</span> <span class="nhomn">${coMa.length}</span></div><div class="list">${coMa.map(dmVeRow).join('')}</div>`;
-  if (chua.length) o += `<div class="lshd">${esc(tv('dmChuaMa'))}<span class="zi">${esc(tz('dmChuaMa'))}</span> <span class="nhomn">${chua.length}</span></div><div class="list">${chua.map(dmVeRow).join('')}</div>`;
+  const nMa = tat.filter((o2) => o2.r.erp).length, nChua = tat.length - nMa;
+  if (coMa.length) o += `<div class="lshd">${esc(tv('dmCoMa'))}<span class="zi">${esc(tz('dmCoMa'))}</span> <span class="nhomn">${nMa}</span></div><div class="list">${coMa.map(dmVeRow).join('')}</div>`;
+  if (chua.length) o += `<div class="lshd">${esc(tv('dmChuaMa'))}<span class="zi">${esc(tz('dmChuaMa'))}</span> <span class="nhomn">${nChua}</span></div><div class="list">${chua.map(dmVeRow).join('')}</div>`;
+  if (tat.length > lim) o += `<button class="btn ghost wide" style="margin-top:10px" data-act="dmVeThem">${t('khoMore', { n: fmtNum(tat.length - lim, 0) })}</button>`;
   return o;
 }
 // Hàng chưa khai tồn kho an toàn (bỏ hàng đã ẩn và hàng đã gộp)
@@ -16480,10 +16493,17 @@ const KHO_MUC_HIEN = { tb: ['mayin', 'maykeo'], ck: ['vongbi', 'truc', 'dao', 'd
   dk: ['xilanh', 'role', 'khoidong', 'driver', 'dongco', 'cambien', 'mach', 'nhiet', 'day', 'dkkhac'], vt: ['tieuhao', 'khac'] };
 KHO_NHOM.forEach((g) => KHO_MUC_HIEN[g].forEach((id, i) => { KHO_MUC_IX[id] = KHO_NHOM.indexOf(g) * 100 + i; }));
 const khoMucTen = (id, zh) => { const k = KHO_NHOM_BY[id] ? 'khoNhom_' + id : 'kmuc_' + (KHO_MUC_BY[id] ? id : 'khac'); return zh ? tz(k) : tv(k); };
-const khoTuTen = (ten) => ' ' + norm(ten).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
-function khoMucTuDong(x) {
-  const raw = String(x.ten || ''), w = khoTuTen(raw), qc = String(x.qc || '').replace(/\s+/g, '');   // "P/N :2100…" → "P/N:2100…"
-  for (const m of KHO_MUC) if ((m[4] && m[4].test(qc)) || m[2].some((k) => raw.indexOf(k) >= 0) || m[3].some((k) => w.indexOf(' ' + k + ' ') >= 0)) return m[0];
+// Từ khoá của mỗi mục gộp sẵn thành một biểu thức (nhanh hơn dò từng từ khoá cho từng mã khi kho có hàng nghìn mã)
+const reBoDac = (k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+KHO_MUC.forEach((m) => {
+  m.reZh = m[2].length ? new RegExp(m[2].map(reBoDac).join('|')) : null;
+  m.reVi = m[3].length ? new RegExp(' (?:' + m[3].map(reBoDac).join('|') + ') ') : null;
+});
+// tn: tên đã bỏ dấu (lấy lại từ chỉ mục tìm kiếm của kho nếu có, khỏi tính lại)
+function khoMucTuDong(x, tn) {
+  const raw = String(x.ten || ''), w = ' ' + (tn === undefined ? norm(raw) : tn).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+  const qc = String(x.qc || '').replace(/\s+/g, '');   // "P/N :2100…" → "P/N:2100…"
+  for (const m of KHO_MUC) if ((m[4] && m[4].test(qc)) || (m.reZh && m.reZh.test(raw)) || (m.reVi && m.reVi.test(w))) return m[0];
   return '';
 }
 // {mã: mục} cho cả kho. Chọn tay > theo tên > theo nhóm mã ERP (nhóm 品号 nào phần lớn là điện khí thì mã chưa rõ
@@ -16492,8 +16512,8 @@ let KHO_MUC_CACHE = null;
 function khoMucMap() {
   if (KHO_MUC_CACHE && KHO_MUC_CACHE.ds === S.kho.ds) return KHO_MUC_CACHE.m;
   const m = {}, tu = {}, theoNh = {}, chua = [];
-  S.kho.ds.forEach((x) => {
-    const a = khoMucTuDong(x), tay = x.loai && KHO_MUC_BY[x.loai] ? x.loai : '', id = tay || a;
+  khoIx().forEach((r) => {
+    const x = r.x, a = khoMucTuDong(x, r.t), tay = x.loai && KHO_MUC_BY[x.loai] ? x.loai : '', id = tay || a;
     if (a) tu[x.ma] = a; else chua.push(x);
     if (id && x.nh && !/khac$/.test(id)) { const n = theoNh[x.nh] = theoNh[x.nh] || {}, g = KHO_MUC_BY[id][1]; n[g] = (n[g] || 0) + 1; }
   });
@@ -24251,11 +24271,8 @@ function dmThemMa(v, ma, sl) {
 }
 // Mặt hàng đã có trong phiếu đã lập nào gần nhất: so theo mã kho; hàng chưa có mã so theo tên + quy cách
 const dmKhoa = (r) => (r.ma ? 'M:' + String(r.ma).toUpperCase() : 'T:' + norm(r.ten || '') + '|' + norm(r.qc || ''));
-function dmDaDat(r) {
-  const k = dmKhoa(r);
-  for (const x of dmDS()) { const h = (x.ds || []).find((y) => dmKhoa(y) === k); if (h) return { x, h }; }
-  return null;
-}
+// Phiếu gần nhất có mặt hàng này: tra chỉ mục dựng sẵn (trước đây mỗi dòng hàng lại quét + sắp xếp lại mọi phiếu → mở màn chậm)
+function dmDaDat(r) { return dmIx().khoa.get(dmKhoa(r)) || null; }
 // Dòng nhắc: "Đã đặt ngày 12/11 · phiếu DNMH… · SL 4 · Chờ đặt hàng"
 const dmTTDong = (dd) => (dmDongVe(dd.x, dd.h) ? 'DA_VE' : dd.x.trangThai === 'DA_VE' ? 'DA_DAT' : dd.x.trangThai || 'CHO');
 function dmNhacHtml(dd) {
@@ -24442,7 +24459,19 @@ Object.assign(TX, {
   dmTrungHoi: ['Có hàng đã đặt trong phiếu trước mà chưa về. Vẫn lưu phiếu này?', '有物料已在之前的请购单中申请且尚未到货。仍要保存吗？'],
   srvMissDM: ['Máy chủ chưa lưu được phiếu đặt mua. Cập nhật Code.gs rồi Triển khai lại (vẫn xuất Excel phiếu đang soạn được).', '服务器尚不能保存请购单。请更新 Code.gs 并重新部署（仍可导出正在填写的请购单）。']
 });
-const dmDS = () => ((S.base && S.base.datMua) || []).filter((x) => !x.xoa).sort((a, b) => String(b.lucTao).localeCompare(String(a.lucTao)));
+// Danh sách phiếu (mới nhất trước) + chỉ mục "mặt hàng → phiếu gần nhất đã đặt". Chỉ dựng lại khi danh sách phiếu đổi
+// (tải lại dữ liệu, lưu / sửa / xoá phiếu, nhập ERP thấy hàng về), không dựng lại mỗi lần vẽ màn.
+let DM_IX = null;
+function dmIx() {
+  const L = (S.base && S.base.datMua) || [];
+  if (DM_IX && DM_IX.L === L && DM_IX.v === (S.dmVer || 0) && DM_IX.n === L.length) return DM_IX;
+  const ds = L.filter((x) => !x.xoa).sort((a, b) => String(b.lucTao).localeCompare(String(a.lucTao)));
+  const khoa = new Map();
+  ds.forEach((x) => (x.ds || []).forEach((h) => { const k = dmKhoa(h); if (!khoa.has(k)) khoa.set(k, { x, h }); }));
+  DM_IX = { L, v: S.dmVer || 0, n: L.length, ds, khoa };
+  return DM_IX;
+}
+const dmDS = () => dmIx().ds;
 const DM_PILL = { CHO: 'p-cho', DA_DAT: 'p-nay', DA_VE: 'p-ok' };
 const dmVeDem = (x) => (x.ds || []).filter((r) => dmDongVe(x, r)).length;
 function dmPhieuRow(x) {
@@ -24492,7 +24521,8 @@ async function dmSua(pl) {
 }
 Object.assign(ACT, {
   dmDSMo: () => go('dmDS', {}),
-  dmVeLoc: (el) => { S.f.dmVeLoc = el.dataset.v; render(); },
+  dmVeLoc: (el) => { S.f.dmVeLoc = el.dataset.v; S.f.dmVeLim = 40; render(); },
+  dmVeThem: () => { S.f.dmVeLim = (S.f.dmVeLim || 40) + 100; render(); },
   // Đánh dấu tay một dòng đã về / chưa về
   dmVeDanh: async (el) => {
     const x = dmDS().find((y) => y.id === el.dataset.id); if (!x) return;
