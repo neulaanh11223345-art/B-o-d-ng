@@ -3055,6 +3055,26 @@ assert.match(xl54, /Linh kiện cơ khí[^\n]*›[^\n]*Vòng bi/); assert.match(
 await page.evaluate((ma) => send('saveKho', { ma, loai: '' }), ma54); await wait(500);
 ok('Bản 2.68: kho ngũ kim chia nhóm cơ khí / điện khí, mỗi nhóm nhiều mục; tự xếp theo tên, chọn tay được; mã hết hàng vẫn giữ mã, thông số, ô kệ');
 
+// 55. Linh kiện máy in (quy cách 2100xxxxxx) và máy keo (quy cách 41xxx) vào mục riêng, xét trước các mục khác
+const mk55 = await page.evaluate(() => {
+  const luu = S.kho.ds;
+  S.kho.ds = luu.concat([
+    { ma: 'TEST-IN1', ten: '电缆Cáp nguồn', qc: '2100028101', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-IN2', ten: '轴承Vòng bi', qc: '2100 012 345', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-KE1', ten: '加热管 Thanh gia nhiệt', qc: '41235', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-KE2', ten: 'Vòi phun máy keo nóng', qc: 'TEST-X1', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-KH1', ten: '电磁阀 Van điện từ', qc: '411A-D0A', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-KH2', ten: '电缆Cáp', qc: '21000281', ng: 'ERP', ton: 1, cf: 1 }]);
+  const r = ['TEST-IN1', 'TEST-IN2', 'TEST-KE1', 'TEST-KE2', 'TEST-KH1', 'TEST-KH2'].map((ma) => khoMucOf(khoGet(ma)));
+  S.f.khoQ = ''; S.f.khoF = ''; S.f.khoLoai = ''; S.f.khoTab = 'ton'; tab('kho');
+  const tile = !!document.querySelector('.kmuch[data-v="tb"]') && !!document.querySelector('.kmuc[data-v="mayin"]') && !!document.querySelector('.kmuc[data-v="maykeo"]');
+  S.kho.ds = luu; render();
+  return { r, tile };
+});
+assert.deepEqual(mk55.r, ['mayin', 'mayin', 'maykeo', 'maykeo', 'xilanh', 'day'], 'quy cách 2100xxxxxx → máy in, 41xxx → máy keo; quy cách khác thì theo tên');
+assert.ok(mk55.tile, 'nhóm Linh kiện theo máy có hai mục Máy in / Máy keo');
+ok('Bản 2.68.1: linh kiện máy in (quy cách 2100…) và máy keo (quy cách 41…) có mục riêng');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

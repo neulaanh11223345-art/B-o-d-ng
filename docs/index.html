@@ -1727,7 +1727,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.68.0";
+const APP_VER = "2.68.1";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -9296,7 +9296,9 @@ function khoBody() {
 // cho từng mã khi xếp sai (lưu ở cột Loai của trang KhoLK, nhập file ERP lần sau không mất).
 SRV_PHAN.push(['kholoai', '2.68.0', 'srvMissLoai']);
 Object.assign(TX, {
+  khoNhom_tb: ['Linh kiện theo máy', '设备专用配件'],
   khoNhom_ck: ['Linh kiện cơ khí', '机械件'], khoNhom_dk: ['Linh kiện điện khí', '电气件'], khoNhom_vt: ['Vật tư khác', '其他物料'],
+  kmuc_mayin: ['Linh kiện máy in', '喷印机配件'], kmuc_maykeo: ['Linh kiện máy keo', '热熔胶机配件'],
   kmuc_vongbi: ['Vòng bi, gối đỡ', '轴承/轴承座'], kmuc_truc: ['Trục, con lăn, thanh trượt', '轴/辊/滑块'],
   kmuc_dao: ['Dao cắt, lưỡi dao', '刀片/刀具'], kmuc_dai: ['Dây curoa, băng tải', '皮带/同步带'],
   kmuc_giamtoc: ['Hộp giảm tốc, bánh răng, xích', '减速机/齿轮/链条'], kmuc_bulong: ['Bu lông, chốt, then, vòng đệm', '螺栓/销/键/垫圈'],
@@ -9311,16 +9313,20 @@ Object.assign(TX, {
   khoTheoMuc: ['Theo mục', '按分类'], khoMucDangXem: ['Mục', '分类'], khoMucBo: ['Bỏ lọc mục', '取消分类筛选'],
   khoMucXemNhom: ['Xem cả nhóm', '查看整组'], khoMucXemHet: ['Xem toàn bộ danh sách ({n} mã)', '查看全部清单（{n}种）'],
   khoMucHet: ['hết {n}', '缺{n}'], khoMucThieu: ['thiếu {n}', '低于安全{n}'],
-  khoMucHelp: ['App tự xếp theo tên hàng. Mã nào xếp sai: bấm vào mã đó, chọn lại mục.', '系统按物料名称自动分类。分错的编码：点击该编码重新选择分类。'],
+  khoMucHelp: ['App tự xếp theo tên hàng; linh kiện máy in (quy cách 2100…) và máy keo (quy cách 41…) theo quy cách. Mã nào xếp sai: bấm vào mã đó, chọn lại mục.', '系统按物料名称自动分类；喷印机配件（规格2100…）和热熔胶机配件（规格41…）按规格分类。分错的编码：点击该编码重新选择分类。'],
   khoMucChon: ['Mục phân loại', '分类'], khoMucTu: ['Tự động: {m}', '自动：{m}'], khoMucTay: ['chọn tay', '手动'],
   khoMucXuat: ['Xuất Excel kho theo mục', '按分类导出库存Excel'],
   srvMissLoai: ['Máy chủ chưa lưu được mục phân loại chọn tay. Cập nhật Code.gs rồi Triển khai lại (app vẫn tự xếp theo tên).', '服务器尚不能保存手动分类。请更新 Code.gs 并重新部署（系统仍按名称自动分类）。']
 });
-const KHO_NHOM = ['ck', 'dk', 'vt'];
-const KHO_NHOM_BY = { ck: 1, dk: 1, vt: 1 };
-// [mục, nhóm, từ khoá tiếng Trung (so theo chuỗi), từ khoá tiếng Việt không dấu (so theo từ)].
+const KHO_NHOM = ['tb', 'ck', 'dk', 'vt'];
+const KHO_NHOM_BY = { tb: 1, ck: 1, dk: 1, vt: 1 };
+// [mục, nhóm, từ khoá tiếng Trung (so theo chuỗi), từ khoá tiếng Việt không dấu (so theo từ), mẫu quy cách].
 // Xét lần lượt từ trên xuống, gặp mục đầu tiên khớp thì dừng — mục cụ thể đặt trước (轴承 trước 轴, 电机减速箱 vào giảm tốc…).
+// Linh kiện máy in / máy keo xét đầu tiên: nhận theo quy cách là chính (mã hàng của hãng máy):
+//   máy in: quy cách là dãy 10 số bắt đầu 2100 (vd 2100028101) · máy keo: quy cách toàn số bắt đầu 41 (vd 41xxx)
 const KHO_MUC = [
+  ['mayin', 'tb', ['喷印', '喷码', '打印头', '墨机'], ['may in'], /^2100\d{6}$/],
+  ['maykeo', 'tb', ['胶机', '热熔胶', '喷胶'], ['may keo'], /^41\d{3,}$/],
   ['vongbi', 'ck', ['轴承'], ['vong bi', 'bac dan', 'goi do', 'bearing']],
   ['giamtoc', 'ck', ['减速', '齿轮', '链条', '链轮'], ['giam toc', 'banh rang', 'xich', 'nhong']],
   ['xilanh', 'dk', ['气缸', '电磁阀', '快速接头', '气管接头', '气动', '气压表', '调压阀'], ['xi lanh', 'xylanh', 'xilanh', 'van dien tu', 'van khi', 'dau noi nhanh', 'cylinder']],
@@ -9344,14 +9350,14 @@ const KHO_MUC = [
 const KHO_MUC_BY = {}, KHO_MUC_IX = {};
 KHO_MUC.forEach((m, i) => { KHO_MUC_BY[m[0]] = m; KHO_MUC_IX[m[0]] = i; });
 // Thứ tự hiện: theo nhóm, trong nhóm theo thứ tự quen dùng (vòng bi, trục… / xi lanh, rơ le, khởi động từ, driver, động cơ…)
-const KHO_MUC_HIEN = { ck: ['vongbi', 'truc', 'dao', 'dai', 'giamtoc', 'bulong', 'loxo', 'dungcu', 'ckkhac'],
+const KHO_MUC_HIEN = { tb: ['mayin', 'maykeo'], ck: ['vongbi', 'truc', 'dao', 'dai', 'giamtoc', 'bulong', 'loxo', 'dungcu', 'ckkhac'],
   dk: ['xilanh', 'role', 'khoidong', 'driver', 'dongco', 'cambien', 'mach', 'nhiet', 'day', 'dkkhac'], vt: ['tieuhao', 'khac'] };
 KHO_NHOM.forEach((g) => KHO_MUC_HIEN[g].forEach((id, i) => { KHO_MUC_IX[id] = KHO_NHOM.indexOf(g) * 100 + i; }));
 const khoMucTen = (id, zh) => { const k = KHO_NHOM_BY[id] ? 'khoNhom_' + id : 'kmuc_' + (KHO_MUC_BY[id] ? id : 'khac'); return zh ? tz(k) : tv(k); };
 const khoTuTen = (ten) => ' ' + norm(ten).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
 function khoMucTuDong(x) {
-  const raw = String(x.ten || ''), w = khoTuTen(raw);
-  for (const m of KHO_MUC) if (m[2].some((k) => raw.indexOf(k) >= 0) || m[3].some((k) => w.indexOf(' ' + k + ' ') >= 0)) return m[0];
+  const raw = String(x.ten || ''), w = khoTuTen(raw), qc = String(x.qc || '').replace(/\s+/g, '');
+  for (const m of KHO_MUC) if ((m[4] && m[4].test(qc)) || m[2].some((k) => raw.indexOf(k) >= 0) || m[3].some((k) => w.indexOf(' ' + k + ' ') >= 0)) return m[0];
   return '';
 }
 // {mã: mục} cho cả kho. Chọn tay > theo tên > theo nhóm mã ERP (nhóm 品号 nào phần lớn là điện khí thì mã chưa rõ
