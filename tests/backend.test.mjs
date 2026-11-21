@@ -889,6 +889,27 @@ test('kho ngũ kim: mã hết hàng / không còn trong file vẫn giữ nguyên
   assert.equal(k.kho.ds[0].loai, undefined, 'bỏ chọn tay thì về tự xếp');
 });
 
+test('kho ngũ kim: đưa cả loạt mã (danh sách từ file) vào một mục phân loại; mã không có trong kho thì bỏ qua', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  ok(b.call('importKho', { file: 'erp.xlsx', soDong: 3, ds: [
+    { ma: 'TEST-P1', ten: '电脑主机CPU Máy tính', qc: 'TEST-SN', ton: 1 },
+    { ma: 'TEST-P2', ten: '三通电磁阀Van điện từ 3 ngả', qc: 'TEST-ECO', ton: 2 },
+    { ma: 'TEST-P3', ten: 'Vòng bi', qc: '6205', ton: 5 }] }, ql));
+  err(b.call('setKhoLoai', { loai: 'mayin', ds: ['TEST-P1'] }, kt), 'KHONG_QUYEN');
+  err(b.call('setKhoLoai', { loai: 'mayin', ds: [] }, ql), 'KHO_TRONG');
+  err(b.call('setKhoLoai', { loai: 'may in!', ds: ['TEST-P1'] }, ql), 'SAI_LOAI');
+  const r = ok(b.call('setKhoLoai', { loai: 'mayin', file: 'May in.xlsx', ds: ['TEST-P1', 'TEST-P2', 'TEST-P2', 'TEST-KHONG'] }, ql));
+  assert.deepEqual(r.tk, { doi: 2, giu: 0, khongCo: 1 });
+  assert.deepEqual(r.kho.ds.map((x) => [x.ma, x.loai]), [['TEST-P1', 'mayin'], ['TEST-P2', 'mayin']]);
+  const kho = ok(b.call('catalog', {}, ql)).ds, by = {};
+  kho.forEach((x) => { by[x.ma] = x; });
+  assert.deepEqual([by['TEST-P1'].loai, by['TEST-P2'].loai, by['TEST-P3'].loai], ['mayin', 'mayin', undefined], 'chỉ đổi đúng các mã trong danh sách');
+  // Gửi lại: không có gì đổi; loai trống = trả về tự xếp
+  assert.deepEqual(ok(b.call('setKhoLoai', { loai: 'mayin', ds: ['TEST-P1'] }, ql)).tk, { doi: 0, giu: 1, khongCo: 0 });
+  assert.equal(ok(b.call('setKhoLoai', { loai: '', ds: ['TEST-P1'] }, ql)).kho.ds[0].loai, undefined);
+});
+
 test('hàng đặt đã về: nhập file ERP thấy tồn tăng thì tự đánh dấu dòng phiếu đã về (phiếu trước nhận trước); hàng chưa có mã khớp khi đã có mã; đánh dấu tay', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');

@@ -3075,6 +3075,31 @@ assert.deepEqual(mk55.r, ['mayin', 'mayin', 'maykeo', 'maykeo', 'xilanh', 'day']
 assert.ok(mk55.tile, 'nhóm Linh kiện theo máy có hai mục Máy in / Máy keo');
 ok('Bản 2.68.1: linh kiện máy in (quy cách 2100…) và máy keo (quy cách 41…) có mục riêng');
 
+// 56. Máy in: số hãng 2100xxxxxx nằm ở đâu trong quy cách cũng nhận (P/N:…, nhiều mã nối "/");
+// nhập danh sách mã từ file (vd bảng tổng hợp linh kiện máy in) để đưa cả loạt vào một mục
+const qc56 = await page.evaluate(() => ['P/N:2100020853', 'S/N:2092390003 ;P/N :2100026338', '2100034613/2100039999', 'TEST.8HH2100026056', 'S/N:2941990001', '21000281', 'P/N:41235', '411A-D0A']
+  .map((q) => khoMucTuDong({ ten: 'TEST', qc: q }) || '-'));
+assert.deepEqual(qc56, ['mayin', 'mayin', 'mayin', 'mayin', '-', '-', 'maykeo', '-'], 'nhận số hãng máy in trong quy cách');
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.khoTab = 'ton'; S.f.khoQ = ''; S.f.khoF = ''; S.f.khoLoai = ''; tab('kho'); }); await wait(600);
+assert.equal(await page.locator('#khoDsMucFile').count(), 1, 'có nút nhập danh sách mã vào mục');
+const ma56 = await page.evaluate(() => S.kho.ds.filter((x) => x.ng === 'ERP' && !x.gop && khoMucOf(x) !== 'mayin').slice(0, 3).map((x) => x.ma));
+const f56 = await page.evaluate(async (ma) => {
+  const rows = [[{ v: 'TEST tổng hợp' }], ['Số thứ tự', 'Mã linh kiện', 'Tên linh kiện', 'Quy cách'].map((v) => ({ v }))];
+  rows.push([{ v: 1 }, { v: ma[0] }, { v: 'TEST A' }, { v: 'TEST-QC' }], [{ v: 2 }, { v: ma[1] + '/' + ma[2] }, { v: 'TEST B' }, { v: '' }], [{ v: 3 }, { v: '699999998' }, { v: 'TEST C' }, { v: '' }]);
+  const u = new Uint8Array(await XW.build([{ name: 'S1', rows }]).arrayBuffer());
+  return Array.from(u);
+}, ma56);
+await page.setInputFiles('#khoDsMucFile', { name: 'May in - TEST.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(f56) });
+await wait(900);
+assert.match(await text('#sheetBg'), /3 mã có trong kho/); assert.match(await text('#sheetBg'), /1 mã không có trong kho/);
+assert.equal(await page.inputValue('#kdmLoai'), 'mayin', 'tên file có "máy in" thì chọn sẵn mục máy in');
+await shot('93-kho-ds-muc');
+await page.click('[data-act="khoDsMucGui"]'); await wait(1500);
+assert.deepEqual(await page.evaluate((ma) => ma.map((m) => khoMucOf(khoGet(m))), ma56), ['mayin', 'mayin', 'mayin'], 'cả loạt mã vào mục máy in');
+assert.equal(await page.evaluate(() => S.f.khoLoai), 'mayin', 'xong mở luôn mục đó');
+await page.evaluate((ma) => send('setKhoLoai', { loai: '', ds: ma }), ma56); await wait(500);
+ok('Bản 2.69: máy in nhận số hãng 2100… ở bất kỳ đâu trong quy cách; nhập danh sách mã từ file để đưa cả loạt vào một mục');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

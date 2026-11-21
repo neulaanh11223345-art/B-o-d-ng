@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.68.1';
+var PHIEN_BAN = '2.69.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -196,7 +196,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'importMachines', 'delete
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'importInspect', 'saveFault', 'deleteFault', 'saveAccept', 'deleteAccept',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy', 'dutyCfg',
-  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay', 'savePurchase', 'setPurchase', 'addPart', 'assignPartCode'];
+  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay', 'savePurchase', 'setPurchase', 'addPart', 'assignPartCode', 'setKhoLoai'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
@@ -399,6 +399,7 @@ function dieuHuong(a, p, req) {
     case 'catalog': canQuyen(u, 'xemhet'); return layKho();
     case 'importKho': canQuyen(u, 'may'); return nhapKho(u, p);
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
+    case 'setKhoLoai': canQuyen(u, 'may'); return khoDatLoai(u, p);
     case 'savePurchase': canQuyen(u, 'xemhet'); return luuDatMua(u, p);
     case 'setPurchase': canQuyen(u, 'xemhet'); return suaDatMua(u, p);
     case 'saveKhoCfg': canQuyen(u, 'may'); return luuKhoCfg(u, p);
@@ -4171,6 +4172,38 @@ function luuKho(u, p) {
   meta.n = docKho().filter(khoHien).length;
   ghiKhoMeta(meta);
   return { kho: { ver: meta.ver, truoc: truoc, n: meta.n, ds: [sachKho(x)] } };
+}
+
+// Đưa cả loạt mã vào một mục phân loại (vd danh sách linh kiện máy in của nhà máy). loai trống = trả về tự xếp.
+// Mã không có trong kho thì bỏ qua, báo lại số lượng.
+var KHO_LOAI_TOI_DA = 3000;
+function khoDatLoai(u, p) {
+  var lo = khoLoaiHopLe(p.loai);
+  if (s(p.loai) && !lo) throw loi('SAI_LOAI', 'Mục phân loại không hợp lệ · 分类无效');
+  var vao = Array.isArray(p.ds) ? p.ds : [];
+  if (!vao.length) throw loi('KHO_TRONG', 'Danh sách không có mã nào · 清单中没有编码');
+  if (vao.length > KHO_LOAI_TOI_DA) throw loi('KHO_NHIEU', 'Danh sách quá dài · 清单太长 (> ' + KHO_LOAI_TOI_DA + ')');
+  var muon = {}, soMuon = 0;
+  vao.forEach(function (v) { var ma = maKhoHopLe(catChu(v, 40).replace(/\s/g, '')); if (ma && !muon[ma]) { muon[ma] = 1; soMuon++; } });
+  capNhatTieuDe('KhoLK');
+  var all = docKho(), doi = [], thay = 0;
+  all.forEach(function (x) {
+    if (!muon[x.ma]) return;
+    thay++;
+    if (x.loai !== lo) { x.loai = lo; doi.push(x); }
+  });
+  if (doi.length) {
+    // Chỉ ghi lại cột Loai một lần cho cả trang (nhanh hơn sửa từng dòng)
+    var sh = trang('KhoLK'), cot = BANG.KhoLK.indexOf('Loai') + 1, n = sh.getLastRow() - 1;
+    var rg = sh.getRange(2, cot, n, 1), v = rg.getValues();
+    doi.forEach(function (x) { if (v[x._r - 2]) v[x._r - 2][0] = x.loai; });
+    rg.setValues(v);
+  }
+  var meta = docKhoMeta(), truoc = meta.ver || '';
+  if (doi.length) { meta.ver = verMoi(); meta.n = all.filter(khoHien).length; ghiKhoMeta(meta); }
+  ghiNhatKy(u, 'DAT_LOAI_LK', 'KhoLK', '', '', (lo || 'tự xếp') + ' · ' + doi.length + ' mã', catChu(p.file, 120));
+  return { kho: doi.length ? { ver: meta.ver, truoc: truoc, n: meta.n, ds: doi.map(sachKho) } : null,
+    tk: { doi: doi.length, giu: thay - doi.length, khongCo: soMuon - thay } };
 }
 
 // ===================== Người dùng =====================

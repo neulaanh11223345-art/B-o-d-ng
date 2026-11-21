@@ -9099,6 +9099,8 @@ VIEWS.kho = {
     if (fi) fi.addEventListener('change', khoChonFile);
     const fm = $('#khoMinFile');
     if (fm) fm.addEventListener('change', khoChonFileMin);
+    const fd = $('#khoDsMucFile');
+    if (fd) fd.addEventListener('change', khoChonFileDsMuc);
     const cf = $('#khoCfg');
     if (cf) cf.addEventListener('toggle', () => { S.f.khoCfgMo = cf.open; });
   }
@@ -9292,6 +9294,7 @@ function khoBody() {
 // App tự xếp theo từ khoá trong tên hàng (tên ERP có cả tiếng Trung lẫn tiếng Việt); Quản lý chọn tay được
 // cho từng mã khi xếp sai (lưu ở cột Loai của trang KhoLK, nhập file ERP lần sau không mất).
 SRV_PHAN.push(['kholoai', '2.68.0', 'srvMissLoai']);
+SRV_PHAN.push(['khodsmuc', '2.69.0', 'srvMissDsMuc']);
 Object.assign(TX, {
   khoNhom_tb: ['Linh kiện theo máy', '设备专用配件'],
   khoNhom_ck: ['Linh kiện cơ khí', '机械件'], khoNhom_dk: ['Linh kiện điện khí', '电气件'], khoNhom_vt: ['Vật tư khác', '其他物料'],
@@ -9313,6 +9316,13 @@ Object.assign(TX, {
   khoMucHelp: ['App tự xếp theo tên hàng; linh kiện máy in (quy cách 2100…) và máy keo (quy cách 41…) theo quy cách. Mã nào xếp sai: bấm vào mã đó, chọn lại mục.', '系统按物料名称自动分类；喷印机配件（规格2100…）和热熔胶机配件（规格41…）按规格分类。分错的编码：点击该编码重新选择分类。'],
   khoMucChon: ['Mục phân loại', '分类'], khoMucTu: ['Tự động: {m}', '自动：{m}'], khoMucTay: ['chọn tay', '手动'],
   khoMucXuat: ['Xuất Excel kho theo mục', '按分类导出库存Excel'],
+  khoDsMuc: ['Nhập danh sách mã vào mục', '导入编码清单到分类'],
+  khoDsMucHelp: ['File Excel / CSV có cột mã linh kiện (vd bảng tổng hợp linh kiện máy in): mọi mã trong file được đưa vào mục bạn chọn.', 'Excel/CSV文件含零件编码列（如喷印机配件汇总表）：文件中的所有编码归入所选分类。'],
+  khoDsMucTD: ['Đưa danh sách mã vào mục', '编码清单归类'], khoDsMucThay: ['{n} mã có trong kho', '库存中有{n}个编码'],
+  khoDsMucDaO: ['{n} mã đã ở mục này', '{n}个已在该分类'], khoDsMucKhong: ['{n} mã không có trong kho (bỏ qua)', '{n}个编码不在库存中（忽略）'],
+  khoDsMucVao: ['Đưa vào mục', '归入分类'], khoDsMucChon: ['Chọn mục', '选择分类'],
+  khoDsMucXong: ['Đã đưa {n} mã vào mục {m}', '已将{n}个编码归入{m}'], khoDsMucTrong: ['Không thấy mã linh kiện nào của kho trong file', '文件中未找到库存零件编码'],
+  srvMissDsMuc: ['Máy chủ chưa nhận danh sách mã theo mục. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不支持按清单归类。请更新 Code.gs 并重新部署。'],
   srvMissLoai: ['Máy chủ chưa lưu được mục phân loại chọn tay. Cập nhật Code.gs rồi Triển khai lại (app vẫn tự xếp theo tên).', '服务器尚不能保存手动分类。请更新 Code.gs 并重新部署（系统仍按名称自动分类）。']
 });
 const KHO_NHOM = ['tb', 'ck', 'dk', 'vt'];
@@ -9320,10 +9330,12 @@ const KHO_NHOM_BY = { tb: 1, ck: 1, dk: 1, vt: 1 };
 // [mục, nhóm, từ khoá tiếng Trung (so theo chuỗi), từ khoá tiếng Việt không dấu (so theo từ), mẫu quy cách].
 // Xét lần lượt từ trên xuống, gặp mục đầu tiên khớp thì dừng — mục cụ thể đặt trước (轴承 trước 轴, 电机减速箱 vào giảm tốc…).
 // Linh kiện máy in / máy keo xét đầu tiên: nhận theo quy cách là chính (mã hàng của hãng máy):
-//   máy in: quy cách là dãy 10 số bắt đầu 2100 (vd 2100028101) · máy keo: quy cách toàn số bắt đầu 41 (vd 41xxx)
+//   máy in: trong quy cách có một dãy 10 số bắt đầu 2100 (vd 2100028101, "P/N:2100020853", "2100034613/2100…")
+//   máy keo: quy cách toàn số bắt đầu 41 (vd 41xxx, "P/N:41xxx")
+// Linh kiện không có số hãng trong quy cách (máy tính, van…) thì nhập danh sách mã từ file để đưa vào mục.
 const KHO_MUC = [
-  ['mayin', 'tb', ['喷印', '喷码', '打印头', '墨机'], ['may in'], /^2100\d{6}$/],
-  ['maykeo', 'tb', ['胶机', '热熔胶', '喷胶'], ['may keo'], /^41\d{3,}$/],
+  ['mayin', 'tb', ['喷印', '喷码', '喷墨', '打印头', '打印机', '墨机', '墨管', 'HPM', 'MFPG'], ['may in', 'in phun', 'may muc'], /(^|[^0-9])2100\d{6}(?![0-9])/],
+  ['maykeo', 'tb', ['胶机', '热熔胶', '喷胶'], ['may keo'], /^(P\/?N[:：]?)?41\d{3,}$/i],
   ['vongbi', 'ck', ['轴承'], ['vong bi', 'bac dan', 'goi do', 'bearing']],
   ['giamtoc', 'ck', ['减速', '齿轮', '链条', '链轮'], ['giam toc', 'banh rang', 'xich', 'nhong']],
   ['xilanh', 'dk', ['气缸', '电磁阀', '快速接头', '气管接头', '气动', '气压表', '调压阀'], ['xi lanh', 'xylanh', 'xilanh', 'van dien tu', 'van khi', 'dau noi nhanh', 'cylinder']],
@@ -9353,7 +9365,7 @@ KHO_NHOM.forEach((g) => KHO_MUC_HIEN[g].forEach((id, i) => { KHO_MUC_IX[id] = KH
 const khoMucTen = (id, zh) => { const k = KHO_NHOM_BY[id] ? 'khoNhom_' + id : 'kmuc_' + (KHO_MUC_BY[id] ? id : 'khac'); return zh ? tz(k) : tv(k); };
 const khoTuTen = (ten) => ' ' + norm(ten).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
 function khoMucTuDong(x) {
-  const raw = String(x.ten || ''), w = khoTuTen(raw), qc = String(x.qc || '').replace(/\s+/g, '');
+  const raw = String(x.ten || ''), w = khoTuTen(raw), qc = String(x.qc || '').replace(/\s+/g, '');   // "P/N :2100…" → "P/N:2100…"
   for (const m of KHO_MUC) if ((m[4] && m[4].test(qc)) || m[2].some((k) => raw.indexOf(k) >= 0) || m[3].some((k) => w.indexOf(' ' + k + ' ') >= 0)) return m[0];
   return '';
 }
@@ -9401,7 +9413,61 @@ function khoMucTongHtml() {
   });
   o += `<div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="khoLoai" data-v="all">${IC.list} ${esc(tv('khoMucXemHet', { n: fmtNum(vis.length, 0) }))}</button>
     <button class="btn ghost" data-act="khoMucXuat">${IC.dl} ${t('khoMucXuat')}</button></div>`;
+  if (can('may') && !srvOld('khodsmuc')) o += `<div class="btns" style="margin-top:8px"><label class="btn ghost filebtn">${IC.plus} ${t('khoDsMuc')}<input type="file" id="khoDsMucFile" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label></div>
+    <div class="help" style="margin-top:6px">${t('khoDsMucHelp')}</div>`;
   return o;
+}
+// ---- Nhập danh sách mã vào một mục (vd bảng tổng hợp linh kiện máy in của nhà máy) ----
+// Có cột tiêu đề mã (Mã linh kiện / Mã ERP / 品号 / 料号…) thì chỉ đọc cột đó; không thì quét mọi ô.
+// Một ô có thể ghi nhiều mã "610030016/608040119". Chỉ lấy những mã có trong kho.
+const KHO_DS_COT = /^(ma linh kien|ma lk|ma erp|ma san pham|ma vat tu|ma hang|ma kho|ma vt|ma)$|品号|料号|物料编码|物料代码|零件编码/;
+async function docFileDsMuc(file) {
+  const nm = String(file.name || '');
+  if (/\.xls$/i.test(nm)) throw { code: 'FILE_XLS' };
+  let sheets;
+  if (/\.csv$|\.txt$/i.test(nm) || /csv|text\/plain/.test(file.type || '')) sheets = await readCsv(file);
+  else { const buf = await file.arrayBuffer(); try { sheets = await readXlsx(buf); } catch (e) { if (e && e.code) throw e; throw { code: 'FILE_SAI' }; } }
+  khoIx();
+  const co = {}, khong = {};
+  const xet = (v) => String(v === undefined || v === null ? '' : v).split(/[\s\/,;，；、|]+/).forEach((w) => {
+    w = w.replace(/^[^0-9A-Za-z]+|[^0-9A-Za-z-]+$/g, '');
+    if (!w) return;
+    if (KHO_BY[w]) co[w] = 1; else if (/^\d{9}$/.test(w)) khong[w] = 1;
+  });
+  for (const sh of sheets) {
+    const rows = await sh.rows();
+    let hd = -1, cot = -1;
+    for (let r = 0; r < Math.min(rows.length, 12) && cot < 0; r++) (rows[r] || []).forEach((v, c) => { if (cot < 0 && KHO_DS_COT.test(norm(v))) { hd = r; cot = c; } });
+    rows.forEach((row, r) => { if (r <= hd) return; (row || []).forEach((v, c) => { if (cot < 0 || c === cot) xet(v); }); });
+  }
+  return { file: nm, ds: Object.keys(co), khong: Object.keys(khong) };
+}
+function khoDsMucMo(r) {
+  const goiY = /may in|喷印|打印|喷墨|墨机/i.test(norm(r.file)) ? 'mayin' : /keo|胶/i.test(norm(r.file)) ? 'maykeo' : '';
+  S.khoDsMuc = r;
+  const dem = (lo) => r.ds.filter((ma) => khoMucOf(khoGet(ma)) === lo).length;
+  openSheet(`<div class="grab"></div><h3>${tv('khoDsMucTD')}<span class="zi">${tz('khoDsMucTD')}</span></h3>
+    <div class="help mono" style="margin-bottom:8px">${esc(r.file)}</div>
+    <div class="note" style="margin:0 0 10px">${t('khoDsMucThay', { n: r.ds.length })}${r.khong.length ? `<div class="muted" style="font-weight:500;margin-top:4px">${t('khoDsMucKhong', { n: r.khong.length })}</div>` : ''}</div>
+    <div class="list" style="max-height:220px;overflow:auto;margin-bottom:10px">${r.ds.slice(0, 60).map((ma) => { const x = khoGet(ma);
+      return `<div class="row"><div class="main"><div class="nm">${lkTenH(x.ten)}</div><div class="sub"><span class="code">${esc(x.ma)}</span>${x.qc ? ` <span class="qc">${esc(x.qc)}</span>` : ''} · ${esc(khoMucTen(khoMucOf(x)))}</div></div></div>`; }).join('')}${r.ds.length > 60 ? `<div class="help">… ${r.ds.length - 60}</div>` : ''}</div>
+    <label class="fld"><span>${t('khoDsMucChon')}</span><select class="inp" id="kdmLoai">
+      <option value="">—</option>
+      ${KHO_NHOM.map((g) => `<optgroup label="${esc(tv('khoNhom_' + g))}">${KHO_MUC_HIEN[g].map((id) => `<option value="${id}"${goiY === id ? ' selected' : ''}>${esc(tv('kmuc_' + id))}</option>`).join('')}</optgroup>`).join('')}
+    </select></label>
+    ${goiY ? `<div class="help">${t('khoDsMucDaO', { n: dem(goiY) })}</div>` : ''}
+    <div class="err" id="kdmErr" hidden></div>
+    <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+      <button class="btn g" data-act="khoDsMucGui"${r.ds.length ? '' : ' disabled'}>${IC.check} ${t('khoDsMucVao')}</button></div>`);
+}
+async function khoChonFileDsMuc(e) {
+  const f = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const r = await docFileDsMuc(f);
+    if (!r.ds.length) { toast(t('khoDsMucTrong'), true); return; }
+    khoDsMucMo(r);
+  } catch (x) { toast(errMsg(x), true); }
 }
 // Excel kho theo mục: để kiểm kê từng nhóm (nhóm · mục · mã · tên · quy cách · tồn · tồn an toàn · ô kệ)
 function khoMucBlob() {
@@ -9438,7 +9504,21 @@ Object.assign(ACT, {
     const tt = $('.toast'); if (tt) tt.remove();
     await saveFile(blob, 'Kho-theo-muc_' + TODAY() + '.xlsx');
   },
-  khoLoaiLuu: (el) => khoLuuApp(el, { ma: el.dataset.ma, loai: ($('#kxLoai') || {}).value || '' })
+  khoLoaiLuu: (el) => khoLuuApp(el, { ma: el.dataset.ma, loai: ($('#kxLoai') || {}).value || '' }),
+  khoDsMucGui: async (el) => {
+    const r = S.khoDsMuc, lo = ($('#kdmLoai') || {}).value || '', fe = $('#kdmErr');
+    if (!r) return;
+    if (!lo) { fe.innerHTML = t('khoDsMucChon'); fe.hidden = false; return; }
+    el.disabled = true;
+    try {
+      const d = await api('setKhoLoai', { loai: lo, file: r.file, ds: r.ds }, { timeout: 120 });
+      if (d.kho) khoApply(d.kho);
+      closeSheet(); S.khoDsMuc = null;
+      S.f.khoLoai = lo; S.f.khoF = ''; S.f.khoQ = ''; S.f.khoLim = 60;
+      toast(t('khoDsMucXong', { n: d.tk.doi + d.tk.giu, m: tv('kmuc_' + lo) }));
+      render();
+    } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+  }
 });
 // "AB21 ×1 · AC21 ×3"; hàng ở nhiều kho thì thêm tên kho ngắn "K2·AB21"
 function khoBinTxt(x, soLuong) {
