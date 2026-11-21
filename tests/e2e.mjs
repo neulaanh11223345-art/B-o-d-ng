@@ -3121,6 +3121,24 @@ const p57 = await page.evaluate(() => {
 assert.deepEqual(p57, { a: 'TEST/5', b: 'TEST/X', n1: 40, them: true, n2: 91 }, 'tra phiếu đã đặt bằng chỉ mục, cập nhật khi có phiếu mới; vẽ từng phần');
 ok('Bản 2.69.1: màn phiếu đặt mua mở nhanh (chỉ mục phiếu dựng một lần, danh sách hàng về vẽ từng phần)');
 
+// 58. Xuất toàn bộ thiết bị vào một file (danh mục thiết bị): mọi thiết bị đang dùng + sheet từng đơn vị của bản ghi gộp
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('tbXuat'); }); await wait(500);
+assert.equal(await page.locator('[data-act="tbXuatMot"]').count(), 1, 'có nút xuất toàn bộ thiết bị 1 file');
+const x58 = await page.evaluate(async () => {
+  const f = tbXuatTatCa(), sh = await readXlsx(await f.blob.arrayBuffer());
+  const r1 = await sh[0].rows(), r2 = sh[1] ? await sh[1].rows() : [];
+  const gop = activeMay().filter((m) => (m.chiTiet || []).length).reduce((a, m) => a + m.chiTiet.length, 0);
+  return { ten: f.ten, n: activeMay().length, dong: r1.length - 1, hd: (r1[0] || []).join('|'), sheet2: sh[1] && sh[1].name, dv: r2.length - 1, gop,
+    coMa: r1.slice(1).every((r) => r && r[1]) };
+});
+assert.match(x58.ten, /^Danh-muc-thiet-bi_\d{4}-\d{2}-\d{2}\.xlsx$/);
+assert.equal(x58.dong, x58.n, 'mỗi thiết bị đang dùng một dòng');
+assert.match(x58.hd, /Mã máy[\s\S]*Tên thiết bị[\s\S]*Tên tiếng Trung[\s\S]*Loại thiết bị[\s\S]*Chuyền[\s\S]*Vị trí/);
+assert.ok(x58.coMa, 'dòng nào cũng có mã máy');
+assert.ok(x58.gop ? x58.sheet2 === 'Don vi' && x58.dv === x58.gop : !x58.sheet2, 'sheet Don vi đủ từng đơn vị của bản ghi gộp: ' + JSON.stringify(x58));
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.69.2: xuất toàn bộ thiết bị vào một file (danh mục + từng đơn vị của bản ghi gộp)');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

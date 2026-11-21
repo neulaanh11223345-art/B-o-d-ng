@@ -1727,7 +1727,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.69.1";
+const APP_VER = "2.69.2";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -4044,6 +4044,9 @@ Object.assign(TX, {
   tbXuatHelp: ['Mỗi loại một file riêng, cột đúng như bảng tổng hợp của nhà máy. Sửa trong file rồi bấm "Nhập lại" ở đúng loại đó: dòng giữ nguyên Mã máy thì cập nhật máy cũ, dòng để trống Mã máy thì thêm máy mới. Sheet "chi tiet" (từng quạt, từng máy keo) cũng nhập lại được.',
     '每类一个独立文件，列与工厂台帐一致。在文件中修改后，在对应类别点“重新导入”：保留设备编号的行更新原设备，编号留空的行新增设备。“chi tiet”明细表（每台风机、胶机）也可重新导入。'],
   tbXuatTat: ['Xuất tất cả (mỗi loại một file)', '全部导出（每类一个文件）'],
+  tbXuatMot: ['Xuất toàn bộ thiết bị (1 file)', '导出全部设备（1个文件）'],
+  tbXuatMotHelp: ['Một file gồm mọi thiết bị đang dùng (mã, tên Việt / Trung, khối, loại, chuyền, vị trí, phụ trách, ngày đưa vào, bảo dưỡng, thông số) và sheet "Don vi" liệt kê từng quạt / máy của bản ghi gộp — dùng để tra cứu, làm danh mục tài liệu ISO…',
+    '一个文件包含所有在用设备（编号、越/中文名称、区域、类别、产线、位置、负责人、投入日期、保养、参数），"Don vi"表列出合并记录中的每台风机/设备——用于查询、ISO文件目录等。'],
 });
 const listSeg = (cur) => `<div class="seg wide3" style="margin-bottom:12px">${(xemTB() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history']] : [['cal', 'segLich'], ['hist', 'history']]).map(([v, k]) =>
   `<button class="${cur === v ? 'on' : ''}" data-act="tab" data-v="${v}">${tv(k)}<small>${tz(k)}</small></button>`).join('')}</div>`;
@@ -4365,6 +4368,35 @@ VIEWS.tbNhap = {
     });
   }
 };
+// ---------- Xuất toàn bộ thiết bị vào một file (danh mục thiết bị để tra cứu / làm danh mục tài liệu ISO) ----------
+function tbXuatTatCa() {
+  const ds = activeMay().slice().sort((a, b) => KHOI_DS.indexOf(khoiCua(a)) - KHOI_DS.indexOf(khoiCua(b))
+    || String(a.nhom || '').localeCompare(String(b.nhom || '')) || sapMay(a, b));
+  const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1, border: true }, x || {}) });
+  const tsTxt = (ts) => (ts || []).filter(([k, v]) => String(k || '').trim() && String(v === undefined ? '' : v).trim()).map(([k, v]) => k + ': ' + v).join('\n');
+  // Bảng dữ liệu "sạch" để app / phần mềm khác đọc vào: dòng 1 là tên cột, mỗi dòng sau một thiết bị, không logo, không tiêu đề
+  const rows = [
+    ['STT\n序号', 'Mã máy\n设备编号', 'Mã thiết bị (nhà máy)\n工厂编号', 'Tên thiết bị\n设备名称', 'Tên tiếng Trung\n中文名称', 'Khối\n区域',
+      'Loại thiết bị\n设备类别', 'Chuyền\n产线', 'Vị trí\n位置', 'Người phụ trách\n负责人', 'Ngày đưa vào sử dụng\n投入日期',
+      'Chu kỳ bảo dưỡng (ngày)\n保养周期', 'Bảo dưỡng gần nhất\n上次保养', 'Hạn kế tiếp\n下次保养', 'Số đơn vị\n台数', 'Thông số\n参数'].map((v) => ({ v, s: H }))];
+  const dv = [];
+  ds.forEach((m, i) => {
+    const last = (S.V.lsMa[m.ma] || [])[0], ct = m.chiTiet || [];
+    rows.push([c(i + 1, { align: 'center' }), c(m.ma, { align: 'center' }), c(m.maHT || '', { align: 'center' }), c(m.ten), c(m.tenPhu || ''),
+      c(tv('khoi_' + khoiCua(m))), c(m.nhom || ''), c(m.chuyen ? mh(m.chuyen) : '', { align: 'center' }), c(m.viTri || ''), c(m.phuTrach || ''),
+      c(m.ngayDuaVao ? fmtD(m.ngayDuaVao) : '', { align: 'center' }), c(m.chuKy || '', { align: 'center' }), c(last ? fmtD(last.ngay) : '', { align: 'center' }),
+      c(m.chuKy ? fmtD(m.hanKeTiep) : '', { align: 'center' }), c(ct.length || '', { align: 'center' }), c(ct.length ? '' : tsTxt(m.thongSo))]);
+    if (ct.length) quatCua(m).forEach((q) => dv.push([c(m.ma, { align: 'center' }), c(m.nhom || ''), c(m.chuyen ? mh(m.chuyen) : '', { align: 'center' }),
+      c(q.maDV || '', { align: 'center' }), c(q.ten || ''), c(tsTxt(q.ts))]));
+  });
+  const sheets = [{ name: 'Thiet bi', rows, cols: [6, 11, 18, 40, 24, 16, 22, 10, 22, 18, 13, 11, 13, 13, 9, 46],
+    heights: { 1: 34 }, freeze: { r: 1, c: 4 }, landscape: true, logo: false }];
+  if (dv.length) sheets.push({ name: 'Don vi', rows: [
+    ['Thuộc mã máy\n所属编号', 'Loại thiết bị\n设备类别', 'Chuyền\n产线', 'Mã đơn vị\n单台编号', 'Tên đơn vị\n名称', 'Thông số\n参数'].map((v) => ({ v, s: H }))].concat(dv),
+    cols: [12, 22, 10, 14, 26, 60], heights: { 1: 34 }, freeze: { r: 1, c: 0 }, logo: false });
+  return { ten: 'Danh-muc-thiet-bi_' + TODAY() + '.xlsx', blob: XW.build(sheets) };
+}
 // ---------- Xuất: mỗi loại thiết bị một file ----------
 function tbXuatNhom(nhom) {
   const ds = activeMay().filter((m) => (m.nhom || '') === nhom).sort(sapMay);
@@ -4406,7 +4438,9 @@ VIEWS.tbXuat = {
   html() {
     const dem = {};
     activeMay().forEach((m) => { const k = khoiCua(m) + '|' + (m.nhom || ''); dem[k] = (dem[k] || 0) + 1; });
-    let o = `<div class="card pad"><p class="help" style="margin:0;font-size:13.5px">${t('tbXuatHelp')}</p>
+    let o = `<div class="card pad"><button class="btn wide" data-act="tbXuatMot">${IC.dl} ${t('tbXuatMot')}</button>
+      <p class="help" style="margin:8px 0 0">${t('tbXuatMotHelp')}</p></div>
+      <div class="card pad" style="margin-top:12px"><p class="help" style="margin:0;font-size:13.5px">${t('tbXuatHelp')}</p>
       ${can('may') && can('suatb') ? `<div class="btns" style="margin-top:10px"><button class="btn ghost sm" data-act="go" data-v="maLoai">${IC.qr} ${t('t_maLoai')}</button></div>` : ''}</div>`;
     KHOI_DS.forEach((kh) => {
       const gs = Object.keys(dem).filter((k) => k.indexOf(kh + '|') === 0).sort();
@@ -9919,6 +9953,13 @@ Object.assign(ACT, {
 
 Object.assign(ACT, {
   tbXuat1: async (el) => { const f = tbXuatNhom(el.dataset.g); await saveFile(f.blob, f.ten); },
+  tbXuatMot: async () => {
+    toast(t('exporting')); await sleep(30);
+    let f;
+    try { f = tbXuatTatCa(); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(f.blob, f.ten);
+  },
   // Nhập lại đúng file vừa xuất của một loại: cùng một mẫu
   tbNhapNhom: (el) => go('tbNhap', { nhom: el.dataset.g })
 });
