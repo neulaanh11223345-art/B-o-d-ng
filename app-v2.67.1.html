@@ -1072,6 +1072,12 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .qgso{display:inline-flex;align-items:baseline;gap:4px;font-size:13px;color:var(--ink2);margin-right:6px}
 .qgso b{font:800 22px var(--f-mono);color:var(--brand)}.qgso small{font-size:11px;color:var(--ink3)}
 .lshd{font-size:12.5px;font-weight:700;color:var(--ink2);margin:14px 2px 6px}
+.cmgy{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 10px;margin-top:4px;font-size:13px;cursor:pointer}
+.cmgy:hover{border-color:var(--blue)}
+.cmgy.trung{border-color:var(--green);background:var(--green-bg)}
+.cmgy .cmgt{font-weight:600}
+.cmgy .cmgq{color:var(--ink2);font-size:12.5px}
+.cmgy .cmgq+.pill,.cmgy .cmgq+.muted{margin-left:auto}
 .lshd .zi{display:inline;margin-left:6px;font-weight:500}
 .lksub{display:flex;align-items:center;gap:6px;margin:12px 4px 5px;font-size:12.5px;font-weight:700;color:var(--ink2)}
 .lksub .zi{font-weight:500}
@@ -1705,7 +1711,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.67.0";
+const APP_VER = "2.67.1";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -17674,6 +17680,7 @@ Object.assign(TX, {
   cmXuat: ['Xuất Excel để tạo mã', '导出Excel以建编号'], cmNhap: ['Nhập file đã điền mã', '导入已填编号的文件'],
   cmTrong: ['Không còn linh kiện nào chờ tạo mã', '没有待建编号的零件'], cmDungO: ['Dùng ở', '使用位置'], cmTong: ['Tổng lắp', '合计装机'],
   cmNguoi: ['Người nhập', '录入人'], cmMaERP: ['Mã ERP', 'ERP编号'], cmGan: ['Gán', '分配'], cmGoiY: ['Gần giống trong kho', '库存中相似'],
+  cmTrungQC: ['Trùng quy cách', '规格相同'], cmGanQC: ['Quy cách gần giống', '规格相近'], cmChiTen: ['chỉ giống tên', '仅名称相似'],
   cmDaGan: ['Đã gán mã ERP cho {n} linh kiện', '已为{n}个零件分配ERP编号'], cmFileTrong: ['File không có dòng nào điền "Mã ERP mới"', '文件中没有填写“新ERP编号”的行'],
   cmFileCot: ['Không thấy cột "Mã tạm" và "Mã ERP mới" — dùng đúng file xuất từ màn này', '找不到“临时编号”和“新ERP编号”列——请使用本页面导出的文件'],
   cmXemTruoc: ['Gán {n} mã ERP', '分配{n}个ERP编号'], cmChuaMa: ['chưa có mã tạm — mở máy và lưu lại một lần', '尚无临时编号——请打开设备保存一次']
@@ -17793,6 +17800,31 @@ function cmDS() {
   (S.V.may || []).filter((m) => m.hoatDong).forEach((m) => lkOf(m).forEach((k) => them(k, (m.chuyen ? mh(m.chuyen) + ' · ' : '') + mh(m.ma) + ' ' + m.ten)));
   return Object.values(by).sort((a, b) => String(b.lt).localeCompare(String(a.lt)) || a.ten.localeCompare(b.ten));
 }
+// Gợi ý mã ERP cho một linh kiện chờ tạo mã: quy cách là chính — trùng quy cách lên đầu, rồi quy cách gần giống,
+// cuối cùng mới tới hàng chỉ giống tên. Mỗi gợi ý hiện kèm quy cách để so ngay.
+const qcKhoa = (v) => norm(v).replace(/[^a-z0-9\u4e00-\u9fff]/g, '');
+function cmGoiY(g, lim) {
+  if (!S.kho.ds.length) return [];
+  const k = qcKhoa(g.qc), out = [], co = {};
+  const them = (x, muc) => { if (!co[x.ma] && x.ma !== g.ma) { co[x.ma] = 1; out.push({ x, muc }); } };
+  const erp = S.kho.ds.filter((x) => !x.an && !x.gop && lsLaERP(x));
+  if (k.length >= 3) {
+    erp.forEach((x) => { if (qcKhoa(x.qc) === k) them(x, 'trung'); });
+    if (k.length >= 5) erp.forEach((x) => { const q = qcKhoa(x.qc); if (q.length >= 5 && q !== k && (q.indexOf(k) >= 0 || k.indexOf(q) >= 0)) them(x, 'gan'); });
+  }
+  if (out.length < (lim || 4)) khoFind(lkTach(g.ten).vi || g.ten, lsLaERP).slice(0, 6).forEach((x) => them(x, 'ten'));
+  return out.slice(0, lim || 4);
+}
+function cmGoiYHtml(g, i) {
+  const ds = cmGoiY(g);
+  if (!ds.length) return '';
+  return `<div class="help" style="margin:6px 0 2px">${esc(tv('cmGoiY'))} · <span class="zi" lang="zh-CN">${esc(tz('cmGoiY'))}</span></div>` + ds.map(({ x, muc }) =>
+    `<button type="button" class="cmgy${muc === 'trung' ? ' trung' : ''}" data-act="cmDien" data-i="${i}" data-v="${esc(x.ma)}">
+      <span class="code">${esc(x.ma)}</span><span class="cmgt">${esc(lkTach(x.ten).vi)}</span>
+      <span class="mono cmgq">${x.qc ? esc(x.qc) : '—'}</span>
+      ${muc === 'trung' ? `<span class="pill p-xong">${esc(tv('cmTrungQC'))}</span>` : muc === 'gan' ? `<span class="pill p-sap">${esc(tv('cmGanQC'))}</span>` : `<span class="muted" style="font-size:12px">${esc(tv('cmChiTen'))}</span>`}
+      ${tonHtml(x)}</button>`).join('');
+}
 VIEWS.lkChoMa = {
   html(p) {
     const ds = cmDS(); p.ma = p.ma || {};
@@ -17801,14 +17833,13 @@ VIEWS.lkChoMa = {
         <label class="btn ghost sm filebtn">${IC.plus} ${t('cmNhap')}<input type="file" id="cmFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label></div></div>`;
     if (!ds.length) return o + `<div class="card empty" style="margin-top:12px">${t('cmTrong')}</div>`;
     o += `<div class="list" style="margin-top:12px">${ds.map((g, i) => {
-      const goiY = S.kho.ds.length && (g.qc || g.ten) ? khoFind(g.qc || g.ten, lsLaERP).slice(0, 3) : [];
       return `<div class="row" style="display:block"><div class="nm" style="font-weight:700">${lkTenH(g.ten)}${g.qc ? ` <span class="mono qc">${esc(g.qc)}</span>` : ''}</div>
         <div class="sub">${g.ma ? `<span class="code">${esc(g.ma)}</span> · ` : `<span class="tag">${esc(tv('cmChuaMa'))}</span> · `}${[g.sl ? esc(tv('cmTong')) + ' <b>' + esc(soG(g.sl)) + '</b>' + (g.dv ? ' ' + esc(dvTxt(g.dv)) : '') : '', esc(g.nhom || '')].filter(Boolean).join(' · ')}</div>
         <div class="sub">${esc(tv('cmDungO'))}: ${esc(g.noi.slice(0, 3).join(' · '))}${g.noi.length > 3 ? ` <b>+${g.noi.length - 3}</b>` : ''}</div>
         ${g.nt.size || g.lt ? `<div class="sub muted">${esc(tv('cmNguoi'))}: ${esc([...g.nt].join(', '))}${g.lt ? ' · ' + esc(fmtD(g.lt)) : ''}</div>` : ''}
         ${g.ma ? `<div style="display:flex;gap:8px;margin-top:8px"><input class="inp mono" data-cm="${i}" placeholder="${esc(tp('cmMaERP'))}" value="${esc(p.ma[g.ma] || '')}" style="flex:1">
           <button class="btn sm" data-act="cmGan" data-i="${i}">${t('cmGan')}</button></div>
-          ${goiY.length ? `<div class="help" style="margin-top:4px">${esc(tv('cmGoiY'))}: ${goiY.map((k) => `<button class="lnk" data-act="cmDien" data-i="${i}" data-v="${esc(k.ma)}">${esc(k.ma)} ${esc(lkTach(k.ten).vi)}</button>`).join(' · ')}</div>` : ''}` : ''}</div>`;
+          ${cmGoiYHtml(g, i)}` : ''}</div>`;
     }).join('')}</div>`;
     return o;
   },

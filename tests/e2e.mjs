@@ -3001,6 +3001,23 @@ assert.equal(await page.evaluate((id) => dmDS().find((y) => y.id === id).trangTh
 await page.evaluate(async (id) => { mergeResult(await send('setPurchase', { id, xoa: true })); while (S.stack.length > 1) back(); }, id52); await wait(500);
 ok('Bản 2.67: Kho linh kiện mục riêng ba tab; phiếu mua chia hàng có mã / chưa có mã; nhập ERP thấy tồn tăng tự đánh dấu hàng đặt đã về, đánh dấu tay hàng chưa có mã');
 
+// 53. Bảng chờ tạo mã: gợi ý mã trong kho hiện kèm quy cách; trùng quy cách lên đầu, rồi quy cách gần giống, cuối cùng chỉ giống tên
+const gy53 = await page.evaluate(() => {
+  const g = cmDS().find((x) => x.ma && qcKhoa(x.qc).length >= 5);
+  const luu = S.kho.ds;
+  S.kho.ds = luu.concat([{ ma: 'TEST-QC1', ten: g.ten, qc: 'TEST-KHAC-999', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-QC2', ten: 'Tên khác hẳn', qc: g.qc.toLowerCase().replace(/-/g, ' '), ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-QC3', ten: 'Tên khác nữa', qc: g.qc + '-H', ng: 'ERP', ton: 0, cf: 1 }]);
+  const r = cmGoiY(g).map((o) => o.muc + ':' + o.x.ma);
+  go('lkChoMa');
+  const html = document.querySelector('#main').innerHTML, qc = g.qc;
+  back(); S.kho.ds = luu;
+  return { r, trung: (html.match(/class="cmgy trung"/g) || []).length, coQC: html.indexOf('cmgq') >= 0 && html.indexOf(qc + '-H') >= 0 };
+});
+assert.deepEqual(gy53.r.slice(0, 3), ['trung:TEST-QC2', 'gan:TEST-QC3', 'ten:TEST-QC1'], 'trùng quy cách đứng đầu: ' + gy53.r.join(','));
+assert.ok(gy53.trung >= 1 && gy53.coQC, 'gợi ý hiện quy cách, dòng trùng quy cách tô riêng');
+ok('Bản 2.67.1: gợi ý mã ERP trong bảng chờ tạo mã hiện kèm quy cách, trùng quy cách lên đầu');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
