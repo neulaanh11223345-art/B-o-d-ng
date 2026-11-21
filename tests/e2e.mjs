@@ -2917,6 +2917,27 @@ assert.equal(await page.evaluate((a) => cmDS().some((g) => g.ma === a), app50), 
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.65: tra lỗi 5 hãng, tìm gọn (err2, al1); nhân viên nhập linh kiện chuyền (có mã chọn, không mã thì mã tạm); Quản lý gán mã ERP từ bảng chờ tạo mã / file Excel');
 
+// 51. Nhận định số đo tủ khác thường nhiều ngày: chỉ nêu khi lặp lại ≥ 2 ngày hoặc nghi mất pha; một ngày lẻ tẻ thì bỏ qua; không báo hai lần
+const bt51 = await page.evaluate(async () => {
+  const ch3 = ['VKY10', 'VKY12', 'VKY13'].map((c) => tuChuyen().find((x) => x.maCh === c)).filter(Boolean);
+  const ghi = (ma, i, o) => send('tuGhi', Object.assign({ maCT: ma, ngay: addD(TODAY(), -i), nhietDo: 45, dienAp: 380, ia: 100, ib: 100, ic: 100, ghiChu: '' }, o));
+  const [a, b0, c] = ch3;
+  for (const t0 of [a, b0, c]) for (let i = 12; i >= 3; i--) await ghi(t0.ma, i, {});
+  await ghi(a.ma, 2, { ib: 60 }); await ghi(a.ma, 1, { ib: 55 });          // hai ngày liền pha B tụt
+  await ghi(b0.ma, 2, {}); await ghi(b0.ma, 1, { nhietDo: 58 });          // một ngày nhiệt cao lẻ tẻ
+  await ghi(c.ma, 2, {}); await ghi(c.ma, 1, { ic: 0.4 });                // mất pha
+  rebuild();
+  const f = (t0) => ndPhanTich(S.V.chByMa[t0.maCh], 30).ds;
+  return { a: f(a).map((x) => x.muc + ':' + x.k), b: f(b0).map((x) => x.k), c: f(c).map((x) => x.muc + ':' + x.k), ab: (f(a).find((x) => x.k === 'dtBT') || { b: {} }).b.x };
+});
+assert.ok(bt51.a.some((x) => x.endsWith(':dtBT')), 'hai ngày liền khác thường thì nêu: ' + bt51.a.join(','));
+assert.match(bt51.ab, /pha B 55 A \(thường 100 A\)/, 'ghi rõ ngày, số đo và mức thường');
+assert.ok(!bt51.a.some((x) => x.endsWith(':lechPha')), 'không báo lệch pha thêm lần nữa cho cùng việc');
+assert.ok(!bt51.b.includes('dtBT'), 'một ngày lẻ tẻ thì không nêu');
+assert.ok(bt51.c.includes('do:dtBT'), 'nghi mất pha thì nêu ngay, mức cần xử lý');
+assert.equal(await page.evaluate(() => ndNguong().btNd), 10, 'ngưỡng khác thường có mặc định, sửa được');
+ok('Bản 2.66: nhận định số đo tủ khác thường so với mức thường của chính tủ — chỉ nêu khi lặp lại nhiều ngày hoặc nghi mất pha, gộp với lệch pha');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
