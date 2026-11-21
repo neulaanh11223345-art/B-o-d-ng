@@ -862,6 +862,50 @@ test('phiếu đặt mua: lưu thành phiếu có số vào danh sách dùng chu
   assert.deepEqual(ok(b.call('data', {}, kt)).datMua, [], 'kỹ thuật không nhận danh sách phiếu');
 });
 
+test('nhập linh kiện chuyền: nhân viên tìm trong kho, có mã thì gắn mã, không có thì nhập không mã (mã tạm APP); Quản lý gán mã ERP một lượt', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  ok(b.call('importKho', { file: 'erp.xlsx', soDong: 2, ds: [
+    { ma: '605010022', ten: 'Vòng bi 6009-2Z', qc: '6009-2Z', dv: '个', ton: 45 },
+    { ma: '605010099', ten: 'Dây curoa A42', qc: 'A42', dv: '条', ton: 3 }] }, ql));
+  // Nhân viên tìm được trong kho (không cần tải cả kho)
+  const tim = ok(b.call('catalogFind', { q: 'vong bi 6009' }, kt)).ds;
+  assert.deepEqual(tim.map((x) => x.ma), ['605010022']);
+  assert.deepEqual(ok(b.call('catalogFind', { q: 'a' }, kt)).ds, [], 'gõ một ký tự thì chưa tìm');
+  const d = ok(b.call('data', {}, kt)), m = d.may.find((x) => x.chuyen === 'VKY01'), soCu = (m.linhKien || []).length;
+  // Có trong kho: gắn đúng mã, lấy sẵn tên / quy cách / đơn vị của kho, ghi ai thêm
+  let r = ok(b.call('addPart', { ma: m.ma, maKho: '605010099', sl: 2, viTriMay: 'Trục chính' }, kt));
+  assert.deepEqual([r.lkMoi.maKho, r.lkMoi.ten, r.lkMoi.quyCach, r.lkMoi.dv, r.lkMoi.sl, r.lkMoi.nt], ['605010099', 'Dây curoa A42', 'A42', '条', 2, 'Kỹ thuật']);
+  assert.equal(r.may.linhKien.length, soCu + 1, 'chỉ thêm, giữ nguyên các dòng cũ');
+  err(b.call('addPart', { ma: m.ma, maKho: '605010099', sl: 1 }, kt), 'LK_DA_CO');
+  err(b.call('addPart', { ma: m.ma, ten: 'dây curoa a42', quyCach: 'A42', sl: 1 }, kt), 'LK_DA_CO', 'cùng tên + quy cách (không dấu, không phân biệt hoa thường) cũng là trùng');
+  err(b.call('addPart', { ma: m.ma, maKho: 'KHONGCO', sl: 1 }, kt), 'KHONG_CO_MA_KHO');
+  err(b.call('addPart', { ma: m.ma, ten: '', sl: 1 }, kt), 'THIEU_TEN');
+  // Không có trong kho: nhập không mã → máy chủ cấp mã tạm APP-…
+  r = ok(b.call('addPart', { ma: m.ma, ten: 'Cảm biến quang', quyCach: 'TEST-E3Z', dv: 'cái', sl: 1, nhom: 'Cảm biến' }, kt));
+  const app = r.lkMoi.maKho;
+  assert.match(app, /^APP-\d{4}$/);
+  // Thân chuyền cũng nhập được; cùng tên + quy cách thì dùng chung mã tạm
+  r = ok(b.call('addPart', { ma: 'VKY01', ten: 'Cảm biến quang', quyCach: 'TEST-E3Z', sl: 2 }, kt));
+  assert.equal(r.chuyen.linhKien.find((x) => x.quyCach === 'TEST-E3Z').maKho, app);
+  // Gán mã ERP: chỉ Quản lý; mã ERP chưa có trong kho thì tạo sẵn; mọi máy, mọi chuyền đổi theo
+  err(b.call('assignPartCode', { ds: [{ tu: app, den: '605099001' }] }, kt), 'KHONG_QUYEN');
+  err(b.call('assignPartCode', { ds: [{ tu: '605010022', den: '605099001' }] }, ql), 'KHO_ERP');
+  err(b.call('assignPartCode', { ds: [{ tu: app, den: 'APP-0099' }] }, ql), 'MA_ERP_SAI');
+  const g = ok(b.call('assignPartCode', { ds: [{ tu: app, den: '605099001' }] }, ql));
+  assert.equal(g.doi, 1);
+  assert.equal(g.dsMay.find((x) => x.ma === m.ma).linhKien.find((x) => x.quyCach === 'TEST-E3Z').maKho, '605099001');
+  assert.equal(g.dsChuyen.find((x) => x.ma === 'VKY01').linhKien.find((x) => x.quyCach === 'TEST-E3Z').maKho, '605099001');
+  const kho = ok(b.call('catalog', {}, ql)).ds;
+  assert.equal(kho.find((x) => x.ma === app).gop, '605099001', 'mã tạm gộp vào mã ERP');
+  assert.equal(kho.find((x) => x.ma === '605099001').ng, 'ERP');
+  // Nhập file ERP sau đó có mã mới thì cập nhật tồn bình thường
+  ok(b.call('importKho', { file: 'erp2.xlsx', soDong: 3, ds: [
+    { ma: '605010022', ten: 'Vòng bi 6009-2Z', qc: '6009-2Z', dv: '个', ton: 45 }, { ma: '605010099', ten: 'Dây curoa A42', qc: 'A42', dv: '条', ton: 3 },
+    { ma: '605099001', ten: 'Cảm biến quang', qc: 'TEST-E3Z', dv: '个', ton: 5 }] }, ql));
+  assert.equal(ok(b.call('catalog', {}, ql)).ds.find((x) => x.ma === '605099001').ton, 5);
+});
+
 test('mỗi quạt một mã riêng nhưng vẫn gộp theo chuyền: đánh mã từng đơn vị, giữ mã cũ, không trùng, quạt mới tự lấy số', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');

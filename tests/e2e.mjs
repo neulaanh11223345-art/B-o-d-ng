@@ -2819,6 +2819,104 @@ assert.equal(nhieu48.so, '120', 'số giờ từ 100 trở lên in đủ');
 await page.evaluate(() => { S.f.tcKieu = ''; S.f.tcDonMot = ''; while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.63: đơn tăng ca in theo khoảng ngày có tổng số tiếng; nhiều tờ thì cộng từng tờ và tổng cả khoảng');
 
+// 49. Nhận định chuyền (chỉ Quản lý): nối sự cố, linh kiện, bảo dưỡng, đo tủ → nhận định có bằng chứng, xếp hạng, Excel, ngưỡng
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+const nd49 = await page.evaluate(async () => {
+  const m = mayCuaCh('VKY02')[0] || mayCuaCh('VKY01')[0], ch = m.chuyen, tu = tuChuyen().find((x) => x.maCh === ch);
+  for (let i = 0; i < 4; i++) await send('saveRepair', { moTa: 'Động cơ quá nhiệt', nguyenNhan: 'Mòn vòng bi TEST', ketQua: 'Thay vòng bi', ma: m.ma, ngay: addD(TODAY(), -3 * i - 1), gioDung: 2.5, uidLam: S.me.id,
+    linhKien: [{ ten: 'Vòng bi', quyCach: 'TEST-6205', sl: 2, dv: 'cái', loai: 'THAY' }] });
+  if (tu) for (let i = 0; i < 3; i++) await send('tuGhi', { maCT: tu.ma, ngay: addD(TODAY(), -i), nhietDo: 66 + i * 3, dienAp: 381, ia: 120, ib: 95, ic: 124, ghiChu: '' });
+  rebuild(); go('nhanDinh');
+  return { ch, tu: tu && tu.ma };
+}); await wait(900);
+assert.match(await text('#barTitle'), /Nhận định chuyền/);
+assert.ok(await page.locator('[data-act="ndMo"]').count() >= 10, 'mỗi chuyền một dòng');
+assert.equal(await page.locator('#main table').count(), 0, 'không còn bảng lặp lại danh sách chuyền');
+const k49 = await page.evaluate((ch) => { const r = ndPhanTich(S.V.chByMa[ch], 30); return { muc: r.muc, k: r.ds.map((x) => x.muc + ':' + x.k), diem: r.diem, lap: (r.ds.find((x) => x.k === 'lapMay') || { b: {} }).b }; }, nd49.ch);
+['scTang', 'lapMay'].forEach((k) => assert.ok(k49.k.some((x) => x.endsWith(':' + k)), 'có nhận định ' + k + ': ' + k49.k.join(',')));
+// Cùng một gốc (4 lần sửa một máy, lần nào cũng thay vòng bi) không tách thành nhiều nhận định trùng
+['dungNhieu', 'lapNN', 'lkLap'].forEach((k) => assert.ok(!k49.k.some((x) => x.endsWith(':' + k)), 'không tách riêng ' + k + ': ' + k49.k.join(',')));
+assert.match(k49.lap.lk, /Vòng bi TEST-6205 ×8/, 'linh kiện thay ghi gộp vào nhận định lỗi lặp');
+assert.equal(new Set(k49.k).size, k49.k.length, 'không có nhận định trùng');
+if (nd49.tu) { assert.ok(k49.k.includes('do:nhiet') && k49.k.some((x) => x.endsWith(':lechPha')), 'nhiệt tủ đỏ + lệch pha'); assert.ok(k49.k.includes('do:cheoDien'), 'nhận định chéo điện'); }
+assert.equal(k49.muc, 'do'); assert.ok(k49.diem < 60, 'điểm thấp: ' + k49.diem);
+assert.equal(await page.evaluate(() => ndCacChuyen(30)[0].c.ma), nd49.ch, 'chuyền đáng lo nhất đứng đầu xếp hạng');
+await page.click(`[data-act="ndMo"][data-ma="${nd49.ch}"] >> nth=0`); await wait(600);
+assert.match(await text('#main'), /lần trong 30 ngày/, 'nhận định ghi rõ số liệu');
+assert.match(await text('#main'), /→ /, 'có gợi ý việc nên làm');
+assert.equal(await page.locator('#main .ndth .pill').count(), 0, 'thẻ nhận định không lặp nhãn mức (đã có tiêu đề nhóm)');
+await shot('84-nhan-dinh-chuyen');
+// Ngưỡng: nâng ngưỡng đỏ nhiệt độ lên 80 °C thì nhiệt tủ chỉ còn vàng
+if (nd49.tu) {
+  const v49 = await page.evaluate((ch) => { store.set('bd_ndNguong', { ndDo: 80 }); const r = ndPhanTich(S.V.chByMa[ch], 30).ds.find((x) => x.k === 'nhiet'); store.set('bd_ndNguong', {}); return r && r.muc; }, nd49.ch);
+  assert.equal(v49, 'vang', 'sửa ngưỡng có tác dụng');
+}
+const x49 = await page.evaluate(async () => { const sh = await readXlsx(await ndXlsx(30).arrayBuffer()); const a = await sh[0].rows(), b = await sh[1].rows(); return { n: sh.length, a: a.map((r) => (r || []).join('|')).join('\n'), b: b.map((r) => (r || []).join('|')).join('\n') }; });
+assert.equal(x49.n, 2, 'Excel hai sheet: xếp hạng và chi tiết');
+assert.match(x49.a, /NHẬN ĐỊNH CHUYỀN/); assert.match(x49.b, /Lỗi lặp lại trên một máy[\s\S]*同一设备重复故障/, 'chi tiết song ngữ');
+// Kỹ thuật không vào được
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+await logout(); await login('NV003', '333333');
+await page.evaluate(() => go('nhanDinh')); await wait(500);
+assert.match(await text('#main'), /chỉ xem được Điện\/Nước/, 'kỹ thuật không vào được Nhận định');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+await logout(); await login('NV002', '222222');
+ok('Bản 2.64: nhận định chuyền cho Quản lý — sự cố, lỗi lặp, linh kiện, bảo dưỡng, nhiệt tủ, lệch pha, nhận định chéo; xếp hạng, Excel, ngưỡng sửa được');
+
+// 50. Tra lỗi đầy đủ hơn (5 hãng, tìm bỏ dấu chấm / số 0); nhập linh kiện chuyền (nhân viên) và bảng chờ tạo mã (Quản lý)
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('tlTb'); }); await wait(600);
+assert.equal(await page.locator('#ttLoiBody [data-act="ttLoiLoc"]').count(), 5, 'chưa gõ gì: hiện 5 hãng để chọn, không đổ cả bảng');
+for (const [q, ma] of [['err2', 'Err02'], ['al1', 'AL001'], ['a710', 'A.710'], ['err16.0', 'Err16.0'], ['oL1', 'oL1']]) {
+  await page.fill('#ttLoiQ', q); await wait(300);
+  assert.equal(await page.evaluate(() => (document.querySelector('#ttLoiBody .card b.mono') || {}).textContent), ma, 'gõ ' + q + ' ra ' + ma + ' đầu tiên');
+}
+await page.fill('#ttLoiQ', ''); await page.click('[data-act="ttLoiLoc"][data-v="YAS"] >> nth=0'); await wait(300);
+await page.click('[data-act="ttLoiLoai"][data-v="BT"]'); await wait(300);
+assert.ok(await page.evaluate(() => [...document.querySelectorAll('#ttLoiBody .card .pill')].every((e) => /Yaskawa V1000/.test(e.textContent))), 'lọc Yaskawa + biến tần');
+assert.equal(await page.evaluate(() => new Set(TT_LOI.map((x) => x.dong + '|' + x.ma)).size), await page.evaluate(() => TT_LOI.length), 'không có mã lỗi trùng');
+// Nhân viên nhập linh kiện từ chuyền: tìm kho qua máy chủ (không tải cả kho), có mã thì chọn, không có thì nhập không mã
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+await logout(); await login('NV003', '333333');
+assert.equal(await page.evaluate(() => S.kho.ds.length), 0, 'nhân viên không tải cả kho');
+await page.evaluate(() => go('chuyen', { ma: 'VKY02' })); await wait(600);
+await page.click('[data-act="lktMo"] >> nth=0'); await wait(600);
+const ma50 = await page.evaluate(() => mayCuaCh('VKY02')[0].ma);
+await page.selectOption('#lktMa', ma50); await wait(300);
+await page.fill('#lktQ', 'vong bi'); await wait(1500);
+assert.ok(await page.locator('#lktKq .ksi').count() >= 2, 'tìm được trong kho qua máy chủ');
+const chon50 = await page.evaluate(() => { const b0 = document.querySelector('#lktKq .ksi:not([disabled])'); return b0 && b0.dataset.ma; });
+await page.click(`#lktKq .ksi[data-ma="${chon50}"]`); await wait(400);
+await page.fill('#lktSL', '2'); await page.click('[data-act="lktLuu"]'); await wait(1500);
+assert.equal(await page.evaluate(([m, k]) => !!lkOf(S.V.byMa[m]).find((x) => x.maKho === k && x.sl === 2 && x.nt), [ma50, chon50]), true, 'gắn đúng mã kho, có số lượng, ghi người nhập');
+await page.fill('#lktQ', 'vong bi'); await wait(1500);
+assert.equal(await page.evaluate((k) => document.querySelector(`#lktKq .ksi[data-ma="${k}"]`).disabled, chon50), true, 'mã đã có trên máy thì không chọn lại được');
+await page.click('[data-act="lktKhongMa"]'); await wait(300);
+await page.fill('#lktTen', 'Cảm biến TEST-50'); await page.fill('#lktQc', 'TEST-Q50'); await page.fill('#lktSL', '1');
+await page.click('[data-act="lktLuu"]'); await wait(1500);
+const app50 = await page.evaluate((m) => (lkOf(S.V.byMa[m]).find((x) => x.quyCach === 'TEST-Q50') || {}).maKho, ma50);
+assert.match(app50 || '', /^APP-\d+$/, 'nhập không mã thì nhận mã tạm: ' + app50);
+await shot('85-nhap-linh-kien');
+// Quản lý: bảng chờ tạo mã → gán mã ERP → máy đổi sang mã ERP
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+await logout(); await login('NV002', '222222');
+await page.evaluate(() => go('lkChoMa')); await wait(800);
+const i50 = await page.evaluate((a) => cmDS().findIndex((g) => g.ma === a), app50);
+assert.ok(i50 >= 0, 'linh kiện vừa nhập không mã có trong bảng chờ tạo mã');
+const x50 = await page.evaluate(async () => { const sh = await readXlsx(await cmXlsx(cmDS()).arrayBuffer()); return (await sh[0].rows()).map((r) => (r || []).join('|')).join('\n'); });
+assert.match(x50, /Mã ERP mới/); assert.match(x50, new RegExp(app50 + '\\|Cảm biến TEST-50'), 'Excel có mã tạm và tên');
+// File đã điền mã đọc lại được
+const f50 = await page.evaluate(async (a) => {
+  const blob = XW.build([{ name: 'x', rows: [[{ v: 'Mã tạm\n临时编号' }, { v: 'Tên tiếng Việt\n越南语名称' }, { v: 'Mã ERP mới\n新ERP编号' }], [{ v: a }, { v: 'Cảm biến TEST-50' }, { v: '605099050' }], [{ v: 'APP-9999' }, { v: 'Trống' }, { v: '' }]] }]);
+  return cmDocFile(new File([blob], 'cho-ma.xlsx'));
+}, app50);
+assert.deepEqual(f50.map((o) => o.tu + '>' + o.den), [app50 + '>605099050'], 'đọc đúng dòng đã điền mã, bỏ dòng trống');
+await page.fill(`[data-cm="${i50}"]`, '605099050');
+await page.click(`[data-act="cmGan"][data-i="${i50}"]`); await wait(1500);
+assert.equal(await page.evaluate(([m, q]) => (lkOf(S.V.byMa[m]).find((x) => x.quyCach === q) || {}).maKho, [ma50, 'TEST-Q50']), '605099050', 'máy đổi sang mã ERP');
+assert.equal(await page.evaluate((a) => cmDS().some((g) => g.ma === a), app50), false, 'không còn trong bảng chờ tạo mã');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.65: tra lỗi 5 hãng, tìm gọn (err2, al1); nhân viên nhập linh kiện chuyền (có mã chọn, không mã thì mã tạm); Quản lý gán mã ERP từ bảng chờ tạo mã / file Excel');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
