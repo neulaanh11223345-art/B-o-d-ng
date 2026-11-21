@@ -195,6 +195,8 @@ function mauKho() {
     if (meta.nhap) meta.nhap.luc = moc[i];
     if (meta.moc && meta.moc.length) meta.moc[meta.moc.length - 1].luc = moc[i];
     ghiKhoMeta(meta);
+    var nk = trang('NhapKho');
+    nk.getRange(nk.getLastRow(), 2).setValue(moc[i]);
   }
   nhap(0, {});
   // Vài linh kiện hay thay: gắn vào máy rồi cho tiêu hao dần qua hai lần nhập sau, để app có cái mà nhắc

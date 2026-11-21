@@ -1077,9 +1077,9 @@ ok('Bản 2.17 + 2.34: lịch trực tháng điểm màu, một ngày nhiều ng
 
 // 17. Bản 2.13: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng và gần hết hàng
 await logout(); await login('NV002', '222222');
-await page.evaluate(() => tab('kho')); await wait(900);
+await page.evaluate(() => { S.f.khoTab = 'nhap'; tab('kho'); }); await wait(900);
 await page.waitForFunction(() => S.kho.ds.length > 0, null, { timeout: 20000 });
-// Lịch sử nhập file: ba lần nhập mẫu đều được ghi nhớ
+// Lịch sử nhập file: ba lần nhập mẫu đều được ghi nhớ (tab Nhập dữ liệu)
 assert.equal(await page.evaluate(() => S.kho.nhatKy.length), 3, 'nhớ cả ba lần nhập file');
 assert.equal(await page.evaluate(() => S.kho.moc.length), 3, 'ba mốc thời gian để so tồn');
 assert.match(await text('#main'), /Lịch sử nhập file kho/);
@@ -1087,6 +1087,7 @@ const nhac17 = await page.evaluate(() => { const d = khoNhacDS(); return { n: d.
 assert.ok(nhac17.vua.includes('605010001') && nhac17.vua.includes('605010022'), 'hai mã vừa hết hàng');
 assert.ok(nhac17.gan.includes('604010217') && nhac17.gan.includes('605010136'), 'hai mã gần hết (tồn 1)');
 assert.equal(nhac17.gan.includes('605010344'), false, 'tồn 2 chưa coi là gần hết khi ngưỡng là 1');
+await page.click('[data-act="khoTab"][data-v="ton"]'); await wait(500);
 await shot('27-kho-nhac-nut');
 // Mở màn Nhắc hàng
 await page.click('[data-act="khoNhac"]'); await wait(700);
@@ -1100,7 +1101,7 @@ await page.click('.khorow'); await wait(600);
 assert.match(await text('.sheet, #sheetBg'), /Tồn qua các lần nhập/, 'phiếu linh kiện có lịch sử tồn');
 await page.click('#sheetBg'); await wait(400);
 // Đổi ngưỡng gần hết thành 3 thì mã còn tồn 2 cũng được nhắc
-await page.evaluate(() => { back(); tab('kho'); }); await wait(700);
+await page.evaluate(() => { back(); S.f.khoTab = 'ton'; tab('kho'); }); await wait(700);
 await page.click('#khoCfg summary'); await wait(300);
 await page.fill('#khoNg', '3');
 await page.click('[data-act="khoNgLuu"]'); await wait(1200);
@@ -1113,7 +1114,7 @@ ok('Bản 2.13: kho nhớ tồn qua từng lần nhập, nhắc vừa hết / đ
 
 // 18. Bản 2.14: tồn kho an toàn — tải file mẫu, nhập từ file, liệt kê hàng thiếu
 await logout(); await login('NV002', '222222');
-await page.evaluate(() => tab('kho')); await wait(900);
+await page.evaluate(() => { S.f.khoTab = 'nhap'; tab('kho'); }); await wait(900);
 await page.waitForFunction(() => S.kho.ds.length > 0, null, { timeout: 20000 });
 assert.ok(await page.locator('[data-act="khoMauTon"]').count(), 'có nút tải file mẫu tồn an toàn');
 assert.ok(await page.evaluate(() => khoMauTonMinBlob().size > 2000), 'dựng được file mẫu Excel');
@@ -1164,7 +1165,7 @@ const pt18 = await page.evaluate(() => {
 });
 assert.equal(pt18.pct, 15, 'mặc định báo khi tồn dưới 15% mức an toàn');
 assert.equal(pt18.moc, 3);
-await page.evaluate(() => { back(); tab('kho'); }); await wait(700);
+await page.evaluate(() => { back(); S.f.khoTab = 'ton'; tab('kho'); }); await wait(700);
 if (!await page.evaluate(() => !!($('#khoCfg') || {}).open)) { await page.click('#khoCfg summary'); await wait(300); }
 await page.fill('#khoPt', '5'); await page.click('[data-act="khoPtLuu"]'); await wait(1200);
 const pt18b = await page.evaluate(() => ({ pct: khoPhanTramN(), muc: khoMuc(khoGet('605010344')), n: khoNhacDS().thieu.length }));
@@ -1705,7 +1706,7 @@ assert.equal(await page.evaluate(() => !!S.dangTai), false, 'tải xong thì th�
 assert.equal(await page.evaluate(() => { const b = document.querySelector('.bar-in'); return b.scrollWidth > b.clientWidth + 1; }), false, 'thanh trên cùng không tràn ngang');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(500);
 // Kho: lọc những hàng chưa khai tồn kho an toàn
-await page.evaluate(() => tab('kho')); await wait(1600);
+await page.evaluate(() => { S.f.khoTab = 'ton'; tab('kho'); }); await wait(1600);
 assert.equal(await page.locator('[data-act="khoF"][data-v="chuaAT"]').count(), 1, 'có chip Chưa có tồn an toàn');
 await page.click('[data-act="khoF"][data-v="chuaAT"]'); await wait(800);
 const k22 = await page.evaluate(() => ({
@@ -2528,8 +2529,8 @@ assert.match(await text('#ngtF'), /Ghi tay tên, công suất/, 'chọn động 
 await shot('75-nghiem-thu-chon-quat');
 
 // 40. Kho: phiếu đề nghị mua hàng — chọn hàng, số lượng, ghi chú, xuất Excel
-await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); }); await wait(600);
-await page.click('[data-act="datMua"]'); await wait(600);
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.khoTab = 'mua'; tab('kho'); }); await wait(600);
+await page.click('[data-act="dmMoKieu"][data-v="ma"]'); await wait(600);
 assert.ok(await page.locator('#dmDs .ksi').count() >= 1, 'gợi ý sẵn hàng cần mua');
 await page.click('[data-act="dmThemTatCa"]'); await wait(500);
 const n40 = await page.locator('.dmrow').count();
@@ -2538,6 +2539,7 @@ await page.click('[data-act="dmLoc"][data-v="tatca"]'); await wait(300);
 await page.fill('#dmTim', 'vong bi'); await wait(400);
 const chua40 = page.locator('#dmDs .ksi:not([disabled])');
 if (await chua40.count()) { await chua40.first().click(); await wait(400); }
+await page.click('[data-act="dmKieu"][data-v="ngoai"]'); await wait(400);
 await page.fill('#dmNTen', 'Động cơ 15kW'); await page.fill('#dmNSL', '2'); await page.click('[data-act="dmThemNgoai"]'); await wait(400);
 await page.fill('[data-dmsl="0"]', '5'); await page.fill('[data-dmgc="0"]', 'Gấp');
 const xl40 = await page.evaluate(async () => {
@@ -2654,7 +2656,7 @@ await page.click(`[data-act="qgThem"][data-ch="${ch42}"]`); await wait(600);
 assert.deepEqual(await page.evaluate(() => ({ v: topV().v, nhom: $('#eNhom').value, ch: $('#eCh').value })), { v: 'mayEdit', nhom: g42, ch: ch42 }, 'loại máy riêng lẻ: mở form thêm thiết bị điền sẵn loại và chuyền');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 // Phiếu đặt mua: hàng chưa có mã, tên tiếng Trung tự dịch
-await page.evaluate(() => { tab('kho'); go('datMua', {}); }); await wait(700);
+await page.evaluate(() => { tab('kho'); go('datMua', { kieu: 'ngoai' }); }); await wait(700);
 await page.fill('#dmNTen', 'Cảm biến quang'); await page.fill('#dmNQC', 'TEST-E3Z-D61'); await page.fill('#dmNDV', 'cái'); await page.fill('#dmNSL', '3');
 await chonTB('dmNMay', 'M001');
 await page.click('[data-act="dmThemNgoai"]'); await wait(1500);
@@ -2721,9 +2723,10 @@ await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(30
 ok('Bản 2.59: mã QR chứa sẵn thông tin máy (quét bằng camera, không cần tài khoản); app vẫn quét ra đúng máy');
 
 // 45. Phiếu đặt mua: Lưu phiếu → vào danh sách, phiếu đang soạn trống để lập phiếu mới; xem, đổi trạng thái, Excel, sao chép, xoá
-await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); go('datMua', {}); }); await wait(700);
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); go('datMua', { kieu: 'ngoai' }); }); await wait(700);
 await page.fill('#dmNTen', 'Dây curoa'); await page.fill('#dmNQC', 'TEST-B-56'); await page.fill('#dmNSL', '4');
 await page.click('[data-act="dmThemNgoai"]'); await wait(1200);
+await page.click('[data-act="dmKieu"][data-v="ma"]'); await wait(400);
 await page.click('[data-act="dmThem"]'); await wait(400);
 const n45 = await page.evaluate(() => dmLay().ds.length);
 assert.ok(n45 >= 2, 'phiếu đang soạn có hàng');
@@ -2776,7 +2779,7 @@ await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(30
 ok('Bản 2.61: đo tủ điện — chọn ngày ghi bù ngày hôm trước, dải ngày còn thiếu 14 ngày gần đây');
 
 // 47. Đặt mua: mặt hàng đã có trong phiếu đã lập thì nhắc đã đặt ngày nào; lưu thì hỏi lại
-await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); go('datMua', {}); }); await wait(700);
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); go('datMua', { kieu: 'ngoai' }); }); await wait(700);
 const themN47 = async () => { await page.fill('#dmNTen', 'Vòng bi TEST'); await page.fill('#dmNQC', 'TEST-6205'); await page.fill('#dmNSL', '2'); await page.click('[data-act="dmThemNgoai"]'); await wait(1200); };
 await themN47();
 assert.equal(await page.locator('.dmrow .note').count(), 0, 'chưa đặt bao giờ thì không nhắc');
@@ -2937,6 +2940,66 @@ assert.ok(!bt51.b.includes('dtBT'), 'một ngày lẻ tẻ thì không nêu');
 assert.ok(bt51.c.includes('do:dtBT'), 'nghi mất pha thì nêu ngay, mức cần xử lý');
 assert.equal(await page.evaluate(() => ndNguong().btNd), 10, 'ngưỡng khác thường có mặc định, sửa được');
 ok('Bản 2.66: nhận định số đo tủ khác thường so với mức thường của chính tủ — chỉ nêu khi lặp lại nhiều ngày hoặc nghi mất pha, gộp với lệch pha');
+
+// 52. Kho linh kiện là mục riêng: Kiểm tra kho · Nhập dữ liệu · Phiếu mua hàng. Phiếu chia hàng có mã / chưa có mã.
+// Nhập file ERP thấy tồn tăng → hàng đặt đã về (đủ / một phần), hàng chưa có mã tự nhận khi đã có mã; đánh dấu tay
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('list'); }); await wait(600);
+assert.equal(await page.locator('#main .seg [data-v="kho"]').count(), 0, 'màn Thiết bị không còn tab Kho');
+if (await page.evaluate(() => isWide())) await page.click('.side .nav[data-v="kho"]');   // máy tính: dòng riêng ở thanh bên
+else { await page.click('.tabs .tab[data-v="them"]'); await wait(500); await page.click('#main .row[data-v="kho"]'); }
+await wait(700);
+await page.waitForFunction(() => S.kho.ds.length > 0, null, { timeout: 20000 });
+assert.equal(await page.locator('[data-act="khoTab"]').count(), 3, 'ba tab con của kho');
+await page.click('[data-act="khoTab"][data-v="mua"]'); await wait(400);
+await page.click('[data-act="dmMoKieu"][data-v="ma"]'); await wait(600);
+const ma52 = await page.evaluate(() => dmCanMuaDS().slice(0, 2).map((o) => o.x.ma));
+assert.equal(ma52.length, 2);
+for (const m of ma52) { await page.click(`#dmDs .ksi[data-ma="${m}"]`); await wait(300); }
+await page.click('[data-act="dmKieu"][data-v="ngoai"]'); await wait(300);
+const themNg52 = async (ten, zh, qc, sl) => { await page.fill('#dmNTen', ten); await page.fill('#dmNZh', zh); await page.fill('#dmNQC', qc); await page.fill('#dmNSL', sl); await page.click('[data-act="dmThemNgoai"]'); await wait(800); };
+await themNg52('Động cơ giảm tốc', '减速电机', 'TEST-GV28', '1');
+await themNg52('Bánh xe đẩy', '脚轮', 'TEST-PU100', '4');
+assert.equal(await page.locator('#main .lshd').count(), 2, 'phiếu đang soạn chia hai nhóm: có mã / chưa có mã');
+await page.evaluate(() => { for (let i = 0; i < 2; i++) { const d = dmLay(); d.ds[i].sl = 2; dmLuu(d); } render(); }); await wait(300);
+await page.click('[data-act="dmLuuPhieu"]'); await wait(1500);
+const id52 = await page.evaluate(() => dmDS()[0].id);
+// File ERP mới: mã 1 tăng đủ 2, mã 2 tăng 1 (một phần), một mã khác tăng (không đặt), có mã mới cho "Động cơ giảm tốc"
+await page.evaluate((ma) => {
+  const ds = S.kho.ds.filter((x) => x.ng === 'ERP' && x.cf).map((x) => ({ ma: x.ma, ten: x.ten, qc: x.qc || '', dv: x.dv || '', nh: x.nh || '', ton: tonOf(x) || 0, vt: x.vt || [] }));
+  ds.find((o) => o.ma === ma[0]).ton += 2; ds.find((o) => o.ma === ma[1]).ton += 1;
+  ds.find((o) => ma.indexOf(o.ma) < 0 && o.ton > 0).ton += 3;
+  ds.push({ ma: 'TEST-B52', ten: '减速电机Động cơ giảm tốc', qc: 'TEST-GV28', dv: '台', nh: '', ton: 1, vt: [] });
+  go('khoNhap', { r: { file: 'TEST-ERP-52.xlsx', sheet: 'Sheet1', soDong: ds.length, ds, cot: ['品号'], boQua: 0 }, d: khoDiff(ds) });
+}, ma52); await wait(500);
+await page.click('#knSave'); await wait(2500);
+assert.deepEqual(await page.evaluate(() => [topV().v, khoTabCur()]), ['kho', 'nhap'], 'nhập xong về tab Nhập dữ liệu');
+assert.match(await text('#main'), /Hàng đặt đã về/);
+assert.equal(await page.locator('#main .row[data-act="dmXemPhieu"]').count(), 3, 'ba dòng hàng đặt đã về');
+assert.match(await text('#main'), /Về một phần/);
+assert.match(await text('#main'), /Hàng khác tăng tồn/, 'hàng tăng tồn không có trong phiếu gói riêng');
+const p52 = await page.evaluate((id) => { const x = dmDS().find((y) => y.id === id); return { tt: x.trangThai, ds: x.ds.map((r) => [r.ve || 0, r.slVe || 0, r.maVe || '']) }; }, id52);
+assert.equal(p52.tt, 'DA_DAT', 'hàng bắt đầu về: phiếu chờ đặt → đã đặt hàng');
+assert.deepEqual(p52.ds, [[1, 2, ''], [0, 1, ''], [1, 1, 'TEST-B52'], [0, 0, '']], 'đủ / một phần / chưa có mã nay đã có mã / chưa về');
+await shot('90-kho-hang-da-ve');
+// Lịch sử nhập: lần này có "về 3", bấm xem lại được
+await page.click('[data-act="khoNkXem"]'); await wait(400);
+assert.equal(await page.locator('#sheetBg .row[data-act="dmXemPhieu"]').count(), 3, 'xem lại hàng đã về của từng lần nhập');
+await page.evaluate(() => closeSheet()); await wait(300);
+// Tab Phiếu mua hàng: theo dõi hàng về, đánh dấu tay hàng chưa có mã
+await page.click('[data-act="khoTab"][data-v="mua"]'); await wait(400);
+assert.match(await text('#main'), /Chờ về.*\(2\)/, 'còn 2 dòng chờ về');
+await page.click('[data-act="dmVeDanh"][data-i="3"]'); await wait(1200);
+await page.click('[data-act="dmVeDanh"][data-i="1"]'); await wait(1200);
+assert.equal(await page.evaluate((id) => dmDS().find((y) => y.id === id).trangThai, id52), 'DA_VE', 'về đủ hết thì phiếu sang Hàng đã về');
+await page.click('[data-act="dmVeLoc"][data-v="da"]'); await wait(400);
+assert.equal(await page.locator('#main .lshd').count(), 2, 'hàng đã về chia nhóm có mã / chưa có mã');
+await shot('91-kho-theo-doi-ve');
+// Bỏ dấu một dòng trong phiếu: phiếu quay lại Đã đặt hàng
+await page.evaluate((id) => go('dmXem', { id }), id52); await wait(500);
+await page.click('[data-act="dmVeDanh"][data-i="3"][data-v="0"]'); await wait(1200);
+assert.equal(await page.evaluate((id) => dmDS().find((y) => y.id === id).trangThai, id52), 'DA_DAT');
+await page.evaluate(async (id) => { mergeResult(await send('setPurchase', { id, xoa: true })); while (S.stack.length > 1) back(); }, id52); await wait(500);
+ok('Bản 2.67: Kho linh kiện mục riêng ba tab; phiếu mua chia hàng có mã / chưa có mã; nhập ERP thấy tồn tăng tự đánh dấu hàng đặt đã về, đánh dấu tay hàng chưa có mã');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

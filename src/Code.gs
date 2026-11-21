@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.66.0';
+var PHIEN_BAN = '2.67.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -55,7 +55,7 @@ var BANG = {
   // Mốc thời gian của các lần nhập lưu chung ở KHO_META.moc, nên mỗi dòng chỉ giữ dãy số cho nhẹ.
   KhoLK: ['Ma', 'Ten', 'QuyCach', 'Dv', 'Nhom', 'Ton', 'ViTri', 'Nguon', 'ConFile', 'CapNhat', 'GhiChu', 'GopVao', 'An', 'TonMin', 'TonCu'],
   // Nhật ký nhập file kho: mỗi lần nhập một dòng, giữ lại hết để đối chiếu về sau
-  NhapKho: ['ID', 'Luc', 'Nguoi', 'File', 'SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop', 'Ver'],
+  NhapKho: ['ID', 'Luc', 'Nguoi', 'File', 'SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop', 'Ver', 'Tang', 'Ve'],
   // Nhật ký sửa đổi (audit): giá trị trước / sau, người sửa, thời gian, lý do
   NhatKy: ['ID', 'ThoiGian', 'UID', 'Nguoi', 'HanhDong', 'Bang', 'Khoa', 'Truoc', 'Sau', 'LyDo'],
   // Công việc giao cho nhân viên (chỉ người có tài khoản trong app). ID do máy tạo việc sinh ra (ghi được khi chưa có mạng).
@@ -137,7 +137,7 @@ var BANG = {
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
   NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'], KiemDinh: ['NamSX', 'ChuKy', 'NghiemNgat', 'HoatDong'], MaLoi: ['HoatDong'], NghiemThu: ['STT', 'Xoa'],
-  NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop'],
+  NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop', 'Tang'],
   MayNen: ['BienTan', 'ChuKyGio', 'GioBD', 'ThuTu', 'HoatDong', 'CongSuat'], GioChay: ['Gio'], LichMNK: [],
   DoTu: ['NhietDo', 'DienAp', 'IA', 'IB', 'IC'], DatMua: ['STT', 'SoMH', 'Xoa'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
@@ -2977,6 +2977,25 @@ function suaDatMua(u, p) {
     x.trangThai = s(p.trangThai);
   }
   if (p.ghiChu !== undefined) x.ghiChu = catChu(p.ghiChu, 200);
+  // Đánh dấu tay một dòng đã về / chưa về (hàng chưa có mã, hoặc sửa lại khi tồn tăng không phải do hàng đặt về)
+  if (p.dong !== undefined && p.dong !== null) {
+    var i = Math.round(Number(p.dong.i)), r = (x.ds || [])[i];
+    if (!(i >= 0) || !r) throw loi('KHONG_CO', 'Không tìm thấy dòng hàng · 找不到该物料行');
+    if (p.dong.ve === true) {
+      r.ve = 1; r.tay = 1; r.ngayVe = homNayStr();
+      if (!(Number(r.slVe) >= Number(r.sl))) r.slVe = Number(r.sl) || 0;
+    } else {
+      delete r.ve; delete r.tay; delete r.slVe; delete r.ngayVe; delete r.maVe;
+    }
+    var du = x.ds.every(function (y) { return y.ve === 1; });
+    if (du) x.trangThai = 'DA_VE';
+    else if (x.trangThai === 'DA_VE') x.trangThai = 'DA_DAT';
+  }
+  // Cả phiếu đánh "Hàng đã về": các dòng cũng về đủ. Đổi phiếu đã về sang trạng thái khác: bỏ dấu đã về của các dòng
+  if (p.trangThai !== undefined && p.dong === undefined) {
+    if (x.trangThai === 'DA_VE') (x.ds || []).forEach(function (r) { if (r.ve !== 1) { r.ve = 1; r.tay = 1; r.ngayVe = r.ngayVe || homNayStr(); } });
+    else if (cu === 'DA_VE') (x.ds || []).forEach(function (r) { delete r.ve; delete r.tay; delete r.slVe; delete r.ngayVe; delete r.maVe; });
+  }
   x.capNhat = thoiGianStr();
   capNhatTieuDe('DatMua');
   suaDong('DatMua', x._r, dmThanhDong(x));
@@ -3818,7 +3837,8 @@ function layKho() {
 // Nhật ký nhập file kho
 function nkTuDong(r) {
   return { id: s(r[0]), luc: tgStr(r[1]), nguoi: s(r[2]), file: s(r[3]), soDong: Number(r[4]) || 0, soMa: Number(r[5]) || 0,
-    moi: Number(r[6]) || 0, doiTon: Number(r[7]) || 0, het: Number(r[8]) || 0, veLai: Number(r[9]) || 0, gop: Number(r[10]) || 0, ver: s(r[11]) };
+    moi: Number(r[6]) || 0, doiTon: Number(r[7]) || 0, het: Number(r[8]) || 0, veLai: Number(r[9]) || 0, gop: Number(r[10]) || 0, ver: s(r[11]),
+    tang: Number(r[12]) || 0, ve: docJson(r[13], []) || [] };
 }
 function docNhapKho() { return docTho('NhapKho').map(nkTuDong).filter(function (x) { return x.id; }); }
 function ghiChuThem(ma, u) { return 'Thêm từ máy · 从设备添加 ' + ma + ' · ' + u.ten + ' · ' + ngayVN(homNayStr()); }
@@ -3875,6 +3895,58 @@ function sachViTri(vt) {
   });
   return out;
 }
+// ===== Hàng đặt mua đã về =====
+// Mỗi lần nhập file ERP: mã nào tồn tăng so với lần trước thì coi là hàng đã về. Phần tăng chia cho các dòng
+// phiếu đặt mua đang chờ của mã đó, phiếu lập trước nhận trước. Dòng nhận đủ số đặt → đã về; chưa đủ → về một phần.
+// Hàng chưa có mã khi đặt: khớp khi đã có mã (mã APP gộp vào mã ERP, hoặc trùng tên + quy cách với mã ERP trong file).
+var DM_VE_TOI_DA = 200;      // số dòng "hàng đã về" ghi lại cho mỗi lần nhập (vừa một ô của sheet)
+function dmDongVe(x, r) { return r.ve === 1 || x.trangThai === 'DA_VE'; }
+function dmMaCua(r, c, erpKhoa) {
+  var x = r.ma ? c.by[r.ma] : null, vong = 0;
+  while (x && x.gop && c.by[x.gop] && vong++ < 5) x = c.by[x.gop];
+  if (x && x.ng === 'ERP') return x.ma;
+  // Không mã / mã APP chưa gộp: thử theo tên + quy cách (tên ERP thường là "中文" + tiếng Việt viết liền)
+  var ten = s(r.ten), zh = s(r.tenZh), qc = s(r.qc), thu = [khoaLK(ten, qc)];
+  if (zh) thu.push(khoaLK(zh + ten, qc), khoaLK(ten + zh, qc));
+  for (var i = 0; i < thu.length; i++) if (erpKhoa[thu[i]]) return erpKhoa[thu[i]];
+  return '';
+}
+function dmKhopVe(tang, c, erpKhoa, luc) {
+  var out = { ve: [], dsDatMua: [] };
+  if (!Object.keys(tang).length) return out;
+  var ds = docDatMua().filter(function (x) { return !x.xoa && x.trangThai !== 'DA_VE'; });
+  if (!ds.length) return out;
+  ds.sort(function (a, b) { return s(a.lucTao) < s(b.lucTao) ? -1 : s(a.lucTao) > s(b.lucTao) ? 1 : 0; });
+  var con = {}, ngay = luc.slice(0, 10);
+  Object.keys(tang).forEach(function (k) { con[k] = tang[k]; });
+  ds.forEach(function (x) {
+    var doi = false;
+    (x.ds || []).forEach(function (r, i) {
+      if (!r || r.ve === 1) return;
+      var ma = dmMaCua(r, c, erpKhoa);
+      if (!ma || !(con[ma] > 0)) return;
+      var sl = Number(r.sl) || 0, da = Number(r.slVe) || 0, can = Math.max(0, sl - da);
+      if (!(can > 0)) return;
+      var lay = Math.min(can, con[ma]);
+      con[ma] = Math.round((con[ma] - lay) * 1000) / 1000;
+      r.slVe = Math.round((da + lay) * 1000) / 1000; r.ngayVe = ngay;
+      if (ma !== r.ma) r.maVe = ma;
+      if (r.slVe >= sl) r.ve = 1;
+      doi = true;
+      if (out.ve.length < DM_VE_TOI_DA) out.ve.push({ id: x.id, so: x.soPhieu, ngay: x.ngay, i: i, ma: ma, ten: catChu(r.ten, 60), dv: catChu(r.dv, 12),
+        sl: sl, slVe: r.slVe, them: lay, du: r.ve === 1 ? 1 : 0, kma: r.erp ? 0 : 1 });
+    });
+    if (!doi) return;
+    // Hàng đã về tức là đã đặt: phiếu còn "chờ đặt hàng" thì chuyển sang "đã đặt hàng"; về đủ hết thì "hàng đã về"
+    if ((x.ds || []).every(function (r) { return r.ve === 1; })) x.trangThai = 'DA_VE';
+    else if (x.trangThai === 'CHO') x.trangThai = 'DA_DAT';
+    x.capNhat = luc;
+    capNhatTieuDe('DatMua');
+    suaDong('DatMua', x._r, dmThanhDong(x));
+    out.dsDatMua.push(sachDM(x));
+  });
+  return out;
+}
 // Nhập file kho ERP (app đã đọc file và gộp theo mã): thêm mã mới, cập nhật tồn / vị trí,
 // mã không còn trong file → tồn 0 (không xoá, vì máy và lịch sử còn dùng)
 function nhapKho(u, p) {
@@ -3896,7 +3968,10 @@ function nhapKho(u, p) {
   if (!ds.length) throw loi('KHO_TRONG', 'File không có linh kiện nào · 文件中没有零件');
   capNhatTieuDe('KhoLK');
   var c = khoNap(), luc = thoiGianStr(), soCu = c.all.length;
-  var tk = { soMa: ds.length, moi: 0, doiTon: 0, doiTen: 0, het: 0, veLai: 0, gop: 0, giu: 0, themApp: 0 };
+  var tk = { soMa: ds.length, moi: 0, doiTon: 0, doiTen: 0, het: 0, veLai: 0, gop: 0, giu: 0, themApp: 0, tang: 0, ve: 0 };
+  // Tồn trước lần nhập này của từng mã có trong file (mã mới = 0) — để biết hàng nào tồn tăng, tức là hàng đã về
+  var tonTruoc = {};
+  ds.forEach(function (o) { var x = c.by[o.ma]; tonTruoc[o.ma] = x && x.ton !== '' ? Number(x.ton) || 0 : 0; });
   ds.forEach(function (o) {
     var x = c.by[o.ma];
     if (!x) {
@@ -3937,6 +4012,14 @@ function nhapKho(u, p) {
     if (doi) { m.capNhat = luc; suaDong('May', m._r, mayThanhDong(m)); dsMayDoi.push(sachMay(m)); }
   });
   tk.themApp = c.moi.length;
+  // Hàng đã về: tồn tăng so với lần nhập trước. Khớp với các dòng của phiếu đặt mua đang chờ hàng.
+  var tang = {};
+  ds.forEach(function (o) { var d = Math.round((o.ton - tonTruoc[o.ma]) * 1000) / 1000; if (d > 0) tang[o.ma] = d; });
+  tk.tang = Object.keys(tang).length;
+  // Khớp phiếu hỏng (dòng phiếu lạ…) thì vẫn nhập kho bình thường, chỉ không đánh dấu hàng về lần này
+  var khop = { ve: [], dsDatMua: [] };
+  try { khop = dmKhopVe(tang, c, erpKhoa, luc); } catch (e) { console.error('dmKhopVe: ' + (e && e.message)); }
+  tk.ve = khop.ve.length;
   // Ghi nhớ tồn của lần nhập này cho từng mã (12 lần gần nhất) để lần sau còn nhắc thiếu hàng, gần hết hàng.
   // Mã không có trong file lần này coi như tồn 0. Linh kiện gõ tay trong app không theo file nên không ghi.
   c.all.forEach(function (x) {
@@ -3953,15 +4036,20 @@ function nhapKho(u, p) {
   var meta = docKhoMeta();
   meta.ver = verMoi(); meta.n = c.all.filter(khoHien).length;
   meta.nhap = { luc: luc, file: catChu(p.file, 120), nguoi: u.ten, soDong: Math.round(Number(p.soDong)) || 0,
-    soMa: tk.soMa, moi: tk.moi, doiTon: tk.doiTon, het: tk.het, veLai: tk.veLai, gop: tk.gop };
+    soMa: tk.soMa, moi: tk.moi, doiTon: tk.doiTon, het: tk.het, veLai: tk.veLai, gop: tk.gop, tang: tk.tang, ve: tk.ve };
   // Mốc của 12 lần nhập gần nhất, khớp thứ tự với dãy TonCu của từng mã
   meta.moc = (Array.isArray(meta.moc) ? meta.moc : []).concat([{ luc: luc, file: catChu(p.file, 60) }]).slice(-KHO_MOC_TOI_DA);
   ghiKhoMeta(meta);
   // Nhật ký: mỗi lần nhập một dòng, giữ lại hết
   capNhatTieuDe('NhapKho');
-  themDong('NhapKho', [idMoi('NK', dsIdCo(docNhapKho())), luc, anToan(u.ten), anToan(meta.nhap.file), meta.nhap.soDong,
-    tk.soMa, tk.moi, tk.doiTon, tk.het, tk.veLai, tk.gop, meta.ver]);
-  return { ver: meta.ver, nhap: meta.nhap, moc: meta.moc, tk: tk, ds: c.all.map(sachKho), dsMay: dsMayDoi };
+  var nkId = idMoi('NK', dsIdCo(docNhapKho()));
+  themDong('NhapKho', [nkId, luc, anToan(u.ten), anToan(meta.nhap.file), meta.nhap.soDong,
+    tk.soMa, tk.moi, tk.doiTon, tk.het, tk.veLai, tk.gop, meta.ver, tk.tang, khop.ve.length ? JSON.stringify(khop.ve) : '']);
+  if (khop.ve.length) ghiNhatKy(u, 'HANG_VE', 'DatMua', '', '', khop.ve.length + ' dòng hàng đặt đã về (nhập ' + meta.nhap.file + ')', '');
+  return { ver: meta.ver, nhap: meta.nhap, moc: meta.moc, tk: tk, ds: c.all.map(sachKho), dsMay: dsMayDoi,
+    nhatKy: { id: nkId, luc: luc, nguoi: u.ten, file: meta.nhap.file, soDong: meta.nhap.soDong, soMa: tk.soMa, moi: tk.moi, doiTon: tk.doiTon,
+      het: tk.het, veLai: tk.veLai, gop: tk.gop, ver: meta.ver, tang: tk.tang, ve: khop.ve },
+    ve: khop.ve, dsDatMua: khop.dsDatMua };
 }
 // Nhập TỒN KHO AN TOÀN hàng loạt từ file (file mẫu của app, hoặc bảng dự phòng của nhà máy).
 // Chỉ đặt lại cột TonMin, không đụng tới tồn thật — tồn thật chỉ đến từ file ERP.
