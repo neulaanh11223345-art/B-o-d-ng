@@ -862,6 +862,54 @@ test('phiếu đặt mua: lưu thành phiếu có số vào danh sách dùng chu
   assert.deepEqual(ok(b.call('data', {}, kt)).datMua, [], 'kỹ thuật không nhận danh sách phiếu');
 });
 
+test('kho ngũ kim: mã hết hàng / không còn trong file vẫn giữ nguyên mã, thông số, ô kệ; mã mới lưu lại; Quản lý chọn mục phân loại', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  ok(b.call('importKho', { file: 'erp1.xlsx', soDong: 2, ds: [
+    { ma: 'TEST-K1', ten: '轴承Vòng bi', qc: '6205-2RS', dv: '个', nh: '605', ton: 3, vt: [['Kho 1', 'AB21', 3]] },
+    { ma: 'TEST-K2', ten: '继电器Rơ le', qc: 'MY2N-24VDC', dv: '个', nh: '608', ton: 5, vt: [['Kho 1', 'DC32', 5]] }] }, ql));
+  // Lần sau file chỉ còn K2 và có thêm mã mới K3: K1 về 0 nhưng không mất
+  const r = ok(b.call('importKho', { file: 'erp2.xlsx', soDong: 2, ds: [
+    { ma: 'TEST-K2', ten: '继电器Rơ le', qc: 'MY2N-24VDC', dv: '个', nh: '608', ton: 4, vt: [['Kho 1', 'DC32', 4]] },
+    { ma: 'TEST-K3', ten: '接触器Khởi động từ', qc: 'LC1D18', dv: '个', nh: '608', ton: 2 }] }, ql));
+  const by = {}; r.ds.forEach((x) => { by[x.ma] = x; });
+  assert.deepEqual([by['TEST-K1'].ten, by['TEST-K1'].qc, by['TEST-K1'].dv, by['TEST-K1'].nh, by['TEST-K1'].ton], ['轴承Vòng bi', '6205-2RS', '个', '605', 0], 'hết hàng vẫn giữ mã và thông số');
+  assert.deepEqual(by['TEST-K1'].vt, [['Kho 1', 'AB21', 0]], 'giữ ô kệ cũ, số lượng 0');
+  assert.deepEqual(by['TEST-K1'].tonCu, [3, 0]);
+  assert.deepEqual([by['TEST-K3'].qc, by['TEST-K3'].ton], ['LC1D18', 2], 'mã mới lưu đủ thông số');
+  // Chọn tay mục phân loại (mã ERP cũng được), trống = tự xếp theo tên
+  err(b.call('saveKho', { ma: 'TEST-K3', loai: 'role' }, kt), 'KHONG_QUYEN');
+  err(b.call('saveKho', { ma: 'TEST-K3', loai: 'sai loai!' }, ql), 'SAI_LOAI');
+  let k = ok(b.call('saveKho', { ma: 'TEST-K3', loai: 'khoidong' }, ql));
+  assert.equal(k.kho.ds[0].loai, 'khoidong');
+  // Nhập file lần sau không làm mất mục đã chọn
+  const r3 = ok(b.call('importKho', { file: 'erp3.xlsx', soDong: 1, ds: [{ ma: 'TEST-K3', ten: '接触器Khởi động từ', qc: 'LC1D18', ton: 1 }] }, ql));
+  assert.equal(r3.ds.find((x) => x.ma === 'TEST-K3').loai, 'khoidong');
+  k = ok(b.call('saveKho', { ma: 'TEST-K3', loai: '' }, ql));
+  assert.equal(k.kho.ds[0].loai, undefined, 'bỏ chọn tay thì về tự xếp');
+});
+
+test('kho ngũ kim: đưa cả loạt mã (danh sách từ file) vào một mục phân loại; mã không có trong kho thì bỏ qua', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  ok(b.call('importKho', { file: 'erp.xlsx', soDong: 3, ds: [
+    { ma: 'TEST-P1', ten: '电脑主机CPU Máy tính', qc: 'TEST-SN', ton: 1 },
+    { ma: 'TEST-P2', ten: '三通电磁阀Van điện từ 3 ngả', qc: 'TEST-ECO', ton: 2 },
+    { ma: 'TEST-P3', ten: 'Vòng bi', qc: '6205', ton: 5 }] }, ql));
+  err(b.call('setKhoLoai', { loai: 'mayin', ds: ['TEST-P1'] }, kt), 'KHONG_QUYEN');
+  err(b.call('setKhoLoai', { loai: 'mayin', ds: [] }, ql), 'KHO_TRONG');
+  err(b.call('setKhoLoai', { loai: 'may in!', ds: ['TEST-P1'] }, ql), 'SAI_LOAI');
+  const r = ok(b.call('setKhoLoai', { loai: 'mayin', file: 'May in.xlsx', ds: ['TEST-P1', 'TEST-P2', 'TEST-P2', 'TEST-KHONG'] }, ql));
+  assert.deepEqual(r.tk, { doi: 2, giu: 0, khongCo: 1 });
+  assert.deepEqual(r.kho.ds.map((x) => [x.ma, x.loai]), [['TEST-P1', 'mayin'], ['TEST-P2', 'mayin']]);
+  const kho = ok(b.call('catalog', {}, ql)).ds, by = {};
+  kho.forEach((x) => { by[x.ma] = x; });
+  assert.deepEqual([by['TEST-P1'].loai, by['TEST-P2'].loai, by['TEST-P3'].loai], ['mayin', 'mayin', undefined], 'chỉ đổi đúng các mã trong danh sách');
+  // Gửi lại: không có gì đổi; loai trống = trả về tự xếp
+  assert.deepEqual(ok(b.call('setKhoLoai', { loai: 'mayin', ds: ['TEST-P1'] }, ql)).tk, { doi: 0, giu: 1, khongCo: 0 });
+  assert.equal(ok(b.call('setKhoLoai', { loai: '', ds: ['TEST-P1'] }, ql)).kho.ds[0].loai, undefined);
+});
+
 test('hàng đặt đã về: nhập file ERP thấy tồn tăng thì tự đánh dấu dòng phiếu đã về (phiếu trước nhận trước); hàng chưa có mã khớp khi đã có mã; đánh dấu tay', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');

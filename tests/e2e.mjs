@@ -3001,6 +3001,105 @@ assert.equal(await page.evaluate((id) => dmDS().find((y) => y.id === id).trangTh
 await page.evaluate(async (id) => { mergeResult(await send('setPurchase', { id, xoa: true })); while (S.stack.length > 1) back(); }, id52); await wait(500);
 ok('Bản 2.67: Kho linh kiện mục riêng ba tab; phiếu mua chia hàng có mã / chưa có mã; nhập ERP thấy tồn tăng tự đánh dấu hàng đặt đã về, đánh dấu tay hàng chưa có mã');
 
+// 53. Bảng chờ tạo mã: gợi ý mã trong kho hiện kèm quy cách; trùng quy cách lên đầu, rồi quy cách gần giống, cuối cùng chỉ giống tên
+const gy53 = await page.evaluate(() => {
+  const g = cmDS().find((x) => x.ma && qcKhoa(x.qc).length >= 5);
+  const luu = S.kho.ds;
+  S.kho.ds = luu.concat([{ ma: 'TEST-QC1', ten: g.ten, qc: 'TEST-KHAC-999', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-QC2', ten: 'Tên khác hẳn', qc: g.qc.toLowerCase().replace(/-/g, ' '), ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-QC3', ten: 'Tên khác nữa', qc: g.qc + '-H', ng: 'ERP', ton: 0, cf: 1 }]);
+  const r = cmGoiY(g).map((o) => o.muc + ':' + o.x.ma);
+  go('lkChoMa');
+  const html = document.querySelector('#main').innerHTML, qc = g.qc;
+  back(); S.kho.ds = luu;
+  return { r, trung: (html.match(/class="cmgy trung"/g) || []).length, coQC: html.indexOf('cmgq') >= 0 && html.indexOf(qc + '-H') >= 0 };
+});
+assert.deepEqual(gy53.r.slice(0, 3), ['trung:TEST-QC2', 'gan:TEST-QC3', 'ten:TEST-QC1'], 'trùng quy cách đứng đầu: ' + gy53.r.join(','));
+assert.ok(gy53.trung >= 1 && gy53.coQC, 'gợi ý hiện quy cách, dòng trùng quy cách tô riêng');
+ok('Bản 2.67.1: gợi ý mã ERP trong bảng chờ tạo mã hiện kèm quy cách, trùng quy cách lên đầu');
+
+// 54. Kho ngũ kim phân loại: Cơ khí (vòng bi, trục, dao cắt…) / Điện khí (xi lanh, rơ le, khởi động từ, driver, động cơ…);
+// app tự xếp theo tên, Quản lý chọn tay được; mã hết hàng vẫn giữ nguyên trong kho
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.khoTab = 'ton'; S.f.khoQ = ''; S.f.khoF = ''; S.f.khoLoai = ''; tab('kho'); }); await wait(700);
+assert.equal(await page.locator('.kmucg').count() >= 2, true, 'tổng quan theo nhóm lớn');
+const mu54 = await page.evaluate(() => {
+  const by = (ma) => khoMucOf(khoGet(ma));
+  const tim = (re) => (S.kho.ds.find((x) => re.test(x.ten)) || {}).ma;
+  return { vb: by(tim(/^轴承/)), truc: by(tim(/^轴Trục/)), dao: by(tim(/^刀片/)), xl: by(tim(/^气缸/)), role: by(tim(/^继电器/)), kd: by(tim(/^交流接触器/)),
+    drv: by(tim(/变频器/)), dc: by(tim(/^电机 /)), tuyp: by(tim(/套筒/)), nhom: khoNhomOf(khoGet(tim(/^交流接触器/))) };
+});
+assert.deepEqual(mu54, { vb: 'vongbi', truc: 'truc', dao: 'dao', xl: 'xilanh', role: 'role', kd: 'khoidong', drv: 'driver', dc: 'dongco', tuyp: 'dungcu', nhom: 'dk' }, 'tự xếp theo tên hàng');
+await page.click('.kmuc[data-v="vongbi"]'); await wait(500);
+const vb54 = await page.evaluate(() => ({ bar: !!document.querySelector('.kmucbar'), n: document.querySelectorAll('#khoBody .khorow').length, dem: S.kho.ds.filter((x) => !x.an && !x.gop && khoMucOf(x) === 'vongbi').length }));
+assert.ok(vb54.bar && vb54.n === vb54.dem && vb54.n > 0, 'bấm mục chỉ còn hàng của mục đó: ' + JSON.stringify(vb54));
+await page.click('.kmucbar [data-act="khoLoai"]'); await wait(400);
+await page.click('.kmuch[data-v="dk"]'); await wait(500);
+assert.ok(await page.locator('#khoBody .lshd').count() >= 3, 'xem cả nhóm điện khí: chia theo từng mục');
+await shot('92-kho-phan-loai');
+// Chọn tay: một mã vòng bi chuyển sang Trục; nhập file ERP lần sau vẫn giữ
+const ma54 = await page.evaluate(() => S.kho.ds.find((x) => khoMucOf(x) === 'vongbi' && x.ng === 'ERP' && x.cf && (x.vt || []).length).ma);
+await page.evaluate((ma) => openKhoItem(ma), ma54); await wait(400);
+await page.selectOption('#kxLoai', 'truc'); await page.click('[data-act="khoLoaiLuu"]'); await wait(1200);
+assert.deepEqual(await page.evaluate((ma) => [khoGet(ma).loai, khoMucOf(khoGet(ma))], ma54), ['truc', 'truc'], 'chọn tay mục phân loại');
+// Nhập file không còn mã này (hết hàng): mã, tên, mục, ô kệ vẫn còn
+await page.evaluate((ma) => {
+  const ds = S.kho.ds.filter((x) => x.ng === 'ERP' && x.cf && x.ma !== ma).map((x) => ({ ma: x.ma, ten: x.ten, qc: x.qc || '', dv: x.dv || '', nh: x.nh || '', ton: tonOf(x) || 0, vt: x.vt || [] }));
+  go('khoNhap', { r: { file: 'TEST-ERP-54.xlsx', sheet: 'Sheet1', soDong: ds.length, ds, cot: ['品号'], boQua: 0 }, d: khoDiff(ds) });
+}, ma54); await wait(500);
+await page.click('#knSave'); await wait(2500);
+const sau54 = await page.evaluate((ma) => { const x = khoGet(ma); return { ton: tonOf(x), loai: x.loai, coVT: (x.vt || []).length > 0, slVT: (x.vt || []).map((v) => v[2]) }; }, ma54);
+assert.equal(sau54.ton, 0); assert.equal(sau54.loai, 'truc', 'mục chọn tay không mất'); assert.ok(sau54.coVT && sau54.slVT.every((n) => n === 0), 'giữ ô kệ cũ, số lượng 0');
+// Excel kho theo mục
+const xl54 = await page.evaluate(async () => { const u = new Uint8Array(await khoMucBlob().arrayBuffer()); const rows = await (await readXlsx(u.buffer))[0].rows(); return rows.map((r) => (r || []).join('|')).join('\n'); });
+assert.match(xl54, /Linh kiện cơ khí[^\n]*›[^\n]*Vòng bi/); assert.match(xl54, /Linh kiện điện khí[^\n]*›[^\n]*Rơ le/);
+await page.evaluate((ma) => send('saveKho', { ma, loai: '' }), ma54); await wait(500);
+ok('Bản 2.68: kho ngũ kim chia nhóm cơ khí / điện khí, mỗi nhóm nhiều mục; tự xếp theo tên, chọn tay được; mã hết hàng vẫn giữ mã, thông số, ô kệ');
+
+// 55. Linh kiện máy in (quy cách 2100xxxxxx) và máy keo (quy cách 41xxx) vào mục riêng, xét trước các mục khác
+const mk55 = await page.evaluate(() => {
+  const luu = S.kho.ds;
+  S.kho.ds = luu.concat([
+    { ma: 'TEST-IN1', ten: '电缆Cáp nguồn', qc: '2100028101', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-IN2', ten: '轴承Vòng bi', qc: '2100 012 345', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-KE1', ten: '加热管 Thanh gia nhiệt', qc: '41235', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-KE2', ten: 'Vòi phun máy keo nóng', qc: 'TEST-X1', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-KH1', ten: '电磁阀 Van điện từ', qc: '411A-D0A', ng: 'ERP', ton: 1, cf: 1 },
+    { ma: 'TEST-KH2', ten: '电缆Cáp', qc: '21000281', ng: 'ERP', ton: 1, cf: 1 }]);
+  const r = ['TEST-IN1', 'TEST-IN2', 'TEST-KE1', 'TEST-KE2', 'TEST-KH1', 'TEST-KH2'].map((ma) => khoMucOf(khoGet(ma)));
+  S.f.khoQ = ''; S.f.khoF = ''; S.f.khoLoai = ''; S.f.khoTab = 'ton'; tab('kho');
+  const tile = !!document.querySelector('.kmuch[data-v="tb"]') && !!document.querySelector('.kmuc[data-v="mayin"]') && !!document.querySelector('.kmuc[data-v="maykeo"]');
+  S.kho.ds = luu; render();
+  return { r, tile };
+});
+assert.deepEqual(mk55.r, ['mayin', 'mayin', 'maykeo', 'maykeo', 'xilanh', 'day'], 'quy cách 2100xxxxxx → máy in, 41xxx → máy keo; quy cách khác thì theo tên');
+assert.ok(mk55.tile, 'nhóm Linh kiện theo máy có hai mục Máy in / Máy keo');
+ok('Bản 2.68.1: linh kiện máy in (quy cách 2100…) và máy keo (quy cách 41…) có mục riêng');
+
+// 56. Máy in: số hãng 2100xxxxxx nằm ở đâu trong quy cách cũng nhận (P/N:…, nhiều mã nối "/");
+// nhập danh sách mã từ file (vd bảng tổng hợp linh kiện máy in) để đưa cả loạt vào một mục
+const qc56 = await page.evaluate(() => ['P/N:2100020853', 'S/N:2092390003 ;P/N :2100026338', '2100034613/2100039999', 'TEST.8HH2100026056', 'S/N:2941990001', '21000281', 'P/N:41235', '411A-D0A']
+  .map((q) => khoMucTuDong({ ten: 'TEST', qc: q }) || '-'));
+assert.deepEqual(qc56, ['mayin', 'mayin', 'mayin', 'mayin', '-', '-', 'maykeo', '-'], 'nhận số hãng máy in trong quy cách');
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.khoTab = 'ton'; S.f.khoQ = ''; S.f.khoF = ''; S.f.khoLoai = ''; tab('kho'); }); await wait(600);
+assert.equal(await page.locator('#khoDsMucFile').count(), 1, 'có nút nhập danh sách mã vào mục');
+const ma56 = await page.evaluate(() => S.kho.ds.filter((x) => x.ng === 'ERP' && !x.gop && khoMucOf(x) !== 'mayin').slice(0, 3).map((x) => x.ma));
+const f56 = await page.evaluate(async (ma) => {
+  const rows = [[{ v: 'TEST tổng hợp' }], ['Số thứ tự', 'Mã linh kiện', 'Tên linh kiện', 'Quy cách'].map((v) => ({ v }))];
+  rows.push([{ v: 1 }, { v: ma[0] }, { v: 'TEST A' }, { v: 'TEST-QC' }], [{ v: 2 }, { v: ma[1] + '/' + ma[2] }, { v: 'TEST B' }, { v: '' }], [{ v: 3 }, { v: '699999998' }, { v: 'TEST C' }, { v: '' }]);
+  const u = new Uint8Array(await XW.build([{ name: 'S1', rows }]).arrayBuffer());
+  return Array.from(u);
+}, ma56);
+await page.setInputFiles('#khoDsMucFile', { name: 'May in - TEST.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(f56) });
+await wait(900);
+assert.match(await text('#sheetBg'), /3 mã có trong kho/); assert.match(await text('#sheetBg'), /1 mã không có trong kho/);
+assert.equal(await page.inputValue('#kdmLoai'), 'mayin', 'tên file có "máy in" thì chọn sẵn mục máy in');
+await shot('93-kho-ds-muc');
+await page.click('[data-act="khoDsMucGui"]'); await wait(1500);
+assert.deepEqual(await page.evaluate((ma) => ma.map((m) => khoMucOf(khoGet(m))), ma56), ['mayin', 'mayin', 'mayin'], 'cả loạt mã vào mục máy in');
+assert.equal(await page.evaluate(() => S.f.khoLoai), 'mayin', 'xong mở luôn mục đó');
+await page.evaluate((ma) => send('setKhoLoai', { loai: '', ds: ma }), ma56); await wait(500);
+ok('Bản 2.69: máy in nhận số hãng 2100… ở bất kỳ đâu trong quy cách; nhập danh sách mã từ file để đưa cả loạt vào một mục');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
