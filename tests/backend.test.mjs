@@ -862,6 +862,61 @@ test('phiếu đặt mua: lưu thành phiếu có số vào danh sách dùng chu
   assert.deepEqual(ok(b.call('data', {}, kt)).datMua, [], 'kỹ thuật không nhận danh sách phiếu');
 });
 
+test('hàng đặt đã về: nhập file ERP thấy tồn tăng thì tự đánh dấu dòng phiếu đã về (phiếu trước nhận trước); hàng chưa có mã khớp khi đã có mã; đánh dấu tay', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  ok(b.call('importKho', { file: 'erp1.xlsx', soDong: 3, ds: [
+    { ma: 'TEST-A1', ten: 'Vòng bi 6205', qc: '6205-2RS', dv: '个', ton: 2 },
+    { ma: 'TEST-A2', ten: 'Dây curoa B50', qc: 'B50', dv: '条', ton: 4 },
+    { ma: 'TEST-A3', ten: 'Cầu chì 10A', qc: '10A', dv: '个', ton: 20 }] }, ql));
+  const p1 = ok(b.call('savePurchase', { ds: [
+    { ma: 'TEST-A1', erp: true, ten: 'Vòng bi 6205', qc: '6205-2RS', sl: 5 },
+    { ma: 'TEST-A2', erp: true, ten: 'Dây curoa B50', qc: 'B50', sl: 3 },
+    { ma: '', erp: false, ten: 'Động cơ giảm tốc', tenZh: '减速电机', qc: 'TEST-GV28', sl: 1 }] }, ql)).datMua;
+  const p2 = ok(b.call('savePurchase', { ds: [{ ma: 'TEST-A1', erp: true, ten: 'Vòng bi 6205', qc: '6205-2RS', sl: 4 }] }, ql)).datMua;
+  // Lần nhập sau: A1 tăng 6 (phiếu 1 nhận đủ 5, phiếu 2 nhận 1), A2 tăng 1 (về một phần), A3 giảm.
+  // Hàng chưa có mã nay có mã ERP với tên "中文" + tiếng Việt viết liền
+  let r = ok(b.call('importKho', { file: 'erp2.xlsx', soDong: 4, ds: [
+    { ma: 'TEST-A1', ten: 'Vòng bi 6205', qc: '6205-2RS', ton: 8 },
+    { ma: 'TEST-A2', ten: 'Dây curoa B50', qc: 'B50', ton: 5 },
+    { ma: 'TEST-A3', ten: 'Cầu chì 10A', qc: '10A', ton: 12 },
+    { ma: 'TEST-B1', ten: '减速电机Động cơ giảm tốc', qc: 'TEST-GV28', ton: 1 }] }, ql));
+  assert.equal(r.tk.tang, 3, 'ba mã tăng tồn (A1, A2, mã mới B1)');
+  assert.deepEqual(r.ve.map((v) => [v.so, v.ma, v.them, v.slVe, v.du]), [
+    [p1.soPhieu, 'TEST-A1', 5, 5, 1], [p1.soPhieu, 'TEST-A2', 1, 1, 0], [p1.soPhieu, 'TEST-B1', 1, 1, 1], [p2.soPhieu, 'TEST-A1', 1, 1, 0]]);
+  assert.equal(r.ve[2].kma, 1, 'đánh dấu dòng đặt khi chưa có mã');
+  assert.equal(r.nhatKy.ve.length, 4, 'danh sách hàng đã về đi kèm lần nhập');
+  const a = r.dsDatMua.find((x) => x.id === p1.id);
+  assert.equal(a.trangThai, 'DA_DAT', 'hàng đã về một phần: phiếu chờ đặt chuyển sang đã đặt hàng, chưa sang đã về');
+  assert.deepEqual([a.ds[0].ve, a.ds[1].ve, a.ds[1].slVe, a.ds[2].ve, a.ds[2].maVe], [1, undefined, 1, 1, 'TEST-B1']);
+  // Nhật ký nhập (tải kho) giữ danh sách hàng đã về của từng lần
+  const kho = ok(b.call('catalog', {}, ql));
+  assert.equal(kho.nhatKy[0].ve.length, 4); assert.equal(kho.nhatKy[0].tang, 3); assert.deepEqual(kho.nhatKy[1].ve, []);
+  // Lần nhập tiếp: A2 tăng 2 → phiếu 1 về đủ hết, tự sang "Hàng đã về"
+  r = ok(b.call('importKho', { file: 'erp3.xlsx', soDong: 4, ds: [
+    { ma: 'TEST-A1', ten: 'Vòng bi 6205', qc: '6205-2RS', ton: 8 },
+    { ma: 'TEST-A2', ten: 'Dây curoa B50', qc: 'B50', ton: 7 },
+    { ma: 'TEST-A3', ten: 'Cầu chì 10A', qc: '10A', ton: 12 },
+    { ma: 'TEST-B1', ten: '减速电机Động cơ giảm tốc', qc: 'TEST-GV28', ton: 1 }] }, ql));
+  assert.deepEqual(r.ve.map((v) => [v.ma, v.them, v.du]), [['TEST-A2', 2, 1]]);
+  assert.equal(r.dsDatMua[0].trangThai, 'DA_VE', 'đủ hết các dòng thì phiếu tự sang Hàng đã về');
+  // Không tăng tồn thì không có gì về
+  r = ok(b.call('importKho', { file: 'erp4.xlsx', soDong: 1, ds: [{ ma: 'TEST-A1', ten: 'Vòng bi 6205', qc: '6205-2RS', ton: 8 }] }, ql));
+  assert.deepEqual([r.ve, r.dsDatMua, r.tk.tang], [[], [], 0]);
+  // Đánh dấu tay: dòng của phiếu 2 về đủ → phiếu tự sang đã về; bỏ đánh dấu → quay lại đã đặt hàng
+  err(b.call('setPurchase', { id: p2.id, dong: { i: 0, ve: true } }, kt), 'KHONG_QUYEN');
+  err(b.call('setPurchase', { id: p2.id, dong: { i: 5, ve: true } }, ql), 'KHONG_CO');
+  let x = ok(b.call('setPurchase', { id: p2.id, dong: { i: 0, ve: true } }, ql)).datMua;
+  assert.deepEqual([x.trangThai, x.ds[0].ve, x.ds[0].slVe, x.ds[0].tay], ['DA_VE', 1, 4, 1]);
+  x = ok(b.call('setPurchase', { id: p2.id, dong: { i: 0, ve: false } }, ql)).datMua;
+  assert.deepEqual([x.trangThai, x.ds[0].ve, x.ds[0].slVe], ['DA_DAT', undefined, undefined]);
+  // Cả phiếu đổi sang "Hàng đã về" thì mọi dòng về đủ; đổi lại thì bỏ dấu
+  x = ok(b.call('setPurchase', { id: p2.id, trangThai: 'DA_VE' }, ql)).datMua;
+  assert.equal(x.ds[0].ve, 1);
+  x = ok(b.call('setPurchase', { id: p2.id, trangThai: 'DA_DAT' }, ql)).datMua;
+  assert.equal(x.ds[0].ve, undefined);
+});
+
 test('nhập linh kiện chuyền: nhân viên tìm trong kho, có mã thì gắn mã, không có thì nhập không mã (mã tạm APP); Quản lý gán mã ERP một lượt', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');

@@ -1705,7 +1705,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.66.0";
+const APP_VER = "2.67.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -2180,10 +2180,10 @@ async function flush() {
 }
 function mergeResult(d) {
   if (!d || !S.base) return;
-  if (d.datMua && d.datMua.id) {
-    const L = S.base.datMua = S.base.datMua || [], i = L.findIndex((y) => y.id === d.datMua.id);
-    if (i >= 0) L[i] = d.datMua; else L.push(d.datMua);
-  }
+  (d.datMua && d.datMua.id ? [d.datMua] : []).concat(d.dsDatMua || []).forEach((x) => {
+    const L = S.base.datMua = S.base.datMua || [], i = L.findIndex((y) => y.id === x.id);
+    if (i >= 0) L[i] = x; else L.push(x);
+  });
   // Biên bản nghiệm thu đổi theo (quạt chuyển chuyền / đổi tên thì biên bản đi theo quạt)
   (d.dsNghiemThu || []).forEach((x) => {
     const L = S.base.nghiemThu = S.base.nghiemThu || [], i = L.findIndex((y) => y.id === x.id);
@@ -2437,10 +2437,11 @@ const xemDuoc = (v) => xemHet() || !HAN_CHE.has(v) || (v === 'list' && xemTB());
 // Chức năng gom theo nhóm thay vì một danh sách phẳng. Mỗi dòng: [màn, nhãn, biểu tượng].
 // Màn nào tài khoản không được xem thì tự rụng khỏi nhóm; nhóm rỗng thì không hiện.
 // QUY TẮC: màn nào đã có tab bên trong thì chỉ được MỘT dòng ở menu.
-// Thiết bị / Bảo dưỡng / Lịch sử / Kho vốn là bốn tab của cùng một màn → một dòng "Thiết bị".
+// Thiết bị / Bảo dưỡng / Lịch sử là ba tab của cùng một màn → một dòng "Thiết bị".
+// Kho linh kiện là mục riêng (v2.67) với ba tab: Kiểm tra kho · Nhập dữ liệu · Phiếu mua hàng → một dòng "Kho linh kiện".
 // Nhắc hàng, tồn an toàn, tem QR, phân ca, tổng số ca… đều đã nằm trong màn của chúng → không đưa ra menu.
 const NHOM = [
-  ['nhomViec', [['cv', 'navCV', 'list'], ['ngt', 't_ngt', 'check'], ['mnk', 'navMNK', 'drop'], ['list', 'navMay', 'gear']]],
+  ['nhomViec', [['cv', 'navCV', 'list'], ['ngt', 't_ngt', 'check'], ['mnk', 'navMNK', 'drop'], ['list', 'navMay', 'gear'], ['kho', 'navKho', 'box']]],
   ['nhomDien', [['dien', 'navDien', 'bolt']]],
   ['nhomNS', [['tc', 'navTC', 'clock'], ['truc', 'navTruc', 'users']]],
   ['nhomCC', [['kd', 't_kd', 'check'], ['tlTb', 't_tlTb', 'img'], ['tt', 't_tt', 'wrench']]],
@@ -2495,10 +2496,10 @@ const TITLES = { them: 't_them', khoNhac: 't_khoNhac', khoMin: 't_khoMin', dien:
   kd: 't_kd', kdEdit: 't_kdEdit', kdGhi: 't_kdGhi', kdXem: 't_kd', tt: 't_tt', ttLoiEdit: 't_ttLoiEdit', tlTb: 't_tlTb', ngt: 't_ngt', ngtGhi: 't_ngtGhi', ngtXem: 't_ngtGhi',
   mnk: 't_mnk', mnkGhi: 't_mnkGhi', mnkDS: 't_mnkDS' };
 const ROOTS = ['home', 'cal', 'scan', 'list', 'hist', 'dien', 'me', 'cv', 'tc', 'truc', 'them', 'kho', 'tt', 'kd', 'tlCfg', 'tlTb', 'ngt', 'mnk'];
-const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'list', khoNhap: 'list', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
+const TAB_OF = { chuyen: 'list', chEdit: 'list', lkChuyen: 'list', lkNhap: 'list', cal: 'list', hist: 'list', kho: 'kho', khoNhap: 'kho', may: 'list', mayEdit: 'list', dsEdit: 'list', labels: 'list', cvNew: 'cv', cvView: 'cv', cvGiao: 'cv', cvXong: 'cv', cvLap: 'cv', cvLapEdit: 'cv', cvBC: 'cv', scGhi: 'cv', scDS: 'cv',
   dienNhap: 'dien', ctEdit: 'dien', thongSo: 'dien', duyet: 'dien', admin: 'me', users: 'me', notify: 'me', sync: 'me', queue: 'me', nhatKy: 'me', dienCfg: 'me',
   tcGhi: 'tc', tcXem: 'tc', tcThang: 'tc', tcCfg: 'tc', tlCfg: 'me', tlGan: 'me', tlDS: 'me',
-  trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc', khoNhac: 'list', khoMin: 'list',
+  trucGhi: 'truc', trucTong: 'truc', phanCa: 'truc', trucNguoi: 'truc', khoNhac: 'kho', khoMin: 'kho', datMua: 'kho', dmDS: 'kho', dmXem: 'kho',
   kd: 'list', kdEdit: 'list', kdGhi: 'list', kdXem: 'list', tt: 'list', ttLoiEdit: 'list', tlTb: 'list', ngt: 'cv', ngtGhi: 'cv', ngtXem: 'cv',
   mnkGhi: 'mnk', mnkDS: 'mnk' };
 const topV = () => S.stack[S.stack.length - 1];
@@ -2621,7 +2622,7 @@ Object.assign(TX, {
   logoutCho: ['Còn {n} việc chưa gửi lên máy chủ. Đăng xuất vẫn giữ các việc này trên máy, nhưng chỉ gửi khi đúng người đó đăng nhập lại. Nên gửi xong trước.', '还有{n}项未上传。退出后数据仍保存在本机，但只有同一用户重新登录才会发送。建议先发送。'],
   vanDangXuat: ['Vẫn đăng xuất', '仍然退出'],
   forgotHelp: ['Nhờ Quản trị vào Cá nhân → Quản trị → Người dùng, chọn tên bạn và đặt PIN mới. Mã nhân viên của bạn cũng xem được ở đó.', '请管理员在 个人 → 管理 → 用户 中为您重设PIN，并可查看您的员工编号。'],
-  navMay: ['Thiết bị', '设备'], navDien: ['Điện / Nước', '电/水'], navDienN: ['Điện/Nước', '电/水'], navMe: ['Cá nhân', '个人'],
+  navMay: ['Thiết bị', '设备'], navKho: ['Kho linh kiện', '备件库'], navDien: ['Điện / Nước', '电/水'], navDienN: ['Điện/Nước', '电/水'], navMe: ['Cá nhân', '个人'],
   t_me: ['Cá nhân', '个人'], t_sync: ['Đồng bộ dữ liệu', '数据同步'], t_timKiem: ['Tìm kiếm', '搜索'],
   t_duyet: ['Ngoại lệ chờ duyệt', '待审核异常'], t_nhatKy: ['Nhật ký sửa đổi', '修改日志'], t_dienCfg: ['Cài đặt cảnh báo điện', '用电预警设置'],
   timChung: ['Tìm thiết bị, công tơ, linh kiện…', '搜索设备、电表、零件…'],
@@ -2699,8 +2700,8 @@ function homeAlerts(g) {
   }
   if (can('may') && S.base && S.base.kho && !srvOld('kho')) {
     const inf = khoNhapInfo();
-    if (!inf) add(2, 'box', 'aKhoChua', null, 1, 'data-act="tab" data-v="kho"', ' ');
-    else if (inf.ngay >= 7) add(2, 'box', 'aKho', { n: inf.ngay }, 1, 'data-act="tab" data-v="kho"', ' ');
+    if (!inf) add(2, 'box', 'aKhoChua', null, 1, 'data-act="khoMo" data-v="nhap"', ' ');
+    else if (inf.ngay >= 7) add(2, 'box', 'aKho', { n: inf.ngay }, 1, 'data-act="khoMo" data-v="nhap"', ' ');
   }
   return out.sort((a, b) => a.sev - b.sev);
 }
@@ -2763,7 +2764,7 @@ function modTiles() {
   if (S.kho.ds.length && xemHet()) {
     // Thiếu hàng chỉ xem trong mục Kho ngũ kim, không báo ra trang chủ
     const vis = S.kho.ds.filter((x) => !x.an && !x.gop);
-    h += tile('mt-purple', 'box', 'mLinhKien', null, fmtNum(vis.length, 0), t('mConHang', { n: fmtNum(vis.filter((x) => (tonOf(x) || 0) > 0).length, 0) }), 'data-act="tab" data-v="kho"');
+    h += tile('mt-purple', 'box', 'mLinhKien', null, fmtNum(vis.length, 0), t('mConHang', { n: fmtNum(vis.filter((x) => (tonOf(x) || 0) > 0).length, 0) }), 'data-act="khoMo" data-v="ton"');
   }
   return h;
 }
@@ -4021,7 +4022,7 @@ Object.assign(TX, {
     '每类一个独立文件，列与工厂台帐一致。在文件中修改后，在对应类别点“重新导入”：保留设备编号的行更新原设备，编号留空的行新增设备。“chi tiet”明细表（每台风机、胶机）也可重新导入。'],
   tbXuatTat: ['Xuất tất cả (mỗi loại một file)', '全部导出（每类一个文件）'],
 });
-const listSeg = (cur) => `<div class="seg wide3${xemHet() ? ' seg4' : ''}" style="margin-bottom:12px">${(xemHet() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history'], ['kho', 'segKho']] : xemTB() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history']] : [['cal', 'segLich'], ['hist', 'history']]).map(([v, k]) =>
+const listSeg = (cur) => `<div class="seg wide3" style="margin-bottom:12px">${(xemTB() ? [['list', 'segList'], ['cal', 'segLich'], ['hist', 'history']] : [['cal', 'segLich'], ['hist', 'history']]).map(([v, k]) =>
   `<button class="${cur === v ? 'on' : ''}" data-act="tab" data-v="${v}">${tv(k)}<small>${tz(k)}</small></button>`).join('')}</div>`;
 // ----- Bảng dữ liệu cho máy tính: tiêu đề cố định khi cuộn, phân trang, tổng số kết quả -----
 const PER_PAGE = 50;
@@ -5206,7 +5207,9 @@ const ACT = {
   listKhoi: (el) => { S.f.khoi = S.f.khoi === el.dataset.k ? '' : el.dataset.k; S.f.grp = ''; S.f.pg = Object.assign(S.f.pg || {}, { may: 0 }); render(); },
   dienLoc: (el) => { S.f.dTab = 'ghi'; S.f.dKy = ''; S.f.dLoc = el.dataset.loc; tab('dien'); },
   dienLoai: (el) => { S.f.dTab = 'bang'; S.f.dLoai = el.dataset.l; tab('dien'); },
-  khoLoc: (el) => { S.f.khoF = el.dataset.v; S.f.khoQ = ''; tab('kho'); },
+  khoLoc: (el) => { S.f.khoF = el.dataset.v; S.f.khoQ = ''; S.f.khoTab = 'ton'; tab('kho'); },
+  khoMo: (el) => { S.f.khoTab = (el && el.dataset.v) || 'ton'; tab('kho'); },
+  khoTab: (el) => { S.f.khoTab = el.dataset.v; render(); },
   xdMine: (el) => { const q = S.Q.find((x) => x.opId === el.dataset.op); if (!q) return; q.p.ghiDe = true; q.st = 'cho'; delete q.err; saveQ(); rebuild(); flush().then(() => render()); render(); },  may: (el) => { if (topV().v === 'may' && topV().p.ma === el.dataset.ma) { closeSheet(); return; } go('may', { ma: el.dataset.ma, xn: el.dataset.xn === '1' }); },
   xn: (el) => openConfirm(el.dataset.ma),
   doConfirm: (el) => doConfirm(el),
@@ -9023,51 +9026,52 @@ function khoNhapInfo() {
 function khoNhapBtn() {
   return `<label class="btn y filebtn wide khobtn">${IC.dl}<span class="stk">${tv('khoNhapBtn')}<span class="zi">${tz('khoNhapBtn')}</span></span><input type="file" id="khoFile" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label>`;
 }
+// ---------- Kho linh kiện: một mục riêng, ba tab con (v2.67) ----------
+// Kiểm tra kho: xem tồn, nhắc hàng, mức báo · Nhập dữ liệu: file ERP, tồn an toàn, hàng đã về, lịch sử nhập ·
+// Phiếu mua hàng: lập phiếu hàng có mã / chưa có mã, phiếu đã lập, theo dõi hàng về
+SRV_PHAN.push(['hangve', '2.67.0', 'srvMissVe']);
+Object.assign(TX, {
+  khoTabTon: ['Kiểm tra kho', '库存查询'], khoTabNhap: ['Nhập dữ liệu', '导入数据'], khoTabMua: ['Phiếu mua hàng', '请购单'],
+  khoCapNhat: ['cập nhật', '更新于'], khoFileERP: ['File tồn kho ERP', 'ERP库存文件'], khoTonAT: ['Tồn kho an toàn', '安全库存'],
+  khoNhapVeHelp: ['Mỗi tuần nhập file mới. Mã nào tồn tăng so với lần nhập trước thì app coi là hàng đã về và tự đánh dấu vào phiếu đặt mua đang chờ.',
+    '每周导入新文件。库存比上次导入增加的编码视为已到货，并自动标记到待到货的请购单中。'],
+  khoVeSau: ['Hàng đặt đã về · nhập {d}', '请购物料到货 · {d}导入'],
+  khoVeKhong: ['Lần nhập này chưa thấy hàng nào trong phiếu đặt mua về (tồn không tăng).', '本次导入未发现请购物料到货（库存未增加）。'],
+  khoVeChuaPhieu: ['Chưa có phiếu đặt mua nào để so hàng về.', '暂无请购单可核对到货。'],
+  khoTangKhac: ['Hàng khác tăng tồn (không có trong phiếu)', '其他库存增加的物料（不在请购单中）'],
+  khoTangKhacHelp: ['Tồn tăng so với lần nhập trước nhưng không nằm trong phiếu đặt mua nào: có thể là hàng người khác đặt, hàng trả lại kho, hoặc kiểm kê điều chỉnh.',
+    '库存比上次增加但不在任何请购单中：可能是他人采购、退库或盘点调整。'],
+  khoTangN: ['{n} mã tăng tồn', '{n}个编码库存增加'], khoVeN: ['về {n}', '到货{n}'],
+  khoChoMaHelp: ['Linh kiện nhập không mã: xuất bảng, tạo mã trên ERP rồi nạp lại', '无编号零件：导出表格，在ERP建编号后导回'],
+  khoDaLuuVe: [' · {n} hàng đặt đã về', ' · 请购物料到货{n}项'],
+  khoLapPhieu: ['Lập phiếu đề nghị mua hàng', '填写请购单'],
+  dmCoMa: ['Hàng có mã', '有编号物料'], dmChuaMa: ['Hàng chưa có mã', '无编号物料'],
+  dmCoMaHelp: ['Chọn từ kho ERP: hàng hết, thiếu tồn an toàn, hoặc tìm theo mã / tên', '从ERP库存选择：缺货、低于安全库存或按编号/名称搜索'],
+  dmChuaMaHelp: ['Gõ tên tiếng Việt, quy cách, số lượng, máy dùng — tên tiếng Trung tự dịch', '填写越南语名称、规格、数量、使用设备——中文名称自动翻译'],
+  dmDangSoanN: ['Phiếu đang soạn: {n} mặt hàng ({a} có mã · {b} chưa có mã)', '正在填写的请购单：{n}项（有编号{a} · 无编号{b}）'],
+  dmXemTatCa: ['Xem tất cả phiếu ({n})', '查看全部请购单（{n}）'],
+  dmTheoDoiVe: ['Theo dõi hàng về', '到货跟踪'], dmChoVe: ['Chờ về', '待到货'],
+  dmVeHelp: ['Hàng có mã: nhập file ERP thấy tồn tăng thì app tự đánh dấu đã về. Hàng chưa có mã: bấm "Đã về" khi nhận hàng.',
+    '有编号物料：导入ERP文件时库存增加即自动标记到货。无编号物料：收货时点击“已到货”。'],
+  dmVeChuaCo: ['Chưa có hàng nào về', '暂无到货'], dmChoVeHet: ['Không còn hàng nào chờ về', '没有待到货的物料'],
+  dmVeTay: ['Đã về {d} (đánh dấu tay)', '{d} 到货（手动标记）'], dmVeTuTon: ['Đã về {d} (theo tồn kho ERP)', '{d} 到货（按ERP库存）'],
+  dmVeMotSo: ['Về một phần: {a}/{b} · {d}', '部分到货：{a}/{b} · {d}'],
+  dmDaVeBtn: ['Đã về', '已到货'], dmChuaVeBtn: ['Chưa về', '未到货'],
+  dmVeDaDanh: ['Đã đánh dấu đã về: {m}', '已标记到货：{m}'], dmVeBoDanh: ['Đã bỏ dấu đã về: {m}', '已取消到货标记：{m}'],
+  dmVeDu: ['Về đủ', '已到齐'], dmVeMot: ['Về một phần', '部分到货'], dmVeTien: ['Đã về {a}/{b} mặt hàng', '已到货 {a}/{b} 项'],
+  dmKhiDat: ['lúc đặt chưa có mã', '申请时无编号'],
+  srvMissVe: ['Máy chủ chưa theo dõi được hàng về. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不支持到货跟踪。请更新 Code.gs 并重新部署。']
+});
+const KHO_TABS = [['ton', 'khoTabTon'], ['nhap', 'khoTabNhap'], ['mua', 'khoTabMua']];
+const khoTabCur = () => (KHO_TABS.some(([v]) => v === S.f.khoTab) ? S.f.khoTab : 'ton');
+const khoSeg = (cur) => `<div class="seg wide3" style="margin-bottom:12px">${KHO_TABS.map(([v, k]) =>
+  `<button class="${cur === v ? 'on' : ''}" data-act="khoTab" data-v="${v}">${tv(k)}<small>${tz(k)}</small></button>`).join('')}</div>`;
 VIEWS.kho = {
   html() {
-    let o = listSeg('kho');
+    const cur = khoTabCur();
+    const o = khoSeg(cur);
     if (srvOld('kho')) return o + srvWarn('kho');
-    const k = S.kho, inf = khoNhapInfo(), f = S.f;
-    const vis = k.ds.filter((x) => !x.an && !x.gop), con = vis.filter((x) => (tonOf(x) || 0) > 0).length;
-    o += `<div class="card pad khohead"><div class="kh1"><span class="kic">${IC.box}</span><div class="kh1t"><b>${t('khoN', { n: fmtNum(vis.length, 0) })}</b>
-      ${vis.length ? `<div class="sub">${t('khoConN', { n: fmtNum(con, 0) })}</div>` : ''}</div></div>`;
-    if (inf) {
-      o += `<div class="khoinf">${esc(tv('khoLuc'))} · <span lang="zh-CN" class="zh">${esc(tz('khoLuc'))}</span> <b class="mono">${esc(fmtD(inf.nh.luc.slice(0, 10)) + ' ' + inf.nh.luc.slice(11, 16))}</b><div class="mono kf">${esc(inf.nh.file || '')}${inf.nh.nguoi ? ' · ' + esc(inf.nh.nguoi) : ''}</div></div>`;
-      if (inf.ngay >= 7 && can('may')) o += `<div class="note" style="margin:10px 0 0">${t('khoCu', { n: inf.ngay })}</div>`;
-    } else if (can('may')) o += `<div class="note" style="margin:10px 0 0">${t('khoChuaNhap')}</div>`;
-    if (can('may')) o += `<div style="margin-top:12px">${khoNhapBtn()}</div>${inf ? '' : `<div class="help">${t('khoNhapHelp')}</div>`}`;
-    const nhac = k.ds.length ? khoNhacDS() : { n: 0 };
-    if (nhac.n) o += `<button class="btn r wide" style="margin-top:10px" data-act="khoNhac">${IC.warn} ${t('khoNhacN', { n: nhac.n })}</button>`;
-    if (k.ds.length) { const dmN = dmLay().ds.length; o += `<button class="btn ghost wide" style="margin-top:8px" data-act="datMua">${IC.list} ${t('dmMo')}${dmN ? ` <span class="pill p-nay">${esc(tv('dmTongMH', { n: dmN }))}</span>` : ''}</button>`; }
-    if (can('may') && !srvOld('tonat')) o += `<div class="btns" style="margin-top:10px">
-      <button class="btn ghost" data-act="khoMauTon">${IC.dl} ${t('khoMauTonBtn')}</button>
-      <label class="btn ghost filebtn">${IC.dl} ${t('khoNapTonBtn')}<input type="file" id="khoMinFile" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label></div>
-      <div class="help" style="margin-top:6px">${t('khoMauHelp')}</div>`;
-    // Hai mức báo gói trong một ô, bấm mới mở cho gọn
-    if (can('may') && !srvOld('khonhac')) o += `<details class="kdet kset" style="margin-top:12px"${S.f.khoCfgMo ? ' open' : ''} id="khoCfg">
-      <summary>${t('khoMucDat')} <span class="cnt mono">${esc(soG(khoPhanTramN()))}% · ${esc(soG(khoGanHetN()))}</span></summary>
-      ${srvOld('khopct') ? '' : `<div class="inrow" style="align-items:center;gap:8px;flex-wrap:wrap">
-        <span class="help" style="margin:0;flex:1;min-width:140px">${t('khoPtDat')}</span>
-        <input class="inp mono" id="khoPt" inputmode="decimal" maxlength="5" value="${esc(soG(khoPhanTramN()))}" style="max-width:80px;min-height:38px;padding:6px 10px">
-        <span class="help" style="margin:0">%</span>
-        <button class="btn ghost sm" data-act="khoPtLuu">${t('save')}</button></div>
-      <div class="help" style="margin:6px 0 14px">${t('khoPtHelp', { p: soG(khoPhanTramN()) })}</div>`}
-      <div class="inrow" style="align-items:center;gap:8px;flex-wrap:wrap">
-        <span class="help" style="margin:0;flex:1;min-width:140px">${t('khoNguongDat')}</span>
-        <input class="inp mono" id="khoNg" inputmode="decimal" maxlength="6" value="${esc(soG(khoGanHetN()))}" style="max-width:80px;min-height:38px;padding:6px 10px">
-        <button class="btn ghost sm" data-act="khoNgLuu">${t('save')}</button></div>
-      <div class="help" style="margin-top:6px">${t('khoNguongHelp')}</div></details>`;
-    if ((k.nhatKy || []).length) o += `<details class="kdet" style="margin-top:12px"><summary>${t('khoNhatKy')} <span class="cnt mono">${k.nhatKy.length}</span></summary>
-      <div class="list">${k.nhatKy.map((h) => `<div class="row"><div class="main"><div class="nm mono">${esc(fmtD(h.luc.slice(0, 10)))} ${esc(h.luc.slice(11, 16))}</div>
-        <div class="sub">${esc(h.file || '')}${h.nguoi ? ' · ' + esc(h.nguoi) : ''}</div></div>
-        <div class="end"><span class="mono">${esc(tv('khoMaN', { n: fmtNum(h.soMa, 0) }))}</span></div></div>`).join('')}</div></details>`;
-    o += '</div>';
-    if (!k.ds.length) return o + `<div class="card empty" style="margin-top:14px">${S.khoLoading ? t('khoChoTai') : t(can('may') ? 'khoTrong' : 'khoTrongKT')}</div>`;
-    const chip = (v, k2) => `<button class="chip${f.khoF === v ? ' on' : ''}" data-act="khoF" data-v="${v}">${t(k2)}</button>`;
-    o += `<div class="searchbox" style="margin-top:14px">${IC.search}<input class="inp" id="khoQ" type="search" value="${esc(f.khoQ)}" placeholder="${esc(tp('khoSearch'))}" autocomplete="off"></div>
-      <div class="hscroll" style="margin:12px 0 0">${chip('', 'all')}${chip('thap', 'kfThap')}${chip('chuaAT', 'kfChuaAT')}${chip('con', 'kfCon')}${chip('het', 'kfHet')}${chip('may', 'kfMay')}${chip('app', 'kfApp')}</div>
-      <div id="khoBody">${khoBody()}</div>`;
-    return o;
+    return o + (cur === 'nhap' ? khoTabNhapHtml() : cur === 'mua' ? khoTabMuaHtml() : khoTabTonHtml());
   },
   after() {
     const q = $('#khoQ');
@@ -9080,6 +9084,148 @@ VIEWS.kho = {
     if (cf) cf.addEventListener('toggle', () => { S.f.khoCfgMo = cf.open; });
   }
 };
+const khoLucTxt = (luc) => fmtD(String(luc || '').slice(0, 10)) + ' ' + String(luc || '').slice(11, 16);
+// Tab 1 · Kiểm tra dữ liệu kho
+function khoTabTonHtml() {
+  const k = S.kho, inf = khoNhapInfo(), f = S.f;
+  const vis = k.ds.filter((x) => !x.an && !x.gop), con = vis.filter((x) => (tonOf(x) || 0) > 0).length;
+  let o = `<div class="card pad khohead"><div class="kh1"><span class="kic">${IC.box}</span><div class="kh1t"><b>${t('khoN', { n: fmtNum(vis.length, 0) })}</b>
+    ${vis.length ? `<div class="sub">${t('khoConN', { n: fmtNum(con, 0) })}${inf ? ` · ${esc(tv('khoCapNhat'))} <span class="mono">${esc(khoLucTxt(inf.nh.luc))}</span>` : ''}</div>` : ''}</div></div>`;
+  // File cũ / chưa nhập: một dòng nhắc, bấm sang tab Nhập dữ liệu
+  if (can('may') && (!inf || inf.ngay >= 7)) o += `<div class="note" style="margin:10px 0 0">${inf ? t('khoCu', { n: inf.ngay }) : t('khoChuaNhap')}
+    <button class="lnkbtn" style="min-height:0;padding:4px 0 0;display:flex" data-act="khoTab" data-v="nhap">${IC.dl} ${t('khoTabNhap')}</button></div>`;
+  const nhac = k.ds.length ? khoNhacDS() : { n: 0 };
+  if (nhac.n) o += `<button class="btn r wide" style="margin-top:10px" data-act="khoNhac">${IC.warn} ${t('khoNhacN', { n: nhac.n })}</button>`;
+  // Hai mức báo gói trong một ô, bấm mới mở cho gọn
+  if (can('may') && !srvOld('khonhac') && k.ds.length) o += `<details class="kdet kset" style="margin-top:12px"${S.f.khoCfgMo ? ' open' : ''} id="khoCfg">
+    <summary>${t('khoMucDat')} <span class="cnt mono">${esc(soG(khoPhanTramN()))}% · ${esc(soG(khoGanHetN()))}</span></summary>
+    ${srvOld('khopct') ? '' : `<div class="inrow" style="align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="help" style="margin:0;flex:1;min-width:140px">${t('khoPtDat')}</span>
+      <input class="inp mono" id="khoPt" inputmode="decimal" maxlength="5" value="${esc(soG(khoPhanTramN()))}" style="max-width:80px;min-height:38px;padding:6px 10px">
+      <span class="help" style="margin:0">%</span>
+      <button class="btn ghost sm" data-act="khoPtLuu">${t('save')}</button></div>
+    <div class="help" style="margin:6px 0 14px">${t('khoPtHelp', { p: soG(khoPhanTramN()) })}</div>`}
+    <div class="inrow" style="align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="help" style="margin:0;flex:1;min-width:140px">${t('khoNguongDat')}</span>
+      <input class="inp mono" id="khoNg" inputmode="decimal" maxlength="6" value="${esc(soG(khoGanHetN()))}" style="max-width:80px;min-height:38px;padding:6px 10px">
+      <button class="btn ghost sm" data-act="khoNgLuu">${t('save')}</button></div>
+    <div class="help" style="margin-top:6px">${t('khoNguongHelp')}</div></details>`;
+  o += '</div>';
+  if (!k.ds.length) return o + `<div class="card empty" style="margin-top:14px">${S.khoLoading ? t('khoChoTai') : t(can('may') ? 'khoTrong' : 'khoTrongKT')}</div>`;
+  const chip = (v, k2) => `<button class="chip${f.khoF === v ? ' on' : ''}" data-act="khoF" data-v="${v}">${t(k2)}</button>`;
+  o += `<div class="searchbox" style="margin-top:14px">${IC.search}<input class="inp" id="khoQ" type="search" value="${esc(f.khoQ)}" placeholder="${esc(tp('khoSearch'))}" autocomplete="off"></div>
+    <div class="hscroll" style="margin:12px 0 0">${chip('', 'all')}${chip('thap', 'kfThap')}${chip('chuaAT', 'kfChuaAT')}${chip('con', 'kfCon')}${chip('het', 'kfHet')}${chip('may', 'kfMay')}${chip('app', 'kfApp')}</div>
+    <div id="khoBody">${khoBody()}</div>`;
+  return o;
+}
+// Tab 2 · Nhập dữ liệu
+function khoTabNhapHtml() {
+  const k = S.kho, inf = khoNhapInfo(), may = can('may');
+  let o = sec('khoFileERP') + '<div class="card pad">';
+  if (inf) {
+    o += `<div class="khoinf" style="margin:0">${esc(tv('khoLuc'))} · <span lang="zh-CN" class="zh">${esc(tz('khoLuc'))}</span> <b class="mono">${esc(khoLucTxt(inf.nh.luc))}</b><div class="mono kf">${esc(inf.nh.file || '')}${inf.nh.nguoi ? ' · ' + esc(inf.nh.nguoi) : ''}</div></div>`;
+    if (inf.ngay >= 7 && may) o += `<div class="note" style="margin:10px 0 0">${t('khoCu', { n: inf.ngay })}</div>`;
+  } else if (may) o += `<div class="note" style="margin:0">${t('khoChuaNhap')}</div>`;
+  if (may) o += `<div style="margin-top:12px">${khoNhapBtn()}</div><div class="help">${t(inf ? 'khoNhapVeHelp' : 'khoNhapHelp')}</div>`;
+  o += '</div>';
+  // Hàng đã về của lần nhập gần nhất
+  const nk = (k.nhatKy || [])[0];
+  if (nk && k.ds.length && (dmDS().length || (nk.ve || []).length)) o += sec('khoVeSau', '', { d: fmtD(String(nk.luc).slice(0, 10)) }) + (srvOld('hangve') ? srvWarn('hangve') : khoVeHtml(nk, true));
+  if (may && !srvOld('tonat')) o += sec('khoTonAT') + `<div class="card pad"><div style="display:grid;gap:8px">
+    <button class="btn ghost wide" data-act="khoMauTon">${IC.dl} ${t('khoMauTonBtn')}</button>
+    <label class="btn ghost wide filebtn">${IC.dl} ${t('khoNapTonBtn')}<input type="file" id="khoMinFile" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label></div>
+    <div class="help" style="margin-top:6px">${t('khoMauHelp')}</div></div>`;
+  if (may && S.V) {
+    const cm = cmDS().length;
+    o += `<div class="list" style="margin-top:12px"><button class="row" data-act="cmMo"><span class="aic">${IC.list}</span><div class="main"><div class="nm">${esc(tv('t_lkChoMa'))}</div>
+      <div class="sub">${esc(tv('khoChoMaHelp'))}</div></div><div class="end">${cm ? `<span class="pill p-sap mono">${cm}</span>` : ''}${IC.chev}</div></button></div>`;
+  }
+  if ((k.nhatKy || []).length) o += sec('khoNhatKy', k.nhatKy.length) + `<div class="list">${k.nhatKy.map((h) => {
+    const nv = (h.ve || []).length;
+    return `<button class="row" data-act="khoNkXem" data-id="${esc(h.id)}"><div class="main"><div class="nm mono">${esc(khoLucTxt(h.luc))}</div>
+      <div class="sub">${esc(h.file || '')}${h.nguoi ? ' · ' + esc(h.nguoi) : ''}</div></div>
+      <div class="end">${nv ? `<span class="pill p-ok">${esc(tv('khoVeN', { n: nv }))}</span>` : ''}<span class="mono muted">${esc(tv('khoMaN', { n: fmtNum(h.soMa, 0) }))}</span></div></button>`;
+  }).join('')}</div>`;
+  return o;
+}
+// Hàng tồn tăng ở lần nhập gần nhất mà không nằm trong phiếu đặt mua nào: so 2 mốc cuối của dãy tồn qua các lần nhập
+function khoTangKhac(boMa) {
+  const out = [];
+  S.kho.ds.forEach((x) => {
+    const c = x.tonCu || [];
+    if (x.ng !== 'ERP' || !c.length || boMa[x.ma]) return;
+    const d = c[c.length - 1] - (c.length > 1 ? c[c.length - 2] : 0);
+    if (d > 0 && !x.gop) out.push({ x, d });
+  });
+  return out.sort((a, b) => String(a.x.ten).localeCompare(String(b.x.ten)));
+}
+// Danh sách hàng đã về của một lần nhập: hàng đặt trong phiếu trước, hàng khác tăng tồn gói lại bên dưới
+function khoVeHtml(nk, moiNhat) {
+  const ve = nk.ve || [], bo = {};
+  ve.forEach((v) => { bo[v.ma] = 1; });
+  let o = '';
+  if (ve.length) o += `<div class="list">${ve.map((v) => `<button class="row" data-act="dmXemPhieu" data-id="${esc(v.id)}"><div class="main">
+      <div class="nm">${lkTenH(v.ten)}</div>
+      <div class="sub"><span class="code">${esc(v.ma)}</span>${v.kma ? ` <span class="tag">${esc(tv('dmKhiDat'))}</span>` : ''} · <span class="mono">${esc(v.so)}</span> · ${esc(fmtD(v.ngay))}</div></div>
+      <div class="end" style="flex-direction:column;align-items:flex-end;gap:3px"><span class="pill ${v.du ? 'p-ok' : 'p-sap'}">${esc(tv(v.du ? 'dmVeDu' : 'dmVeMot'))}</span>
+      <span class="mono" style="font-size:12.5px"><b>${esc(soG(v.slVe))}</b>/${esc(soG(v.sl))} ${esc(dvTxt(v.dv || ''))}</span></div></button>`).join('')}</div>`;
+  else o += `<div class="card empty" style="padding:16px">${t(dmDS().length ? 'khoVeKhong' : 'khoVeChuaPhieu')}</div>`;
+  if (moiNhat) {
+    const khac = khoTangKhac(bo);
+    if (khac.length) o += `<details class="kdet" style="margin-top:10px"><summary>${t('khoTangKhac')} <span class="cnt mono">${khac.length}</span></summary>
+      <div class="help" style="margin:0 0 8px">${t('khoTangKhacHelp')}</div>
+      <div class="list">${khac.slice(0, 200).map(({ x, d }) => `<button class="row khorow" data-act="khoItem" data-ma="${esc(x.ma)}"><div class="main"><div class="nm">${lkTenH(x.ten)}</div>
+        <div class="sub"><span class="code">${esc(x.ma)}</span>${x.qc ? ` <span class="qc">${esc(x.qc)}</span>` : ''}</div></div>
+        <div class="end kchg"><b class="mono" style="color:var(--green)">+${esc(soG(d))}</b> ${tonHtml(x)}</div></button>`).join('')}</div></details>`;
+  }
+  return o;
+}
+// Tab 3 · Phiếu mua hàng
+function khoTabMuaHtml() {
+  const v = dmLay(), nMa = v.ds.filter((r) => r.ma).length, nNg = v.ds.length - nMa, ds = dmDS();
+  const nut = (kieu, ic, k, h) => `<button class="row" data-act="dmMoKieu" data-v="${kieu}"><span class="aic">${IC[ic]}</span><div class="main">
+    <div class="nm">${esc(tv(k))}<span class="zi" lang="zh-CN">${esc(tz(k))}</span></div><div class="sub">${esc(tv(h))}</div></div>${IC.chev}</button>`;
+  let o = sec('khoLapPhieu') + `<div class="list">${nut('ma', 'box', 'dmCoMa', 'dmCoMaHelp')}${nut('ngoai', 'plus', 'dmChuaMa', 'dmChuaMaHelp')}</div>`;
+  if (v.ds.length) o += `<button class="btn ghost wide" style="margin-top:8px" data-act="datMua">${IC.list} ${esc(tv('dmDangSoanN', { n: v.ds.length, a: nMa, b: nNg }))}</button>`;
+  o += sec('t_dmDS', ds.length || '');
+  if (ds.length) o += `<div class="list">${ds.slice(0, 3).map(dmPhieuRow).join('')}</div>${ds.length > 3 ? `<button class="btn ghost wide" style="margin-top:8px" data-act="dmDSMo">${esc(tv('dmXemTatCa', { n: ds.length }))}</button>` : ''}`;
+  else o += `<div class="card empty" style="padding:16px">${t('dmDSTrong')}</div>`;
+  if (ds.length) o += khoTheoDoiVeHtml();
+  return o;
+}
+// Theo dõi hàng về: từng dòng hàng của các phiếu đã lập. Có mã: app tự nhận khi nhập file ERP thấy tồn tăng.
+// Chưa có mã: bấm "Đã về" khi nhận hàng.
+const dmDongVe = (x, r) => r.ve === 1 || x.trangThai === 'DA_VE';
+function dmDongDS() {
+  const out = [];
+  dmDS().forEach((x) => (x.ds || []).forEach((r, i) => out.push({ x, r, i, ve: dmDongVe(x, r) })));
+  return out;
+}
+function dmVeRow(o) {
+  const { x, r, i } = o, da = +r.slVe || 0;
+  return `<div class="row"><button type="button" class="main" style="border:0;background:none;text-align:left;padding:0;cursor:pointer" data-act="dmXemPhieu" data-id="${esc(x.id)}">
+      <div class="nm">${esc(r.ten)}${r.tenZh ? `<span class="zi" lang="zh-CN">${esc(r.tenZh)}</span>` : ''}</div>
+      <div class="sub">${r.erp ? `<span class="code">${esc(r.ma)}</span>` : r.maVe ? `<span class="code">${esc(r.maVe)}</span>` : `<span class="tag">${esc(tv('dmNgoai'))}</span>`}${r.qc ? ` <span class="qc">${esc(r.qc)}</span>` : ''} · <span class="mono">${esc(x.soPhieu)}</span> · ${esc(fmtD(x.ngay))}</div>
+      ${o.ve && r.ngayVe ? `<div class="sub" style="color:var(--green)">${esc(tv(r.tay ? 'dmVeTay' : 'dmVeTuTon', { d: fmtD(r.ngayVe) }))}</div>` : ''}</button>
+    <div class="end" style="flex-direction:column;align-items:flex-end;gap:4px">
+      <span class="mono" style="font-size:13px">${!o.ve && da > 0 ? `<b>${esc(soG(da))}</b>/` : ''}<b>${esc(soG(r.sl))}</b> ${esc(dvTxt(r.dv || ''))}</span>
+      ${o.ve ? `<span class="pill p-ok">${esc(tv('dmTT_DA_VE'))}</span>` : `<button type="button" class="btn sm g" data-act="dmVeDanh" data-id="${esc(x.id)}" data-i="${i}" data-v="1">${IC.check} ${esc(tv('dmDaVeBtn'))}</button>`}</div></div>`;
+}
+function khoTheoDoiVeHtml() {
+  const all = dmDongDS(), cho = all.filter((o) => !o.ve), da = all.filter((o) => o.ve);
+  const loc = S.f.dmVeLoc === 'da' ? 'da' : 'cho';
+  let ds = loc === 'da' ? da.sort((a, b) => String(b.r.ngayVe || b.x.capNhat || '').localeCompare(String(a.r.ngayVe || a.x.capNhat || ''))).slice(0, 60)
+    : cho.sort((a, b) => String(a.x.ngay).localeCompare(String(b.x.ngay)));
+  if (srvOld('hangve')) return sec('dmTheoDoiVe') + srvWarn('hangve');
+  let o = sec('dmTheoDoiVe') + `<div class="hscroll stchips">${[['cho', 'dmChoVe', cho.length], ['da', 'dmTT_DA_VE', da.length]].map(([k, lb, n]) =>
+    `<button class="chip${loc === k ? ' on' : ''}" data-act="dmVeLoc" data-v="${k}">${t(lb)} (${n})</button>`).join('')}</div>
+    <p class="help" style="margin:8px 0 10px">${t('dmVeHelp')}</p>`;
+  if (!ds.length) return o + `<div class="card empty" style="padding:16px">${t(loc === 'da' ? 'dmVeChuaCo' : 'dmChoVeHet')}</div>`;
+  const coMa = ds.filter((o2) => o2.r.erp), chua = ds.filter((o2) => !o2.r.erp);
+  if (coMa.length) o += `<div class="lshd">${esc(tv('dmCoMa'))}<span class="zi">${esc(tz('dmCoMa'))}</span> <span class="nhomn">${coMa.length}</span></div><div class="list">${coMa.map(dmVeRow).join('')}</div>`;
+  if (chua.length) o += `<div class="lshd">${esc(tv('dmChuaMa'))}<span class="zi">${esc(tz('dmChuaMa'))}</span> <span class="nhomn">${chua.length}</span></div><div class="list">${chua.map(dmVeRow).join('')}</div>`;
+  return o;
+}
 // Hàng chưa khai tồn kho an toàn (bỏ hàng đã ẩn và hàng đã gộp)
 const khoChuaAT = (x) => !x.an && (x.tonMin === undefined || x.tonMin === '');
 function khoBody() {
@@ -9247,13 +9393,14 @@ async function khoLuu(el) {
   const lbl = el.innerHTML; el.innerHTML = t('khoDangLuu');
   try {
     const d = await api('importKho', { file: r.file, soDong: r.soDong, ds: r.ds }, { timeout: 240 });
-    khoSet({ ver: d.ver, ds: d.ds, nhap: d.nhap });
+    khoSet({ ver: d.ver, ds: d.ds, nhap: d.nhap, moc: d.moc || S.kho.moc, nhatKy: d.nhatKy ? [d.nhatKy].concat(S.kho.nhatKy || []).slice(0, 24) : S.kho.nhatKy });
     if (S.base) S.base.kho = { ver: d.ver, n: d.ds.filter((x) => !x.an && !x.gop).length, nhap: d.nhap };
-    mergeResult({ dsMay: d.dsMay || [] });
+    mergeResult({ dsMay: d.dsMay || [], dsDatMua: d.dsDatMua || [] });
     S.f.khoQ = ''; S.f.khoF = ''; S.f.khoLim = 60;
-    back();
-    toast(t('khoDaLuu', { n: fmtNum(d.tk.soMa, 0), a: d.tk.moi, b: d.tk.het }));
-    go('khoNhac', { tuNhap: 1 });
+    // Xong thì về tab Nhập dữ liệu: ngay trên cùng là danh sách hàng đặt đã về của lần nhập này
+    S.f.khoTab = 'nhap';
+    tab('kho');
+    toast(t('khoDaLuu', { n: fmtNum(d.tk.soMa, 0), a: d.tk.moi, b: d.tk.het }) + ((d.ve || []).length ? tv('khoDaLuuVe', { n: d.ve.length }) : ''));
   } catch (e) {
     el.disabled = false; el.innerHTML = lbl;
     fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false;
@@ -11831,7 +11978,7 @@ VIEWS.khoNhac = {
     o += `<div class="btns" style="margin-top:16px">
       ${d.n ? `<button class="btn pri" data-act="khoXuatThieu">${IC.dl} ${t('khoXuatThieu')}</button>` : ''}
       ${d.n ? `<button class="btn ghost" data-act="datMua">${IC.list} ${t('dmMo')}</button>` : ''}
-      <button class="btn ghost" data-act="tab" data-v="kho">${IC.box} ${t('khoXemKho')}</button></div>`;
+      <button class="btn ghost" data-act="khoMo" data-v="ton">${IC.box} ${t('khoXemKho')}</button></div>`;
     return o;
   }
 };
@@ -16719,15 +16866,16 @@ function dmDaDat(r) {
   return null;
 }
 // Dòng nhắc: "Đã đặt ngày 12/11 · phiếu DNMH… · SL 4 · Chờ đặt hàng"
+const dmTTDong = (dd) => (dmDongVe(dd.x, dd.h) ? 'DA_VE' : dd.x.trangThai === 'DA_VE' ? 'DA_DAT' : dd.x.trangThai || 'CHO');
 function dmNhacHtml(dd) {
   if (!dd) return '';
-  const chua = dd.x.trangThai !== 'DA_VE';
-  return `<div class="note${chua ? ' srvwarn' : ''}" style="margin-top:8px;font-size:13px">${IC.warn || '⚠'} ${esc(tv('dmDaDatNgay', { d: fmtD(dd.x.ngay), s: dd.x.soPhieu, n: soG(dd.h.sl), tt: tv('dmTT_' + (dd.x.trangThai || 'CHO')) }))}
-    <span class="zi">${esc(tz('dmDaDatNgay', { d: fmtD(dd.x.ngay), s: dd.x.soPhieu, n: soG(dd.h.sl), tt: tz('dmTT_' + (dd.x.trangThai || 'CHO')) }))}</span></div>`;
+  const chua = !dmDongVe(dd.x, dd.h), tt = dmTTDong(dd);
+  return `<div class="note${chua ? ' srvwarn' : ''}" style="margin-top:8px;font-size:13px">${IC.warn || '⚠'} ${esc(tv('dmDaDatNgay', { d: fmtD(dd.x.ngay), s: dd.x.soPhieu, n: soG(dd.h.sl), tt: tv('dmTT_' + tt) }))}
+    <span class="zi">${esc(tz('dmDaDatNgay', { d: fmtD(dd.x.ngay), s: dd.x.soPhieu, n: soG(dd.h.sl), tt: tz('dmTT_' + tt) }))}</span></div>`;
 }
 function dmNhacToast(r) {
   const dd = dmDaDat(r);
-  if (dd) toast(t('dmDaDatNgay', { d: fmtD(dd.x.ngay), s: dd.x.soPhieu, n: soG(dd.h.sl), tt: tv('dmTT_' + (dd.x.trangThai || 'CHO')) }), true);
+  if (dd) toast(t('dmDaDatNgay', { d: fmtD(dd.x.ngay), s: dd.x.soPhieu, n: soG(dd.h.sl), tt: tv('dmTT_' + dmTTDong(dd)) }), true);
 }
 function dmDongHtml(r, i) {
   const x = r.ma ? khoGet(r.ma) : null, ten = x ? x.ten : (r.ten + (r.tenZh ? ' · ' + r.tenZh : '')), qc = x ? x.qc : r.qc, dv = x ? dvTxt(x.dv || '') : r.dv;
@@ -16758,19 +16906,28 @@ function dmChonHtml(p, v) {
 }
 VIEWS.datMua = {
   html(p) {
-    const v = dmLay(); p.loc = p.loc || 'can';
+    const v = dmLay(); p.loc = p.loc || 'can'; p.kieu = p.kieu === 'ngoai' ? 'ngoai' : 'ma';
     const canN = S.kho.ds.length ? dmCanMuaDS().filter((o) => !v.ds.some((r) => r.ma === o.x.ma)).length : 0;
     const daLap = dmDS().length;
     let o = `${srvOld('datmua') ? srvWarn('datmua') : ''}<div class="btns" style="margin-bottom:10px"><button class="btn ghost" data-act="dmDSMo">${IC.list} ${esc(tv('dmDSMo', { n: daLap }))}<span class="zi">${esc(tz('dmDSMo', { n: daLap }))}</span></button></div>
-      ${dmDS().slice(0, 2).length ? `<div class="list" style="margin-bottom:12px">${dmDS().slice(0, 2).map(dmPhieuRow).join('')}</div>` : ''}
+      ${daLap ? `<div class="list" style="margin-bottom:12px">${dmDS().slice(0, 2).map(dmPhieuRow).join('')}</div>` : ''}
       <div class="card pad"><p class="help" style="margin:0;font-size:13.5px">${t('dmHelp')}</p><p class="help" style="margin:6px 0 0">${t('dmLuuHelp')}</p>
       <label class="fld" style="margin-top:10px"><span>${t('dmBoPhan')}</span><input class="inp" id="dmBP" maxlength="60" value="${esc(v.boPhan || '')}" placeholder="Bảo trì · 设备维修"></label></div>`;
-    o += sec('dmDangSoan', v.ds.length) + (v.ds.length ? v.ds.map(dmDongHtml).join('') : `<div class="card empty">${t('dmTrong')}</div>`);
+    // Phiếu đang soạn: hàng có mã và hàng chưa có mã tách hai nhóm (một phiếu vẫn chứa được cả hai)
+    const dong = v.ds.map((r, i) => ({ r, i })), coMa = dong.filter((d) => d.r.ma), chua = dong.filter((d) => !d.r.ma);
+    o += sec('dmDangSoan', v.ds.length);
+    if (!v.ds.length) o += `<div class="card empty">${t('dmTrong')}</div>`;
+    if (coMa.length) o += `<div class="lshd">${esc(tv('dmCoMa'))}<span class="zi">${esc(tz('dmCoMa'))}</span> <span class="nhomn">${coMa.length}</span></div>` + coMa.map((d) => dmDongHtml(d.r, d.i)).join('');
+    if (chua.length) o += `<div class="lshd">${esc(tv('dmChuaMa'))}<span class="zi">${esc(tz('dmChuaMa'))}</span> <span class="nhomn">${chua.length}</span></div>` + chua.map((d) => dmDongHtml(d.r, d.i)).join('');
     o += `<div class="err" id="dmErr" hidden></div>`;
     if (v.ds.length) o += `<div class="btns" style="margin-top:10px"><button class="btn bigbtn" data-act="dmLuuPhieu"${srvOld('datmua') ? ' disabled' : ''}>${IC.check} ${t('dmLuuPhieu')}</button></div>
       <div class="btns" style="margin-top:8px"><button class="btn ghost" data-act="dmXuat">${IC.dl} ${t('dmXuat')}</button>
       <button class="btn ghost" data-act="dmXoaHet">${t('dmXoaHet')}</button></div>`;
-    o += sec('dmNgoaiTD') + `<div class="card pad" id="dmNgoaiBox"><p class="help" style="margin:0 0 8px">${t('dmNgoaiHelp')}</p>${srvOld('dich') ? srvWarn('dich') : ''}
+    // Thêm hàng: chọn một trong hai kiểu
+    o += `<div id="dmThemSec">${sec('dmThem')}</div><div class="seg wide3" style="margin-bottom:10px">${[['ma', 'dmCoMa'], ['ngoai', 'dmChuaMa']].map(([k, lb]) =>
+      `<button class="${p.kieu === k ? 'on' : ''}" data-act="dmKieu" data-v="${k}">${tv(lb)}<small>${tz(lb)}</small></button>`).join('')}</div>`;
+    if (p.kieu === 'ngoai') {
+      o += `<div class="card pad" id="dmNgoaiBox"><p class="help" style="margin:0 0 8px">${t('dmNgoaiHelp')}</p>${srvOld('dich') ? srvWarn('dich') : ''}
       <div class="row2f"><label class="fld"><span>${tv('dmNgoaiTenVi')} *<span class="zi">${tz('dmNgoaiTenVi')}</span></span><input class="inp" id="dmNTen" maxlength="120"></label>
         <label class="fld"><span>${t('dmNgoaiTenZh')}</span><input class="inp" id="dmNZh" maxlength="120" lang="zh-CN"></label></div>
       <div class="dsgrid" style="grid-template-columns:2fr 70px 90px">
@@ -16779,7 +16936,9 @@ VIEWS.datMua = {
         <label class="mini"><span>${tv('dmSL')} *<span class="zi">${tz('dmSL')}</span></span><input class="inp mono" id="dmNSL" inputmode="decimal"></label></div>
       <div class="mini" style="margin-top:6px"><span>${t('dmMay')}</span>${tbChon('dmNMay', '', 'dmKhongMay', false)}</div>
       <div class="btns" style="margin-top:10px"><button class="btn sm" data-act="dmThemNgoai">${IC.plus} ${t('dmNgoaiThem')}</button></div></div>`;
-    o += sec('dmThem');
+      return o;
+    }
+    if (!S.kho.ds.length) return o + `<div class="card empty">${t(S.khoLoading ? 'khoChoTai' : 'khoTrong')}</div>`;
     if (canN) o += `<div class="btns" style="margin-bottom:8px"><button class="btn ghost sm" data-act="dmThemTatCa">${IC.plus} ${esc(tv('dmThemTatCa', { n: canN }))}<span class="zi">${esc(tz('dmThemTatCa', { n: canN }))}</span></button></div>`;
     o += `<div class="hscroll" style="margin-bottom:8px">${[['can', 'dmCanMua'], ['het', 'dmHet'], ['tatca', 'dmTatCa']].map(([k, lb]) =>
       `<button class="chip${p.loc === k ? ' on' : ''}" data-act="dmLoc" data-v="${k}">${tv(lb)} <span class="zi">${tz(lb)}</span></button>`).join('')}</div>
@@ -16789,6 +16948,7 @@ VIEWS.datMua = {
   },
   after(p) {
     const v = () => dmLay();
+    if (p.cuon) { p.cuon = 0; const e = $('#dmThemSec'); if (e && v().ds.length) setTimeout(() => e.scrollIntoView({ block: 'start' }), 30); }
     $$('[data-dmsl]').forEach((el) => el.addEventListener('input', () => { const d = v(), r = d.ds[+el.dataset.dmsl]; if (r) { r.sl = el.value.trim(); dmLuu(d); } }));
     $$('[data-dmgc]').forEach((el) => el.addEventListener('input', () => { const d = v(), r = d.ds[+el.dataset.dmgc]; if (r) { r.gc = el.value; dmLuu(d); } }));
     $$('[data-dmzh]').forEach((el) => el.addEventListener('input', () => { const d = v(), r = d.ds[+el.dataset.dmzh]; if (r) { r.tenZh = el.value.trim(); r.tuDich = false; dmLuu(d); } }));
@@ -16800,6 +16960,8 @@ VIEWS.datMua = {
 Object.assign(TITLES, { datMua: 't_datMua' });
 Object.assign(ACT, {
   datMua: () => go('datMua', {}),
+  dmMoKieu: (el) => go('datMua', { kieu: el.dataset.v, cuon: 1 }),
+  dmKieu: (el) => { topV().p.kieu = el.dataset.v; render(); },
   dmLoc: (el) => { topV().p.loc = el.dataset.v; render(); },
   dmThem: (el) => { const d = dmLay(); if (dmThemMa(d, el.dataset.ma)) { dmLuu(d); render(); dmNhacToast({ ma: el.dataset.ma }); } },
   dmThemTatCa: () => { const d = dmLay(); let n = 0; dmCanMuaDS().forEach((o) => { if (dmThemMa(d, o.x.ma, o.can || dmGoiY(o.x))) n++; }); dmLuu(d); toast(t('dmThemOk', { n })); render(); },
@@ -16891,8 +17053,11 @@ Object.assign(TX, {
 });
 const dmDS = () => ((S.base && S.base.datMua) || []).filter((x) => !x.xoa).sort((a, b) => String(b.lucTao).localeCompare(String(a.lucTao)));
 const DM_PILL = { CHO: 'p-cho', DA_DAT: 'p-nay', DA_VE: 'p-ok' };
+const dmVeDem = (x) => (x.ds || []).filter((r) => dmDongVe(x, r)).length;
 function dmPhieuRow(x) {
+  const n = (x.ds || []).length, ve = dmVeDem(x);
   return `<button class="row" data-act="dmXemPhieu" data-id="${esc(x.id)}"><div class="main"><div class="nm mono">${esc(x.soPhieu)}</div>
+    ${ve && ve < n ? `<div class="sub" style="color:var(--green);font-weight:600">${esc(tv('dmVeTien', { a: ve, b: n }))}</div>` : ''}
     <div class="sub">${esc(fmtD(x.ngay))} · ${esc(x.nguoiTao || '')}${x.boPhan ? ' · ' + esc(x.boPhan) : ''} · ${esc(tv('dmMHn', { n: x.soMH || (x.ds || []).length }))}</div>
     <div class="sub" style="margin-top:2px">${esc((x.ds || []).slice(0, 3).map((r) => r.ten).join(' · '))}${(x.ds || []).length > 3 ? ' …' : ''}</div></div>
     <div class="end"><span class="pill ${DM_PILL[x.trangThai] || 'p-cho'}">${esc(tv('dmTT_' + (x.trangThai || 'CHO')))}</span>${IC.chev}</div></button>`;
@@ -16912,11 +17077,16 @@ VIEWS.dmXem = {
     if (!x) return `<div class="card empty">${t('notFound')}</div>`;
     return `<div class="card pad"><div class="mono" style="font-size:18px;font-weight:800">${esc(x.soPhieu)}</div>
       <div class="help" style="margin-top:4px">${esc(fmtD(x.ngay))} · ${esc(tv('dmNguoiLap'))}: ${esc(x.nguoiTao || '')}${x.boPhan ? ' · ' + esc(x.boPhan) : ''}</div>
-      <div class="seg" style="margin-top:10px">${['CHO', 'DA_DAT', 'DA_VE'].map((k) => `<button class="${x.trangThai === k ? 'on' : ''}" data-act="dmTT" data-v="${k}"><span class="stk">${tv('dmTT_' + k)}<span class="zi">${tz('dmTT_' + k)}</span></span></button>`).join('')}</div></div>
-      ${sec('dmPhieu', (x.ds || []).length)}<div class="list">${(x.ds || []).map((r) => `<div class="row"><div class="main">
+      <div class="seg" style="margin-top:10px">${['CHO', 'DA_DAT', 'DA_VE'].map((k) => `<button class="${x.trangThai === k ? 'on' : ''}" data-act="dmTT" data-v="${k}"><span class="stk">${tv('dmTT_' + k)}<span class="zi">${tz('dmTT_' + k)}</span></span></button>`).join('')}</div>
+      ${dmVeDem(x) ? `<div class="help" style="margin-top:8px;color:var(--green)">${esc(tv('dmVeTien', { a: dmVeDem(x), b: (x.ds || []).length }))}<span class="zi">${esc(tz('dmVeTien', { a: dmVeDem(x), b: (x.ds || []).length }))}</span></div>` : ''}</div>
+      ${sec('dmPhieu', (x.ds || []).length)}<div class="list">${(x.ds || []).map((r, i) => { const ve = dmDongVe(x, r), da = +r.slVe || 0;
+        return `<div class="row"><div class="main">
         <div class="nm">${esc(r.ten)}${r.tenZh ? `<span class="zi" lang="zh-CN">${esc(r.tenZh)}</span>` : ''}</div>
-        <div class="sub">${r.erp ? `<span class="code">${esc(r.ma)}</span> ` : `<span class="tag">${esc(tv('dmNgoai'))}</span> `}${[r.qc ? '<span class="mono">' + esc(r.qc) + '</span>' : '', esc(r.dv || ''), r.mayTen ? esc(String(r.mayTen).split('\n')[0]) : '', esc(r.gc || '')].filter(Boolean).join(' · ')}</div></div>
-        <div class="end"><b class="mono" style="font-size:17px">${esc(soG(r.sl))}</b></div></div>`).join('')}</div>
+        <div class="sub">${r.erp ? `<span class="code">${esc(r.ma)}</span> ` : r.maVe ? `<span class="code">${esc(r.maVe)}</span> <span class="tag">${esc(tv('dmKhiDat'))}</span> ` : `<span class="tag">${esc(tv('dmNgoai'))}</span> `}${[r.qc ? '<span class="mono">' + esc(r.qc) + '</span>' : '', esc(r.dv || ''), r.mayTen ? esc(String(r.mayTen).split('\n')[0]) : '', esc(r.gc || '')].filter(Boolean).join(' · ')}</div>
+        ${ve ? `<div class="sub" style="color:var(--green)">${esc(r.ngayVe ? tv(r.tay ? 'dmVeTay' : 'dmVeTuTon', { d: fmtD(r.ngayVe) }) : tv('dmTT_DA_VE'))}</div>` : da > 0 ? `<div class="sub" style="color:var(--orange)">${esc(tv('dmVeMotSo', { a: soG(da), b: soG(r.sl), d: fmtD(r.ngayVe) }))}</div>` : ''}</div>
+        <div class="end" style="flex-direction:column;align-items:flex-end;gap:4px"><b class="mono" style="font-size:17px">${esc(soG(r.sl))}</b>
+          ${srvOld('hangve') || (x.trangThai === 'DA_VE' && r.ve !== 1) ? '' : ve ? `<button type="button" class="btn ghost sm" data-act="dmVeDanh" data-id="${esc(x.id)}" data-i="${i}" data-v="0">${esc(tv('dmChuaVeBtn'))}</button>`
+            : `<button type="button" class="btn sm g" data-act="dmVeDanh" data-id="${esc(x.id)}" data-i="${i}" data-v="1">${IC.check} ${esc(tv('dmDaVeBtn'))}</button>`}</div></div>`; }).join('')}</div>
       <div class="err" id="dmxErr" hidden></div>
       <div class="btns" style="margin-top:12px"><button class="btn" data-act="dmXuatPhieu">${IC.dl} ${t('dmXuat')}</button>
         <button class="btn ghost" data-act="dmSaoChep">${IC.plus} ${t('dmSaoChep')}</button>
@@ -16931,8 +17101,28 @@ async function dmSua(pl) {
 }
 Object.assign(ACT, {
   dmDSMo: () => go('dmDS', {}),
+  dmVeLoc: (el) => { S.f.dmVeLoc = el.dataset.v; render(); },
+  // Đánh dấu tay một dòng đã về / chưa về
+  dmVeDanh: async (el) => {
+    const x = dmDS().find((y) => y.id === el.dataset.id); if (!x) return;
+    const i = +el.dataset.i, ve = el.dataset.v === '1', r = (x.ds || [])[i]; if (!r) return;
+    el.disabled = true;
+    try {
+      const d = await api('setPurchase', { id: x.id, dong: { i, ve } });
+      mergeResult(d);
+      toast(tv(ve ? 'dmVeDaDanh' : 'dmVeBoDanh', { m: r.ten }));
+      render();
+    } catch (e) { el.disabled = false; toast(e.code === 'MANG' ? t('needNet') : errMsg(e), true); }
+  },
+  khoNkXem: (el) => {
+    const L = S.kho.nhatKy || [], nk = L.find((h) => h.id === el.dataset.id); if (!nk) return;
+    openSheet(`<div class="grab"></div><h3>${tv('khoVeSau', { d: khoLucTxt(nk.luc) })}<span class="zi">${tz('khoVeSau', { d: khoLucTxt(nk.luc) })}</span></h3>
+      <div class="help" style="margin-bottom:10px">${esc(nk.file || '')}${nk.nguoi ? ' · ' + esc(nk.nguoi) : ''} · ${esc(tv('khoMaN', { n: fmtNum(nk.soMa, 0) }))}${nk.tang ? ' · ' + esc(tv('khoTangN', { n: nk.tang })) : ''}</div>
+      ${khoVeHtml(nk, nk === L[0])}
+      <div class="btns" style="margin-top:16px"><button class="btn ghost" data-act="closeSheet">${t('close')}</button></div>`);
+  },
   dmLocDS: (el) => { topV().p.loc = el.dataset.v; render(); },
-  dmXemPhieu: (el) => go('dmXem', { id: el.dataset.id }),
+  dmXemPhieu: (el) => { closeSheet(); go('dmXem', { id: el.dataset.id }); },
   dmTT: async (el) => { const p = topV().p; el.disabled = true; if (await dmSua({ id: p.id, trangThai: el.dataset.v })) render(); else el.disabled = false; },
   dmXuatPhieu: async () => {
     const x = dmDS().find((y) => y.id === topV().p.id); if (!x) return;
@@ -16964,7 +17154,7 @@ Object.assign(ACT, {
     const d = dmLay(), fe = $('#dmErr');
     const sai = d.ds.filter((r) => !(parseSo(String(r.sl)) > 0));
     if (sai.length) { const r = sai[0], x = r.ma ? khoGet(r.ma) : null; fe.innerHTML = t('dmSLSai', { m: (x ? x.ten : r.ten) || '' }); fe.hidden = false; return; }
-    const trung = d.ds.map((r) => ({ r, dd: dmDaDat(r) })).filter((o) => o.dd && o.dd.x.trangThai !== 'DA_VE');
+    const trung = d.ds.map((r) => ({ r, dd: dmDaDat(r) })).filter((o) => o.dd && !dmDongVe(o.dd.x, o.dd.h));
     if (trung.length && !confirm(tp('dmTrungHoi') + '\n\n' + trung.slice(0, 8).map((o) => '• ' + (o.r.ma ? (khoGet(o.r.ma) || {}).ten || o.r.ma : o.r.ten) + ' — ' + fmtD(o.dd.x.ngay) + ' · ' + o.dd.x.soPhieu).join('\n'))) return;
     fe.hidden = true; el.disabled = true;
     await dmDich();
