@@ -3018,6 +3018,43 @@ assert.deepEqual(gy53.r.slice(0, 3), ['trung:TEST-QC2', 'gan:TEST-QC3', 'ten:TES
 assert.ok(gy53.trung >= 1 && gy53.coQC, 'gợi ý hiện quy cách, dòng trùng quy cách tô riêng');
 ok('Bản 2.67.1: gợi ý mã ERP trong bảng chờ tạo mã hiện kèm quy cách, trùng quy cách lên đầu');
 
+// 54. Kho ngũ kim phân loại: Cơ khí (vòng bi, trục, dao cắt…) / Điện khí (xi lanh, rơ le, khởi động từ, driver, động cơ…);
+// app tự xếp theo tên, Quản lý chọn tay được; mã hết hàng vẫn giữ nguyên trong kho
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.khoTab = 'ton'; S.f.khoQ = ''; S.f.khoF = ''; S.f.khoLoai = ''; tab('kho'); }); await wait(700);
+assert.equal(await page.locator('.kmucg').count() >= 2, true, 'tổng quan theo nhóm lớn');
+const mu54 = await page.evaluate(() => {
+  const by = (ma) => khoMucOf(khoGet(ma));
+  const tim = (re) => (S.kho.ds.find((x) => re.test(x.ten)) || {}).ma;
+  return { vb: by(tim(/^轴承/)), truc: by(tim(/^轴Trục/)), dao: by(tim(/^刀片/)), xl: by(tim(/^气缸/)), role: by(tim(/^继电器/)), kd: by(tim(/^交流接触器/)),
+    drv: by(tim(/变频器/)), dc: by(tim(/^电机 /)), tuyp: by(tim(/套筒/)), nhom: khoNhomOf(khoGet(tim(/^交流接触器/))) };
+});
+assert.deepEqual(mu54, { vb: 'vongbi', truc: 'truc', dao: 'dao', xl: 'xilanh', role: 'role', kd: 'khoidong', drv: 'driver', dc: 'dongco', tuyp: 'dungcu', nhom: 'dk' }, 'tự xếp theo tên hàng');
+await page.click('.kmuc[data-v="vongbi"]'); await wait(500);
+const vb54 = await page.evaluate(() => ({ bar: !!document.querySelector('.kmucbar'), n: document.querySelectorAll('#khoBody .khorow').length, dem: S.kho.ds.filter((x) => !x.an && !x.gop && khoMucOf(x) === 'vongbi').length }));
+assert.ok(vb54.bar && vb54.n === vb54.dem && vb54.n > 0, 'bấm mục chỉ còn hàng của mục đó: ' + JSON.stringify(vb54));
+await page.click('.kmucbar [data-act="khoLoai"]'); await wait(400);
+await page.click('.kmuch[data-v="dk"]'); await wait(500);
+assert.ok(await page.locator('#khoBody .lshd').count() >= 3, 'xem cả nhóm điện khí: chia theo từng mục');
+await shot('92-kho-phan-loai');
+// Chọn tay: một mã vòng bi chuyển sang Trục; nhập file ERP lần sau vẫn giữ
+const ma54 = await page.evaluate(() => S.kho.ds.find((x) => khoMucOf(x) === 'vongbi' && x.ng === 'ERP' && x.cf && (x.vt || []).length).ma);
+await page.evaluate((ma) => openKhoItem(ma), ma54); await wait(400);
+await page.selectOption('#kxLoai', 'truc'); await page.click('[data-act="khoLoaiLuu"]'); await wait(1200);
+assert.deepEqual(await page.evaluate((ma) => [khoGet(ma).loai, khoMucOf(khoGet(ma))], ma54), ['truc', 'truc'], 'chọn tay mục phân loại');
+// Nhập file không còn mã này (hết hàng): mã, tên, mục, ô kệ vẫn còn
+await page.evaluate((ma) => {
+  const ds = S.kho.ds.filter((x) => x.ng === 'ERP' && x.cf && x.ma !== ma).map((x) => ({ ma: x.ma, ten: x.ten, qc: x.qc || '', dv: x.dv || '', nh: x.nh || '', ton: tonOf(x) || 0, vt: x.vt || [] }));
+  go('khoNhap', { r: { file: 'TEST-ERP-54.xlsx', sheet: 'Sheet1', soDong: ds.length, ds, cot: ['品号'], boQua: 0 }, d: khoDiff(ds) });
+}, ma54); await wait(500);
+await page.click('#knSave'); await wait(2500);
+const sau54 = await page.evaluate((ma) => { const x = khoGet(ma); return { ton: tonOf(x), loai: x.loai, coVT: (x.vt || []).length > 0, slVT: (x.vt || []).map((v) => v[2]) }; }, ma54);
+assert.equal(sau54.ton, 0); assert.equal(sau54.loai, 'truc', 'mục chọn tay không mất'); assert.ok(sau54.coVT && sau54.slVT.every((n) => n === 0), 'giữ ô kệ cũ, số lượng 0');
+// Excel kho theo mục
+const xl54 = await page.evaluate(async () => { const u = new Uint8Array(await khoMucBlob().arrayBuffer()); const rows = await (await readXlsx(u.buffer))[0].rows(); return rows.map((r) => (r || []).join('|')).join('\n'); });
+assert.match(xl54, /Linh kiện cơ khí[^\n]*›[^\n]*Vòng bi/); assert.match(xl54, /Linh kiện điện khí[^\n]*›[^\n]*Rơ le/);
+await page.evaluate((ma) => send('saveKho', { ma, loai: '' }), ma54); await wait(500);
+ok('Bản 2.68: kho ngũ kim chia nhóm cơ khí / điện khí, mỗi nhóm nhiều mục; tự xếp theo tên, chọn tay được; mã hết hàng vẫn giữ mã, thông số, ô kệ');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);

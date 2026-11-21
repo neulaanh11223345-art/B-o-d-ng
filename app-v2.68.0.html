@@ -1072,6 +1072,22 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .qgso{display:inline-flex;align-items:baseline;gap:4px;font-size:13px;color:var(--ink2);margin-right:6px}
 .qgso b{font:800 22px var(--f-mono);color:var(--brand)}.qgso small{font-size:11px;color:var(--ink3)}
 .lshd{font-size:12.5px;font-weight:700;color:var(--ink2);margin:14px 2px 6px}
+.kmucg{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:12px;overflow:hidden}
+.kmuch{display:flex;align-items:center;gap:10px;width:100%;border:0;background:var(--soft);padding:10px 14px;text-align:left;color:var(--ink);cursor:pointer;font-size:15px}
+.kmuch .zi{display:inline;margin-left:6px;font-size:12.5px}
+.kmuch .mono{margin-left:auto;font-weight:700}
+.kmuch .lk{color:var(--blue);font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;white-space:nowrap}
+.kmuch .lk svg{width:16px;height:16px}
+.kmucs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:10px}
+.kmuc{display:flex;flex-direction:column;justify-content:space-between;gap:6px;min-height:72px;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:8px 10px;text-align:left;color:var(--ink);cursor:pointer}
+.kmuc:hover{border-color:var(--blue)}
+.kmuc .kmn{font-weight:600;font-size:13.5px;line-height:1.25}
+.kmuc .kmn small{display:block;font-weight:500;font-size:11.5px;color:var(--ink3);margin-top:2px}
+.kmuc .kmd{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.kmuc .kmd b{font-size:17px;margin-right:4px}
+.kmuc .ktag{margin-right:0;font-size:11px}
+.kmucbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:var(--blue-bg);border-radius:10px;padding:8px 12px;margin-top:12px}
+.kmucbar .zi{display:inline;margin-left:6px}
 .cmgy{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 10px;margin-top:4px;font-size:13px;cursor:pointer}
 .cmgy:hover{border-color:var(--blue)}
 .cmgy.trung{border-color:var(--green);background:var(--green-bg)}
@@ -1711,7 +1727,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.67.1";
+const APP_VER = "2.68.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -9118,9 +9134,9 @@ function khoTabTonHtml() {
     <div class="help" style="margin-top:6px">${t('khoNguongHelp')}</div></details>`;
   o += '</div>';
   if (!k.ds.length) return o + `<div class="card empty" style="margin-top:14px">${S.khoLoading ? t('khoChoTai') : t(can('may') ? 'khoTrong' : 'khoTrongKT')}</div>`;
-  const chip = (v, k2) => `<button class="chip${f.khoF === v ? ' on' : ''}" data-act="khoF" data-v="${v}">${t(k2)}</button>`;
+  const chip = (v, k2) => `<button class="chip${f.khoF === v && (v || norm(f.khoQ) || f.khoLoai) ? ' on' : ''}" data-act="khoF" data-v="${v}">${t(k2)}</button>`;
   o += `<div class="searchbox" style="margin-top:14px">${IC.search}<input class="inp" id="khoQ" type="search" value="${esc(f.khoQ)}" placeholder="${esc(tp('khoSearch'))}" autocomplete="off"></div>
-    <div class="hscroll" style="margin:12px 0 0">${chip('', 'all')}${chip('thap', 'kfThap')}${chip('chuaAT', 'kfChuaAT')}${chip('con', 'kfCon')}${chip('het', 'kfHet')}${chip('may', 'kfMay')}${chip('app', 'kfApp')}</div>
+    <div class="hscroll" style="margin:12px 0 0"><button class="chip${!norm(f.khoQ) && !f.khoF && !f.khoLoai ? ' on' : ''}" data-act="khoTheoMuc">${t('khoTheoMuc')}</button>${chip('', 'all')}${chip('thap', 'kfThap')}${chip('chuaAT', 'kfChuaAT')}${chip('con', 'kfCon')}${chip('het', 'kfHet')}${chip('may', 'kfMay')}${chip('app', 'kfApp')}</div>
     <div id="khoBody">${khoBody()}</div>`;
   return o;
 }
@@ -9235,27 +9251,192 @@ function khoTheoDoiVeHtml() {
 // Hàng chưa khai tồn kho an toàn (bỏ hàng đã ẩn và hàng đã gộp)
 const khoChuaAT = (x) => !x.an && (x.tonMin === undefined || x.tonMin === '');
 function khoBody() {
-  const f = S.f, dung = khoDungMap();
-  const daDung = khoDaDungMap();
-  const filt = { con: (x) => (tonOf(x) || 0) > 0, het: (x) => tonOf(x) === 0, app: (x) => x.ng === 'APP', may: (x) => !!dung[x.ma],
+  const f = S.f;
+  // Chưa tìm, chưa lọc, chưa chọn mục: xem tổng quan theo mục phân loại
+  if (!norm(f.khoQ) && !f.khoF && !f.khoLoai) return khoMucTongHtml();
+  const dung = khoDungMap(), daDung = khoDaDungMap(), locMuc = khoLocMuc(f.khoLoai);
+  const filt0 = { con: (x) => (tonOf(x) || 0) > 0, het: (x) => tonOf(x) === 0, app: (x) => x.ng === 'APP', may: (x) => !!dung[x.ma],
     thap: (x) => !!daDung[x.ma] && khoThap(x), chuaAT: khoChuaAT }[f.khoF] || null;
+  const filt = filt0 && locMuc ? (x) => filt0(x) && locMuc(x) : filt0 || locMuc;
   let list = khoFind(f.khoQ, filt);
   // Chưa đặt tồn an toàn: hàng đang lắp trên máy lên trước, rồi hàng còn tồn — đó là những thứ cần đặt ngưỡng trước
   if (f.khoF === 'chuaAT') {
     const uu = (x) => (dung[x.ma] ? 0 : (tonOf(x) || 0) > 0 ? 1 : 2);
     list = list.slice().sort((a, b) => uu(a) - uu(b) || String(a.ten || '').localeCompare(String(b.ten || '')));
   }
+  // Xem cả một nhóm lớn (không tìm chữ): xếp theo từng mục nhỏ, có tiêu đề mục
+  const theoMuc = KHO_NHOM_BY[f.khoLoai] && !norm(f.khoQ) && f.khoF !== 'chuaAT';
+  if (theoMuc) list = list.slice().sort((a, b) => KHO_MUC_IX[khoMucOf(a)] - KHO_MUC_IX[khoMucOf(b)]);
   const lim = f.khoLim || 60;
-  let o = sec('khoKQ', fmtNum(list.length, 0));
+  let o = '';
+  if (f.khoLoai && f.khoLoai !== 'all') o += `<div class="kmucbar"><span>${esc(tv('khoMucDangXem'))}: <b>${esc(khoMucTen(f.khoLoai))}</b><span class="zi" lang="zh-CN">${esc(khoMucTen(f.khoLoai, 1))}</span></span>
+    <button class="btn ghost sm" data-act="khoLoai" data-v="">${IC.x || '×'} ${esc(tv('khoMucBo'))}</button></div>`;
+  o += sec('khoKQ', fmtNum(list.length, 0));
   if (f.khoF === 'chuaAT') {
     o += `<p class="help" style="margin:-4px 0 10px">${t('kfChuaATHelp')}</p>`;
     if (list.length) o += `<div class="btns" style="margin-bottom:10px"><button class="btn ghost sm" data-act="go" data-v="khoMin">${IC.dl} ${t('khoMinMo')}</button></div>`;
   }
   if (!list.length) return o + `<div class="card empty">${t(f.khoF === 'chuaAT' ? 'kfChuaATDu' : 'khoKhongThay')}</div>`;
-  o += `<div class="list">${list.slice(0, lim).map((x) => khoRow(x, dung[x.ma])).join('')}</div>`;
+  if (theoMuc) {
+    let cur = '', h = '';
+    list.slice(0, lim).forEach((x) => {
+      const m = khoMucOf(x);
+      if (m !== cur) { if (h) h += '</div>'; cur = m; h += `<div class="lshd">${esc(khoMucTen(m))}<span class="zi" lang="zh-CN">${esc(khoMucTen(m, 1))}</span></div><div class="list">`; }
+      h += khoRow(x, dung[x.ma]);
+    });
+    o += h + '</div>';
+  } else o += `<div class="list">${list.slice(0, lim).map((x) => khoRow(x, dung[x.ma])).join('')}</div>`;
   if (list.length > lim) o += `<button class="btn ghost wide" style="margin-top:10px" data-act="khoMore">${t('khoMore', { n: fmtNum(list.length - lim, 0) })}</button>`;
   return o;
 }
+
+// ===================== Phân loại kho ngũ kim (v2.68) =====================
+// Hai nhóm lớn Linh kiện cơ khí / Linh kiện điện khí (+ Vật tư khác), mỗi nhóm nhiều mục nhỏ.
+// App tự xếp theo từ khoá trong tên hàng (tên ERP có cả tiếng Trung lẫn tiếng Việt); Quản lý chọn tay được
+// cho từng mã khi xếp sai (lưu ở cột Loai của trang KhoLK, nhập file ERP lần sau không mất).
+SRV_PHAN.push(['kholoai', '2.68.0', 'srvMissLoai']);
+Object.assign(TX, {
+  khoNhom_ck: ['Linh kiện cơ khí', '机械件'], khoNhom_dk: ['Linh kiện điện khí', '电气件'], khoNhom_vt: ['Vật tư khác', '其他物料'],
+  kmuc_vongbi: ['Vòng bi, gối đỡ', '轴承/轴承座'], kmuc_truc: ['Trục, con lăn, thanh trượt', '轴/辊/滑块'],
+  kmuc_dao: ['Dao cắt, lưỡi dao', '刀片/刀具'], kmuc_dai: ['Dây curoa, băng tải', '皮带/同步带'],
+  kmuc_giamtoc: ['Hộp giảm tốc, bánh răng, xích', '减速机/齿轮/链条'], kmuc_bulong: ['Bu lông, chốt, then, vòng đệm', '螺栓/销/键/垫圈'],
+  kmuc_loxo: ['Lò xo, gioăng, phớt, giảm chấn', '弹簧/密封件/缓冲器'], kmuc_dungcu: ['Dụng cụ, mũi khoan, taro', '工具/钻头/丝锥'],
+  kmuc_ckkhac: ['Cơ khí khác', '其他机械件'],
+  kmuc_xilanh: ['Xi lanh, van khí, đầu nối khí', '气缸/电磁阀/气动接头'], kmuc_role: ['Rơ le, tiếp điểm', '继电器/触点'],
+  kmuc_khoidong: ['Khởi động từ, aptomat, cầu chì', '接触器/断路器/保险'], kmuc_driver: ['Driver, biến tần', '驱动器/变频器'],
+  kmuc_dongco: ['Động cơ - servo, bơm', '电机/伺服/泵'], kmuc_cambien: ['Cảm biến, công tắc', '传感器/开关'],
+  kmuc_mach: ['Bo mạch, module, màn hình', '电路板/模块/屏幕'], kmuc_nhiet: ['Gia nhiệt', '加热管'],
+  kmuc_day: ['Dây, cáp, giắc, đầu nối điện', '电缆/插头/接线'], kmuc_dkkhac: ['Điện khí khác', '其他电气件'],
+  kmuc_tieuhao: ['Vật tư tiêu hao (băng keo, dầu, lọc, mực, găng tay…)', '耗材（胶带、油、滤芯、墨、手套…）'], kmuc_khac: ['Chưa phân loại', '未分类'],
+  khoTheoMuc: ['Theo mục', '按分类'], khoMucDangXem: ['Mục', '分类'], khoMucBo: ['Bỏ lọc mục', '取消分类筛选'],
+  khoMucXemNhom: ['Xem cả nhóm', '查看整组'], khoMucXemHet: ['Xem toàn bộ danh sách ({n} mã)', '查看全部清单（{n}种）'],
+  khoMucHet: ['hết {n}', '缺{n}'], khoMucThieu: ['thiếu {n}', '低于安全{n}'],
+  khoMucHelp: ['App tự xếp theo tên hàng. Mã nào xếp sai: bấm vào mã đó, chọn lại mục.', '系统按物料名称自动分类。分错的编码：点击该编码重新选择分类。'],
+  khoMucChon: ['Mục phân loại', '分类'], khoMucTu: ['Tự động: {m}', '自动：{m}'], khoMucTay: ['chọn tay', '手动'],
+  khoMucXuat: ['Xuất Excel kho theo mục', '按分类导出库存Excel'],
+  srvMissLoai: ['Máy chủ chưa lưu được mục phân loại chọn tay. Cập nhật Code.gs rồi Triển khai lại (app vẫn tự xếp theo tên).', '服务器尚不能保存手动分类。请更新 Code.gs 并重新部署（系统仍按名称自动分类）。']
+});
+const KHO_NHOM = ['ck', 'dk', 'vt'];
+const KHO_NHOM_BY = { ck: 1, dk: 1, vt: 1 };
+// [mục, nhóm, từ khoá tiếng Trung (so theo chuỗi), từ khoá tiếng Việt không dấu (so theo từ)].
+// Xét lần lượt từ trên xuống, gặp mục đầu tiên khớp thì dừng — mục cụ thể đặt trước (轴承 trước 轴, 电机减速箱 vào giảm tốc…).
+const KHO_MUC = [
+  ['vongbi', 'ck', ['轴承'], ['vong bi', 'bac dan', 'goi do', 'bearing']],
+  ['giamtoc', 'ck', ['减速', '齿轮', '链条', '链轮'], ['giam toc', 'banh rang', 'xich', 'nhong']],
+  ['xilanh', 'dk', ['气缸', '电磁阀', '快速接头', '气管接头', '气动', '气压表', '调压阀'], ['xi lanh', 'xylanh', 'xilanh', 'van dien tu', 'van khi', 'dau noi nhanh', 'cylinder']],
+  ['driver', 'dk', ['变频', '驱动器', '频率转换'], ['bien tan', 'driver', 'inverter']],
+  ['day', 'dk', ['电缆', '电线', '传感线', '线缆', '插头', '插孔', '接线', '航空插', '端子'], ['cap', 'giac duc', 'giac cai', 'giac cam', 'jack', 'day dien', 'hop noi', 'dau noi', 'dau cot']],
+  ['role', 'dk', ['继电器', '触点'], ['ro le', 'role', 'relay', 'tiep diem']],
+  ['khoidong', 'dk', ['接触器', '断路器', '空开', '保险丝', '熔断'], ['khoi dong tu', 'aptomat', 'cau chi', 'contactor']],
+  ['dongco', 'dk', ['电机', '马达', '伺服', '泵'], ['dong co', 'motor', 'servo', 'bom']],
+  ['cambien', 'dk', ['传感器', '光电', '开关', '接近', '纠偏', '编码器'], ['cam bien', 'sensor', 'cong tac', 'encoder']],
+  ['mach', 'dk', ['模块', '电路板', '主板', '控制板', '内存', '屏幕', '打印头', 'PLC'], ['bo mach', 'module', 'modune', 'man hinh', 'ram', 'dau in', 'plc']],
+  ['nhiet', 'dk', ['加热', '电热'], ['gia nhiet']],
+  ['dao', 'ck', ['刀', '终切'], ['dao', 'luoi cat']],
+  ['dai', 'ck', ['皮带', '同步带', '输送带'], ['curoa', 'day dai', 'bang tai']],
+  ['bulong', 'ck', ['螺栓', '螺丝', '螺母', '螺钉', '销', '键', '卡簧', '垫圈', '垫片'], ['bu long', 'oc', 'vit', 'chot', 'then', 'vong dem']],
+  ['loxo', 'ck', ['弹簧', '密封', '油封', '胶条', '缓冲'], ['lo xo', 'gioang', 'phot', 'giam chan', 'oring']],
+  ['truc', 'ck', ['轴', '辊', '轮', '滑块', '导轨'], ['truc', 'con lan', 'thanh truot', 'thanh dan huong']],
+  ['dungcu', 'ck', ['钻', '丝锥', '套筒', '扳手', '刮板', '手电筒', '工具'], ['mui khoan', 'taro', 'tuyp', 'co le', 'den pin', 'dung cu']],
+  ['tieuhao', 'vt', ['胶带', '扎带', '手套', '墨', '稀释剂', '溶剂', '油', '硅胶', '胶水', '毛巾', '眼罩', '粉尘袋', '刷', '毡', '滤'], ['bang dinh', 'bang keo', 'gang tay', 'muc', 'dung moi', 'quai nhe', 'khan', 'tui loc', 'choi', 'loc gio', 'loc dau']],
+  ['ckkhac', 'ck', [], []], ['dkkhac', 'dk', [], []], ['khac', 'vt', [], []]
+];
+const KHO_MUC_BY = {}, KHO_MUC_IX = {};
+KHO_MUC.forEach((m, i) => { KHO_MUC_BY[m[0]] = m; KHO_MUC_IX[m[0]] = i; });
+// Thứ tự hiện: theo nhóm, trong nhóm theo thứ tự quen dùng (vòng bi, trục… / xi lanh, rơ le, khởi động từ, driver, động cơ…)
+const KHO_MUC_HIEN = { ck: ['vongbi', 'truc', 'dao', 'dai', 'giamtoc', 'bulong', 'loxo', 'dungcu', 'ckkhac'],
+  dk: ['xilanh', 'role', 'khoidong', 'driver', 'dongco', 'cambien', 'mach', 'nhiet', 'day', 'dkkhac'], vt: ['tieuhao', 'khac'] };
+KHO_NHOM.forEach((g) => KHO_MUC_HIEN[g].forEach((id, i) => { KHO_MUC_IX[id] = KHO_NHOM.indexOf(g) * 100 + i; }));
+const khoMucTen = (id, zh) => { const k = KHO_NHOM_BY[id] ? 'khoNhom_' + id : 'kmuc_' + (KHO_MUC_BY[id] ? id : 'khac'); return zh ? tz(k) : tv(k); };
+const khoTuTen = (ten) => ' ' + norm(ten).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+function khoMucTuDong(x) {
+  const raw = String(x.ten || ''), w = khoTuTen(raw);
+  for (const m of KHO_MUC) if (m[2].some((k) => raw.indexOf(k) >= 0) || m[3].some((k) => w.indexOf(' ' + k + ' ') >= 0)) return m[0];
+  return '';
+}
+// {mã: mục} cho cả kho. Chọn tay > theo tên > theo nhóm mã ERP (nhóm 品号 nào phần lớn là điện khí thì mã chưa rõ
+// của nhóm đó vào "Điện khí khác") > Chưa phân loại
+let KHO_MUC_CACHE = null;
+function khoMucMap() {
+  if (KHO_MUC_CACHE && KHO_MUC_CACHE.ds === S.kho.ds) return KHO_MUC_CACHE.m;
+  const m = {}, tu = {}, theoNh = {}, chua = [];
+  S.kho.ds.forEach((x) => {
+    const a = khoMucTuDong(x), tay = x.loai && KHO_MUC_BY[x.loai] ? x.loai : '', id = tay || a;
+    if (a) tu[x.ma] = a; else chua.push(x);
+    if (id && x.nh && !/khac$/.test(id)) { const n = theoNh[x.nh] = theoNh[x.nh] || {}, g = KHO_MUC_BY[id][1]; n[g] = (n[g] || 0) + 1; }
+  });
+  chua.forEach((x) => {
+    const n = theoNh[x.nh] || {}, tong = Object.keys(n).reduce((a, k) => a + n[k], 0), g = Object.keys(n).sort((a, b) => n[b] - n[a])[0];
+    tu[x.ma] = g && tong >= 2 && n[g] / tong >= 0.6 ? (g === 'ck' ? 'ckkhac' : g === 'dk' ? 'dkkhac' : 'khac') : 'khac';
+  });
+  S.kho.ds.forEach((x) => { m[x.ma] = x.loai && KHO_MUC_BY[x.loai] ? x.loai : tu[x.ma]; });
+  KHO_MUC_CACHE = { ds: S.kho.ds, m, tu };
+  return m;
+}
+// Mục app tự xếp (bỏ qua chọn tay) — để hiện "Tự động: …" trong ô chọn
+const khoMucTuDongNhom = (x) => (khoMucMap(), KHO_MUC_CACHE.tu[x.ma]) || 'khac';
+const khoMucOf = (x) => khoMucMap()[x.ma] || 'khac';
+const khoNhomOf = (x) => KHO_MUC_BY[khoMucOf(x)][1];
+const khoLocMuc = (v) => (!v || v === 'all' ? null : KHO_NHOM_BY[v] ? (x) => khoNhomOf(x) === v : (x) => khoMucOf(x) === v);
+// Tổng quan: mỗi nhóm một thẻ, trong đó từng mục nhỏ (số mã, số hết hàng, số thiếu tồn an toàn)
+function khoMucTongHtml() {
+  const vis = S.kho.ds.filter((x) => !x.an && !x.gop), dem = {};
+  vis.forEach((x) => {
+    const id = khoMucOf(x), d = dem[id] = dem[id] || { n: 0, het: 0, thieu: 0 }, mu = khoMuc(x);
+    d.n++; if (mu === 'het') d.het++; else if (mu === 'thieu') d.thieu++;
+  });
+  let o = `<p class="help" style="margin:14px 2px 0">${t('khoMucHelp')}</p>`;
+  KHO_NHOM.forEach((g) => {
+    const ids = KHO_MUC_HIEN[g].filter((id) => dem[id]);
+    if (!ids.length) return;
+    const n = ids.reduce((a, id) => a + dem[id].n, 0);
+    o += `<div class="kmucg"><button class="kmuch" data-act="khoLoai" data-v="${g}"><span><b>${esc(tv('khoNhom_' + g))}</b><span class="zi" lang="zh-CN">${esc(tz('khoNhom_' + g))}</span></span>
+      <span class="mono">${fmtNum(n, 0)}</span><span class="lk">${esc(tv('khoMucXemNhom'))} ${IC.chev}</span></button>
+      <div class="kmucs">${ids.map((id) => { const d = dem[id];
+        return `<button class="kmuc" data-act="khoLoai" data-v="${id}"><span class="kmn">${esc(tv('kmuc_' + id))}<small lang="zh-CN">${esc(tz('kmuc_' + id))}</small></span>
+          <span class="kmd"><b class="mono">${fmtNum(d.n, 0)}</b>${d.het ? `<span class="ktag het">${esc(tv('khoMucHet', { n: d.het }))}</span>` : ''}${d.thieu ? `<span class="ktag thap">${esc(tv('khoMucThieu', { n: d.thieu }))}</span>` : ''}</span></button>`; }).join('')}</div></div>`;
+  });
+  o += `<div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="khoLoai" data-v="all">${IC.list} ${esc(tv('khoMucXemHet', { n: fmtNum(vis.length, 0) }))}</button>
+    <button class="btn ghost" data-act="khoMucXuat">${IC.dl} ${t('khoMucXuat')}</button></div>`;
+  return o;
+}
+// Excel kho theo mục: để kiểm kê từng nhóm (nhóm · mục · mã · tên · quy cách · tồn · tồn an toàn · ô kệ)
+function khoMucBlob() {
+  const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const SEC = { b: 1, fill: '#E8EEF8', border: true };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
+  const num = (v) => c(v === '' || v === undefined || v === null ? '' : +v, { align: 'center', fmt: '0.###' });
+  const vis = S.kho.ds.filter((x) => !x.an && !x.gop).sort((a, b) => KHO_MUC_IX[khoMucOf(a)] - KHO_MUC_IX[khoMucOf(b)] || String(a.ma).localeCompare(String(b.ma)));
+  const rows = [[{ v: 'KHO NGŨ KIM THEO MỤC · 五金仓库分类清单 — ' + fmtD(TODAY()), s: { b: 1, sz: 14 } }], [],
+    ['Mục\n分类', 'Mã ERP\n品号', 'Tên hàng\n名称', 'Quy cách\n规格', 'ĐVT\n单位', 'Tồn kho\n库存', 'Tồn an toàn\n安全库存', 'Ô kệ\n库位', 'Tình trạng\n状态'].map((v) => ({ v, s: H }))];
+  const mg = ['A1:I1'];
+  let cur = '';
+  vis.forEach((x) => {
+    const id = khoMucOf(x), g = KHO_MUC_BY[id][1];
+    if (id !== cur) {
+      cur = id;
+      const r = [{ v: tp('khoNhom_' + g) + '  ›  ' + tp('kmuc_' + id), s: SEC }]; for (let i = 1; i < 9; i++) r.push({ v: '', s: SEC });
+      rows.push(r); mg.push('A' + rows.length + ':I' + rows.length);
+    }
+    const n = tonOf(x), mu = khoMuc(x);
+    rows.push([c(tv('kmuc_' + id)), c(x.ma, { align: 'center' }), c(x.ten || ''), c(x.qc || ''), c(dvTxt(x.dv || ''), { align: 'center' }),
+      num(n === null ? '' : n), num(x.tonMin === undefined ? '' : x.tonMin), c(khoBinTxt(x, true).join(' · ')),
+      c(mu === 'het' ? 'Hết hàng · 缺货' : mu === 'thieu' ? 'Dưới tồn an toàn · 低于安全库存' : mu === 'thap' ? 'Gần hết · 临界' : '', mu === 'het' ? { color: '#B42318', b: 1 } : {})]);
+  });
+  return XW.build([{ name: 'Kho theo muc', rows, cols: [20, 14, 36, 24, 9, 10, 11, 18, 18], merges: mg, heights: { 1: 26, 3: 34 }, freeze: { r: 3, c: 0 } }]);
+}
+Object.assign(ACT, {
+  khoLoai: (el) => { S.f.khoLoai = el.dataset.v; S.f.khoLim = 60; if (el.dataset.v === '') { S.f.khoF = ''; } render(); },
+  khoTheoMuc: () => { S.f.khoLoai = ''; S.f.khoF = ''; S.f.khoQ = ''; S.f.khoLim = 60; render(); },
+  khoMucXuat: async () => {
+    toast(t('exporting')); await sleep(30);
+    let blob;
+    try { blob = khoMucBlob(); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'Kho-theo-muc_' + TODAY() + '.xlsx');
+  },
+  khoLoaiLuu: (el) => khoLuuApp(el, { ma: el.dataset.ma, loai: ($('#kxLoai') || {}).value || '' })
+});
 // "AB21 ×1 · AC21 ×3"; hàng ở nhiều kho thì thêm tên kho ngắn "K2·AB21"
 function khoBinTxt(x, soLuong) {
   const vt = x.vt || [], nhieu = new Set(vt.map((v) => v[0])).size > 1;
@@ -9295,6 +9476,10 @@ function openKhoItem(ma) {
       ${x.qc ? `<dt>${t('quyCach')}</dt><dd>${esc(x.qc)}</dd>` : ''}
       ${x.dv ? `<dt>${t('dv')}</dt><dd>${esc(dvTxt(x.dv))}</dd>` : ''}
       ${x.nh ? `<dt>${t('nhomKho')}</dt><dd class="mono">${esc(x.nh)}</dd>` : ''}
+      <dt>${t('khoMucChon')}</dt><dd>${can('may') && !srvOld('kholoai') ? `<span class="inrow"><select class="inp" id="kxLoai" style="min-height:38px;padding:6px 10px;max-width:260px">
+        <option value="">${esc(tv('khoMucTu', { m: khoMucTen(khoMucTuDongNhom(x)) }))}</option>
+        ${KHO_NHOM.map((g) => `<optgroup label="${esc(tv('khoNhom_' + g))}">${KHO_MUC_HIEN[g].map((id) => `<option value="${id}"${x.loai === id ? ' selected' : ''}>${esc(tv('kmuc_' + id))}</option>`).join('')}</optgroup>`).join('')}
+        </select><button class="btn ghost sm" data-act="khoLoaiLuu" data-ma="${esc(x.ma)}">${t('save')}</button></span>` : `${esc(khoMucTen(khoMucOf(x)))}`}${x.loai ? ` <span class="tag">${esc(tv('khoMucTay'))}</span>` : ''}</dd>
       <dt>${t('nguon')}</dt><dd>${t(app ? 'nguonAPP' : 'nguonERP')}${!app && !x.cf ? `<div class="bad" style="font-weight:500">${t('khoNgoaiFile')}</div>` : ''}</dd>
       ${x.gc ? `<dt>${t('ghiChuLK')}</dt><dd style="font-weight:500">${esc(x.gc)}</dd>` : ''}
       ${x.cn ? `<dt>${t('khoCn')}</dt><dd class="mono" style="font-weight:500">${esc(fmtD(x.cn.slice(0, 10)) + ' ' + x.cn.slice(11, 16))}</dd>` : ''}
@@ -9461,7 +9646,7 @@ function openErpXacNhan(x) {
 }
 
 Object.assign(ACT, {
-  khoF: (el) => { S.f.khoF = el.dataset.v; S.f.khoLim = 60; render(); },
+  khoF: (el) => { S.f.khoF = el.dataset.v; S.f.khoLim = 60; if (!el.dataset.v && !S.f.khoLoai) S.f.khoLoai = 'all'; render(); },
   khoMore: () => { S.f.khoLim = (S.f.khoLim || 60) + 200; const b = $('#khoBody'); if (b) b.innerHTML = khoBody(); },
   khoItem: (el) => openKhoItem(el.dataset.ma),
   khoLuu: (el) => khoLuu(el),

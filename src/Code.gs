@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.67.1';
+var PHIEN_BAN = '2.68.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -53,7 +53,7 @@ var BANG = {
     'KyTruoc', 'CSTruoc', 'TieuThuKy', 'TieuThu', 'LucGhi', 'Anh', 'NgoaiLe', 'NguoiSua', 'Nguon'],
   // TonCu: tồn của chính mã này qua 12 lần nhập file gần nhất, cũ → mới, cách nhau dấu phẩy (lần cuối = tồn hiện tại).
   // Mốc thời gian của các lần nhập lưu chung ở KHO_META.moc, nên mỗi dòng chỉ giữ dãy số cho nhẹ.
-  KhoLK: ['Ma', 'Ten', 'QuyCach', 'Dv', 'Nhom', 'Ton', 'ViTri', 'Nguon', 'ConFile', 'CapNhat', 'GhiChu', 'GopVao', 'An', 'TonMin', 'TonCu'],
+  KhoLK: ['Ma', 'Ten', 'QuyCach', 'Dv', 'Nhom', 'Ton', 'ViTri', 'Nguon', 'ConFile', 'CapNhat', 'GhiChu', 'GopVao', 'An', 'TonMin', 'TonCu', 'Loai'],
   // Nhật ký nhập file kho: mỗi lần nhập một dòng, giữ lại hết để đối chiếu về sau
   NhapKho: ['ID', 'Luc', 'Nguoi', 'File', 'SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop', 'Ver', 'Tang', 'Ve'],
   // Nhật ký sửa đổi (audit): giá trị trước / sau, người sửa, thời gian, lý do
@@ -3792,14 +3792,16 @@ function khoTuDong(r, i) {
   return {
     ma: s(r[0]), ten: s(r[1]), qc: s(r[2]), dv: s(r[3]), nh: s(r[4]), ton: ton === '' ? '' : (Number(ton) || 0),
     vt: docJson(r[6], []), ng: s(r[7]) === 'APP' ? 'APP' : 'ERP', cf: s(r[8]) === '1' ? 1 : 0, cn: tgStr(r[9]),
-    gc: s(r[10]), gop: s(r[11]), an: s(r[12]) === '1' ? 1 : 0, tonMin: soHoacRong(r[13]), tonCu: khoDayTon(r[14]), _r: i + 2
+    gc: s(r[10]), gop: s(r[11]), an: s(r[12]) === '1' ? 1 : 0, tonMin: soHoacRong(r[13]), tonCu: khoDayTon(r[14]), loai: khoLoaiHopLe(r[15]), _r: i + 2
   };
 }
 function khoThanhDong(x) {
   return [anToan(x.ma), anToan(x.ten), anToan(x.qc), anToan(x.dv), anToan(x.nh), x.ton === '' ? '' : String(x.ton),
     x.vt && x.vt.length ? JSON.stringify(x.vt) : '', x.ng, x.cf ? '1' : '0', x.cn, anToan(x.gc), x.gop || '', x.an ? '1' : '',
-    x.tonMin === '' || x.tonMin === undefined ? '' : String(x.tonMin), (x.tonCu || []).join(',')];
+    x.tonMin === '' || x.tonMin === undefined ? '' : String(x.tonMin), (x.tonCu || []).join(','), x.loai || ''];
 }
+// Mục phân loại Quản lý chọn tay cho một mã (vd "vongbi", "role"); trống = app tự xếp theo tên
+function khoLoaiHopLe(v) { v = s(v).toLowerCase(); return /^[a-z0-9]{1,20}$/.test(v) ? v : ''; }
 // "5,4,0,3" → [5, 4, 0, 3]; bỏ ô trống và số hỏng
 function khoDayTon(v) {
   return s(v).split(',').map(function (t) { return Number(t); }).filter(function (n) { return isFinite(n); }).slice(-KHO_MOC_TOI_DA);
@@ -3819,6 +3821,7 @@ function sachKho(x) {
   if (x.an) o.an = 1;
   if (x.tonMin !== '' && x.tonMin !== undefined) o.tonMin = x.tonMin;
   if (x.tonCu && x.tonCu.length) o.tonCu = x.tonCu;
+  if (x.loai) o.loai = x.loai;
   return o;
 }
 function docKho() { return docTho('KhoLK').map(khoTuDong).filter(function (x) { return x.ma; }); }
@@ -3991,7 +3994,10 @@ function nhapKho(u, p) {
     x.ten = o.ten; x.qc = o.qc; x.dv = o.dv; x.nh = o.nh; x.ton = o.ton; x.vt = o.vt; x.ng = 'ERP'; x.cf = 1; x.cn = luc;
   });
   c.all.forEach(function (x) {
-    if (x.ng === 'ERP' && x.cf && !theoMa[x.ma]) { x.cf = 0; x.ton = 0; x.vt = []; x.cn = luc; tk.het++; }
+    // Mã không còn trong file (hết hàng): KHÔNG xoá — giữ mã, tên, quy cách, mục phân loại và ô kệ cũ (số lượng 0)
+    if (x.ng === 'ERP' && x.cf && !theoMa[x.ma]) {
+      x.cf = 0; x.ton = 0; x.vt = (x.vt || []).map(function (v) { return [v[0], v[1], 0]; }); x.cn = luc; tk.het++;
+    }
   });
   // Linh kiện thêm trong app nay đã có trong file ERP (trùng tên + quy cách): gộp vào mã ERP
   var erpKhoa = {}, gop = {};
@@ -4136,7 +4142,7 @@ function luuKho(u, p) {
   var ma = s(p.ma), x = docKho().filter(function (r) { return r.ma === ma; })[0];
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
   // Tồn tối thiểu và bỏ theo dõi đặt được cho mọi linh kiện; tên / quy cách / đơn vị của linh kiện ERP thì sửa trong ERP
-  var chiMinAn = p.ten === undefined && p.qc === undefined && p.dv === undefined;
+  var chiMinAn = p.ten === undefined && p.qc === undefined && p.dv === undefined;   // tồn an toàn, bỏ theo dõi, mục phân loại
   if (x.ng !== 'APP' && !chiMinAn) throw loi('KHO_ERP', 'Linh kiện từ file ERP · ERP零件');
   capNhatTieuDe('KhoLK');
   if (p.tonMin !== undefined) {
@@ -4148,6 +4154,12 @@ function luuKho(u, p) {
   if (p.ten !== undefined) { var ten = catChu(p.ten, 160); if (!ten) throw loi('THIEU_TEN', 'Chưa nhập tên · 请输入名称'); x.ten = ten; }
   if (p.qc !== undefined) x.qc = catChu(p.qc, 200);
   if (p.dv !== undefined) x.dv = catChu(p.dv, 12);
+  if (p.loai !== undefined) {
+    var lo = khoLoaiHopLe(p.loai);
+    if (s(p.loai) && !lo) throw loi('SAI_LOAI', 'Mục phân loại không hợp lệ · 分类无效');
+    if (lo !== x.loai) ghiNhatKy(u, 'SUA_LOAI_LK', 'KhoLK', x.ma, { loai: x.loai }, { loai: lo }, '');
+    x.loai = lo;
+  }
   if (p.an !== undefined && !!x.an !== !!p.an) {
     x.an = p.an ? 1 : 0;
     ghiNhatKy(u, p.an ? 'BO_THEO_DOI_LK' : 'DUNG_LAI_LK', 'KhoLK', x.ma, '', x.ten, catChu(p.lyDo, 200));
