@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.64.1';
+var PHIEN_BAN = '2.65.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -196,7 +196,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'importMachines', 'delete
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'importInspect', 'saveFault', 'deleteFault', 'saveAccept', 'deleteAccept',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy', 'dutyCfg',
-  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay', 'savePurchase', 'setPurchase'];
+  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay', 'savePurchase', 'setPurchase', 'addPart', 'assignPartCode'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
@@ -356,6 +356,9 @@ function dieuHuong(a, p, req) {
     case 'saveSpot': canQuyen(u, 'xacnhan'); return luuViTriMay(u, p);
     case 'saveLine': canQuyen(u, 'may'); return luuChuyen(u, p);
     case 'saveLists': canQuyen(u, 'may'); return luuDanhSach(u, p);
+    case 'catalogFind': canQuyen(u, 'xemkho'); return khoTim(p);
+    case 'addPart': canQuyen(u, 'xacnhan'); return themLKMot(u, p);
+    case 'assignPartCode': canQuyen(u, 'may'); return ganMaERP(u, p);
     case 'users': canQuyen(u, 'nguoidung'); return { users: dsNguoiDung().map(congKhaiAdmin) };
     case 'saveUser': canQuyen(u, 'nguoidung'); return luuNguoiDung(u, p);
     case 'changePin': return doiPin(u, p);
@@ -3251,6 +3254,9 @@ function sachLinhKien(ds) {
     var nh = catChu(k.nhom, 40);     // loại linh kiện: Xi lanh, Động cơ servo, Biến tần…
     if (nh) o.nhom = nh;
     if (k.mucDo === 'thap' || k.mucDo === 'tb' || k.mucDo === 'cao') o.mucDo = k.mucDo;
+    var nt = catChu(k.nt, 60), lt = ngayStr(k.lt);     // ai thêm, ngày thêm (nhập linh kiện từ chuyền)
+    if (nt) o.nt = nt;
+    if (lt && hopLeNgay(lt)) o.lt = lt;
     var anhId = '';
     if (k.anhData && String(k.anhData).indexOf('data:') === 0) {
       var ra = luuAnhDrive(k.anhData, 'lk_' + id + '.jpg');
@@ -3336,6 +3342,89 @@ function luuDanhSach(u, p) {
     ds.forEach(function (x) { if (x.ma !== m.ma && x.hoatDong && x.nhom === m.nhom) ghi(x, false); });
   }
   return { may: doi[0], dsMay: doi, kho: kho ? khoLuuMoi(kho) : null };
+}
+
+// ===================== Nhập linh kiện chuyền (v2.65) =====================
+// Nhân viên đứng tại chuyền: tìm linh kiện trong kho → có thì chọn đúng mã; không có thì nhập không mã
+// (máy chủ cấp mã tạm APP-…). Quản lý xem bảng "chờ tạo mã", tạo mã trong ERP rồi gán lại — mọi máy,
+// mọi chuyền đang dùng mã tạm đó đổi sang mã ERP một lượt.
+// Tìm trong kho cho tài khoản không tải cả kho về máy: tối đa 20 mã, mọi từ gõ vào đều phải khớp
+function khoTim(p) {
+  var q = s(p.q), qd = boDau(q), toks = q.toLowerCase().split(/\s+/).map(boDau).filter(Boolean);
+  if (qd.length < 2) return { ds: [] };
+  var ra = [];
+  docKho().forEach(function (x) {
+    if (!khoHien(x)) return;
+    var h = boDau(x.ma) + '|' + boDau(x.ten) + '|' + boDau(x.qc);
+    if (!toks.every(function (t) { return h.indexOf(t) >= 0; })) return;
+    ra.push({ d: boDau(x.ma) === qd ? 0 : boDau(x.qc) === qd ? 1 : x.ng === 'ERP' ? 2 : 3, x: x });
+  });
+  ra.sort(function (a, b) { return a.d - b.d || (a.x.ten < b.x.ten ? -1 : 1); });
+  return { ds: ra.slice(0, 20).map(function (o) { return sachKho(o.x); }), them: Math.max(0, ra.length - 20) };
+}
+// Thêm MỘT linh kiện vào máy hoặc thân chuyền (nhân viên làm được, chỉ thêm, không sửa / xoá dòng có sẵn)
+function themLKMot(u, p) {
+  var ma = s(p.ma).toUpperCase();
+  var m = dsMay().filter(function (x) { return x.ma === ma; })[0];
+  var c = m ? null : dsChuyen().filter(function (x) { return x.ma === ma; })[0];
+  if (!m && !c) throw loi('KHONG_CO_MAY', 'Không tìm thấy máy · 找不到设备');
+  var cu = (m || c).linhKien || [], kho = khoNap(), x = null, mk = s(p.maKho);
+  if (mk) {
+    x = kho.by[mk];
+    var vong = 0;
+    while (x && x.gop && kho.by[x.gop] && vong++ < 5) x = kho.by[x.gop];
+    if (!x) throw loi('KHONG_CO_MA_KHO', 'Không có mã này trong kho · 库存中无此编号');
+  }
+  var ten = catChu(p.ten, 120) || (x ? catChu(x.ten, 120) : ''), qc = catChu(p.quyCach, 80) || (x ? catChu(x.qc, 80) : '');
+  if (!ten) throw loi('THIEU_TEN', 'Chưa nhập tên linh kiện · 请输入零件名称');
+  var sl = soHoacRong(p.sl);
+  if (sl !== '' && !(sl >= 0 && sl <= 1e5)) throw loi('SO_SAI', 'Số lượng không hợp lệ · 数量无效');
+  // Đã có trên máy này rồi (cùng mã kho, hoặc cùng tên + quy cách) thì báo, không thêm trùng
+  var khoa = khoaLK(ten, qc), trung = cu.filter(function (k) { return (x && k.maKho === x.ma) || khoaLK(k.ten, k.quyCach) === khoa; })[0];
+  if (trung) throw loi('LK_DA_CO', trung.ten + (trung.quyCach ? ' · ' + trung.quyCach : ''));
+  var moi = { id: '', ten: ten, quyCach: qc, dv: catChu(p.dv, 12) || (x ? x.dv : ''), sl: sl, maKho: x ? x.ma : '',
+    viTriMay: catChu(p.viTriMay, 80), nhom: catChu(p.nhom, 40), ghiChu: catChu(p.ghiChu, 160), nt: u.ten, lt: homNayStr() };
+  var kq = luuDanhSach(u, { ma: ma, linhKien: cu.concat([moi]) });
+  var ds = ((kq.may || kq.chuyen || {}).linhKien || []), lk = ds[ds.length - 1] || null;
+  ghiNhatKy(u, 'THEM_LK', m ? 'May' : 'Chuyen', ma + '|' + (lk ? lk.id : ''), '', ten + (qc ? ' · ' + qc : '') + (lk && lk.maKho ? ' · ' + lk.maKho : ''), '');
+  kq.lkMoi = lk;
+  return kq;
+}
+// Gán mã ERP cho mã tạm APP-…: p.ds = [{tu: 'APP-0003', den: '605010001'}]
+// Mã ERP chưa có trong kho (vừa tạo trong ERP, chưa nhập lại file) thì tạo sẵn; lần nhập file ERP sau sẽ cập nhật tồn.
+function ganMaERP(u, p) {
+  var vao = Array.isArray(p.ds) ? p.ds.slice(0, 500) : [];
+  if (!vao.length) throw loi('KHONG_CO', 'Chưa có mã nào để gán · 没有要分配的编号');
+  var c = khoNap(), doi = {}, sua = [], them = [], luc = thoiGianStr();
+  vao.forEach(function (o) {
+    var tu = s(o.tu), den = maKhoHopLe(o.den), x = c.by[tu];
+    if (!x) throw loi('KHONG_CO', 'Không có mã ' + tu + ' · 找不到编号');
+    if (!den) throw loi('MA_ERP_SAI', 'Mã ERP không hợp lệ: ' + s(o.den) + ' · ERP编号无效');
+    if (den === tu || x.gop === den) return;
+    if (x.ng !== 'APP') throw loi('KHO_ERP', tu + ' không phải mã tạm của app · 不是应用临时编号');
+    if (/^APP-/i.test(den)) throw loi('MA_ERP_SAI', den + ' là mã tạm, không phải mã ERP · 为临时编号');
+    var y = c.by[den];
+    if (!y) {
+      y = { ma: den, ten: x.ten, qc: x.qc, dv: x.dv, nh: x.nh, ton: '', vt: [], ng: 'ERP', cf: 0, cn: luc,
+        gc: 'Mã ERP gán trong app · ' + u.ten, gop: '', an: 0, tonMin: x.tonMin === undefined ? '' : x.tonMin, tonCu: [] };
+      c.by[den] = y; c.all.push(y); them.push(y);
+    }
+    x.gop = den; x.cn = luc; sua.push(x);
+    doi[tu] = den;
+  });
+  // Đổi mã trên mọi máy và mọi thân chuyền đang dùng mã tạm
+  var dsMayDoi = [], dsChDoi = [];
+  var doiDS = function (ds) { var co = false; (ds || []).forEach(function (k) { if (k.maKho && doi[k.maKho]) { k.maKho = doi[k.maKho]; co = true; } }); return co; };
+  capNhatTieuDe('May'); capNhatTieuDe('Chuyen'); capNhatTieuDe('KhoLK');
+  dsMay().forEach(function (m) { if (doiDS(m.linhKien)) { m.capNhat = luc; suaDong('May', m._r, mayThanhDong(m)); dsMayDoi.push(sachMay(m)); } });
+  dsChuyen().forEach(function (ch) { if (doiDS(ch.linhKien)) { ch.capNhat = luc; suaDong('Chuyen', ch._r, chThanhDong(ch)); dsChDoi.push(sachCh(ch)); } });
+  sua.forEach(function (x) { suaDong('KhoLK', x._r, khoThanhDong(x)); });
+  if (them.length) themNhieu('KhoLK', them.map(khoThanhDong));
+  var meta = docKhoMeta(), truoc = meta.ver || '';
+  meta.ver = verMoi(); meta.n = c.all.filter(khoHien).length;
+  ghiKhoMeta(meta);
+  ghiNhatKy(u, 'GAN_MA_ERP', 'KhoLK', '', {}, doi, '');
+  return { kho: { ver: meta.ver, truoc: truoc, n: meta.n, ds: sua.concat(them).map(sachKho) }, dsMay: dsMayDoi, dsChuyen: dsChDoi, doi: Object.keys(doi).length };
 }
 
 // Linh kiện của thân dây chuyền. Chuyền không có hạng mục bảo dưỡng nên chỉ nhận linhKien.

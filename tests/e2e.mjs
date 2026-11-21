@@ -2863,6 +2863,60 @@ await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(30
 await logout(); await login('NV002', '222222');
 ok('Bản 2.64: nhận định chuyền cho Quản lý — sự cố, lỗi lặp, linh kiện, bảo dưỡng, nhiệt tủ, lệch pha, nhận định chéo; xếp hạng, Excel, ngưỡng sửa được');
 
+// 50. Tra lỗi đầy đủ hơn (5 hãng, tìm bỏ dấu chấm / số 0); nhập linh kiện chuyền (nhân viên) và bảng chờ tạo mã (Quản lý)
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('tlTb'); }); await wait(600);
+assert.equal(await page.locator('#ttLoiBody [data-act="ttLoiLoc"]').count(), 5, 'chưa gõ gì: hiện 5 hãng để chọn, không đổ cả bảng');
+for (const [q, ma] of [['err2', 'Err02'], ['al1', 'AL001'], ['a710', 'A.710'], ['err16.0', 'Err16.0'], ['oL1', 'oL1']]) {
+  await page.fill('#ttLoiQ', q); await wait(300);
+  assert.equal(await page.evaluate(() => (document.querySelector('#ttLoiBody .card b.mono') || {}).textContent), ma, 'gõ ' + q + ' ra ' + ma + ' đầu tiên');
+}
+await page.fill('#ttLoiQ', ''); await page.click('[data-act="ttLoiLoc"][data-v="YAS"] >> nth=0'); await wait(300);
+await page.click('[data-act="ttLoiLoai"][data-v="BT"]'); await wait(300);
+assert.ok(await page.evaluate(() => [...document.querySelectorAll('#ttLoiBody .card .pill')].every((e) => /Yaskawa V1000/.test(e.textContent))), 'lọc Yaskawa + biến tần');
+assert.equal(await page.evaluate(() => new Set(TT_LOI.map((x) => x.dong + '|' + x.ma)).size), await page.evaluate(() => TT_LOI.length), 'không có mã lỗi trùng');
+// Nhân viên nhập linh kiện từ chuyền: tìm kho qua máy chủ (không tải cả kho), có mã thì chọn, không có thì nhập không mã
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+await logout(); await login('NV003', '333333');
+assert.equal(await page.evaluate(() => S.kho.ds.length), 0, 'nhân viên không tải cả kho');
+await page.evaluate(() => go('chuyen', { ma: 'VKY02' })); await wait(600);
+await page.click('[data-act="lktMo"] >> nth=0'); await wait(600);
+const ma50 = await page.evaluate(() => mayCuaCh('VKY02')[0].ma);
+await page.selectOption('#lktMa', ma50); await wait(300);
+await page.fill('#lktQ', 'vong bi'); await wait(1500);
+assert.ok(await page.locator('#lktKq .ksi').count() >= 2, 'tìm được trong kho qua máy chủ');
+const chon50 = await page.evaluate(() => { const b0 = document.querySelector('#lktKq .ksi:not([disabled])'); return b0 && b0.dataset.ma; });
+await page.click(`#lktKq .ksi[data-ma="${chon50}"]`); await wait(400);
+await page.fill('#lktSL', '2'); await page.click('[data-act="lktLuu"]'); await wait(1500);
+assert.equal(await page.evaluate(([m, k]) => !!lkOf(S.V.byMa[m]).find((x) => x.maKho === k && x.sl === 2 && x.nt), [ma50, chon50]), true, 'gắn đúng mã kho, có số lượng, ghi người nhập');
+await page.fill('#lktQ', 'vong bi'); await wait(1500);
+assert.equal(await page.evaluate((k) => document.querySelector(`#lktKq .ksi[data-ma="${k}"]`).disabled, chon50), true, 'mã đã có trên máy thì không chọn lại được');
+await page.click('[data-act="lktKhongMa"]'); await wait(300);
+await page.fill('#lktTen', 'Cảm biến TEST-50'); await page.fill('#lktQc', 'TEST-Q50'); await page.fill('#lktSL', '1');
+await page.click('[data-act="lktLuu"]'); await wait(1500);
+const app50 = await page.evaluate((m) => (lkOf(S.V.byMa[m]).find((x) => x.quyCach === 'TEST-Q50') || {}).maKho, ma50);
+assert.match(app50 || '', /^APP-\d+$/, 'nhập không mã thì nhận mã tạm: ' + app50);
+await shot('85-nhap-linh-kien');
+// Quản lý: bảng chờ tạo mã → gán mã ERP → máy đổi sang mã ERP
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+await logout(); await login('NV002', '222222');
+await page.evaluate(() => go('lkChoMa')); await wait(800);
+const i50 = await page.evaluate((a) => cmDS().findIndex((g) => g.ma === a), app50);
+assert.ok(i50 >= 0, 'linh kiện vừa nhập không mã có trong bảng chờ tạo mã');
+const x50 = await page.evaluate(async () => { const sh = await readXlsx(await cmXlsx(cmDS()).arrayBuffer()); return (await sh[0].rows()).map((r) => (r || []).join('|')).join('\n'); });
+assert.match(x50, /Mã ERP mới/); assert.match(x50, new RegExp(app50 + '\\|Cảm biến TEST-50'), 'Excel có mã tạm và tên');
+// File đã điền mã đọc lại được
+const f50 = await page.evaluate(async (a) => {
+  const blob = XW.build([{ name: 'x', rows: [[{ v: 'Mã tạm\n临时编号' }, { v: 'Tên tiếng Việt\n越南语名称' }, { v: 'Mã ERP mới\n新ERP编号' }], [{ v: a }, { v: 'Cảm biến TEST-50' }, { v: '605099050' }], [{ v: 'APP-9999' }, { v: 'Trống' }, { v: '' }]] }]);
+  return cmDocFile(new File([blob], 'cho-ma.xlsx'));
+}, app50);
+assert.deepEqual(f50.map((o) => o.tu + '>' + o.den), [app50 + '>605099050'], 'đọc đúng dòng đã điền mã, bỏ dòng trống');
+await page.fill(`[data-cm="${i50}"]`, '605099050');
+await page.click(`[data-act="cmGan"][data-i="${i50}"]`); await wait(1500);
+assert.equal(await page.evaluate(([m, q]) => (lkOf(S.V.byMa[m]).find((x) => x.quyCach === q) || {}).maKho, [ma50, 'TEST-Q50']), '605099050', 'máy đổi sang mã ERP');
+assert.equal(await page.evaluate((a) => cmDS().some((g) => g.ma === a), app50), false, 'không còn trong bảng chờ tạo mã');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.65: tra lỗi 5 hãng, tìm gọn (err2, al1); nhân viên nhập linh kiện chuyền (có mã chọn, không mã thì mã tạm); Quản lý gán mã ERP từ bảng chờ tạo mã / file Excel');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
