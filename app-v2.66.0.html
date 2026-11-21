@@ -1705,7 +1705,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.65.0";
+const APP_VER = "2.66.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -17160,6 +17160,19 @@ Object.assign(TX, {
   nd_cheoDienG: ['Nhiều khả năng cùng một gốc: kiểm tra nguồn cấp và đấu nối của chuyền trước khi thay thêm động cơ / linh kiện', '很可能同一根源：先检查产线供电和接线，再考虑更换电机/配件'],
   nd_cheoBD: ['Bảo dưỡng quá hạn + sự cố tăng', '保养逾期 + 故障增加'], nd_cheoBDB: ['{q} máy quá hạn ({m}) trong lúc sự cố tăng', '{q} 台保养逾期（{m}），同时故障增加'],
   nd_cheoBDG: ['Ưu tiên làm bảo dưỡng cho chuyền này', '优先为该产线做保养'],
+  nd_dtBT: ['Số đo tủ khác thường nhiều ngày', '配电柜测量连续多日异常'],
+  nd_dtBTB: ['{n} ngày khác thường trong 7 ngày gần nhất: {x}', '最近7天中有 {n} 天异常：{xz}'],
+  nd_dtBTG: ['{g}', '{gz}'],
+  dtbtND: ['{d} tủ {v} °C (thường {b} °C)', '{d} 柜温 {v} °C（平常 {b} °C）'],
+  dtbtI: ['{d} pha {p} {v} A (thường {b} A)', '{d} {p}相 {v} A（平常 {b} A）'],
+  dtbtMP: ['{d} pha {p} gần như không có dòng ({v} A)', '{d} {p}相几乎无电流（{v} A）'],
+  dtbtU: ['{d} điện áp {v} V (thường {b} V)', '{d} 电压 {v} V（平常 {b} V）'],
+  dtbtG_mp: ['Nghi mất pha: kiểm tra cầu chì, contactor, đầu cốt của pha đó trước khi động cơ cháy', '疑似缺相：检查该相保险丝、接触器、端子，避免电机烧毁'],
+  dtbtG_nd: ['Nhiệt tủ cao hơn mọi ngày: kiểm tra quạt tủ, siết đầu cốt, đo nhiệt từng điểm đấu', '柜温高于平常：检查柜内风扇，紧固端子，逐点测温'],
+  dtbtG_i: ['Dòng một pha khác mọi ngày: xem chuyền có đổi tải không; nếu không thì kiểm tra động cơ, đầu cốt pha đó', '单相电流异常：确认产线负载是否变化；若无则检查电机及该相端子'],
+  dtbtG_u: ['Điện áp khác mọi ngày: báo bộ phận điện kiểm tra nguồn cấp', '电压异常：通知电工检查供电'],
+  ndNgBtNd: ['Khác thường: nhiệt cao hơn mức thường (°C)', '异常：温度高于平常（°C）'], ndNgBtI: ['Khác thường: dòng một pha lệch mức thường (%)', '异常：单相电流偏离平常（%）'],
+  ndNgBtU: ['Khác thường: điện áp lệch mức thường (%)', '异常：电压偏离平常（%）'],
   nd_khongDT: ['Chưa có số đo tủ điện trong kỳ', '本期无配电柜测量数据'], nd_khongDTG: ['Ghi số đo tủ điện đều đặn để nhận định phần điện', '定期记录配电柜测量数据，以便分析电气部分']
 });
 Object.assign(TITLES, { nhanDinh: 't_nhanDinh', ndChuyen: 't_ndChuyen' });
@@ -17167,7 +17180,29 @@ ROOTS.push('nhanDinh');
 (NHOM.find((x) => x[0] === 'nhomViec') || [0, []])[1].push(['nhanDinh', 'navNhanDinh', 'warn']);
 HAN_CHE.add('nhanDinh'); HAN_CHE.add('ndChuyen');
 
-const ND_MAC_DINH = { ndVang: 60, ndDo: 70, lpVang: 10, lpDo: 20, uChuan: 380, uLech: 5, lap: 3, lapNgay: 30 };
+const ND_MAC_DINH = { ndVang: 60, ndDo: 70, lpVang: 10, lpDo: 20, uChuan: 380, uLech: 5, lap: 3, lapNgay: 30, btNd: 10, btI: 30, btU: 5 };
+// Số đo một ngày của một tủ so với MỨC THƯỜNG của chính tủ đó (trung vị tối đa 7 lần đo trước, trong 30 ngày, cần ≥ 3 lần).
+// Trả danh sách điểm khác thường; không đủ số đo để so thì trả [].
+function dtKhacThuong(ma, ngay, N) {
+  const x = (S.V.doTu || []).find((y) => y.maCT === ma && y.ngay === ngay); if (!x) return [];
+  const truoc = (S.V.doTu || []).filter((y) => y.maCT === ma && y.ngay < ngay && y.ngay >= addD(ngay, -30)).sort((a, b) => (a.ngay < b.ngay ? 1 : -1)).slice(0, 7);
+  const tv0 = (k) => { const v = truoc.map((y) => dtSo(y[k])).filter((v1) => v1 !== '').sort((a, b) => a - b); return v.length >= 3 ? v[Math.floor(v.length / 2)] : null; };
+  const ra = [], d = fmtDM(ngay);
+  const nd = dtSo(x.nhietDo), ndB = tv0('nhietDo');
+  if (nd !== '' && ndB !== null && nd - ndB >= N.btNd) ra.push({ k: 'nd', t: 'dtbtND', b: { d, v: fmtNum(nd, 1), b: fmtNum(ndB, 1) } });
+  const pha = [['ia', 'A'], ['ib', 'B'], ['ic', 'C']], i = pha.map(([k]) => dtSo(x[k]));
+  pha.forEach(([k, ten], j) => {
+    const v = i[j], khac = i.filter((y, h) => h !== j && y !== '');
+    if (v === '') return;
+    // Một pha gần như 0 trong khi hai pha kia có tải: nghi mất pha (không cần mức thường)
+    if (khac.length === 2 && khac.every((y) => y >= 5) && v < Math.min(...khac) * 0.1) { ra.push({ k: 'mp', t: 'dtbtMP', b: { d, p: ten, v: fmtNum(v, 1) } }); return; }
+    const b = tv0(k);
+    if (b !== null && b >= 5 && Math.abs(v - b) / b * 100 >= N.btI) ra.push({ k: 'i', t: 'dtbtI', b: { d, p: ten, v: fmtNum(v, 1), b: fmtNum(b, 1) } });
+  });
+  const u = dtSo(x.dienAp), uB = tv0('dienAp');
+  if (u !== '' && uB !== null && uB > 0 && Math.abs(u - uB) / uB * 100 >= N.btU) ra.push({ k: 'u', t: 'dtbtU', b: { d, v: fmtNum(u, 0), b: fmtNum(uB, 0) } });
+  return ra;
+}
 const ndNguong = () => Object.assign({}, ND_MAC_DINH, store.get('bd_ndNguong', {}) || {});
 const ND_DIEN_RE = /đi[eệ]n|m[oô] ?t[oơ]|motor|đ[oộ]ng c[oơ]|ch[aá]y|aptomat|cb\b|contactor|kh[oở]i đ[oộ]ng t[uừ]|c[aầ]u ch[iì]|bi[eế]n t[aầ]n|d[aâ]y d[aẫ]n|ch[aậ]p|电|马达|接触器|变频|短路|烧/i;
 const ndR = (v, n) => Math.round(v * Math.pow(10, n || 0)) / Math.pow(10, n || 0);
@@ -17271,6 +17306,30 @@ function ndPhanTich(c, ngay) {
     const tbI = (a) => { const v = []; a.forEach((x) => [x.ia, x.ib, x.ic].map(dtSo).forEach((y) => { if (y !== '' && y > 0) v.push(y); })); return v.length ? v.reduce((s0, y) => s0 + y, 0) / v.length : 0; };
     const iK = tbI(dtK), iT = tbI(dtT);
     if (iK && iT && iK >= iT * 1.2) ds.push(ndDong('vang', 'dongTang', { a: fmtNum(iK, 1), b: fmtNum(iT, 1), p: Math.round((iK / iT - 1) * 100) }, null, { act: 'doTu' }));
+  }
+  // Ngày khác thường so với mức thường của chính tủ: 7 ngày gần nhất. Một ngày lẻ tẻ thì bỏ qua (đỡ báo nhiễu);
+  // nhiệt / lệch pha đã vượt ngưỡng tuyệt đối ở trên thì không nhắc lại ở đây.
+  if (tus.length) {
+    const ngayBT = {}, kieu = {};
+    for (let i = 0; i < 7; i++) {
+      const ng = addD(den, -i);
+      tus.forEach((tu0) => dtKhacThuong(tu0.ma, ng, N).filter((o) => !(o.k === 'nd' && ds.some((y) => y.k === 'nhiet'))).forEach((o) => {
+        (ngayBT[ng] = ngayBT[ng] || []).push(o); kieu[o.k] = (kieu[o.k] || 0) + 1;
+      }));
+    }
+    const ngs = Object.keys(ngayBT).sort().reverse();
+    if (ngs.length >= 2 || kieu.mp) {
+      const chinh = kieu.mp ? 'mp' : Object.keys(kieu).sort((a, b) => kieu[b] - kieu[a])[0];
+      const vd = ngs.slice(0, 3).map((ng) => ngayBT[ng][0]);
+      dienXau = true;
+      // Dòng pha khác thường / mất pha chính là nguyên nhân của lệch pha: gộp làm một, không báo hai lần
+      let mucBT = kieu.mp || ngs.length >= 3 ? 'do' : 'vang';
+      const iLP = (chinh === 'i' || chinh === 'mp') ? ds.findIndex((y) => y.k === 'lechPha') : -1;
+      if (iLP >= 0) { if (ds[iLP].muc === 'do') mucBT = 'do'; ds.splice(iLP, 1); }
+      ds.push(ndDong(mucBT, 'dtBT', {
+        n: ngs.length, x: vd.map((o) => tv(o.t, o.b)).join('; '), xz: vd.map((o) => tz(o.t, o.b)).join('；'),
+        g: tv('dtbtG_' + chinh), gz: tz('dtbtG_' + chinh) }, null, { act: 'doTu' }));
+    }
   }
   // --- Nhận định chéo ---
   const scDien = sc.filter((x) => ND_DIEN_RE.test([x.tieuDe, x.moTa, x.nguyenNhan, x.ketQua].join(' '))).length;
@@ -17388,7 +17447,7 @@ Object.assign(ACT, {
   ndNguongMo: () => {
     const N = ndNguong(), o = (k, lb) => `<label class="fld"><span>${t(lb)}</span><input class="inp mono" inputmode="decimal" data-ndng="${k}" value="${esc(String(N[k]))}"></label>`;
     openSheet(`<div class="grab"></div><h3>${tv('ndNguong')}<span class="zi">${tz('ndNguong')}</span></h3><p class="help">${t('ndNguongHelp')}</p>
-      <div class="row2f">${o('ndVang', 'ndNgNdVang')}${o('ndDo', 'ndNgNdDo')}${o('lpVang', 'ndNgLpVang')}${o('lpDo', 'ndNgLpDo')}${o('uChuan', 'ndNgU')}${o('uLech', 'ndNgUL')}${o('lap', 'ndNgLap')}${o('lapNgay', 'ndNgLapN')}</div>
+      <div class="row2f">${o('ndVang', 'ndNgNdVang')}${o('ndDo', 'ndNgNdDo')}${o('lpVang', 'ndNgLpVang')}${o('lpDo', 'ndNgLpDo')}${o('uChuan', 'ndNgU')}${o('uLech', 'ndNgUL')}${o('lap', 'ndNgLap')}${o('lapNgay', 'ndNgLapN')}${o('btNd', 'ndNgBtNd')}${o('btI', 'ndNgBtI')}${o('btU', 'ndNgBtU')}</div>
       <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="ndNguongMacDinh">${t('ndMacDinh')}</button><button class="btn" data-act="ndNguongLuu">${IC.check} ${t('save')}</button></div>`);
   },
   ndNguongLuu: () => {
