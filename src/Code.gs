@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.69.2';
+var PHIEN_BAN = '2.70.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -53,7 +53,7 @@ var BANG = {
     'KyTruoc', 'CSTruoc', 'TieuThuKy', 'TieuThu', 'LucGhi', 'Anh', 'NgoaiLe', 'NguoiSua', 'Nguon'],
   // TonCu: tồn của chính mã này qua 12 lần nhập file gần nhất, cũ → mới, cách nhau dấu phẩy (lần cuối = tồn hiện tại).
   // Mốc thời gian của các lần nhập lưu chung ở KHO_META.moc, nên mỗi dòng chỉ giữ dãy số cho nhẹ.
-  KhoLK: ['Ma', 'Ten', 'QuyCach', 'Dv', 'Nhom', 'Ton', 'ViTri', 'Nguon', 'ConFile', 'CapNhat', 'GhiChu', 'GopVao', 'An', 'TonMin', 'TonCu', 'Loai'],
+  KhoLK: ['Ma', 'Ten', 'QuyCach', 'Dv', 'Nhom', 'Ton', 'ViTri', 'Nguon', 'ConFile', 'CapNhat', 'GhiChu', 'GopVao', 'An', 'TonMin', 'TonCu', 'Loai', 'TenVi', 'TenZh'],
   // Nhật ký nhập file kho: mỗi lần nhập một dòng, giữ lại hết để đối chiếu về sau
   NhapKho: ['ID', 'Luc', 'Nguoi', 'File', 'SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop', 'Ver', 'Tang', 'Ve'],
   // Nhật ký sửa đổi (audit): giá trị trước / sau, người sửa, thời gian, lý do
@@ -196,7 +196,7 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'importMachines', 'delete
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'importInspect', 'saveFault', 'deleteFault', 'saveAccept', 'deleteAccept',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy', 'dutyCfg',
-  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay', 'savePurchase', 'setPurchase', 'addPart', 'assignPartCode', 'setKhoLoai'];
+  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay', 'savePurchase', 'setPurchase', 'addPart', 'assignPartCode', 'setKhoLoai', 'setKhoTen'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
@@ -400,6 +400,7 @@ function dieuHuong(a, p, req) {
     case 'importKho': canQuyen(u, 'may'); return nhapKho(u, p);
     case 'saveKho': canQuyen(u, 'may'); return luuKho(u, p);
     case 'setKhoLoai': canQuyen(u, 'may'); return khoDatLoai(u, p);
+    case 'setKhoTen': canQuyen(u, 'may'); return khoDatTen(u, p);
     case 'savePurchase': canQuyen(u, 'xemhet'); return luuDatMua(u, p);
     case 'setPurchase': canQuyen(u, 'xemhet'); return suaDatMua(u, p);
     case 'saveKhoCfg': canQuyen(u, 'may'); return luuKhoCfg(u, p);
@@ -3793,13 +3794,15 @@ function khoTuDong(r, i) {
   return {
     ma: s(r[0]), ten: s(r[1]), qc: s(r[2]), dv: s(r[3]), nh: s(r[4]), ton: ton === '' ? '' : (Number(ton) || 0),
     vt: docJson(r[6], []), ng: s(r[7]) === 'APP' ? 'APP' : 'ERP', cf: s(r[8]) === '1' ? 1 : 0, cn: tgStr(r[9]),
-    gc: s(r[10]), gop: s(r[11]), an: s(r[12]) === '1' ? 1 : 0, tonMin: soHoacRong(r[13]), tonCu: khoDayTon(r[14]), loai: khoLoaiHopLe(r[15]), _r: i + 2
+    gc: s(r[10]), gop: s(r[11]), an: s(r[12]) === '1' ? 1 : 0, tonMin: soHoacRong(r[13]), tonCu: khoDayTon(r[14]), loai: khoLoaiHopLe(r[15]),
+    tenVi: s(r[16]), tenZh: s(r[17]), _r: i + 2
   };
 }
 function khoThanhDong(x) {
   return [anToan(x.ma), anToan(x.ten), anToan(x.qc), anToan(x.dv), anToan(x.nh), x.ton === '' ? '' : String(x.ton),
     x.vt && x.vt.length ? JSON.stringify(x.vt) : '', x.ng, x.cf ? '1' : '0', x.cn, anToan(x.gc), x.gop || '', x.an ? '1' : '',
-    x.tonMin === '' || x.tonMin === undefined ? '' : String(x.tonMin), (x.tonCu || []).join(','), x.loai || ''];
+    x.tonMin === '' || x.tonMin === undefined ? '' : String(x.tonMin), (x.tonCu || []).join(','), x.loai || '',
+    anToan(x.tenVi || ''), anToan(x.tenZh || '')];
 }
 // Mục phân loại Quản lý chọn tay cho một mã (vd "vongbi", "role"); trống = app tự xếp theo tên
 function khoLoaiHopLe(v) { v = s(v).toLowerCase(); return /^[a-z0-9]{1,20}$/.test(v) ? v : ''; }
@@ -3823,6 +3826,8 @@ function sachKho(x) {
   if (x.tonMin !== '' && x.tonMin !== undefined) o.tonMin = x.tonMin;
   if (x.tonCu && x.tonCu.length) o.tonCu = x.tonCu;
   if (x.loai) o.loai = x.loai;
+  if (x.tenVi) o.tenVi = x.tenVi;
+  if (x.tenZh) o.tenZh = x.tenZh;
   return o;
 }
 function docKho() { return docTho('KhoLK').map(khoTuDong).filter(function (x) { return x.ma; }); }
@@ -4143,7 +4148,7 @@ function luuKho(u, p) {
   var ma = s(p.ma), x = docKho().filter(function (r) { return r.ma === ma; })[0];
   if (!x) throw loi('KHONG_CO', 'Không tìm thấy · 找不到');
   // Tồn tối thiểu và bỏ theo dõi đặt được cho mọi linh kiện; tên / quy cách / đơn vị của linh kiện ERP thì sửa trong ERP
-  var chiMinAn = p.ten === undefined && p.qc === undefined && p.dv === undefined;   // tồn an toàn, bỏ theo dõi, mục phân loại
+  var chiMinAn = p.ten === undefined && p.qc === undefined && p.dv === undefined;   // tồn an toàn, bỏ theo dõi, mục phân loại, tên song ngữ
   if (x.ng !== 'APP' && !chiMinAn) throw loi('KHO_ERP', 'Linh kiện từ file ERP · ERP零件');
   capNhatTieuDe('KhoLK');
   if (p.tonMin !== undefined) {
@@ -4155,6 +4160,12 @@ function luuKho(u, p) {
   if (p.ten !== undefined) { var ten = catChu(p.ten, 160); if (!ten) throw loi('THIEU_TEN', 'Chưa nhập tên · 请输入名称'); x.ten = ten; }
   if (p.qc !== undefined) x.qc = catChu(p.qc, 200);
   if (p.dv !== undefined) x.dv = catChu(p.dv, 12);
+  if (p.tenVi !== undefined || p.tenZh !== undefined) {
+    var cuTen = { tenVi: x.tenVi, tenZh: x.tenZh };
+    if (p.tenVi !== undefined) x.tenVi = catChu(p.tenVi, 160);
+    if (p.tenZh !== undefined) x.tenZh = catChu(p.tenZh, 160);
+    ghiNhatKy(u, 'SUA_TEN_LK', 'KhoLK', x.ma, cuTen, { tenVi: x.tenVi, tenZh: x.tenZh }, '');
+  }
   if (p.loai !== undefined) {
     var lo = khoLoaiHopLe(p.loai);
     if (s(p.loai) && !lo) throw loi('SAI_LOAI', 'Mục phân loại không hợp lệ · 分类无效');
@@ -4202,6 +4213,45 @@ function khoDatLoai(u, p) {
   var meta = docKhoMeta(), truoc = meta.ver || '';
   if (doi.length) { meta.ver = verMoi(); meta.n = all.filter(khoHien).length; ghiKhoMeta(meta); }
   ghiNhatKy(u, 'DAT_LOAI_LK', 'KhoLK', '', '', (lo || 'tự xếp') + ' · ' + doi.length + ' mã', catChu(p.file, 120));
+  return { kho: doi.length ? { ver: meta.ver, truoc: truoc, n: meta.n, ds: doi.map(sachKho) } : null,
+    tk: { doi: doi.length, giu: thay - doi.length, khongCo: soMuon - thay } };
+}
+
+// Tên song ngữ cho cả loạt mã (nhập từ file): ds = [{ma, vi, zh}]. Lưu ở hai cột TenVi / TenZh riêng,
+// nhập file ERP sau không ghi đè. Trường nào không gửi thì giữ nguyên; gửi chuỗi trống là xoá (về tên ERP).
+function khoDatTen(u, p) {
+  var vao = Array.isArray(p.ds) ? p.ds : [];
+  if (!vao.length) throw loi('KHO_TRONG', 'Danh sách không có mã nào · 清单中没有编码');
+  if (vao.length > KHO_LOAI_TOI_DA) throw loi('KHO_NHIEU', 'Danh sách quá dài · 清单太长 (> ' + KHO_LOAI_TOI_DA + ')');
+  var muon = {}, soMuon = 0;
+  vao.forEach(function (o) {
+    if (!o) return;
+    var ma = maKhoHopLe(catChu(o.ma, 40).replace(/\s/g, ''));
+    if (!ma || muon[ma]) return;
+    muon[ma] = { vi: o.vi === undefined || o.vi === null ? undefined : catChu(o.vi, 160), zh: o.zh === undefined || o.zh === null ? undefined : catChu(o.zh, 160) };
+    soMuon++;
+  });
+  capNhatTieuDe('KhoLK');
+  var all = docKho(), doi = [], thay = 0;
+  all.forEach(function (x) {
+    var m = muon[x.ma];
+    if (!m) return;
+    thay++;
+    var d = false;
+    if (m.vi !== undefined && m.vi !== x.tenVi) { x.tenVi = m.vi; d = true; }
+    if (m.zh !== undefined && m.zh !== x.tenZh) { x.tenZh = m.zh; d = true; }
+    if (d) doi.push(x);
+  });
+  if (doi.length) {
+    // Ghi lại hai cột TenVi / TenZh một lần cho cả trang
+    var sh = trang('KhoLK'), cot = BANG.KhoLK.indexOf('TenVi') + 1, n = sh.getLastRow() - 1;
+    var rg = sh.getRange(2, cot, n, 2), v = rg.getValues();
+    doi.forEach(function (x) { if (v[x._r - 2]) { v[x._r - 2][0] = anToan(x.tenVi || ''); v[x._r - 2][1] = anToan(x.tenZh || ''); } });
+    rg.setValues(v);
+  }
+  var meta = docKhoMeta(), truoc = meta.ver || '';
+  if (doi.length) { meta.ver = verMoi(); meta.n = all.filter(khoHien).length; ghiKhoMeta(meta); }
+  ghiNhatKy(u, 'DAT_TEN_LK', 'KhoLK', '', '', doi.length + ' mã', catChu(p.file, 120));
   return { kho: doi.length ? { ver: meta.ver, truoc: truoc, n: meta.n, ds: doi.map(sachKho) } : null,
     tk: { doi: doi.length, giu: thay - doi.length, khongCo: soMuon - thay } };
 }

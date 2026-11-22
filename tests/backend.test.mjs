@@ -910,6 +910,30 @@ test('kho ngũ kim: đưa cả loạt mã (danh sách từ file) vào một mụ
   assert.equal(ok(b.call('setKhoLoai', { loai: '', ds: ['TEST-P1'] }, ql)).kho.ds[0].loai, undefined);
 });
 
+test('kho ngũ kim: tên song ngữ Việt – Trung lưu riêng (TenVi / TenZh), nhập file ERP sau không ghi đè; sửa từng mã hoặc cả loạt', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  ok(b.call('importKho', { file: 'erp.xlsx', soDong: 2, ds: [
+    { ma: 'TEST-S1', ten: '平皮带', qc: 'TEST-1000', ton: 2 },
+    { ma: 'TEST-S2', ten: 'Quạt làm mát', qc: 'TEST-QL', ton: 1 }] }, ql));
+  err(b.call('setKhoTen', { ds: [{ ma: 'TEST-S1', vi: 'Băng tải phẳng' }] }, kt), 'KHONG_QUYEN');
+  err(b.call('setKhoTen', { ds: [] }, ql), 'KHO_TRONG');
+  const r = ok(b.call('setKhoTen', { file: 'song-ngu.xlsx', ds: [{ ma: 'TEST-S1', vi: 'Băng tải phẳng' }, { ma: 'TEST-S2', zh: '散热风扇' }, { ma: 'TEST-KHONG', vi: 'x' }] }, ql));
+  assert.deepEqual(r.tk, { doi: 2, giu: 0, khongCo: 1 });
+  assert.deepEqual(r.kho.ds.map((x) => [x.ma, x.tenVi, x.tenZh]), [['TEST-S1', 'Băng tải phẳng', undefined], ['TEST-S2', undefined, '散热风扇']]);
+  // Nhập file ERP mới (tên ERP đổi): tên song ngữ giữ nguyên
+  const r2 = ok(b.call('importKho', { file: 'erp2.xlsx', soDong: 2, ds: [
+    { ma: 'TEST-S1', ten: '平皮带(新)', qc: 'TEST-1000', ton: 5 }, { ma: 'TEST-S2', ten: 'Quạt làm mát', qc: 'TEST-QL', ton: 1 }] }, ql));
+  const by = {}; r2.ds.forEach((x) => { by[x.ma] = x; });
+  assert.deepEqual([by['TEST-S1'].ten, by['TEST-S1'].tenVi, by['TEST-S2'].tenZh], ['平皮带(新)', 'Băng tải phẳng', '散热风扇'], 'nhập ERP không ghi đè phần dịch');
+  // Sửa từng mã (cả mã ERP): chỉ trường gửi lên mới đổi; chuỗi trống là xoá
+  let k = ok(b.call('saveKho', { ma: 'TEST-S1', tenZh: '平皮带' }, ql)).kho.ds[0];
+  assert.deepEqual([k.tenVi, k.tenZh], ['Băng tải phẳng', '平皮带']);
+  k = ok(b.call('saveKho', { ma: 'TEST-S1', tenVi: '' }, ql)).kho.ds[0];
+  assert.deepEqual([k.tenVi, k.tenZh], [undefined, '平皮带']);
+  err(b.call('saveKho', { ma: 'TEST-S1', ten: 'Đổi tên ERP' }, ql), 'KHO_ERP');
+});
+
 test('hàng đặt đã về: nhập file ERP thấy tồn tăng thì tự đánh dấu dòng phiếu đã về (phiếu trước nhận trước); hàng chưa có mã khớp khi đã có mã; đánh dấu tay', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
