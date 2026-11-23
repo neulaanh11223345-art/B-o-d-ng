@@ -1945,7 +1945,7 @@ const q25 = await page.evaluate(() => ({
   sw: document.querySelectorAll('.qsw').length,
   md: [...document.querySelectorAll('.qmd')].map((e) => e.textContent.trim())
 }));
-assert.equal(q25.sw, 8, 'có đủ tám công tắc quyền');
+assert.equal(q25.sw, 10, 'có đủ mười công tắc quyền (thêm xem / sửa sản phẩm)');
 assert.ok(q25.md.every((x) => /Theo vai trò/.test(x)), 'chưa đặt riêng thì tất cả theo vai trò');
 await shot('55-phan-quyen');
 // Mở riêng quyền xuất, khoá riêng quyền xem thiết bị phụ trợ
@@ -3179,6 +3179,44 @@ assert.equal(await page.evaluate((x) => khoGet(x.ma).tenVi, x59), 'TEST Vòng bi
 await page.evaluate((x) => send('setKhoTen', { ds: [{ ma: x.ma, vi: '', zh: '' }] }), x59); await wait(500);
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.70: kho phân loại chi tiết hơn; tên song ngữ Việt – Trung lưu riêng, nhập ERP không ghi đè, tìm được theo tên đã dịch');
+
+// 60. Sản phẩm (bảo mật): Quản lý xem / thêm / nhập từ file; một mã nhiều chuyền là nhiều bản ghi; kỹ thuật không thấy
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('sp'); }); await wait(600);
+assert.ok(await page.evaluate(() => sideDS().some((x) => x[0] === 'sp') && xemDuoc('sp')), 'Quản lý có mục Sản phẩm');
+assert.ok(await page.evaluate(() => spDS().length) >= 3, 'có sản phẩm mẫu');
+await page.click('[data-act="spThem"]'); await wait(500);
+await page.fill('[data-spf="ma"]', 'TEST-E2E'); await page.fill('[data-spf="chuyen"]', 'vky06/08');
+await page.fill('[data-spts="0"][data-k="2"]', 'TEST keo lưng 4mm'); await page.fill('[data-spts="0"][data-k="1"]', 'TEST 背胶 4mm');
+await page.click('[data-act="spLuu"]'); await wait(1200);
+const sp60 = await page.evaluate(() => spDS().find((x) => x.ma === 'TEST-E2E'));
+assert.deepEqual([sp60.chuyen, sp60.thongSo.length, sp60.thongSo[0][2]], ['VKY06,VKY08', 1, 'TEST keo lưng 4mm'], 'thêm sản phẩm, chuyền VKY06/08 tách hai chuyền, bỏ dòng thông số trống');
+// Trùng mã + chuyền thì báo
+await page.click('[data-act="spThem"]'); await wait(400);
+await page.fill('[data-spf="ma"]', 'test-e2e'); await page.fill('[data-spf="chuyen"]', 'VKY06, VKY08'); await page.click('[data-act="spLuu"]'); await wait(900);
+assert.match(await text('#spErr'), /đã có/, 'trùng mã trên cùng chuyền thì báo');
+await page.evaluate(() => back()); await wait(300);
+// Nhập từ file: cùng một mã trên hai chuyền, thông số khác nhau → hai bản ghi
+const f60 = await page.evaluate(async () => {
+  const rows = [SP_COT.map((v) => ({ v })),
+    ['TEST-IMP', 'VKY17', '', '2026-03-12', 'Hàn biên', '2-TEST-X光压', '2-TEST-X ép phẳng', ''].map((v) => ({ v })),
+    ['TEST-IMP', '', '', '', 'Định hình', '2-TEST-X', '2-TEST-X', ''].map((v) => ({ v })),
+    ['TEST-IMP', 'VKY18', '', '', 'Hàn biên', '1-TEST-X光压', '1-TEST-X ép phẳng', ''].map((v) => ({ v }))];
+  return Array.from(new Uint8Array(await XW.build([{ name: 'S', rows, logo: false }]).arrayBuffer()));
+});
+await page.setInputFiles('#spFile', { name: 'san-pham.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(f60) });
+await wait(900);
+assert.match(await text('#sheetBg'), /2 sản phẩm mới/);
+await page.click('[data-act="spNhapGui"]'); await wait(1500);
+const imp60 = await page.evaluate(() => spDS().filter((x) => x.ma === 'TEST-IMP').map((x) => x.chuyen + ':' + x.thongSo.map((r) => r[0] + '=' + r[1]).join('|') + ':' + x.ngaySX).sort());
+assert.deepEqual(imp60, ['VKY17:Hàn biên · 周封=2-TEST-X光压|Định hình · 成型=2-TEST-X:2026-03-12', 'VKY18:Hàn biên · 周封=1-TEST-X光压:'], 'mỗi chuyền một bản ghi, hạng mục chuẩn hoá song ngữ');
+await page.evaluate(() => go('chuyen', { ma: 'VKY17' })); await wait(500);
+assert.match(await text('#main'), /Sản phẩm của chuyền[\s\S]*TEST-IMP/, 'trang chuyền hiện sản phẩm của chuyền');
+await shot('95-san-pham');
+// Kỹ thuật không thấy mục, không nhận dữ liệu
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+await logout(); await login('NV003', '333333');
+assert.deepEqual(await page.evaluate(() => [xemDuoc('sp'), (S.base.sanPham || []).length, sideDS().some((x) => x[0] === 'sp')]), [false, 0, false], 'thông tin bảo mật không tới tài khoản kỹ thuật');
+ok('Bản 2.71: mục Sản phẩm bảo mật — mã hiệu và thông số theo chuyền, nhập / xuất Excel song ngữ, chỉ tài khoản có quyền mới xem');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

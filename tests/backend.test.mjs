@@ -934,6 +934,40 @@ test('kho ngũ kim: tên song ngữ Việt – Trung lưu riêng (TenVi / TenZh)
   err(b.call('saveKho', { ma: 'TEST-S1', ten: 'Đổi tên ERP' }, ql), 'KHO_ERP');
 });
 
+test('sản phẩm (bảo mật): chỉ tài khoản có quyền xem sản phẩm mới nhận; thêm, sửa, nhập từ file theo mã, xoá; chuyền "VKY06/08" tách hai chuyền', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const ts = [['Keo · 胶', 'TEST背胶 4mm', 'TEST keo lưng 4mm'], ['Hàn biên · 周封', 'TEST-1', 'TEST-1'], ['', 'bỏ', 'bỏ']];
+  err(b.call('saveProduct', { ma: 'TEST-SP1', thongSo: ts }, kt), 'KHONG_QUYEN');
+  err(b.call('saveProduct', { ma: '' }, ql), 'THIEU_MA');
+  const a = ok(b.call('saveProduct', { ma: 'TEST-SP1', nhom: 'TEST nhóm', chuyen: 'VKY06/08, vky12', thongSo: ts, ngaySX: '2026-03-12' }, ql)).sanPham;
+  assert.deepEqual([a.ma, a.chuyen, a.thongSo.length, a.ngaySX, a.nguoiSua], ['TEST-SP1', 'VKY06,VKY08,VKY12', 2, '2026-03-12', 'Quản lý']);
+  err(b.call('saveProduct', { ma: 'test-sp1', chuyen: 'VKY06/08, VKY12' }, ql), 'SP_TRUNG');
+  // Cùng mã trên chuyền khác (thông số khuôn khác) là bản ghi riêng
+  const a2 = ok(b.call('saveProduct', { ma: 'TEST-SP1', chuyen: 'VKY17', thongSo: [['Hàn biên · 周封', '2-TEST', '2-TEST']] }, ql)).sanPham;
+  ok(b.call('deleteProduct', { id: a2.id }, ql));
+  // Kỹ thuật không nhận danh sách sản phẩm; Quản lý nhận
+  assert.deepEqual(ok(b.call('data', {}, kt)).sanPham, [], 'thông tin bảo mật không gửi cho kỹ thuật');
+  const sp = (u) => ok(b.call('data', {}, u)).sanPham.map((x) => x.ma).filter((m) => /^TEST-SP/.test(m));
+  assert.deepEqual(sp(ql), ['TEST-SP1']);
+  // Nhập từ file: mã đã có thì cập nhật, mã mới thì thêm, dòng không mã bỏ qua
+  const r = ok(b.call('importProducts', { file: 'sp.xlsx', ds: [
+    { ma: 'TEST-SP1', thongSo: [['Khác · 其他', 'TEST', 'TEST']] }, { ma: 'TEST-SP2', chuyen: 'VKYC9', thongSo: [['Lõi bông · 棉芯', 'TEST-L1', 'TEST-L1']] }, { ma: '' }] }, ql));
+  assert.deepEqual(r.tk, { moi: 1, sua: 1, boQua: 1 });
+  const by = {}; r.dsSanPham.forEach((x) => { by[x.ma] = x; });
+  assert.deepEqual([by['TEST-SP1'].thongSo.length, by['TEST-SP1'].chuyen, by['TEST-SP2'].chuyen], [1, 'VKY06,VKY08,VKY12', 'VKYC9'], 'thông số thay cả bảng, chuyền giữ nếu file để trống');
+  err(b.call('importProducts', { ds: [] }, ql), 'KHO_TRONG');
+  // Sửa, xoá
+  const s2 = ok(b.call('saveProduct', { id: a.id, ma: 'TEST-SP1B', chuyen: 'VKY17' }, ql)).sanPham;
+  assert.deepEqual([s2.ma, s2.chuyen], ['TEST-SP1B', 'VKY17']);
+  ok(b.call('deleteProduct', { id: a.id }, ql));
+  assert.deepEqual(sp(ql), ['TEST-SP2']);
+  // Quyền riêng: mở cho một kỹ thuật thì nhận được
+  const ad = b.login('NV001', '111111'), u3 = ok(b.call('users', {}, ad)).users.find((x) => x.maNV === 'NV003');
+  ok(b.call('saveUser', { id: u3.id, ten: u3.ten, vaiTro: 'kythuat', maNV: u3.maNV, quyen: { xemsp: true } }, ad));
+  assert.deepEqual(sp(b.login('NV003', '333333')), ['TEST-SP2'], 'mở quyền xem sản phẩm riêng cho tài khoản');
+});
+
 test('hàng đặt đã về: nhập file ERP thấy tồn tăng thì tự đánh dấu dòng phiếu đã về (phiếu trước nhận trước); hàng chưa có mã khớp khi đã có mã; đánh dấu tay', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
