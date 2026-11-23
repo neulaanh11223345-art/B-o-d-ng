@@ -3071,7 +3071,7 @@ const mk55 = await page.evaluate(() => {
   S.kho.ds = luu; render();
   return { r, tile };
 });
-assert.deepEqual(mk55.r, ['mayin', 'mayin', 'maykeo', 'maykeo', 'xilanh', 'day'], 'quy cách 2100xxxxxx → máy in, 41xxx → máy keo; quy cách khác thì theo tên');
+assert.deepEqual(mk55.r, ['mayin', 'mayin', 'maykeo', 'maykeo', 'van', 'day'], 'quy cách 2100xxxxxx → máy in, 41xxx → máy keo; quy cách khác thì theo tên');
 assert.ok(mk55.tile, 'nhóm Linh kiện theo máy có hai mục Máy in / Máy keo');
 ok('Bản 2.68.1: linh kiện máy in (quy cách 2100…) và máy keo (quy cách 41…) có mục riêng');
 
@@ -3099,6 +3099,86 @@ assert.deepEqual(await page.evaluate((ma) => ma.map((m) => khoMucOf(khoGet(m))),
 assert.equal(await page.evaluate(() => S.f.khoLoai), 'mayin', 'xong mở luôn mục đó');
 await page.evaluate((ma) => send('setKhoLoai', { loai: '', ds: ma }), ma56); await wait(500);
 ok('Bản 2.69: máy in nhận số hãng 2100… ở bất kỳ đâu trong quy cách; nhập danh sách mã từ file để đưa cả loạt vào một mục');
+
+// 57. Phiếu đặt mua mở nhanh: chỉ mục "mặt hàng → phiếu gần nhất" dựng một lần, lưu / sửa phiếu thì dựng lại;
+// Theo dõi hàng về vẽ 40 dòng, bấm xem thêm
+const p57 = await page.evaluate(() => {
+  const L0 = S.base.datMua, L = [];
+  for (let p = 0; p < 30; p++) L.push({ id: 'TESTDM' + p, soPhieu: 'TEST/' + p, ngay: '2026-10-01', lucTao: '2026-10-01 08:' + String(p).padStart(2, '0'), trangThai: 'CHO',
+    ds: [1, 2, 3].map((j) => ({ ma: '', erp: false, ten: 'TEST hàng ' + p + '-' + j, qc: 'TEST', sl: 1 })) });
+  S.base.datMua = L;
+  const a = dmDaDat({ ten: 'TEST hàng 5-2', qc: 'TEST' });
+  mergeResult({ datMua: Object.assign({}, L[0], { id: 'TESTDMX', soPhieu: 'TEST/X', lucTao: '2026-10-02 09:00', ds: [{ ma: '', erp: false, ten: 'TEST hàng 5-2', qc: 'TEST', sl: 2 }] }) });
+  const b2 = dmDaDat({ ten: 'TEST hàng 5-2', qc: 'TEST' });
+  while (S.stack.length > 1) back();
+  S.f.khoTab = 'mua'; S.f.dmVeLoc = 'cho'; S.f.dmVeLim = 40; tab('kho');
+  const n1 = document.querySelectorAll('[data-act="dmVeDanh"]').length, them = !!document.querySelector('[data-act="dmVeThem"]');
+  ACT.dmVeThem();
+  const n2 = document.querySelectorAll('[data-act="dmVeDanh"]').length;
+  S.base.datMua = L0; S.dmVer = (S.dmVer || 0) + 1; render();
+  return { a: a && a.x.soPhieu, b: b2 && b2.x.soPhieu, n1, them, n2 };
+});
+assert.deepEqual(p57, { a: 'TEST/5', b: 'TEST/X', n1: 40, them: true, n2: 91 }, 'tra phiếu đã đặt bằng chỉ mục, cập nhật khi có phiếu mới; vẽ từng phần');
+ok('Bản 2.69.1: màn phiếu đặt mua mở nhanh (chỉ mục phiếu dựng một lần, danh sách hàng về vẽ từng phần)');
+
+// 58. Xuất toàn bộ thiết bị vào một file (danh mục thiết bị): mọi thiết bị đang dùng + sheet từng đơn vị của bản ghi gộp
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('tbXuat'); }); await wait(500);
+assert.equal(await page.locator('[data-act="tbXuatMot"]').count(), 1, 'có nút xuất toàn bộ thiết bị 1 file');
+const x58 = await page.evaluate(async () => {
+  const f = tbXuatTatCa(), sh = await readXlsx(await f.blob.arrayBuffer());
+  const r1 = await sh[0].rows(), r2 = sh[1] ? await sh[1].rows() : [];
+  const gop = activeMay().filter((m) => (m.chiTiet || []).length).reduce((a, m) => a + m.chiTiet.length, 0);
+  return { ten: f.ten, n: activeMay().length, dong: r1.length - 1, hd: (r1[0] || []).join('|'), sheet2: sh[1] && sh[1].name, dv: r2.length - 1, gop,
+    coMa: r1.slice(1).every((r) => r && r[1]) };
+});
+assert.match(x58.ten, /^Danh-muc-thiet-bi_\d{4}-\d{2}-\d{2}\.xlsx$/);
+assert.equal(x58.dong, x58.n, 'mỗi thiết bị đang dùng một dòng');
+assert.match(x58.hd, /Mã máy[\s\S]*Tên thiết bị[\s\S]*Tên tiếng Trung[\s\S]*Loại thiết bị[\s\S]*Chuyền[\s\S]*Vị trí/);
+assert.ok(x58.coMa, 'dòng nào cũng có mã máy');
+assert.ok(x58.gop ? x58.sheet2 === 'Don vi' && x58.dv === x58.gop : !x58.sheet2, 'sheet Don vi đủ từng đơn vị của bản ghi gộp: ' + JSON.stringify(x58));
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.69.2: xuất toàn bộ thiết bị vào một file (danh mục + từng đơn vị của bản ghi gộp)');
+
+// 59. Kho: phân loại chi tiết hơn; tên song ngữ Việt – Trung lưu riêng (nhập file, sửa từng mã), nhập ERP không ghi đè, tìm được theo tên đã dịch
+const mu59 = await page.evaluate(() => [['直线轴承', 'truot'], ['同步轮', 'banhxe'], ['涨紧轮轴', 'truc'], ['外卡簧（轴用卡簧）Chốt vòng ngoài', 'bulong'], ['气管接头', 'ongkhi'],
+  ['单向节流阀', 'van'], ['气缸', 'xilanh'], ['ATTOMAT空气开关', 'khoidong'], ['花纹输送带 Dây băng tải hoa văn', 'dai'], ['平皮带', 'dai'], ['圆弧齿单面同步带', 'dairang'],
+  ['三角皮带', 'daithang'], ['焊条', 'han'], ['Cặp nhiệt điện 热电偶', 'cambien'], ['散热风扇 Quạt tủ điện', 'dongco'], ['同步带Dây đai băng tải PVC màu đen', 'dairang'],
+  ['开关电源', 'nguon'], ['按钮 Nút nhấn', 'congtac'], ['弹簧联轴器 Khớp nối trục', 'giamtoc'], ['LED灯管Bóng đèn tuýp led', 'congtac']]
+  .filter(([ten, muc]) => khoMucTuDong({ ten, qc: 'TEST' }) !== muc).map(([ten, muc]) => ten + ' → ' + khoMucTuDong({ ten, qc: 'TEST' }) + ' (cần ' + muc + ')'));
+assert.deepEqual(mu59, [], 'tự xếp đúng mục chi tiết');
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.khoTab = 'nhap'; tab('kho'); }); await wait(600);
+const x59 = await page.evaluate(() => { const x = S.kho.ds.find((y) => !y.an && !y.gop && y.ng === 'ERP' && y.cf && !khoTen(y).vi); return { ma: x.ma, ten: x.ten, thieu: khoTenThieuDS().length }; });
+assert.ok(x59.ma && x59.thieu > 0, 'bản demo có mã chỉ tên tiếng Trung');
+assert.equal(await page.locator('[data-act="khoTenXuat"][data-v="thieu"]').count(), 1, 'có nút xuất mã cần dịch');
+// Xuất file cần dịch: mã này có trong file
+const xl59 = await page.evaluate(async () => { const rows = await (await readXlsx(await khoTenBlob(false).arrayBuffer()))[0].rows(); return { hd: rows[0].join('|'), ma: rows.slice(1).map((r) => String(r[0])) }; });
+assert.match(xl59.hd, /Mã ERP[\s\S]*Tên tiếng Việt[\s\S]*Tên tiếng Trung/); assert.ok(xl59.ma.includes(x59.ma));
+// Điền tên Việt rồi nhập lại
+const f59 = await page.evaluate(async (x) => {
+  const rows = [['Mã ERP · 品号', 'Tên ERP · ERP名称', 'Tên tiếng Việt · 越南语名称', 'Tên tiếng Trung · 中文名称'].map((v) => ({ v })), [{ v: x.ma }, { v: x.ten }, { v: 'TEST Vòng bi dịch' }, { v: x.ten }], [{ v: 'TEST-KHONG' }, { v: '' }, { v: 'x' }, { v: '' }]];
+  return Array.from(new Uint8Array(await XW.build([{ name: 'S', rows, logo: false }]).arrayBuffer()));
+}, x59);
+await page.setInputFiles('#khoTenFile', { name: 'Ten-can-dich.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(f59) });
+await wait(900);
+assert.match(await text('#sheetBg'), /1 mã sẽ được cập nhật tên/); assert.match(await text('#sheetBg'), /1 mã không có trong kho/);
+await shot('94-kho-ten-song-ngu');
+await page.click('[data-act="khoTenNhapGui"]'); await wait(1500);
+assert.deepEqual(await page.evaluate((x) => { const k = khoGet(x.ma); return [k.tenVi, khoTen(k).zh, khoFind('vong bi dich').some((y) => y.ma === x.ma), khoTenThieuDS().length]; }, x59),
+  ['TEST Vòng bi dịch', x59.ten, true, x59.thieu - 1], 'lưu tên Việt, giữ tên Trung, tìm được theo tên đã dịch');
+// Nhập file ERP lần nữa: phần dịch giữ nguyên
+await page.evaluate(() => {
+  const ds = S.kho.ds.filter((x) => x.ng === 'ERP' && x.cf).map((x) => ({ ma: x.ma, ten: x.ten, qc: x.qc || '', dv: x.dv || '', nh: x.nh || '', ton: tonOf(x) || 0, vt: x.vt || [] }));
+  go('khoNhap', { r: { file: 'TEST-ERP-59.xlsx', sheet: 'Sheet1', soDong: ds.length, ds, cot: ['品号'], boQua: 0 }, d: khoDiff(ds) });
+}); await wait(500);
+await page.click('#knSave'); await wait(2500);
+assert.equal(await page.evaluate((x) => khoGet(x.ma).tenVi, x59), 'TEST Vòng bi dịch', 'nhập ERP không ghi đè tên đã dịch');
+// Sửa từng mã trong phiếu linh kiện
+await page.evaluate((x) => openKhoItem(x.ma), x59); await wait(400);
+await page.fill('#kxTenVi', 'TEST Vòng bi sửa tay'); await page.click('[data-act="khoTenLuu"]'); await wait(1200);
+assert.equal(await page.evaluate((x) => khoGet(x.ma).tenVi, x59), 'TEST Vòng bi sửa tay');
+await page.evaluate((x) => send('setKhoTen', { ds: [{ ma: x.ma, vi: '', zh: '' }] }), x59); await wait(500);
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.70: kho phân loại chi tiết hơn; tên song ngữ Việt – Trung lưu riêng, nhập ERP không ghi đè, tìm được theo tên đã dịch');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
