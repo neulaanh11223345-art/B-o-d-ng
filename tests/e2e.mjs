@@ -3218,6 +3218,25 @@ await logout(); await login('NV003', '333333');
 assert.deepEqual(await page.evaluate(() => [xemDuoc('sp'), (S.base.sanPham || []).length, sideDS().some((x) => x[0] === 'sp')]), [false, 0, false], 'thông tin bảo mật không tới tài khoản kỹ thuật');
 ok('Bản 2.71: mục Sản phẩm bảo mật — mã hiệu và thông số theo chuyền, nhập / xuất Excel song ngữ, chỉ tài khoản có quyền mới xem');
 
+// 61. Lập phiếu đặt mua: hàng cần mua / hết hàng chia theo mục (chip chọn mục, khối mở / đóng, thêm cả mục)
+await logout(); await login('NV002', '222222');
+await page.evaluate(() => tab('kho')); await page.waitForFunction(() => S.kho.ds.length > 0, null, { timeout: 20000 });
+await page.evaluate(() => { dmLuu({ ds: [], boPhan: '' }); go('datMua', { kieu: 'ma' }); }); await wait(600);
+await page.click('[data-act="dmLoc"][data-v="het"]'); await wait(500);
+const m61 = await page.evaluate(() => {
+  const ds = dmChonDS({ loc: 'het' }), muc = [...new Set(ds.map((o) => khoMucOf(o.x)))];
+  return { n: ds.length, muc: muc.length, khoi: document.querySelectorAll('#dmDs details[data-muc]').length, chip: document.querySelectorAll('#dmDs [data-act="dmMuc"]').length, id: muc[0] };
+});
+assert.ok(m61.n > 0 && m61.khoi === m61.muc && m61.chip === m61.muc + 1, 'mỗi mục một khối, có chip Tất cả mục + từng mục: ' + JSON.stringify(m61));
+await page.click(`#dmDs [data-act="dmMuc"][data-v="${m61.id}"]`); await wait(400);
+assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('#dmDs details[data-muc]')].map((d) => [d.dataset.muc, d.open])), [[m61.id, true]], 'chọn chip chỉ còn mục đó, mở sẵn');
+await page.click('#dmDs [data-act="dmThemMuc"]'); await wait(600);
+const t61 = await page.evaluate((id) => ({ phieu: dmLay().ds.map((r) => r.ma).sort(), muc: dmChonDS({ loc: 'het' }).filter((o) => khoMucOf(o.x) === id).map((o) => o.x.ma).sort() }), m61.id);
+assert.deepEqual(t61.phieu, t61.muc, 'thêm cả mục: đúng các mã hết hàng của mục đó');
+await shot('96-dat-mua-theo-muc');
+await page.evaluate(() => { dmLuu({ ds: [], boPhan: '' }); while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.71.1: lập phiếu đặt mua — hàng cần mua / hết hàng chia theo mục như tổng quan kho, thêm cả mục một lần');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
