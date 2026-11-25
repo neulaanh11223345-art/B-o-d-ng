@@ -448,6 +448,9 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .tcsheet .ot td{height:32px}
 .tcsheet .ot td.ct{text-align:left;padding-left:8px}
 .tcsheet .ot tr.tg td{font-weight:700}
+.dt td.tcsep,.dt th.tcsep{border-left:2px solid var(--line)}
+.dt td.tccn{color:var(--orange)}
+.tcrow .sub.tccnl,.help.tccnl{color:var(--orange)}
 .tcsheet .gc{margin-top:11px;font-size:clamp(10.5px,2.6vw,12.5px);line-height:1.5}
 .tcsheet .gc .zh{font-family:var(--f-zh)}
 .tcsheet .ky{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:26px;text-align:center;font-size:clamp(10.5px,2.6vw,13px);font-weight:700}
@@ -461,6 +464,8 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .tcsheet .dh .co{text-align:center;font-weight:700;font-size:clamp(12px,3vw,15px);line-height:1.3}
 .tcsheet.don .tt{margin-top:4px;font-size:clamp(15px,4.2vw,20px)}
 .tcsheet.don .tt .zh{display:inline;font-size:.78em;margin-left:8px}
+/* Tờ Chủ nhật: tiêu đề dài hơn, chữ Trung xuống dòng cho khỏi tràn (v2.71.2) */
+.tcsheet.don.cn .tt .zh{display:block;margin:2px 0 0}
 .tcsheet .d3{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0 6px;font-size:clamp(10.5px,2.6vw,12.5px);font-weight:600}
 .tcsheet .d3 u{text-decoration:none;border-bottom:1px solid #333;min-width:120px;display:inline-block;font-weight:400;text-align:center}
 .tcsheet .cam{font-size:clamp(10px,2.5vw,12px);line-height:1.45;margin:4px 0 8px;font-style:italic}
@@ -472,7 +477,7 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .tcsheet .ky5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:20px;text-align:center;font-size:clamp(9.5px,2.3vw,11.5px);font-weight:700}
 .tcsheet .ky5 .zh{display:block;font-weight:400;font-size:.9em;margin-top:1px}
 .tcsheet .ky5 em{display:block;font-style:normal;font-weight:400;font-size:.92em;margin-top:48px}
-@media print{.tcsheet.don{padding:8px 6px}.tcsheet .ky5 em{margin-top:52px}}
+@media print{.tcsheet.don{padding:8px 6px}.tcsheet .ky5 em{margin-top:52px}.tcsheet.don.cn .tt{font-size:17pt}}
 .hcapnhat{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin:10px 0 2px}
 .hcapnhat .btn{border-radius:999px;padding:9px 18px;min-height:42px}
 .hcapnhat .sub{font-size:12.5px;color:var(--ink3)}
@@ -11494,7 +11499,9 @@ Object.assign(TX, {
   tcTuanHaiThang: ['Tuần này vắt qua hai tháng. Tăng ca chốt theo tháng thì xem / in / xuất riêng từng phần:', '本周跨两个月。加班按月结算，可分别查看 / 打印 / 导出：'],
   tcPhanThang: ['Phần tháng {m}: {a} – {b}', '{m}月部分：{a} – {b}'], tcCaThang: ['Cả tháng {m}', '{m}月整月'],
   tcThangTruoc: ['Tháng trước', '上月'], tcThangSau: ['Tháng sau', '下月'],
-  tcKhoangDai: ['Chọn tối đa {n} ngày một lần', '一次最多选择{n}天'], tcTongGioIn: ['tổng {h} giờ', '合计 {h} 小时'], tcTongKhoang: ['Tổng giờ {a}', '{a} 合计'],
+  tcKhoangDai: ['Chọn tối đa {n} ngày một lần', '一次最多选择{n}天'], tcTongGioIn: ['tổng {h} giờ', '合计 {h} 小时'],
+  tcTongCNIn: ['trong đó Chủ nhật {h} giờ, in riêng {m} tờ', '其中周日 {h} 小时，单独打印 {m} 张'],
+  tcTrongDoCN: ['Trong đó Chủ nhật: {h} giờ', '其中周日：{h} 小时'], tcThNT: ['Ngày thường', '平日'], tcThCN: ['Ngày Chủ nhật', '周日'], tcTongKhoang: ['Tổng giờ {a}', '{a} 合计'],
   tcDonSoLuotK: ['{a}: {n} lượt tăng ca · {m} tờ đơn', '{a}：共 {n} 次加班 · {m} 张申请表'],
   tcXuatKhoang: ['Xuất Excel', '导出Excel'], tcDS: ['Danh sách tăng ca', '加班明细'], tcLanN: ['{n} lần', '{n}次'],
   tcTrong: ['Tuần này chưa có lần tăng ca nào', '本周暂无加班记录'], tcThem: ['Thêm ngày tăng ca', '添加加班日期'],
@@ -11531,7 +11538,8 @@ Object.assign(TX, {
   srvMissTC: ['Bản 2.11: đăng ký tăng ca và in đơn.', '2.11版：加班登记与打印申请单。'],
   xlTCNgay: ['Ngày tháng · 日期'], xlTCThu: ['Thứ · 星期'], xlTCNV: ['Họ tên · 姓名'], xlTCThe: ['Mã số thẻ · 工号'],
   xlTCBP: ['Bộ phận · 部门'], xlTCCa: ['Ca làm việc · 班次'], xlTCTG: ['Thời gian tăng ca · 加班时间'],
-  xlTCGio: ['Số tiếng TC · 工时'], xlTCCT: ['Chú thích · 备注'], xlTCTong: ['Tổng · 合计']
+  xlTCGio: ['Số tiếng TC · 工时'], xlTCCT: ['Chú thích · 备注'], xlTCTong: ['Tổng · 合计'],
+  xlTCTongCN: ['Tổng Chủ nhật · 周日合计'], xlTCNgayThuong: ['Ngày thường · 平日加班'], xlTCNgayCN: ['Ngày Chủ nhật · 周日加班']
 });
 
 const TC_MAC_DINH = [{ k: 'HC', ten: 'Hành chính', zh: '行政班', tu: '17:30', den: '19:30' },
@@ -11674,6 +11682,7 @@ VIEWS.tc = {
       <span class="k">${kh.kieu === 'tuan' ? t('tcTongTuan') : t('tcTongKhoang', { a: tcKhoangNhan(kh) })}</span><span class="v">${tcSo(tcCong(ds))}</span>
       <span class="k" style="margin-left:auto">${tv('tcTongThang', { m: +ym.slice(5, 7) })}</span>
       <span class="v" style="font-size:18px">${tcSo(tcThangCua(uid, ym))}</span></div>
+      ${tcCongCN(ds) ? `<div class="help" style="margin-top:6px">${esc(tv('tcTrongDoCN', { h: tcSo(tcCongCN(ds)) }))} <span class="zi" lang="zh-CN">${esc(tz('tcTrongDoCN', { h: tcSo(tcCongCN(ds)) }))}</span></div>` : ''}
       ${cb ? `<div class="note warn" style="margin-top:12px;background:var(--orange-bg);border-color:var(--orange);color:var(--orange)"><b>${esc(cb)}</b></div>` : ''}</div>`;
     o += `<div class="btns" style="margin-top:14px">
       <button class="btn" data-act="go" data-v="tcXem">${IC.dl} ${t('tcXemDon')}</button>
@@ -11776,28 +11785,43 @@ function tcDonDS(tu, den, uid) {
   return ds.sort((a, b) => (a.ngay < b.ngay ? -1 : a.ngay > b.ngay ? 1
     : (tcNguoi(a.uid).ten || '').localeCompare(tcNguoi(b.uid).ten || '') || (a.tu < b.tu ? -1 : 1)));
 }
+// Tăng ca ngày Chủ nhật tính lương khác ngày thường, nên tách riêng: tính theo NGÀY (thứ trong tuần),
+// không theo ca đã chọn — chọn ca Hành chính vào Chủ nhật vẫn là tăng ca Chủ nhật (v2.71.2)
+const tcLaCN = (x) => wday(x.ngay) === 0;
+const tcCongCN = (ds) => tcCong(ds.filter(tcLaCN));
+// Các tờ đơn của một khoảng ngày: mỗi người một tờ ngày thường (hoặc nhiều tờ nếu quá 15 lượt),
+// rồi tới các tờ Chủ nhật riêng của từng người, xếp cuối để nộp riêng.
+function tcDonTo(uid, tu, den) {
+  const nhom = [], viTri = {};
+  tcDonDS(tu, den, uid).forEach((x) => {
+    const cn = tcLaCN(x) ? 1 : 0, k = cn + '|' + x.uid;
+    if (viTri[k] === undefined) { viTri[k] = nhom.length; nhom.push({ uid: x.uid, cn, ds: [] }); }
+    nhom[viTri[k]].ds.push(x);
+  });
+  nhom.sort((a, b) => a.cn - b.cn || (tcNguoi(a.uid).ten || '').localeCompare(tcNguoi(b.uid).ten || ''));
+  const to = [];
+  nhom.forEach((g) => {
+    const n = Math.max(1, Math.ceil(g.ds.length / TC_DON_DONG));
+    for (let i = 0; i < n; i++) to.push({ uid: g.uid, cn: g.cn, g, a: g.ds.slice(i * TC_DON_DONG, (i + 1) * TC_DON_DONG), i, n });
+  });
+  if (!to.length) to.push({ uid: uid || (S.me || {}).id || '', cn: 0, g: { ds: [] }, a: [], i: 0, n: 1 });
+  return to;
+}
 function tcDonHtml(uid, tu, den) {
   const d2 = den || addD(tu, 6);
-  const ds = tcDonDS(tu, d2, uid);
-  // Gom theo người: mỗi người một tờ (hoặc nhiều tờ nếu quá 15 lượt)
-  const theoNg = [], viTri = {};
-  ds.forEach((x) => {
-    if (viTri[x.uid] === undefined) { viTri[x.uid] = theoNg.length; theoNg.push({ uid: x.uid, ds: [] }); }
-    theoNg[viTri[x.uid]].ds.push(x);
-  });
-  theoNg.sort((a, b) => (tcNguoi(a.uid).ten || '').localeCompare(tcNguoi(b.uid).ten || ''));
-  const to = [];
-  theoNg.forEach((g) => {
-    const n = Math.max(1, Math.ceil(g.ds.length / TC_DON_DONG));
-    for (let i = 0; i < n; i++) to.push({ uid: g.uid, a: g.ds.slice(i * TC_DON_DONG, (i + 1) * TC_DON_DONG), i, n });
-  });
-  if (!to.length) to.push({ uid: uid || (S.me || {}).id || '', a: [], i: 0, n: 1 });
+  const to = tcDonTo(uid, tu, d2);
   // Khoảng vắt qua năm thì ghi đủ năm cho khỏi nhầm
   const fd = tu.slice(0, 4) === d2.slice(0, 4) ? fmtDM : fmtD;
   const khoang = tu === d2 ? fmtD(tu) : 'Từ ngày ' + fd(tu) + ' - ' + fd(d2);
+  // Tờ Chủ nhật ghi đúng các ngày Chủ nhật có trên tờ: 02/08, 09/08, 16/08/2026
+  const ngayCN = (a) => {
+    const ng = a.map((x) => x.ngay).filter((d, i, m) => m.indexOf(d) === i).sort();
+    const motNam = ng.every((d) => d.slice(0, 4) === ng[ng.length - 1].slice(0, 4));
+    return ng.map((d, i) => (i === ng.length - 1 || !motNam ? fmtD(d) : fmtDM(d))).join(', ');
+  };
   let o = '';
   for (let k = 0; k < to.length; k++) {
-    const a = to[k].a, so = to[k].n;
+    const a = to[k].a, so = to[k].n, cn = to[k].cn;
     let tr = '';
     for (let i = 0; i < TC_DON_DONG; i++) {
       const x = a[i], stt = to[k].i * TC_DON_DONG + i + 1;
@@ -11814,18 +11838,19 @@ function tcDonHtml(uid, tu, den) {
     const cong = (ds) => ds.reduce((s0, x) => s0 + (+x.soGio || 0), 0);
     const dongTong = (vi, zh, v) => `<tr class="tg"><td colspan="7" style="text-align:right;padding-right:10px">${vi} <span class="zh" style="display:inline">${zh}</span></td>
       <td class="mono">${tcSoDon(Math.round(v * 100) / 100)}</td><td></td></tr>`;
-    const tatCa = to.filter((y) => y.uid === to[k].uid).reduce((s0, y) => s0 + cong(y.a), 0);
+    const tatCa = cong(to[k].g.ds), tgVi = 'Tổng số tiếng tăng ca' + (cn ? ' Chủ nhật' : ''), tgZh = (cn ? '周日' : '') + '加班总小时数';
     if (a.length || so > 1) {
-      tr += so > 1 ? dongTong('Cộng tờ này', '本页合计', cong(a)) : dongTong('Tổng số tiếng tăng ca', '加班总小时数', cong(a));
-      if (so > 1 && to[k].i === so - 1) tr += dongTong('Tổng số tiếng tăng ca (cả ' + so + ' tờ)', '加班总小时数（共' + so + '页）', tatCa);
+      tr += so > 1 ? dongTong('Cộng tờ này', '本页合计', cong(a)) : dongTong(tgVi, tgZh, cong(a));
+      if (so > 1 && to[k].i === so - 1) tr += dongTong(tgVi + ' (cả ' + so + ' tờ)', tgZh + '（共' + so + '页）', tatCa);
     }
     const ly = [];
     a.forEach((x) => { const v = String(x.lyDo || '').trim(); if (v && ly.indexOf(v) < 0) ly.push(v); });
-    o += `<div class="tcsheet don">
+    o += `<div class="tcsheet don${cn ? ' cn' : ''}">
       <table class="dh"><tr><td class="lg"><img src="${LOGO_FULL}" alt="Credible 可悦"></td>
         <td class="co">CÔNG TY TNHH CREDIBLE VIỆT NAM <span class="zh">可悦（越南）有限公司</span></td></tr></table>
-      <div class="tt">ĐƠN XIN TỰ NGUYỆN TĂNG CA<span class="zh">自愿加班申请表</span></div>
-      <div class="d3"><span>Ngày tăng ca <span class="zh">加班日期</span>: <u>${esc(khoang)}</u></span>
+      <div class="tt">${cn ? 'ĐƠN XIN TỰ NGUYỆN TĂNG CA NGÀY CHỦ NHẬT<span class="zh">周日自愿加班申请表</span>'
+        : 'ĐƠN XIN TỰ NGUYỆN TĂNG CA<span class="zh">自愿加班申请表</span>'}</div>
+      <div class="d3"><span>Ngày tăng ca <span class="zh">加班日期</span>: <u>${esc(cn ? ngayCN(a) : khoang)}</u></span>
         <span>Bộ phận <span class="zh">部门</span>：Sản xuất ( VKY........ - Ca... ....)</span></div>
       <div class="cam">Căn cứ vào tình hình sản xuất, căn cứ vào thực tế, Tôi tự nguyện đăng ký xin làm thêm giờ và ký tên vào đơn tự nguyện xin tăng ca này, thông tin như sau:
         <span class="zh">按照生产情况、按照实际情况，本人自愿申请加班和在自愿申请加班签名确认，申请加班如下信息：</span></div>
@@ -11854,7 +11879,7 @@ const tcDonUid = () => (xemHet() && !S.f.tcDonMot ? '' : tcUid());
 VIEWS.tcXem = {
   html() {
     const kh = tcKhoang(), tu = kh.tu, uid = tcDonUid(), ds0 = tcDonDS(tu, kh.den, uid);
-    const n = ds0.length, m = new Set(ds0.map((x) => x.uid)).size || 1;
+    const to = tcDonTo(uid, tu, kh.den), n = ds0.length, m = to.length;
     let o = '';
     if (xemHet()) {
       o += `<div class="seg" style="margin-bottom:12px">${[['', 'tcDonCaNM'], ['1', 'tcDonMotNguoi']].map(([k, lb]) =>
@@ -11862,9 +11887,10 @@ VIEWS.tcXem = {
     }
     o += tcKhoangHtml();
     const kd = kh.kieu === 'tuan' ? 'tcDonSoLuot' : 'tcDonSoLuotK', a = tcKhoangNhan(kh);
-    const gio = tcCong(ds0);
-    o += `<div class="help" style="margin:10px 0">${esc(tv(kd, { n, m, a }))} · <b>${esc(tv('tcTongGioIn', { h: tcSo(gio) }))}</b>
-      <span class="zi" lang="zh-CN">${esc(tz(kd, { n, m, a }))} · ${esc(tz('tcTongGioIn', { h: tcSo(gio) }))}</span></div>`;
+    const gio = tcCong(ds0), gCN = tcCongCN(ds0), nCN = to.filter((x) => x.cn).length;
+    const cnT = (f) => (gCN ? ' · ' + f('tcTongCNIn', { h: tcSo(gCN), m: nCN }) : '');
+    o += `<div class="help" style="margin:10px 0">${esc(tv(kd, { n, m, a }))} · <b>${esc(tv('tcTongGioIn', { h: tcSo(gio) }))}</b>${esc(cnT(tv))}
+      <span class="zi" lang="zh-CN">${esc(tz(kd, { n, m, a }))} · ${esc(tz('tcTongGioIn', { h: tcSo(gio) }))}${esc(cnT(tz))}</span></div>`;
     o += `<div class="card" style="padding:10px"><div class="tcwrap">${tcDonHtml(uid, tu, kh.den)}</div></div>
       <div class="btns" style="margin-top:13px"><button class="btn pri" data-act="tcIn">${IC.dl} ${t('tcInPdf')}</button>
         <button class="btn ghost" data-act="tcXuatTuan">${IC.dl} ${t(kh.kieu === 'tuan' ? 'tcXuatTuan' : 'tcXuatKhoang')}</button></div>
@@ -11881,7 +11907,8 @@ function tcThangDS(ym) {
   return Object.keys(by).map((uid) => {
     const a = by[uid], theo = {};
     a.forEach((x) => { theo[x.ca] = Math.round(((theo[x.ca] || 0) + (+x.soGio || 0)) * 100) / 100; });
-    return { uid, n: tcNguoi(uid), theo, tong: tcCong(a), ds: a.sort((p, q) => (p.ngay < q.ngay ? -1 : 1)) };
+    const tong = tcCong(a), cn = tcCongCN(a);
+    return { uid, n: tcNguoi(uid), theo, tong, cn, nt: Math.round((tong - cn) * 100) / 100, ds: a.sort((p, q) => (p.ngay < q.ngay ? -1 : 1)) };
   }).sort((p, q) => q.tong - p.tong || (p.n.ten < q.n.ten ? -1 : 1));
 }
 VIEWS.tcThang = {
@@ -11892,25 +11919,31 @@ VIEWS.tcThang = {
       <button data-act="tcThangStep" data-d="1" aria-label="+">${IC.right}</button></div>
       <button class="btn ghost sm" data-act="tcXuatThang">${IC.dl} ${t('tcXuatThang')}</button></div>`;
     if (!ds.length) return o + `<div class="card empty" style="margin-top:12px">${t('tcChuaAi')}</div>`;
-    const tong = {}; let all = 0;
-    ds.forEach((p) => { ca.forEach((c) => { tong[c.k] = Math.round(((tong[c.k] || 0) + (p.theo[c.k] || 0)) * 100) / 100; }); all += p.tong; });
+    const tong = {}; let all = 0, allCN = 0;
+    ds.forEach((p) => { ca.forEach((c) => { tong[c.k] = Math.round(((tong[c.k] || 0) + (p.theo[c.k] || 0)) * 100) / 100; }); all += p.tong; allCN += p.cn; });
+    // Hai cột Ngày thường / Ngày Chủ nhật (tính theo ngày) cộng lại đúng bằng cột Tổng
     const tr = ds.map((p) => `<tr><td><button class="cellnm" data-act="tcNguoiMo" data-uid="${esc(p.uid)}"><b>${esc(p.n.ten)}</b></button>
       <br><small class="mono" style="color:var(--ink3)">${esc(p.n.maThe || p.n.maNV || '')}</small></td>
       ${ca.map((c) => `<td class="num mono">${p.theo[c.k] ? tcSo(p.theo[c.k]) : '—'}</td>`).join('')}
+      <td class="num mono tcsep">${p.nt ? tcSo(p.nt) : '—'}</td><td class="num mono${p.cn ? ' tccn' : ''}">${p.cn ? tcSo(p.cn) : '—'}</td>
       <td class="num mono"><b${p.tong > tcMaxThang() ? ' class="warnx"' : ''}>${tcSo(p.tong)}</b></td></tr>`).join('')
-      + `<tr style="background:var(--soft)"><td><b>${t('tcCongBP')}</b></td>${ca.map((c) => `<td class="num mono"><b>${tcSo(tong[c.k] || 0)}</b></td>`).join('')}<td class="num mono"><b>${tcSo(all)}</b></td></tr>`;
+      + `<tr style="background:var(--soft)"><td><b>${t('tcCongBP')}</b></td>${ca.map((c) => `<td class="num mono"><b>${tcSo(tong[c.k] || 0)}</b></td>`).join('')}`
+      + `<td class="num mono tcsep"><b>${tcSo(all - allCN)}</b></td><td class="num mono tccn"><b>${tcSo(allCN)}</b></td><td class="num mono"><b>${tcSo(all)}</b></td></tr>`;
     if (isWide()) {
       const th = `<th>${esc(tv('tcHoTen'))}<small>${esc(tz('tcHoTen'))}</small></th>`
         + ca.map((c) => `<th class="num">${esc(c.ten)}<small>${esc(c.zh || '')}</small></th>`).join('')
+        + `<th class="num tcsep">${esc(tv('tcThNT'))}<small>${esc(tz('tcThNT'))}</small></th><th class="num tccn">${esc(tv('tcThCN'))}<small>${esc(tz('tcThCN'))}</small></th>`
         + `<th class="num">${esc(tv('tcThGio'))}<small>${esc(tz('tcThGio'))}</small></th>`;
       o += `<div class="dtwrap" style="margin-top:12px"><table class="dt"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
     } else {
       o += `<div class="list" style="margin-top:12px">${ds.map((x) => `<button class="tcrow" data-act="tcNguoiMo" data-uid="${esc(x.uid)}">
         <div class="h"><b>${esc(x.n.ten)}</b><span class="mono" style="font-size:12px;color:var(--ink3)">${esc(x.n.maThe || x.n.maNV || '')}</span>
           <span class="g"${x.tong > tcMaxThang() ? ' style="color:var(--orange)"' : ''}>${tcSo(x.tong)}<i>${t('mTCGio')}</i></span></div>
-        <div class="sub">${ca.filter((c) => x.theo[c.k]).map((c) => esc(c.ten) + ' <b class="mono">' + tcSo(x.theo[c.k]) + '</b>').join(' · ') || '—'}</div></button>`).join('')}
-        <div class="card pad" style="display:flex;align-items:center;gap:10px"><b>${t('tcCongBP')}</b>
-          <span style="margin-left:auto;font:700 20px var(--f-mono);color:var(--brand)">${tcSo(all)}</span><span class="help">${t('mTCGio')}</span></div></div>`;
+        <div class="sub">${ca.filter((c) => x.theo[c.k]).map((c) => esc(c.ten) + ' <b class="mono">' + tcSo(x.theo[c.k]) + '</b>').join(' · ') || '—'}</div>
+        ${x.cn ? `<div class="sub tccnl">${esc(tv('tcThNT'))} <b class="mono">${tcSo(x.nt)}</b> · ${esc(tv('tcThCN'))} <b class="mono">${tcSo(x.cn)}</b></div>` : ''}</button>`).join('')}
+        <div class="card pad"><div style="display:flex;align-items:center;gap:10px"><b>${t('tcCongBP')}</b>
+          <span style="margin-left:auto;font:700 20px var(--f-mono);color:var(--brand)">${tcSo(all)}</span><span class="help">${t('mTCGio')}</span></div>
+          ${allCN ? `<div class="help tccnl" style="margin-top:6px">${esc(tv('tcThNT'))} <b class="mono">${tcSo(all - allCN)}</b> · ${esc(tv('tcThCN'))} <b class="mono">${tcSo(allCN)}</b></div>` : ''}</div></div>`;
     }
     o += `<p class="help" style="margin-top:10px">${tv('tcCamLegend', { g: tcMaxThang() })} ${tz('tcCamLegend', { g: tcMaxThang() })}</p>`;
     const mo1 = ds.filter((x) => x.uid === tcUid())[0] || (ds.length === 1 ? ds[0] : null);
@@ -11959,23 +11992,34 @@ VIEWS.tcCfg = {
 };
 
 // ---------- Excel ----------
-function tcSheet(ds, ten, phu) {
+// Sheet chi tiết tăng ca. Dòng Chủ nhật tô màu, cuối bảng tách tổng Ngày thường / Ngày Chủ nhật.
+// cn = 1: sheet riêng chỉ các lượt Chủ nhật (v2.71.2)
+function tcSheet(ds, ten, phu, cn) {
   const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
   const hd = (ks) => ks.map((k) => ({ v: tp(k).replace(' · ', '\n'), s: H }));
-  const rows = [[{ v: 'TĂNG CA · 加班 — ' + ten, s: { b: 1, sz: 14 } }], [{ v: phu, s: { i: 1, color: '#55625F' } }], [],
+  const rows = [[{ v: (cn ? 'TĂNG CA CHỦ NHẬT · 周日加班 — ' : 'TĂNG CA · 加班 — ') + ten, s: { b: 1, sz: 14 } }], [{ v: phu, s: { i: 1, color: '#55625F' } }], [],
     hd(['xlTCNgay', 'xlTCThu', 'xlTCNV', 'xlTCThe', 'xlTCBP', 'xlTCCa', 'xlTCTG', 'xlTCGio', 'xlTCCT'])];
-  let tong = 0;
+  let tong = 0, tongCN = 0;
   ds.forEach((x) => {
-    const n = tcNguoi(x.uid), ca = tcCaOf(x.ca); tong += +x.soGio || 0;
-    rows.push([c(excelSerial(x.ngay), { fmt: 'dd/mm/yyyy', align: 'center' }), c(WD_VI_F[wday(x.ngay)], { align: 'center' }),
-      c(n.ten + (n.tenZh && n.tenZh !== n.ten ? '\n' + n.tenZh : '')), c(n.maThe || n.maNV, { align: 'center' }),
-      c(n.boPhan + (n.boPhanZh ? '\n' + n.boPhanZh : '')), c(ca.ten + (ca.zh ? ' · ' + ca.zh : '')),
-      c(x.tu + ' - ' + x.den, { align: 'center' }), c(Math.round((+x.soGio || 0) * 100) / 100, { align: 'center', fmt: '0.##' }), c(x.lyDo || '')]);
+    const n = tcNguoi(x.uid), ca = tcCaOf(x.ca), laCN = tcLaCN(x), m0 = laCN && !cn ? { fill: '#FFF3E0' } : {};
+    tong += +x.soGio || 0; if (laCN) tongCN += +x.soGio || 0;
+    const cc = (v, x2) => c(v, Object.assign({}, m0, x2 || {}));
+    rows.push([cc(excelSerial(x.ngay), { fmt: 'dd/mm/yyyy', align: 'center' }), cc(WD_VI_F[wday(x.ngay)], { align: 'center' }),
+      cc(n.ten + (n.tenZh && n.tenZh !== n.ten ? '\n' + n.tenZh : '')), cc(n.maThe || n.maNV, { align: 'center' }),
+      cc(n.boPhan + (n.boPhanZh ? '\n' + n.boPhanZh : '')), cc(ca.ten + (ca.zh ? ' · ' + ca.zh : '')),
+      cc(x.tu + ' - ' + x.den, { align: 'center' }), cc(Math.round((+x.soGio || 0) * 100) / 100, { align: 'center', fmt: '0.##' }), cc(x.lyDo || '')]);
   });
-  rows.push([c(''), c(''), c(''), c(''), c(''), c(''), c(tp('xlTCTong'), { b: 1, align: 'right' }),
-    c(Math.round(tong * 100) / 100, { b: 1, align: 'center', fmt: '0.##' }), c('')]);
-  return { name: 'Tang ca', rows, cols: [12, 10, 24, 12, 22, 18, 16, 11, 40], merges: ['A1:I1', 'A2:I2'], heights: { 1: 30, 4: 32 }, freeze: { r: 4, c: 0 }, landscape: true };
+  const dongTong = (nhan, v, x) => rows.push([c(''), c(''), c(''), c(''), c(''), c(''), c(nhan, Object.assign({ b: 1, align: 'right' }, x || {})),
+    c(Math.round(v * 100) / 100, Object.assign({ b: 1, align: 'center', fmt: '0.##' }, x || {})), c('')]);
+  dongTong(cn ? tp('xlTCTongCN') : tp('xlTCTong'), tong);
+  if (!cn && tongCN) { dongTong(tp('xlTCNgayThuong'), tong - tongCN); dongTong(tp('xlTCNgayCN'), tongCN, { fill: '#FFF3E0' }); }
+  return { name: cn ? 'Chu nhat' : 'Tang ca', rows, cols: [12, 10, 24, 12, 22, 18, 16, 11, 40], merges: ['A1:I1', 'A2:I2'], heights: { 1: 30, 4: 32 }, freeze: { r: 4, c: 0 }, landscape: true };
+}
+// Sheet chi tiết + (nếu có) sheet riêng các lượt Chủ nhật để nộp tính lương riêng
+function tcSheets(ds, ten, phu) {
+  const cn = ds.filter(tcLaCN);
+  return [tcSheet(ds, ten, phu)].concat(cn.length ? [tcSheet(cn, ten, phu, 1)] : []);
 }
 function tcThangWorkbook(ym) {
   const [y, mo] = ym.split('-').map(Number), ds = tcThangDS(ym), ca = tcCaDS();
@@ -11984,20 +12028,21 @@ function tcThangWorkbook(ym) {
   const num = (v) => c(Math.round((+v || 0) * 100) / 100, { align: 'center', fmt: '0.##' });
   const r1 = [[{ v: 'TỔNG HỢP TĂNG CA · 加班汇总 — tháng ' + mo + '/' + y + ' · ' + y + '年' + mo + '月', s: { b: 1, sz: 14 } }], [],
     [{ v: tp('xlTCNV'), s: H }, { v: tp('xlTCThe'), s: H }, { v: tp('xlTCBP'), s: H }]
-      .concat(ca.map((x) => ({ v: x.ten + '\n' + (x.zh || ''), s: H }))).concat([{ v: tp('xlTCTong'), s: H }])];
-  const tong = {}; let all = 0;
+      .concat(ca.map((x) => ({ v: x.ten + '\n' + (x.zh || ''), s: H })))
+      .concat([{ v: tp('xlTCNgayThuong').replace(' · ', '\n'), s: H }, { v: tp('xlTCNgayCN').replace(' · ', '\n'), s: H }, { v: tp('xlTCTong'), s: H }])];
+  const tong = {}; let all = 0, allCN = 0;
   ds.forEach((p) => {
     ca.forEach((x) => { tong[x.k] = (tong[x.k] || 0) + (p.theo[x.k] || 0); });
-    all += p.tong;
+    all += p.tong; allCN += p.cn;
     r1.push([c(p.n.ten + (p.n.tenZh && p.n.tenZh !== p.n.ten ? '\n' + p.n.tenZh : '')), c(p.n.maThe || p.n.maNV, { align: 'center' }),
-      c(p.n.boPhan || '')].concat(ca.map((x) => num(p.theo[x.k] || 0))).concat([num(p.tong)]));
+      c(p.n.boPhan || '')].concat(ca.map((x) => num(p.theo[x.k] || 0))).concat([num(p.nt), num(p.cn), num(p.tong)]));
   });
-  r1.push([c(tp('tcCongBP'), { b: 1 }), c(''), c('')].concat(ca.map((x) => num(tong[x.k] || 0))).concat([num(all)]));
-  const s1 = { name: 'Tong hop', rows: r1, cols: [26, 13, 24].concat(ca.map(() => 12)).concat([12]), merges: ['A1:' + String.fromCharCode(65 + 3 + ca.length) + '1'], heights: { 1: 30, 3: 34 }, freeze: { r: 3, c: 0 } };
+  r1.push([c(tp('tcCongBP'), { b: 1 }), c(''), c('')].concat(ca.map((x) => num(tong[x.k] || 0))).concat([num(all - allCN), num(allCN), num(all)]));
+  const s1 = { name: 'Tong hop', rows: r1, cols: [26, 13, 24].concat(ca.map(() => 12)).concat([13, 13, 12]), merges: ['A1:' + String.fromCharCode(65 + 5 + ca.length) + '1'], heights: { 1: 30, 3: 34 }, freeze: { r: 3, c: 0 } };
   const chiTiet = [];
   ds.forEach((p) => p.ds.forEach((x) => chiTiet.push(x)));
   chiTiet.sort((a, b) => (a.ngay < b.ngay ? -1 : a.ngay > b.ngay ? 1 : 0));
-  return XW.build([s1, tcSheet(chiTiet, y + '年' + mo + '月', 'tháng ' + mo + '/' + y)]);
+  return XW.build([s1].concat(tcSheets(chiTiet, y + '年' + mo + '月', 'tháng ' + mo + '/' + y)));
 }
 
 Object.assign(ACT, {
@@ -12072,7 +12117,7 @@ Object.assign(ACT, {
     if (!ds.length) { toast(t('tcTrong'), true); return; }
     toast(t('exporting')); await sleep(30);
     let blob;
-    try { blob = XW.build([tcSheet(ds, tcNguoi(uid).ten + ' ' + fmtDM(tu) + '-' + fmtDM(den), tcKhoangNhan(kh, true))]); }
+    try { blob = XW.build(tcSheets(ds, tcNguoi(uid).ten + ' ' + fmtDM(tu) + '-' + fmtDM(den), tcKhoangNhan(kh, true))); }
     catch (e) { toast(t('LOI', { m: e.message }), true); return; }
     const tt = $('.toast'); if (tt) tt.remove();
     await saveFile(blob, 'Tang-ca-' + KHONG_DAU(tcNguoi(uid).ten).replace(/\s+/g, '-') + '_' + tu + (kh.kieu === 'tuan' ? '' : '_' + den) + '.xlsx');
