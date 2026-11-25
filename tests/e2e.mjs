@@ -2820,7 +2820,7 @@ const nhieu48 = await page.evaluate(() => {
   return { h, so: tcSoDon(120) };
 });
 // 01–20/08/2026 có ba Chủ nhật (02, 09, 16/08) in tờ riêng (v2.71.2): ngày thường 17 lượt = 2 tờ (90 + 12), Chủ nhật 18
-assert.match(nhieu48.h, /Cộng tờ này .*? 90 .*Cộng tờ này .*? 12 .*Tổng số tiếng tăng ca \(cả 2 tờ\) .*? 102 .*NGÀY CHỦ NHẬT.*Tổng số tiếng tăng ca Chủ nhật .*? 18/, 'nhiều tờ: cộng từng tờ, tờ cuối tổng cả khoảng; Chủ nhật tờ riêng');
+assert.match(nhieu48.h, /Cộng tờ này .*? 90 .*Cộng tờ này .*? 12 .*Tổng số tiếng tăng ca \(cả 2 tờ\) .*? 102 .*Tổng số tiếng tăng ca Chủ nhật .*? 18/, 'nhiều tờ: cộng từng tờ, tờ cuối tổng cả khoảng; Chủ nhật tờ riêng');
 assert.equal(nhieu48.so, '120', 'số giờ từ 100 trở lên in đủ');
 await page.evaluate(() => { S.f.tcKieu = ''; S.f.tcDonMot = ''; while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.63: đơn tăng ca in theo khoảng ngày có tổng số tiếng; nhiều tờ thì cộng từng tờ và tổng cả khoảng');
@@ -3254,8 +3254,8 @@ const to62 = await page.evaluate(() => Array.from(document.querySelectorAll('.tc
   ghi: Array.from(sh.querySelectorAll('.ot tr:not(.tg)')).slice(2).map((tr) => tr.children[8].textContent.trim()).filter(Boolean),
   tong: (sh.querySelector('.ot tr.tg') || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim() })));
 assert.deepEqual(to62.map((x) => [x.cn, x.ghi]), [[false, ['07/09']], [true, ['06/09', '13/09']]], 'ngày thường một tờ, Chủ nhật một tờ riêng xếp sau: ' + JSON.stringify(to62));
-assert.match(to62[1].tt, /NGÀY CHỦ NHẬT/); assert.match(to62[1].tt, /周日/);
-assert.doesNotMatch(to62[0].tt, /CHỦ NHẬT/, 'tờ ngày thường giữ tiêu đề cũ');
+// Tờ Chủ nhật giữ đúng tiêu đề mẫu đơn công ty, chỉ dòng tổng ghi Chủ nhật (v2.71.3)
+assert.deepEqual(to62.map((x) => x.tt.replace(/\s+/g, ' ').trim()), ['ĐƠN XIN TỰ NGUYỆN TĂNG CA自愿加班申请表', 'ĐƠN XIN TỰ NGUYỆN TĂNG CA自愿加班申请表'], 'cả hai tờ cùng tiêu đề mẫu đơn');
 assert.equal(to62[1].ngay, '06/09, 13/09/2026', 'tờ Chủ nhật ghi đúng các ngày Chủ nhật');
 assert.match(to62[0].tong, /^Tổng số tiếng tăng ca 加班总小时数 2[.,]5$/, 'tờ ngày thường chỉ cộng ngày thường');
 assert.match(to62[1].tong, /^Tổng số tiếng tăng ca Chủ nhật 周日加班总小时数 13$/, 'tờ Chủ nhật cộng riêng');
