@@ -464,8 +464,6 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .tcsheet .dh .co{text-align:center;font-weight:700;font-size:clamp(12px,3vw,15px);line-height:1.3}
 .tcsheet.don .tt{margin-top:4px;font-size:clamp(15px,4.2vw,20px)}
 .tcsheet.don .tt .zh{display:inline;font-size:.78em;margin-left:8px}
-/* Tờ Chủ nhật: tiêu đề dài hơn, chữ Trung xuống dòng cho khỏi tràn (v2.71.2) */
-.tcsheet.don.cn .tt .zh{display:block;margin:2px 0 0}
 .tcsheet .d3{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0 6px;font-size:clamp(10.5px,2.6vw,12.5px);font-weight:600}
 .tcsheet .d3 u{text-decoration:none;border-bottom:1px solid #333;min-width:120px;display:inline-block;font-weight:400;text-align:center}
 .tcsheet .cam{font-size:clamp(10px,2.5vw,12px);line-height:1.45;margin:4px 0 8px;font-style:italic}
@@ -477,7 +475,7 @@ table.cal tr.grp th.nmc{background:var(--bg);font-size:12px;color:var(--ink2);fo
 .tcsheet .ky5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:20px;text-align:center;font-size:clamp(9.5px,2.3vw,11.5px);font-weight:700}
 .tcsheet .ky5 .zh{display:block;font-weight:400;font-size:.9em;margin-top:1px}
 .tcsheet .ky5 em{display:block;font-style:normal;font-weight:400;font-size:.92em;margin-top:48px}
-@media print{.tcsheet.don{padding:8px 6px}.tcsheet .ky5 em{margin-top:52px}.tcsheet.don.cn .tt{font-size:17pt}}
+@media print{.tcsheet.don{padding:8px 6px}.tcsheet .ky5 em{margin-top:52px}}
 .hcapnhat{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin:10px 0 2px}
 .hcapnhat .btn{border-radius:999px;padding:9px 18px;min-height:42px}
 .hcapnhat .sub{font-size:12.5px;color:var(--ink3)}
@@ -1741,7 +1739,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.71.2";
+const APP_VER = "2.71.3";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -2140,7 +2138,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.71.2';
+var PHIEN_BAN = '2.71.3';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -19109,6 +19107,7 @@ const tcLaCN = (x) => wday(x.ngay) === 0;
 const tcCongCN = (ds) => tcCong(ds.filter(tcLaCN));
 // Các tờ đơn của một khoảng ngày: mỗi người một tờ ngày thường (hoặc nhiều tờ nếu quá 15 lượt),
 // rồi tới các tờ Chủ nhật riêng của từng người, xếp cuối để nộp riêng.
+// Tờ Chủ nhật giữ nguyên tiêu đề mẫu đơn; chỉ dòng tổng ghi "Tổng số tiếng tăng ca Chủ nhật" (v2.71.3).
 function tcDonTo(uid, tu, den) {
   const nhom = [], viTri = {};
   tcDonDS(tu, den, uid).forEach((x) => {
@@ -19166,8 +19165,7 @@ function tcDonHtml(uid, tu, den) {
     o += `<div class="tcsheet don${cn ? ' cn' : ''}">
       <table class="dh"><tr><td class="lg"><img src="${LOGO_FULL}" alt="Credible 可悦"></td>
         <td class="co">CÔNG TY TNHH CREDIBLE VIỆT NAM <span class="zh">可悦（越南）有限公司</span></td></tr></table>
-      <div class="tt">${cn ? 'ĐƠN XIN TỰ NGUYỆN TĂNG CA NGÀY CHỦ NHẬT<span class="zh">周日自愿加班申请表</span>'
-        : 'ĐƠN XIN TỰ NGUYỆN TĂNG CA<span class="zh">自愿加班申请表</span>'}</div>
+      <div class="tt">ĐƠN XIN TỰ NGUYỆN TĂNG CA<span class="zh">自愿加班申请表</span></div>
       <div class="d3"><span>Ngày tăng ca <span class="zh">加班日期</span>: <u>${esc(cn ? ngayCN(a) : khoang)}</u></span>
         <span>Bộ phận <span class="zh">部门</span>：Sản xuất ( VKY........ - Ca... ....)</span></div>
       <div class="cam">Căn cứ vào tình hình sản xuất, căn cứ vào thực tế, Tôi tự nguyện đăng ký xin làm thêm giờ và ký tên vào đơn tự nguyện xin tăng ca này, thông tin như sau:
