@@ -1072,6 +1072,10 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .qgso{display:inline-flex;align-items:baseline;gap:4px;font-size:13px;color:var(--ink2);margin-right:6px}
 .qgso b{font:800 22px var(--f-mono);color:var(--brand)}.qgso small{font-size:11px;color:var(--ink3)}
 .lshd{font-size:12.5px;font-weight:700;color:var(--ink2);margin:14px 2px 6px}
+.dmmucs{margin-bottom:8px}
+.dmmucs .chip .mono{font-size:12px;opacity:.75;margin-left:2px}
+.kdet.dmmuc{margin:0 0 8px}
+.kdet.dmmuc summary .ktag{margin:0 0 0 6px;font-size:11px}
 .spthumb{width:56px;height:40px;object-fit:contain;border-radius:6px;background:#fff;border:1px solid var(--line);flex:none}
 .spanh{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .spanh .spimg{max-width:100%;max-height:240px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:zoom-in}
@@ -1732,7 +1736,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.71.0";
+const APP_VER = "2.71.1";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -2131,7 +2135,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.71.0';
+var PHIEN_BAN = '2.71.1';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -24971,7 +24975,7 @@ Object.assign(TX, {
   dmNgoaiTD: ['Đặt mua hàng chưa có mã linh kiện', '无编号物料请购'],
   dmNgoaiHelp: ['Hàng chưa có trong kho / chưa có mã: chỉ cần tên tiếng Việt, quy cách, số lượng và máy dùng. Tên tiếng Trung để trống thì app tự dịch.', '库存中没有或尚无编号的物料：只需填写越南语名称、规格、数量和使用设备。中文名称留空则自动翻译。'],
   dmNgoaiTenVi: ['Tên tiếng Việt', '越南语名称'], dmNgoaiTenZh: ['Tên tiếng Trung (để trống tự dịch)', '中文名称（留空自动翻译）'],
-  dmMay: ['Dùng cho máy', '使用设备'], dmKhongMay: ['— Chọn máy dùng —', '选择使用设备'], dmTuDich: ['tự dịch', '自动翻译'],
+  dmMay: ['Dùng cho máy', '使用设备'], dmMucTatCa: ['Tất cả mục', '全部分类'], dmThemMuc: ['Thêm cả mục ({n})', '添加整类（{n}）'], dmKhongMay: ['— Chọn máy dùng —', '选择使用设备'], dmTuDich: ['tự dịch', '自动翻译'],
   dmDangDich: ['Đang dịch tên tiếng Trung…', '正在翻译中文名称…'], dmDichLoi: ['Chưa dịch được tên tiếng Trung (mất mạng?) — sẽ thử lại khi xuất Excel, hoặc gõ tay.', '暂未能翻译中文名称（网络问题？）——导出时会重试，或手动填写。'],
   srvMissDich: ['Máy chủ chưa tự dịch tên hàng được. Cập nhật Code.gs rồi Triển khai lại (vẫn gõ tay tên tiếng Trung được).', '服务器尚不支持自动翻译物料名称。请更新 Code.gs 并重新部署（仍可手动填写中文名称）。']
 });
@@ -25035,18 +25039,48 @@ function dmDongHtml(r, i) {
     <div class="mini" style="margin-top:6px"><span>${tv('dmMay')}<span class="zi">${tz('dmMay')}</span></span>${tbChon('dmMay' + i, r.may || '', 'dmKhongMay', false)}</div>
     ${dmNhacHtml(dmDaDat(r))}</div>`;
 }
-function dmChonHtml(p, v) {
-  const co = new Set(v.ds.map((r) => r.ma).filter(Boolean)), q = norm(p.q || '');
+// Danh sách hàng để chọn theo bộ lọc đang bật (cần mua / hết hàng / tìm tất cả) và chữ đang gõ
+function dmChonDS(p) {
+  const q = norm(p.q || '');
   let ds;
   if (p.loc === 'tatca') ds = q.length >= 2 ? khoFind(p.q).slice(0, 40).map((x) => ({ x })) : [];
   else if (p.loc === 'het') ds = S.kho.ds.filter((x) => !x.an && !x.gop && tonOf(x) !== null && tonOf(x) <= 0).map((x) => ({ x }));
   else ds = dmCanMuaDS();
-  if (q && p.loc !== 'tatca') ds = ds.filter((o) => norm(o.x.ma + ' ' + o.x.ten + ' ' + (o.x.qc || '')).includes(q));
+  if (q && p.loc !== 'tatca') ds = ds.filter((o) => norm(o.x.ma + ' ' + khoTenTxt(o.x) + ' ' + o.x.ten + ' ' + (o.x.qc || '')).includes(q));
+  return ds;
+}
+function dmChonRow(o, co) {
+  const x = o.x, gy = dmGoiY(x), dd = dmDaDat({ ma: x.ma });
+  return `<button type="button" class="ksi" data-act="dmThem" data-ma="${esc(x.ma)}"${co.has(x.ma) ? ' disabled' : ''}>
+    <span class="kn">${khoTenH(x)}<small><span class="mono">${esc(x.ma)}</span>${x.qc ? ' · ' + esc(x.qc) : ''}${gy ? ' · ' + esc(tv('dmGoiY', { n: soG(gy) })) : ''}${dd ? ` · <b style="color:var(--orange)">${esc(tv('dmDaDatNgan', { d: fmtDM(dd.x.ngay) }))}</b>` : ''}</small></span>${tonHtml(x)}
+    <span class="chip sm">${co.has(x.ma) ? esc(tv('dmDaCo')) : '+'}</span></button>`;
+}
+// Hàng cần mua / hết hàng chia theo mục như tổng quan kho: chip chọn mục, mỗi mục một khối mở / đóng, có nút thêm cả mục.
+// Tìm tất cả (gõ chữ) thì vẫn là một danh sách theo độ khớp.
+function dmChonHtml(p, v) {
+  const co = new Set(v.ds.map((r) => r.ma).filter(Boolean)), q = norm(p.q || ''), ds = dmChonDS(p);
   if (!ds.length) return `<div class="help">${p.loc === 'tatca' && q.length < 2 ? esc(tp('dmTim')) : t('khoKhongThay')}</div>`;
-  return ds.slice(0, 80).map((o) => { const x = o.x, gy = dmGoiY(x);
-    return `<button type="button" class="ksi" data-act="dmThem" data-ma="${esc(x.ma)}"${co.has(x.ma) ? ' disabled' : ''}>
-      <span class="kn">${khoTenH(x)}<small><span class="mono">${esc(x.ma)}</span>${x.qc ? ' · ' + esc(x.qc) : ''}${gy ? ' · ' + esc(tv('dmGoiY', { n: soG(gy) })) : ''}${(() => { const dd = dmDaDat({ ma: x.ma }); return dd ? ` · <b style="color:var(--orange)">${esc(tv('dmDaDatNgan', { d: fmtDM(dd.x.ngay) }))}</b>` : ''; })()}</small></span>${tonHtml(x)}
-      <span class="chip sm">${co.has(x.ma) ? esc(tv('dmDaCo')) : '+'}</span></button>`; }).join('') + (ds.length > 80 ? `<div class="help">… ${ds.length - 80}</div>` : '');
+  if (p.loc === 'tatca') return ds.map((o) => dmChonRow(o, co)).join('');
+  const theo = {};
+  ds.forEach((o) => { const id = khoMucOf(o.x); (theo[id] = theo[id] || []).push(o); });
+  const ids = Object.keys(theo).sort((a, b) => KHO_MUC_IX[a] - KHO_MUC_IX[b]);
+  if (p.muc && !theo[p.muc]) p.muc = '';
+  const chip = (id, nhan, n) => `<button type="button" class="chip${(p.muc || '') === id ? ' on' : ''}" data-act="dmMuc" data-v="${esc(id)}">${nhan} <span class="mono">${n}</span></button>`;
+  let h = `<div class="hscroll dmmucs">${chip('', esc(tv('dmMucTatCa')), ds.length)}${ids.map((id) => chip(id, esc(khoMucTen(id)), theo[id].length)).join('')}</div>`;
+  const mo = p.mo || {}, it = ds.length <= 30;
+  h += (p.muc ? [p.muc] : ids).map((id) => {
+    const arr = theo[id], chua = arr.filter((o) => !co.has(o.x.ma)).length, het = arr.filter((o) => tonOf(o.x) !== null && tonOf(o.x) <= 0).length;
+    const open = p.muc || (mo[id] !== undefined ? mo[id] : it);
+    return `<details class="kdet dmmuc" data-muc="${esc(id)}"${open ? ' open' : ''}><summary>${esc(khoMucTen(id))} <span class="zi" lang="zh-CN">${esc(khoMucTen(id, 1))}</span>
+      <span class="cnt mono">${arr.length}</span>${het ? ` <span class="ktag het">${esc(tv('khoMucHet', { n: het }))}</span>` : ''}</summary>
+      ${chua ? `<button type="button" class="btn ghost sm" style="margin:2px 0 6px" data-act="dmThemMuc" data-v="${esc(id)}">${IC.plus} ${esc(tv('dmThemMuc', { n: chua }))}</button>` : ''}
+      ${arr.map((o) => dmChonRow(o, co)).join('')}</details>`;
+  }).join('');
+  return h;
+}
+// Nhớ khối mục nào đang mở (vẽ lại danh sách khi gõ tìm / thêm hàng không bị đóng hết)
+function dmChonGan(p) {
+  document.querySelectorAll('#dmDs details[data-muc]').forEach((d) => d.addEventListener('toggle', () => { p.mo = p.mo || {}; p.mo[d.dataset.muc] = d.open; }));
 }
 VIEWS.datMua = {
   html(p) {
@@ -25098,7 +25132,8 @@ VIEWS.datMua = {
     $$('[data-dmzh]').forEach((el) => el.addEventListener('input', () => { const d = v(), r = d.ds[+el.dataset.dmzh]; if (r) { r.tenZh = el.value.trim(); r.tuDich = false; dmLuu(d); } }));
     v().ds.forEach((r, i) => { const el = $('#dmMay' + i); if (el) el.addEventListener('change', () => { const d = v(); if (d.ds[i]) { d.ds[i].may = el.value; dmLuu(d); } }); });
     const bp = $('#dmBP'); if (bp) bp.addEventListener('input', () => { const d = v(); d.boPhan = bp.value; dmLuu(d); });
-    const tim = $('#dmTim'); if (tim) tim.addEventListener('input', () => { p.q = tim.value; $('#dmDs').innerHTML = dmChonHtml(p, v()); });
+    const tim = $('#dmTim'); if (tim) tim.addEventListener('input', () => { p.q = tim.value; $('#dmDs').innerHTML = dmChonHtml(p, v()); dmChonGan(p); });
+    dmChonGan(p);
   }
 };
 Object.assign(TITLES, { datMua: 't_datMua' });
@@ -25106,7 +25141,14 @@ Object.assign(ACT, {
   datMua: () => go('datMua', {}),
   dmMoKieu: (el) => go('datMua', { kieu: el.dataset.v, cuon: 1 }),
   dmKieu: (el) => { topV().p.kieu = el.dataset.v; render(); },
-  dmLoc: (el) => { topV().p.loc = el.dataset.v; render(); },
+  dmLoc: (el) => { const p = topV().p; p.loc = el.dataset.v; p.muc = ''; p.mo = {}; render(); },
+  dmMuc: (el) => { const p = topV().p; p.muc = el.dataset.v; const d = $('#dmDs'); if (d) { d.innerHTML = dmChonHtml(p, dmLay()); dmChonGan(p); } },
+  // Thêm cả mục: mọi hàng của mục đó trong danh sách đang lọc mà chưa có trong phiếu (số lượng gợi ý theo tồn an toàn)
+  dmThemMuc: (el) => {
+    const p = topV().p, d = dmLay(); let n = 0;
+    dmChonDS(p).filter((o) => khoMucOf(o.x) === el.dataset.v).forEach((o) => { if (dmThemMa(d, o.x.ma, o.can || dmGoiY(o.x))) n++; });
+    dmLuu(d); toast(t('dmThemOk', { n })); render();
+  },
   dmThem: (el) => { const d = dmLay(); if (dmThemMa(d, el.dataset.ma)) { dmLuu(d); render(); dmNhacToast({ ma: el.dataset.ma }); } },
   dmThemTatCa: () => { const d = dmLay(); let n = 0; dmCanMuaDS().forEach((o) => { if (dmThemMa(d, o.x.ma, o.can || dmGoiY(o.x))) n++; }); dmLuu(d); toast(t('dmThemOk', { n })); render(); },
   dmBo: (el) => { const d = dmLay(); d.ds.splice(+el.dataset.i, 1); dmLuu(d); render(); },
