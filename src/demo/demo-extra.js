@@ -234,6 +234,20 @@ __dichMau.push(
   ['Kiểm tra mức dầu máy nén khí', '检查空压机油位'], ['Dầu xuống dưới vạch, cần châm thêm', '油位低于刻度线，需要加油']
 );
 
+// Sản phẩm mẫu cho bản xem thử — mã và thông số GIẢ (TEST-…), không phải sản phẩm thật của công ty
+function mauSanPham() {
+  if (docSanPham().length) return;
+  var ql = { ten: 'Quản lý' };
+  nhapSanPham(ql, { file: 'mau.xlsx', ds: [
+    { ma: 'TEST-A100', nhom: 'Sản phẩm mẫu A', chuyen: 'VKY01, VKY02', ngaySX: '2026-03-12', thongSo: [
+      ['Keo · 胶', 'TEST 背胶 3mm×4；线胶 30mm', 'TEST keo lưng 3mm×4; keo đường 30mm'],
+      ['Hàn biên · 周封', '1-TEST-A100', '1-TEST-A100'], ['Định hình · 成型', '1-TEST-A100', '1-TEST-A100'],
+      ['Khác · 其他', '1.TEST 喷印\n2.TEST 包膜', '1. TEST in phun\n2. TEST màng bọc']] },
+    { ma: 'TEST-A120', nhom: 'Sản phẩm mẫu A', chuyen: 'VKY01', ngaySX: '2026-05-20', thongSo: [
+      ['Keo · 胶', 'TEST 背胶 3mm×4', 'TEST keo lưng 3mm×4'], ['Hàn biên · 周封', '2-TEST-A120', '2-TEST-A120']] },
+    { ma: 'TEST-B-M', nhom: 'Sản phẩm mẫu B', chuyen: 'VKY06', thongSo: [
+      ['Lõi bông · 棉芯', 'TEST L300mm W100mm', 'TEST dài 300mm, rộng 100mm'], ['Cắt chữ O · O切', 'TEST-500mm', 'TEST-500mm']] }] });
+}
 // Thêm 3 kỹ thuật viên mẫu và công việc mẫu (đủ trạng thái), việc lặp lại mẫu
 function mauNhanVien() {
   if (dsNguoiDung().length > 3) return;
@@ -458,6 +472,7 @@ mauPhanCa();
 mauTaiLieu();
 mauKiemDinh();
 mauMayNen();
+mauSanPham();
 // Sáu máy nén khí: máy 3 và máy 6 chạy biến tần. Giờ chạy đọc trên đồng hồ của từng máy,
 // ghi mỗi tuần một lần nên tuần nào máy nghỉ thì giờ không tăng.
 function mauMayNen() {

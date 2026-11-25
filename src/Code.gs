@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.70.0';
+var PHIEN_BAN = '2.71.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -132,14 +132,19 @@ var BANG = {
   // Phiếu đề nghị mua hàng đã lập (v2.60). SoPhieu: DNMH + năm.tháng.ngày / số thứ tự trong ngày, máy chủ tự đánh.
   // DsHang (JSON): ảnh chụp từng dòng lúc lưu [{ma, erp, ten, tenZh, qc, dv, ton, tonMin, sl, may, mayTen, gc}]
   // — kho đổi sau này thì phiếu cũ vẫn in ra đúng như lúc lập. TrangThai: CHO (chờ đặt) · DA_DAT · DA_VE
-  DatMua: ['ID', 'SoPhieu', 'Ngay', 'STT', 'BoPhan', 'DsHang', 'SoMH', 'TrangThai', 'GhiChu', 'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'Xoa']
+  DatMua: ['ID', 'SoPhieu', 'Ngay', 'STT', 'BoPhan', 'DsHang', 'SoMH', 'TrangThai', 'GhiChu', 'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'Xoa'],
+  // Sản phẩm của công ty (v2.71) — thông tin bảo mật, chỉ tài khoản có quyền xemsp mới nhận.
+  // Ma: mã hiệu sản phẩm. Chuyen: các chuyền chạy sản phẩm, ngăn bằng dấu phẩy. Một mã chạy nhiều chuyền mà thông số
+  // (khuôn hàn biên, định hình…) khác nhau thì mỗi chuyền một bản ghi: cặp Ma + Chuyen là duy nhất.
+  // ThongSo (JSON): [[nhãn, giá trị tiếng Trung, giá trị tiếng Việt]] theo thứ tự. Anh (JSON): [{id}] ảnh bản vẽ trên Drive (riêng tư).
+  SanPham: ['ID', 'Ma', 'Nhom', 'Chuyen', 'ThongSo', 'NgaySX', 'GhiChu', 'Anh', 'NguoiSua', 'CapNhat', 'Xoa']
 };
 var COT_SO = { May: ['ChuKy', 'HoatDong'], LichSu: [], NguoiDung: ['HoatDong'], CongTo: ['HeSo', 'HoatDong'], ChiSo: [], KhoLK: [], NhatKy: [],
   CongViec: ['So', 'CanKiemTra', 'PhutDung'], ViecLap: ['CanKiemTra', 'HoatDong'], TaiLieu: ['KichThuoc', 'DaiDien', 'Xoa', 'ConTrenDrive', 'HienHanh'],
   NguoiTruc: ['ThuTu', 'HoatDong', 'Cap'], KiemDinh: ['NamSX', 'ChuKy', 'NghiemNgat', 'HoatDong'], MaLoi: ['HoatDong'], NghiemThu: ['STT', 'Xoa'],
   NhapKho: ['SoDong', 'SoMa', 'Moi', 'DoiTon', 'Het', 'VeLai', 'Gop', 'Tang'],
   MayNen: ['BienTan', 'ChuKyGio', 'GioBD', 'ThuTu', 'HoatDong', 'CongSuat'], GioChay: ['Gio'], LichMNK: [],
-  DoTu: ['NhietDo', 'DienAp', 'IA', 'IB', 'IC'], DatMua: ['STT', 'SoMH', 'Xoa'] };
+  DoTu: ['NhietDo', 'DienAp', 'IA', 'IB', 'IC'], DatMua: ['STT', 'SoMH', 'Xoa'], SanPham: ['Xoa'] };
 // Cột số có định dạng riêng (giữ phần thập phân khi xem trên sheet)
 var COT_DD = { ChiSo: { CSTruoc: '#,##0.###', TieuThuKy: '#,##0.###' },
   MayNen: { GioBD: '#,##0.#', CongSuat: '#,##0.##' }, GioChay: { Gio: '#,##0.#' }, Chuyen: { KhiNen: '#,##0.##' },
@@ -180,10 +185,13 @@ var QUYEN = {
   suatb: ['admin', 'quanly'],
   xemkho: ['admin', 'quanly', 'kythuat'],
   baocao: ['admin', 'quanly'],
-  kiemdinh: ['admin', 'quanly']
+  kiemdinh: ['admin', 'quanly'],
+  // Sản phẩm (thông tin bảo mật): mặc định Quản lý, Quản trị; mở riêng cho từng tài khoản được
+  xemsp: ['admin', 'quanly'],
+  suasp: ['admin', 'quanly']
 };
-// Chỉ tám quyền này mới đặt riêng cho từng người; các quyền khác luôn theo vai trò
-var QUYEN_RIENG = ['xemsx', 'xemhcd', 'tsmay', 'xuattb', 'suatb', 'xemkho', 'baocao', 'kiemdinh'];
+// Chỉ các quyền này mới đặt riêng cho từng người; các quyền khác luôn theo vai trò
+var QUYEN_RIENG = ['xemsx', 'xemhcd', 'tsmay', 'xuattb', 'suatb', 'xemkho', 'baocao', 'kiemdinh', 'xemsp', 'suasp'];
 function quyenSach(v) {
   var o = {}, n = v && typeof v === 'object' ? v : {};
   QUYEN_RIENG.forEach(function (k) { if (n[k] === true || n[k] === false) o[k] = n[k]; });
@@ -196,7 +204,8 @@ var HANH_DONG_GHI = ['confirm', 'undo', 'saveMachine', 'importMachines', 'delete
   'lockPeriod', 'unlockPeriod', 'approveReading', 'confirmAbnormal', 'saveDienCfg',
   'saveTask', 'updateTask', 'assignTasks', 'saveRecurring', 'saveInspect', 'doInspect', 'deleteInspect', 'importInspect', 'saveFault', 'deleteFault', 'saveAccept', 'deleteAccept',
   'dutySet', 'shiftSet', 'shiftRotate', 'shiftPeople', 'dutyCopy', 'dutyCfg',
-  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay', 'savePurchase', 'setPurchase', 'addPart', 'assignPartCode', 'setKhoLoai', 'setKhoTen'];
+  'compSave', 'compHour', 'compHourDel', 'compWeek', 'compRotate', 'compMakeMay', 'savePurchase', 'setPurchase', 'addPart', 'assignPartCode', 'setKhoLoai', 'setKhoTen',
+  'saveProduct', 'deleteProduct', 'importProducts'];
 
 var CAI_DAT_MAC_DINH = {
   nhacTruoc: 3, gio: 7, tgBat: false, tgToken: '', tgChat: '', tgTen: '',
@@ -402,6 +411,9 @@ function dieuHuong(a, p, req) {
     case 'setKhoLoai': canQuyen(u, 'may'); return khoDatLoai(u, p);
     case 'setKhoTen': canQuyen(u, 'may'); return khoDatTen(u, p);
     case 'savePurchase': canQuyen(u, 'xemhet'); return luuDatMua(u, p);
+    case 'saveProduct': canQuyen(u, 'xemsp'); canQuyen(u, 'suasp'); return luuSanPham(u, p);
+    case 'deleteProduct': canQuyen(u, 'xemsp'); canQuyen(u, 'suasp'); return xoaSanPham(u, p);
+    case 'importProducts': canQuyen(u, 'xemsp'); canQuyen(u, 'suasp'); return nhapSanPham(u, p);
     case 'setPurchase': canQuyen(u, 'xemhet'); return suaDatMua(u, p);
     case 'saveKhoCfg': canQuyen(u, 'may'); return luuKhoCfg(u, p);
     case 'saveInspect': canQuyen(u, 'may'); return luuKiemDinh(u, p);
@@ -976,6 +988,8 @@ function layDuLieu(u) {
     maLoi: coQuyen(u, 'may') ? docMaLoi().map(sachML) : [],
     nghiemThu: docNghiemThu().filter(function (x) { return !x.xoa && x.ngayNT >= tu; }).map(sachNGT),
     datMua: coQuyen(u, 'xemhet') ? docDatMua().filter(function (x) { return !x.xoa && x.ngay >= tu; }).map(sachDM) : [],
+    // Sản phẩm: thông tin bảo mật, chỉ gửi cho tài khoản có quyền xem sản phẩm
+    sanPham: coQuyen(u, 'xemsp') ? docSanPham().filter(function (x) { return !x.xoa; }).map(sachSP) : [],
     mayNen: docMayNen().map(sachMNK),
     gioChay: docGioChay().filter(function (x) { return x.ngayGhi >= tu; }).map(sachGC),
     doTu: docDoTu().filter(function (x) { return x.ngayGhi >= tu; }).map(sachDT),
@@ -3003,6 +3017,128 @@ function suaDatMua(u, p) {
   suaDong('DatMua', x._r, dmThanhDong(x));
   ghiNhatKy(u, x.xoa ? 'XOA_PHIEU_MUA' : 'SUA_PHIEU_MUA', 'DatMua', x.id, { trangThai: cu }, { trangThai: x.trangThai }, x.soPhieu);
   return { datMua: sachDM(x) };
+}
+
+// ===================== Sản phẩm (v2.71) =====================
+// Mã hiệu sản phẩm + thông số cần biết (keo, ép hoa, hàn biên, định hình, lõi bông…) theo chuyền.
+// Bảo mật: chỉ gửi cho tài khoản có quyền xemsp; sửa cần thêm suasp. Ảnh bản vẽ để riêng tư trên Drive.
+var SP_KHOA = ['id', 'ma', 'nhom', 'chuyen', 'thongSo', 'ngaySX', 'ghiChu', 'anh', 'nguoiSua', 'capNhat', 'xoa'];
+var SP_TS_TOI_DA = 40, SP_ANH_TOI_DA = 3, SP_NHAP_TOI_DA = 1000;
+function spThanhDong(x) {
+  return SP_KHOA.map(function (k) {
+    if (k === 'thongSo') return x.thongSo && x.thongSo.length ? JSON.stringify(x.thongSo) : '';
+    if (k === 'anh') return x.anh && x.anh.length ? JSON.stringify(x.anh) : '';
+    if (k === 'xoa') return x.xoa ? 1 : 0;
+    var v = x[k];
+    return v === undefined || v === null ? '' : typeof v === 'string' ? anToan(v) : v;
+  });
+}
+function spTuDong(r, i) {
+  var o = { _r: i + 2 };
+  SP_KHOA.forEach(function (k, j) {
+    var v = r[j];
+    if (k === 'thongSo' || k === 'anh') o[k] = docJson(v, []) || [];
+    else if (k === 'xoa') o[k] = s(v) !== '' && hd(v);
+    else if (k === 'ngaySX') o[k] = ngayStr(v);
+    else o[k] = v instanceof Date ? tgStr(v) : s(v);
+  });
+  return o;
+}
+function docSanPham() { return docTho('SanPham').map(spTuDong).filter(function (x) { return x.id && x.ma; }); }
+function sachSP(x) { var o = {}; SP_KHOA.forEach(function (k) { if (k !== 'xoa' || x.xoa) o[k] = x[k]; }); return o; }
+function spMaHopLe(v) { v = catChu(v, 40).replace(/\s+/g, ' ').trim(); return v && !/[<>"]/.test(v) ? v : ''; }
+// "VKY06/08, VKY12" → "VKY06,VKY08,VKY12" (VKY06/08 là hai chuyền dùng chung một trang)
+function spChuyen(v) {
+  var out = [];
+  String(Array.isArray(v) ? v.join(',') : v || '').toUpperCase().split(/[,;，、\s]+/).forEach(function (t) {
+    if (!t) return;
+    var m = /^([A-Z]+)(\d+)((?:\/\d+)+)$/.exec(t);
+    var ds = m ? [m[1] + m[2]].concat(m[3].split('/').filter(Boolean).map(function (n) { return m[1] + (n.length < m[2].length ? m[2].slice(0, m[2].length - n.length) + n : n); })) : [t];
+    ds.forEach(function (c) { c = catChu(c, 20); if (c && out.indexOf(c) < 0) out.push(c); });
+  });
+  return out.slice(0, 30).join(',');
+}
+function spThongSo(ds) {
+  var out = [];
+  (Array.isArray(ds) ? ds : []).slice(0, SP_TS_TOI_DA).forEach(function (r) {
+    if (!Array.isArray(r)) return;
+    var k = catChu(r[0], 60), zh = catNhieuDong(r[1], 600), vi = catNhieuDong(r[2], 600);
+    if (k && (zh || vi)) out.push([k, zh, vi]);
+  });
+  return out;
+}
+function spAnh(anh, ma) {
+  var out = [];
+  (Array.isArray(anh) ? anh : []).slice(0, SP_ANH_TOI_DA).forEach(function (a, i) {
+    if (!a) return;
+    if (a.data && String(a.data).indexOf('data:') === 0) { var r = luuAnhDrive(a.data, 'SP_' + ma.replace(/[^\w.-]+/g, '_') + '_' + (i + 1) + '.jpg'); if (r) out.push({ id: r.id }); }
+    else if (a.id && /^[A-Za-z0-9_-]{10,80}$/.test(s(a.id))) out.push({ id: s(a.id) });
+  });
+  return out;
+}
+function spGan(x, p, u) {
+  if (p.nhom !== undefined) x.nhom = catChu(p.nhom, 60);
+  if (p.chuyen !== undefined) x.chuyen = spChuyen(p.chuyen);
+  if (p.thongSo !== undefined) x.thongSo = spThongSo(p.thongSo);
+  if (p.ngaySX !== undefined) { var n = ngayStr(p.ngaySX); x.ngaySX = n && hopLeNgay(n) ? n : ''; }
+  if (p.ghiChu !== undefined) x.ghiChu = catNhieuDong(p.ghiChu, 1000);
+  if (p.anh !== undefined) x.anh = spAnh(p.anh, x.ma);
+  x.nguoiSua = u.ten; x.capNhat = thoiGianStr();
+}
+function luuSanPham(u, p) {
+  var ma = spMaHopLe(p.ma);
+  if (!ma) throw loi('THIEU_MA', 'Chưa nhập mã sản phẩm · 请输入产品型号');
+  capNhatTieuDe('SanPham');
+  var ds = docSanPham(), x = p.id ? ds.filter(function (y) { return y.id === s(p.id) && !y.xoa; })[0] : null;
+  if (p.id && !x) throw loi('KHONG_CO', 'Không tìm thấy sản phẩm · 找不到产品');
+  var chMoi = p.chuyen !== undefined ? spChuyen(p.chuyen) : x ? x.chuyen : '';
+  var trung = ds.filter(function (y) { return !y.xoa && y.ma.toUpperCase() === ma.toUpperCase() && y.chuyen === chMoi && (!x || y.id !== x.id); })[0];
+  if (trung) throw loi('SP_TRUNG', ma + (chMoi ? ' · ' + chMoi : ''));
+  var moi = !x;
+  if (moi) x = { id: idMoi('SP', dsIdCo(ds)), ma: ma, nhom: '', chuyen: '', thongSo: [], ngaySX: '', ghiChu: '', anh: [], xoa: false };
+  var cu = moi ? '' : { ma: x.ma, chuyen: x.chuyen, thongSo: x.thongSo };
+  x.ma = ma;
+  spGan(x, p, u);
+  if (moi) themDong('SanPham', spThanhDong(x)); else suaDong('SanPham', x._r, spThanhDong(x));
+  ghiNhatKy(u, moi ? 'THEM_SAN_PHAM' : 'SUA_SAN_PHAM', 'SanPham', x.id, cu, { ma: x.ma, chuyen: x.chuyen, thongSo: x.thongSo.length }, '');
+  return { sanPham: sachSP(x) };
+}
+function xoaSanPham(u, p) {
+  capNhatTieuDe('SanPham');
+  var x = docSanPham().filter(function (y) { return y.id === s(p.id) && !y.xoa; })[0];
+  if (!x) throw loi('KHONG_CO', 'Không tìm thấy sản phẩm · 找不到产品');
+  x.xoa = true; x.nguoiSua = u.ten; x.capNhat = thoiGianStr();
+  suaDong('SanPham', x._r, spThanhDong(x));
+  ghiNhatKy(u, 'XOA_SAN_PHAM', 'SanPham', x.id, '', x.ma, '');
+  return { sanPham: sachSP(x) };
+}
+// Nhập cả loạt từ file: ds = [{ma, nhom, chuyen, thongSo, ngaySX, ghiChu}], khớp theo mã + chuyền (không phân biệt hoa thường).
+// File không ghi chuyền thì khớp theo mã nếu mã đó chỉ có một bản ghi. Đã có: cập nhật các trường gửi lên
+// (thông số thay cả bảng); chưa có: thêm. Ảnh không đụng tới.
+function nhapSanPham(u, p) {
+  var vao = Array.isArray(p.ds) ? p.ds : [];
+  if (!vao.length) throw loi('KHO_TRONG', 'File không có sản phẩm nào · 文件中没有产品');
+  if (vao.length > SP_NHAP_TOI_DA) throw loi('KHO_NHIEU', 'Quá nhiều dòng · 行数太多 (> ' + SP_NHAP_TOI_DA + ')');
+  capNhatTieuDe('SanPham');
+  var ds = docSanPham(), theoMa = {}, them = [], sua = [], tk = { moi: 0, sua: 0, boQua: 0 }, ids = dsIdCo(ds);
+  ds.forEach(function (x) { if (!x.xoa) (theoMa[x.ma.toUpperCase()] = theoMa[x.ma.toUpperCase()] || []).push(x); });
+  vao.forEach(function (o) {
+    var ma = spMaHopLe(o && o.ma);
+    if (!ma) { tk.boQua++; return; }
+    var ch = s(o.chuyen) ? spChuyen(o.chuyen) : null, cung = theoMa[ma.toUpperCase()] || [];
+    var x = ch !== null ? cung.filter(function (y) { return y.chuyen === ch; })[0] : cung.length === 1 ? cung[0] : null;
+    if (!x) {
+      x = { id: idMoi('SP', ids), ma: ma, nhom: '', chuyen: ch || '', thongSo: [], ngaySX: '', ghiChu: '', anh: [], xoa: false };
+      (theoMa[ma.toUpperCase()] = cung).push(x); them.push(x); tk.moi++;
+    } else if (sua.indexOf(x) < 0 && them.indexOf(x) < 0) { sua.push(x); tk.sua++; }
+    var q = { nhom: o.nhom, chuyen: o.chuyen, thongSo: o.thongSo, ngaySX: o.ngaySX, ghiChu: o.ghiChu };
+    Object.keys(q).forEach(function (k) { if (q[k] === undefined || q[k] === null || (k !== 'thongSo' && s(q[k]) === '')) delete q[k]; });
+    spGan(x, q, u);
+  });
+  if (them.length) themNhieu('SanPham', them.map(spThanhDong));
+  sua.forEach(function (x) { suaDong('SanPham', x._r, spThanhDong(x)); });
+  ghiNhatKy(u, 'NHAP_SAN_PHAM', 'SanPham', '', '', tk.moi + ' mới · ' + tk.sua + ' sửa', catChu(p.file, 120));
+  return { tk: tk, dsSanPham: them.concat(sua).map(sachSP) };
 }
 
 // ===================== Danh mục máy =====================
