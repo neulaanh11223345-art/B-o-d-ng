@@ -583,7 +583,8 @@ await page.click('#tcOk'); await wait(900);
 assert.equal(await page.locator('.tcrow').count(), tcTruoc + 1, 'đã thêm một lần tăng ca');
 // Đơn in theo đúng mẫu giấy của công ty
 await page.evaluate(() => go('tcXem')); await wait(500);
-const don = await text('.tcsheet.don');
+// Đọc mọi tờ: chạy test đúng Chủ nhật thì lượt vừa ghi nằm ở tờ Chủ nhật riêng (v2.71.2)
+const don = await page.evaluate(() => Array.from(document.querySelectorAll('.tcsheet.don')).map((x) => x.textContent).join('\n'));
 assert.match(don, /ĐƠN XIN TỰ NGUYỆN TĂNG CA/); assert.match(don, /自愿加班申请表/);
 assert.match(don, /CÔNG TY TNHH CREDIBLE VIỆT NAM/);
 // Logo công ty lấy từ chính mẫu đơn giấy, nhúng thẳng vào app nên in offline vẫn có
@@ -598,9 +599,10 @@ assert.ok(await page.evaluate(() => {
 assert.match(don, /Trực sự cố máy nén khí/, 'lý do in ở dòng Lý do xin tăng ca cuối tờ');
 ['Lập biểu', 'Người xác nhận', 'Trưởng bộ phận', 'Hành chính nhân sự', 'Phê duyệt']
   .forEach((k) => assert.ok(don.includes(k), 'đủ ô ký ' + k));
-assert.equal(await page.locator('.tcsheet.don').count(), 1, 'một tờ');
-assert.equal(await page.locator('.tcsheet.don .ot tr:not(.tg)').count(), 17, 'hai dòng tiêu đề + đúng 15 dòng như mẫu giấy');
-assert.equal(await page.locator('.tcsheet.don .ot tr.tg').count(), 1, 'thêm một dòng tổng số tiếng ở cuối bảng');
+const coCN17 = await page.evaluate(() => tcDonDS(tcKhoang().tu, tcKhoang().den, tcDonUid()).some((x) => wday(x.ngay) === 0));
+assert.equal(await page.locator('.tcsheet.don').count(), coCN17 ? 2 : 1, 'một tờ (thêm tờ Chủ nhật nếu tuần có lượt Chủ nhật)');
+assert.equal(await page.locator('.tcsheet.don').first().locator('.ot tr:not(.tg)').count(), 17, 'hai dòng tiêu đề + đúng 15 dòng như mẫu giấy');
+assert.equal(await page.locator('.tcsheet.don').first().locator('.ot tr.tg').count(), 1, 'thêm một dòng tổng số tiếng ở cuối bảng');
 // Mỗi dòng là một lượt tăng ca: mã thẻ, giờ kiểu 22h00, số tiếng, ngày ở cột Ghi chú
 const hangDon = await page.evaluate(() => Array.from(document.querySelectorAll('.tcsheet.don .ot tr:not(.tg)'))
   .slice(2).map((tr) => Array.from(tr.children).map((td) => td.textContent.trim())).filter((r) => r[1]));
@@ -632,11 +634,11 @@ assert.equal(await page.locator('[data-act="tcDonChe"]').count(), 2, 'Quản lý
 const toQL = await page.evaluate(() => Array.from(document.querySelectorAll('.tcsheet.don')).map((sh) => {
   const r = Array.from(sh.querySelectorAll('.ot tr:not(.tg)')).slice(2)
     .map((tr) => Array.from(tr.children).map((td) => td.textContent.trim())).filter((x) => x[1]);
-  return { the: Array.from(new Set(r.map((x) => x[1]))), ten: r[0] ? r[0][2] : '', dong: r.length };
+  return { the: Array.from(new Set(r.map((x) => x[1]))), ten: r[0] ? r[0][2] : '', dong: r.length, cn: sh.classList.contains('cn') };
 }));
 assert.ok(toQL.length >= 3, 'mỗi người một tờ: ' + toQL.length + ' tờ');
 assert.ok(toQL.every((t0) => t0.the.length === 1), 'mỗi tờ chỉ một người: ' + JSON.stringify(toQL.map((x) => x.the)));
-assert.equal(new Set(toQL.map((t0) => t0.the[0])).size, toQL.length, 'không tờ nào trùng người');
+assert.equal(new Set(toQL.map((t0) => t0.the[0] + (t0.cn ? '|CN' : ''))).size, toQL.length, 'không tờ nào trùng người (tờ Chủ nhật tính riêng)');
 assert.ok(toQL.some((t0) => t0.dong > 1), 'người tăng ca nhiều ngày thì gom hết vào một tờ');
 assert.ok(toQL.every((t0) => /\s[\u4e00-\u9fff]/.test(t0.ten)), 'họ tên in kèm tên tiếng Trung: ' + JSON.stringify(toQL.map((x) => x.ten)));
 await shot('18b-tang-ca-don-moi-nguoi-mot-to');
@@ -2817,7 +2819,8 @@ const nhieu48 = await page.evaluate(() => {
   S.V.tc = goc;
   return { h, so: tcSoDon(120) };
 });
-assert.match(nhieu48.h, /Cộng tờ này .*? 90 .*Cộng tờ này .*? 30 .*Tổng số tiếng tăng ca \(cả 2 tờ\) .*? 120/, 'nhiều tờ: cộng từng tờ, tờ cuối tổng cả khoảng');
+// 01–20/08/2026 có ba Chủ nhật (02, 09, 16/08) in tờ riêng (v2.71.2): ngày thường 17 lượt = 2 tờ (90 + 12), Chủ nhật 18
+assert.match(nhieu48.h, /Cộng tờ này .*? 90 .*Cộng tờ này .*? 12 .*Tổng số tiếng tăng ca \(cả 2 tờ\) .*? 102 .*NGÀY CHỦ NHẬT.*Tổng số tiếng tăng ca Chủ nhật .*? 18/, 'nhiều tờ: cộng từng tờ, tờ cuối tổng cả khoảng; Chủ nhật tờ riêng');
 assert.equal(nhieu48.so, '120', 'số giờ từ 100 trở lên in đủ');
 await page.evaluate(() => { S.f.tcKieu = ''; S.f.tcDonMot = ''; while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.63: đơn tăng ca in theo khoảng ngày có tổng số tiếng; nhiều tờ thì cộng từng tờ và tổng cả khoảng');
@@ -3236,6 +3239,57 @@ assert.deepEqual(t61.phieu, t61.muc, 'thêm cả mục: đúng các mã hết h�
 await shot('96-dat-mua-theo-muc');
 await page.evaluate(() => { dmLuu({ ds: [], boPhan: '' }); while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.71.1: lập phiếu đặt mua — hàng cần mua / hết hàng chia theo mục như tổng quan kho, thêm cả mục một lần');
+
+// 62. Tăng ca ngày Chủ nhật tách riêng: đơn in tờ Chủ nhật riêng (xếp sau), tổng hợp tháng tách Ngày thường / Ngày Chủ nhật,
+// Excel thêm sheet Chủ nhật. Tính theo NGÀY: chọn ca Hành chính vào Chủ nhật vẫn là tăng ca Chủ nhật.
+await page.evaluate(async () => {
+  while (S.stack.length > 1) back();
+  const ca = tcCaDS()[0].k;
+  for (const [ng, tu, den, g] of [['2026-09-07', '17:30', '20:00', 2.5], ['2026-09-06', '08:00', '17:00', 9], ['2026-09-13', '08:00', '12:00', 4]])
+    await send('saveOT', { id: '', uid: S.me.id, ngay: ng, ca, tu, den, soGio: g, lyDo: 'Thử Chủ nhật' });
+  S.f.tcUid = S.me.id; S.f.tcKieu = 'khoang'; S.f.tcTu = '2026-09-06'; S.f.tcDen = '2026-09-13'; S.f.tcDonMot = '1'; tab('tc'); go('tcXem');
+}); await wait(800);
+const to62 = await page.evaluate(() => Array.from(document.querySelectorAll('.tcsheet.don')).map((sh) => ({
+  cn: sh.classList.contains('cn'), tt: sh.querySelector('.tt').textContent, ngay: sh.querySelector('.d3 u').textContent,
+  ghi: Array.from(sh.querySelectorAll('.ot tr:not(.tg)')).slice(2).map((tr) => tr.children[8].textContent.trim()).filter(Boolean),
+  tong: (sh.querySelector('.ot tr.tg') || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim() })));
+assert.deepEqual(to62.map((x) => [x.cn, x.ghi]), [[false, ['07/09']], [true, ['06/09', '13/09']]], 'ngày thường một tờ, Chủ nhật một tờ riêng xếp sau: ' + JSON.stringify(to62));
+assert.match(to62[1].tt, /NGÀY CHỦ NHẬT/); assert.match(to62[1].tt, /周日/);
+assert.doesNotMatch(to62[0].tt, /CHỦ NHẬT/, 'tờ ngày thường giữ tiêu đề cũ');
+assert.equal(to62[1].ngay, '06/09, 13/09/2026', 'tờ Chủ nhật ghi đúng các ngày Chủ nhật');
+assert.match(to62[0].tong, /^Tổng số tiếng tăng ca 加班总小时数 2[.,]5$/, 'tờ ngày thường chỉ cộng ngày thường');
+assert.match(to62[1].tong, /^Tổng số tiếng tăng ca Chủ nhật 周日加班总小时数 13$/, 'tờ Chủ nhật cộng riêng');
+assert.match(await text('#main .help'), /2 tờ đơn · tổng 15[.,]5 giờ · trong đó Chủ nhật 13 giờ, in riêng 1 tờ/, 'màn in ghi riêng giờ Chủ nhật');
+await shot('97-tang-ca-to-chu-nhat');
+// Màn đăng ký: tổng khoảng ngày ghi "trong đó Chủ nhật"
+await page.evaluate(() => back()); await wait(500);
+assert.match(await text('#main'), /Trong đó Chủ nhật: 13 giờ/, 'màn đăng ký ghi riêng giờ Chủ nhật');
+// Tổng hợp tháng: Ngày thường + Ngày Chủ nhật = Tổng
+await page.evaluate(() => { S.f.tcThang = '2026-09'; go('tcThang'); }); await wait(600);
+const th62 = await page.evaluate(() => { const p = tcThangDS('2026-09').filter((x) => x.uid === S.me.id)[0]; return { cn: p.cn, nt: p.nt, tong: p.tong }; });
+assert.equal(th62.cn, 13, 'tổng hợp tháng: giờ Chủ nhật');
+assert.equal(Math.round((th62.nt + th62.cn) * 100) / 100, th62.tong, 'ngày thường + Chủ nhật = tổng');
+// Màn rộng: bảng có hai cột Ngày thường / Ngày Chủ nhật
+assert.deepEqual(await page.evaluate(() => [Array.from(document.querySelectorAll('#main table.dt thead th.tcsep, #main table.dt thead th:nth-last-child(2)')).map((x) => x.firstChild.textContent.trim()),
+  Array.from(document.querySelectorAll('#main table.dt td.tccn')).map((x) => x.textContent.trim()).includes('13')]),
+  [['Ngày thường', 'Ngày Chủ nhật'], true], 'bảng tháng có cột Ngày thường / Ngày Chủ nhật');
+await shot('98-tang-ca-thang-chu-nhat');
+// Điện thoại: dòng người ghi tách Ngày thường / Ngày Chủ nhật
+const vp62 = page.viewportSize();
+await page.setViewportSize({ width: 390, height: 844 }); await page.evaluate(() => render()); await wait(500);
+assert.match(await text('#main .list'), /Ngày thường [\d.,]+ · Ngày Chủ nhật 13/, 'dòng người ghi tách Ngày thường / Ngày Chủ nhật');
+await page.setViewportSize(vp62); await page.evaluate(() => render()); await wait(300);
+// Excel tháng: sheet tổng hợp có cột Ngày thường / Ngày Chủ nhật, thêm sheet Chủ nhật chỉ các lượt Chủ nhật
+const xl62 = await page.evaluate(async () => {
+  const sh = await readXlsx(await tcThangWorkbook('2026-09').arrayBuffer());
+  const r0 = await sh[0].rows(), r2 = sh[2] ? await sh[2].rows() : [];
+  return { ten: sh.map((x) => x.name), hd: r0.slice(0, 8).map((r) => r.join('|')).join('\n'), thu: r2.map((r) => r[1]).filter((v) => WD_VI_F.indexOf(v) >= 0) };
+});
+assert.deepEqual(xl62.ten, ['Tong hop', 'Tang ca', 'Chu nhat'], 'Excel tháng có sheet Chủ nhật riêng');
+assert.match(xl62.hd, /Ngày thường[\s\S]*Ngày Chủ nhật[\s\S]*Tổng/, 'sheet tổng hợp có cột Ngày thường / Ngày Chủ nhật');
+assert.deepEqual(xl62.thu, ['Chủ nhật', 'Chủ nhật'], 'sheet Chủ nhật chỉ có hai lượt Chủ nhật');
+await page.evaluate(() => { S.f.tcKieu = ''; S.f.tcDonMot = ''; while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.71.2: tăng ca ngày Chủ nhật tách riêng — tờ đơn riêng, tổng hợp tháng và Excel tách Ngày thường / Ngày Chủ nhật');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
