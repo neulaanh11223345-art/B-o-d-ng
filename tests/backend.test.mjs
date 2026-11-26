@@ -852,14 +852,15 @@ test('điểm danh: Quản lý ghi nghỉ phép / không phép / ốm / đi mu�
   let r = ok(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [uid]: 'p', [uid2]: 'M', U999: 'P', [ql.id || 'x']: 'ZZ', NV003: 'X' } }, ql)).diemDanh;
   assert.deepEqual(r.tt, { [uid]: 'P', [uid2]: 'M' });
   assert.equal(r.ngay, '2026-11-25');
-  // Chủ nhật: mặc định nghỉ tuần, đi làm thì ghi X
-  r = ok(b.call('attendanceSet', { ngay: '2026-11-22', tt: { [uid]: 'X' } }, ql)).diemDanh;
-  assert.deepEqual(r.tt, { [uid]: 'X' });
+  // Chủ nhật: mặc định nghỉ tuần, đi làm thì ghi X; TC (tăng ca Chủ nhật) chỉ nhận ngày Chủ nhật
+  r = ok(b.call('attendanceSet', { ngay: '2026-11-22', tt: { [uid]: 'X', [uid2]: 'TC' } }, ql)).diemDanh;
+  assert.deepEqual(r.tt, { [uid]: 'X', [uid2]: 'TC' });
+  assert.deepEqual(ok(b.call('attendanceSet', { ngay: '2026-11-24', tt: { [uid2]: 'TC' } }, ql)).diemDanh.tt, {}, 'ngày thường không nhận TC');
   // Sửa lại cùng ngày: thay cả ngày (một dòng)
   ok(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [uid]: 'KP' } }, ql));
   const dk = ok(b.call('data', {}, kt)).diemDanh;
   assert.deepEqual(dk.filter((x) => x.ngay === '2026-11-25').map((x) => x.tt), [{ [uid]: 'KP' }], 'nhân viên xem được, mỗi ngày một dòng');
-  assert.equal(dk.length, 2);
+  assert.equal(dk.length, 3);
 });
 
 test('danh sách điểm danh theo tên: Quản lý lập, giữ ID, nối tài khoản; điểm danh khoá theo người trong danh sách', () => {

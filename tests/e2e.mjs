@@ -3521,9 +3521,29 @@ const u66 = await page.evaluate((id) => ddNguoi().find((n) => n.id !== id).id, d
 await page.click(`[data-act="ddDat"][data-id="${u66}"][data-v="M"]`); await wait(900);
 assert.match(await text('#main .card.pad b'), /Đi làm \d+ · Đi muộn 1 · Nghỉ 1/);
 await shot('104-diem-danh');
-// Chủ nhật: mặc định nghỉ, chỉ có Nghỉ CN / Đi làm / Đi muộn
-await page.evaluate(() => { let d = TODAY(); while (wday(d) !== 0) d = addD(d, -1); S.f.ddNgay = d; render(); }); await wait(400);
-assert.deepEqual(await page.evaluate(() => [...new Set([...document.querySelectorAll('[data-act="ddDat"]')].map((b) => b.dataset.v))]), ['CN', 'X', 'M'], 'Chủ nhật: nghỉ CN / đi làm / đi muộn');
+// Chủ nhật: mặc định nghỉ; ai có ghi tăng ca Chủ nhật (phần Tăng ca) tự hiện TC; người không có tài khoản thì bấm TC (v2.75.2)
+const cn66 = await page.evaluate(async (o) => {
+  let d = TODAY(); while (wday(d) !== 0) d = addD(d, -1);
+  mergeResult(await api('saveOT', { id: '', uid: o.uid, ngay: d, ca: 'CN', tu: '08:00', den: '17:00', soGio: 9, lyDo: 'TEST tăng ca Chủ nhật' }));
+  S.f.ddNgay = d; render(); await new Promise((r) => setTimeout(r, 400));
+  return { d, ma: ddMa(d, o.id), nut: [...new Set([...document.querySelectorAll('[data-act="ddDat"]')].map((b) => b.dataset.v))],
+    khoa: !!document.querySelector(`[data-act="ddDat"][data-id="${o.id}"][data-v="CN"]:disabled`), ghi: (document.querySelector(`.ddrow[data-id="${o.id}"] .ddtc`) || {}).textContent || '',
+    khac: ddNguoi().filter((n) => n.id !== o.id && !ddTcCN(d, n.id).length).map((n) => ddMa(d, n.id)) };
+}, d66);
+assert.deepEqual(cn66.nut, ['CN', 'TC'], 'Chủ nhật: nghỉ CN / tăng ca (TC)');
+assert.equal(cn66.ma, 'TC', 'có ghi tăng ca Chủ nhật thì tự là TC');
+assert.ok(cn66.khoa && /08:00–17:00 · 9 giờ/.test(cn66.ghi), 'ghi giờ theo phần Tăng ca, khoá nút Nghỉ CN: ' + cn66.ghi);
+assert.ok(cn66.khac.every((m) => m === 'CN'), 'người không tăng ca vẫn nghỉ CN');
+const kTK66 = await page.evaluate(() => ddNguoi().find((n) => !n.uid).id);
+await page.click(`[data-act="ddDat"][data-id="${kTK66}"][data-v="TC"]`); await wait(900);
+assert.equal(await page.evaluate((o) => ddMa(o.d, o.id), { d: cn66.d, id: kTK66 }), 'TC', 'người không có tài khoản: bấm TC');
+const xTC66 = await page.evaluate(async (o) => {
+  const sh = await readXlsx(await ddXlsx(o.d.slice(0, 7)).arrayBuffer()), r = await sh[0].rows();
+  const n = ddNguoi().find((y) => y.id === o.id), hang = r.find((x) => String(x[2] || '').indexOf(n.ten) === 0);
+  return [hang[3 + (+o.d.slice(8))], r.some((x) => /TC = tăng ca Chủ nhật/.test(String(x[0] || '')))];
+}, { d: cn66.d, id: d66.id });
+assert.deepEqual(xTC66, ['TC', true], 'Excel ghi TC ngày Chủ nhật tăng ca, có chú thích');
+await page.evaluate(async (d) => { mergeResult(await api('attendanceSet', { ngay: d, tt: {} })); }, cn66.d); await wait(300);
 // Lịch tháng: người nghỉ không còn tên trong ô ngày đó
 await page.evaluate((d) => { S.f.trucChe = 'thang'; S.f.trucThang = d.slice(0, 7); render(); }, d66.d); await wait(500);
 assert.ok(!(await page.evaluate((o) => (document.querySelector(`[data-act="trucXep"][data-d="${o.d}"]`) || { textContent: '' }).textContent.includes(o.ten.split(' ').pop()), d66)), 'lịch tháng không còn tên người nghỉ');

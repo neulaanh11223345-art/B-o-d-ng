@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.75.1';
+var PHIEN_BAN = '2.75.2';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -95,7 +95,8 @@ var BANG = {
   PhanCa: ['TuNgay', 'Nhom', 'Ca', 'NguoiID', 'Ten', 'TenZh', 'DienThoai', 'Nguoi', 'CapNhat'],
   // Điểm danh hằng ngày (v2.75): mỗi ngày một dòng. TrangThai (JSON) {uid: mã} chỉ ghi người KHÁC mặc định —
   // ngày thường mặc định đi làm, Chủ nhật mặc định nghỉ tuần. Mã: X đi làm (Chủ nhật) · M đi muộn · P nghỉ phép ·
-  // KP nghỉ không phép · O nghỉ ốm. Người nghỉ (P / KP / O) không còn trong lịch trực của ngày đó.
+  // KP nghỉ không phép · O nghỉ ốm · TC tăng ca Chủ nhật (người có ghi tăng ca Chủ nhật app tự hiện TC).
+  // Người nghỉ (P / KP / O) không còn trong lịch trực của ngày đó.
   DiemDanh: ['Ngay', 'TrangThai', 'GhiChu', 'Nguoi', 'CapNhat'],
   // Sổ kiểm định thiết bị. NghiemNgat = 1: thuộc danh mục máy, thiết bị có yêu cầu nghiêm ngặt về an toàn, vệ sinh lao động.
   // Ma: mã máy / chuyền trong danh mục (để trống nếu thiết bị không nằm trong danh mục máy, vd xe nâng, bình khí).
@@ -1090,7 +1091,7 @@ function gioHM(v) {
 }
 function docLichTruc() { return docTho('LichTruc').map(ltTuDong).filter(function (x) { return x.ngay; }); }
 // ----- Điểm danh (v2.75) -----
-var DD_MA = ['X', 'M', 'P', 'KP', 'O'];
+var DD_MA = ['X', 'M', 'P', 'KP', 'O', 'TC'];   // TC: tăng ca Chủ nhật (chỉ ghi ngày Chủ nhật, v2.75.2)
 function docDiemDanh() {
   return docTho('DiemDanh').map(function (r, i) {
     return { _r: i + 2, ngay: ngayStr(r[0]), tt: docJson(r[1], {}), ghiChu: s(r[2]), nguoi: s(r[3]), capNhat: tgStr(r[4]) };
@@ -1128,7 +1129,7 @@ function luuDiemDanh(u, p) {
   var cn = new Date(ngay + 'T00:00:00Z').getUTCDay() === 0;
   Object.keys(vao).slice(0, 500).forEach(function (k) {
     var v = s(vao[k]).toUpperCase();
-    if (!co[k] || DD_MA.indexOf(v) < 0 || (!cn && v === 'X')) return;
+    if (!co[k] || DD_MA.indexOf(v) < 0 || (!cn && (v === 'X' || v === 'TC'))) return;
     tt[k] = v;
   });
   var x = docDiemDanh().filter(function (r) { return r.ngay === ngay; })[0], cu = x ? x.tt : {};

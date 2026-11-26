@@ -1084,6 +1084,8 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .ddchon .chip.on.dd-P,.ddchon .chip.on.dd-O{background:var(--blue);border-color:var(--blue);color:#fff}
 .ddchon .chip.on.dd-KP{background:var(--red);border-color:var(--red);color:#fff}
 .ddchon .chip.on.dd-CN{background:var(--soft);border-color:var(--line);color:var(--ink2)}
+.ddchon .chip.on.dd-TC{background:var(--green);border-color:var(--green);color:#fff}.ddchon .chip:disabled{opacity:.45}
+.ddtc{color:var(--green);margin-top:4px}
 /* Sản phẩm đang sản xuất (v2.74) */
 .chsp{margin-top:12px}.chsph{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .chsph .lb{font-weight:700;color:var(--green)}.chsph .lb .zi{display:inline;margin-left:6px}
@@ -1771,7 +1773,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.75.1";
+const APP_VER = "2.75.2";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -15934,24 +15936,32 @@ SRV_PHAN.push(['diemdanh', '2.75.0', 'srvMissDD']);
 Object.assign(TX, {
   trucCheDD: ['Điểm danh', '考勤'],
   dd_X: ['Đi làm', '出勤'], dd_M: ['Đi muộn', '迟到'], dd_P: ['Nghỉ phép', '事假/年假'], dd_KP: ['Nghỉ không phép', '旷工'], dd_O: ['Nghỉ ốm', '病假'],
-  dd_CN: ['Nghỉ Chủ nhật', '周日休息'],
+  dd_CN: ['Nghỉ Chủ nhật', '周日休息'], dd_TC: ['Tăng ca CN (TC)', '周日加班'], ddKyHieu_TC: ['TC'],
+  ddTheoTC: ['Theo phần Tăng ca: {g} · {h} giờ', '按加班登记：{g} · {h}小时'],
   ddKyHieu_X: ['X'], ddKyHieu_M: ['M'], ddKyHieu_P: ['P'], ddKyHieu_KP: ['KP'], ddKyHieu_O: ['Ô'], ddKyHieu_CN: ['CN'],
   ddHomNay: ['Hôm nay', '今天'], ddTomTat: ['Đi làm {a} · Đi muộn {b} · Nghỉ {c}', '出勤 {a} · 迟到 {b} · 请假 {c}'],
   ddHelp: ['Mặc định ngày thường mọi người đi làm, Chủ nhật nghỉ. Bấm vào người nghỉ để chọn Nghỉ phép / Không phép / Ốm, hoặc Đi muộn. Người nghỉ tự ra khỏi lịch trực ngày đó.',
     '默认工作日全员出勤，周日休息。点击请假人员选择事假/旷工/病假，或迟到。请假人员自动移出当天值班表。'],
-  ddCnHelp: ['Chủ nhật: mặc định nghỉ. Ai đi làm thì bấm Đi làm (hoặc Đi muộn).', '周日：默认休息。上班人员请点击出勤（或迟到）。'],
+  ddCnHelp: ['Chủ nhật: mặc định nghỉ. Ai có ghi tăng ca Chủ nhật ở phần Tăng ca thì tự hiện TC; người không có tài khoản thì bấm Tăng ca CN (TC).',
+    '周日：默认休息。在加班登记中有周日加班的人自动显示TC；无账号人员请点击“周日加班（TC）”。'],
   ddChiXem: ['Bảng điểm danh do Quản lý ghi; bạn chỉ xem.', '考勤由主管录入；您只能查看。'],
   ddTrucHomNay: ['Trực', '值班'], ddNghiTruc: ['Người này {m} ngày này nên không có trong lịch trực. Chọn người khác để trực.', '此人当天{m}，不在值班表中。请另选值班人。'],
   ddMatTruc: ['{n} người trực ngày này đã nghỉ — ngày này cần xếp người trực khác', '当天{n}名值班人请假——需另行安排值班'],
   ddXepLai: ['Xếp lại người trực', '重新安排值班'],
   ddThang: ['Tổng hợp tháng {m}/{y}', '{y}年{m}月汇总'], ddXuat: ['Xuất Excel chấm công tháng', '导出月度考勤Excel'],
-  ddCong: ['Công', '出勤天数'], ddMuon: ['Muộn', '迟到'], ddCnLam: ['CN đi làm', '周日出勤'],
+  ddCong: ['Công', '出勤天数'], ddMuon: ['Muộn', '迟到'], ddCnLam: ['TC Chủ nhật', '周日加班'],
   ddLuu: ['Đã ghi: {t} — {m}', '已记录：{t} — {m}'], ddTuongLai: ['Chưa tới ngày này', '尚未到这一天'],
   srvMissDD: ['Máy chủ chưa có điểm danh. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚无考勤功能。请更新 Code.gs 并重新部署。']
 });
 const DD_NGHI = ['P', 'KP', 'O'];
 // Mã của một người trong một ngày: lưu riêng thì theo mã đó, không thì mặc định (Chủ nhật CN, ngày thường X)
-const ddMa = (ngay, id) => ((S.V && S.V.dd && S.V.dd[ngay]) || {})[id] || (wday(ngay) === 0 ? 'CN' : 'X');
+// Chủ nhật (v2.75.2): người có ghi tăng ca ngày đó ở phần Tăng ca (theo tài khoản đã nối) tự là TC — tăng ca Chủ nhật
+function ddTcCN(ngay, id) {
+  if (wday(ngay) !== 0) return [];
+  const n = ddNguoi().find((x) => x.id === id), uid = n ? n.uid : id;
+  return uid ? ((S.V && S.V.tc) || []).filter((x) => x.uid === uid && x.ngay === ngay) : [];
+}
+const ddMa = (ngay, id) => ((S.V && S.V.dd && S.V.dd[ngay]) || {})[id] || (wday(ngay) === 0 ? (ddTcCN(ngay, id).length ? 'TC' : 'CN') : 'X');
 // Người trong bảng điểm danh (v2.75.1): danh sách theo TÊN do Quản lý lập (không theo tài khoản — tài khoản có thể
 // đặt theo vai trò). Mỗi người có thể nối với một tài khoản app để người nghỉ tự ra khỏi lịch trực.
 const ddNguoi = () => ((S.base && S.base.caiDat && S.base.caiDat.ddNguoi) || []).filter((n) => n && n.ten);
@@ -15966,11 +15976,11 @@ function ddTT(n) {
 }
 const ddSua = () => trucSua() && !srvOld('diemdanh');
 const ddNgayHT = () => S.f.ddNgay || TODAY();
-const DD_PILL = { X: 'p-ok', M: 'p-nay', P: 'p-sap', KP: 'p-qua', O: 'p-sap', CN: 'p-off' };
+const DD_PILL = { X: 'p-ok', M: 'p-nay', P: 'p-sap', KP: 'p-qua', O: 'p-sap', CN: 'p-off', TC: 'p-ok' };
 function ddHtml() {
   const ngay = ddNgayHT(), cn = wday(ngay) === 0, sua = ddSua(), ds = ddNguoi(), today = TODAY();
   const tl = ngay > today, ma = (n) => ddMa(ngay, n.id);
-  const nLam = ds.filter((n) => ['X', 'M'].indexOf(ma(n)) >= 0).length, nMuon = ds.filter((n) => ma(n) === 'M').length;
+  const nLam = ds.filter((n) => ['X', 'M', 'TC'].indexOf(ma(n)) >= 0).length, nMuon = ds.filter((n) => ma(n) === 'M').length;
   const nNghi = ds.filter((n) => DD_NGHI.indexOf(ma(n)) >= 0).length;
   const truc = trucNgayGoc(ngay).filter((x) => x.uid), mat = truc.filter((x) => ddNghi(ngay, x.uid));
   let o = `<div class="caltools"><div class="stepper">
@@ -15988,20 +15998,22 @@ function ddHtml() {
   if (mat.length) o += `<div class="note warn" style="margin-top:10px"><b>${esc(tv('ddMatTruc', { n: mat.length }))}</b> <span class="zi">${esc(tz('ddMatTruc', { n: mat.length }))}</span>
     <div class="sub">${esc(mat.map((x) => ((ddCuaTK(x.uid) || {}).ten || x.ten) + ' · ' + tv('dd_' + ddMaUid(ngay, x.uid))).join(', '))}</div>
     ${trucSua() ? `<div class="btns" style="margin-top:8px"><button class="btn sm" data-act="trucXep" data-d="${esc(ngay)}">${IC.users} ${t('ddXepLai')}</button></div>` : ''}</div>`;
-  const chon = cn ? ['CN', 'X', 'M'] : ['X', 'M', 'P', 'KP', 'O'];
+  const chon = cn ? ['CN', 'TC'] : ['X', 'M', 'P', 'KP', 'O'];
+  const tuTC = (n) => cn && !((S.V.dd || {})[ngay] || {})[n.id] && ddTcCN(ngay, n.id).length > 0;
   o += `<div class="list ddlist" style="margin-top:10px">${ds.map((n) => {
     const m = ma(n), coTruc = !!n.uid && truc.some((x) => x.uid === n.uid), tt = ddTT(n);
     return `<div class="row ddrow" data-id="${esc(n.id)}"><div class="main"><div class="nm">${esc(n.ten)}${tt.tenZh && tt.tenZh !== n.ten ? ` <span class="zi" lang="zh-CN">${esc(tt.tenZh)}</span>` : ''}
         ${coTruc && !DD_NGHI.includes(m) ? `<span class="pill p-ok" style="margin-left:6px">${esc(tv('ddTrucHomNay'))}</span>` : ''}</div>
-      ${sua ? `<div class="ddchon">${chon.map((k) => `<button type="button" class="chip sm${m === k ? ' on dd-' + k : ''}" data-act="ddDat" data-id="${esc(n.id)}" data-v="${k}">${esc(tv('dd_' + k))}</button>`).join('')}</div>`
-        : `<div class="sub mono">${esc([tt.maThe, tt.chucVu].filter(Boolean).join(' · '))}</div>`}</div>
+      ${sua ? `<div class="ddchon">${chon.map((k) => `<button type="button" class="chip sm${m === k ? ' on dd-' + k : ''}" data-act="ddDat" data-id="${esc(n.id)}" data-v="${k}"${tuTC(n) && k === 'CN' ? ' disabled' : ''}>${esc(tv('dd_' + k))}</button>`).join('')}</div>`
+        : `<div class="sub mono">${esc([tt.maThe, tt.chucVu].filter(Boolean).join(' · '))}</div>`}
+      ${tuTC(n) ? `<div class="sub ddtc">${esc(tv('ddTheoTC', { g: ddTcCN(ngay, n.id).map((x) => x.tu + '–' + x.den).join(', '), h: tcSo(tcCong(ddTcCN(ngay, n.id))) }))}</div>` : ''}</div>
       ${sua ? '' : `<div class="end"><span class="pill ${DD_PILL[m]}">${esc(tv('dd_' + m))}</span></div>`}</div>`;
   }).join('')}</div>`;
   // Tổng hợp tháng của ngày đang xem
   const ym = ngay.slice(0, 7), [y, mo] = ym.split('-').map(Number), th = ddThangDS(ym);
   o += sec('ddThang', '', { m: mo, y }) + `<div class="dtwrap ddthang"><table class="dt"><thead><tr><th>${esc(tv('tcHoTen'))}<small>${esc(tz('tcHoTen'))}</small></th>
     ${['ddCong', 'ddMuon', 'dd_P', 'dd_KP', 'dd_O', 'ddCnLam'].map((k) => `<th class="num">${esc(tv(k))}<small>${esc(tz(k))}</small></th>`).join('')}</tr></thead>
-    <tbody>${th.map((r) => `<tr><td><b>${esc(r.n.ten)}</b></td>${['cong', 'M', 'P', 'KP', 'O', 'cnLam'].map((k) => `<td class="num mono">${r[k] || (k === 'cong' ? 0 : '—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <tbody>${th.map((r) => `<tr><td><b>${esc(r.n.ten)}</b></td>${['cong', 'M', 'P', 'KP', 'O', 'TC'].map((k) => `<td class="num mono">${r[k] || (k === 'cong' ? 0 : '—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="ddXuat" data-m="${ym}">${IC.dl} ${t('ddXuat')}</button></div>`;
   return o;
 }
@@ -16009,13 +16021,14 @@ function ddHtml() {
 function ddThangDS(ym) {
   const [y, mo] = ym.split('-').map(Number), nd = new Date(y, mo, 0).getDate(), today = TODAY();
   return ddNguoi().map((n) => {
-    const r = { n, cong: 0, M: 0, P: 0, KP: 0, O: 0, cnLam: 0, ngay: [] };
+    const r = { n, cong: 0, M: 0, P: 0, KP: 0, O: 0, TC: 0, ngay: [] };
     for (let i = 1; i <= nd; i++) {
       const d = ym + '-' + pad2(i);
       if (d > today) { r.ngay.push(''); continue; }
       const m = ddMa(d, n.id); r.ngay.push(m);
-      if (m === 'X' || m === 'M') { r.cong++; if (wday(d) === 0) r.cnLam++; }
-      if (r[m] !== undefined && m !== 'X') r[m]++;
+      if (wday(d) === 0) { if (m === 'TC' || m === 'X' || m === 'M') r.TC++; continue; }
+      if (m === 'X' || m === 'M') r.cong++;
+      if (r[m] !== undefined && m !== 'X' && m !== 'TC') r[m]++;
     }
     return r;
   });
@@ -16024,14 +16037,14 @@ function ddThangDS(ym) {
 function ddXlsx(ym) {
   const [y, mo] = ym.split('-').map(Number), nd = new Date(y, mo, 0).getDate(), ds = ddThangDS(ym);
   const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
-  const CNF = { fill: '#FDECEA' }, MAU = { M: { color: '#B45309', b: 1 }, P: { color: '#1D4ED8', b: 1 }, KP: { color: '#B42318', b: 1 }, O: { color: '#7C3AED', b: 1 } };
+  const CNF = { fill: '#FDECEA' }, MAU = { M: { color: '#B45309', b: 1 }, P: { color: '#1D4ED8', b: 1 }, KP: { color: '#B42318', b: 1 }, O: { color: '#7C3AED', b: 1 }, TC: { color: '#15803D', b: 1 } };
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'center', align: 'center', border: true }, x || {}) });
   const cd = (S.base && S.base.caiDat) || {}, dem = {};
   ds.forEach((r) => { const b0 = ddTT(r.n).boPhan; if (b0) dem[b0] = (dem[b0] || 0) + 1; });
   const bp0 = Object.keys(dem).sort((a, b) => dem[b] - dem[a])[0] || '';
   const bp = cd.ddBoPhan || bp0, bpZh = cd.ddBoPhan ? cd.ddBoPhanZh || '' : ((ds.find((r) => ddTT(r.n).boPhan === bp0) || {}).n ? ddTT(ds.find((r) => ddTT(r.n).boPhan === bp0).n).boPhanZh : '');
   const ngay = []; for (let i = 1; i <= nd; i++) ngay.push(ym + '-' + pad2(i));
-  const TONG = [['ddCong', 'cong'], ['ddMuon', 'M'], ['dd_P', 'P'], ['dd_KP', 'KP'], ['dd_O', 'O'], ['ddCnLam', 'cnLam']];
+  const TONG = [['ddCong', 'cong'], ['ddMuon', 'M'], ['dd_P', 'P'], ['dd_KP', 'KP'], ['dd_O', 'O'], ['ddCnLam', 'TC']];
   const rows = [[{ v: 'BẢNG CHẤM CÔNG THÁNG ' + mo + '/' + y + ' · ' + y + '年' + mo + '月考勤表', s: { b: 1, sz: 14 } }],
     [{ v: 'Bộ phận · 部门: ' + (bp || '—') + (bpZh ? ' · ' + bpZh : ''), s: { b: 1 } }], [],
     [c('STT\n序号', H), c('Mã thẻ\n工号', H), c('Họ và tên\n姓名', H), c('Chức vụ\n职位', H)].concat(ngay.map((d) => c(+d.slice(8), H)), TONG.map(([k]) => c(tv(k) + '\n' + tz(k), H))),
@@ -16042,7 +16055,7 @@ function ddXlsx(ym) {
       .concat(r.ngay.map((m, j) => c(m ? tv('ddKyHieu_' + m) : '', Object.assign({}, wday(ngay[j]) === 0 ? CNF : {}, MAU[m] || {}))), TONG.map(([, k]) => c(r[k] || 0, { b: 1 }))));
   });
   rows.push([]);
-  rows.push([{ v: 'Ký hiệu · 符号:  X = đi làm 出勤 · M = đi muộn 迟到 · P = nghỉ phép 事假/年假 · KP = nghỉ không phép 旷工 · Ô = nghỉ ốm 病假 · CN = nghỉ Chủ nhật 周日休息', s: { i: 1 } }]);
+  rows.push([{ v: 'Ký hiệu · 符号:  X = đi làm 出勤 · M = đi muộn 迟到 · P = nghỉ phép 事假/年假 · KP = nghỉ không phép 旷工 · Ô = nghỉ ốm 病假 · CN = nghỉ Chủ nhật 周日休息 · TC = tăng ca Chủ nhật 周日加班', s: { i: 1 } }]);
   rows.push([]);
   rows.push([{ v: 'Người lập · 制表', s: { b: 1 } }, '', '', { v: 'Trưởng bộ phận · 部门经理', s: { b: 1 } }]);
   const nCot = 4 + nd + TONG.length, L = (i) => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
