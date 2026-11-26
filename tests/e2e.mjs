@@ -196,6 +196,8 @@ await page.click('.gaph[data-k="qua"]'); await wait();
 assert.ok(await page.locator('.gapb .row').count() > 0, 'bấm vào hiện danh sách máy quá hạn');
 await page.click('.chtile[data-ma="VKY01"]'); await wait();
 assert.match(await text('#barTitle'), /Chuyền sản xuất/);
+// Từ v2.73 máy trong chuyền nằm trong ô module: bấm ô Máy in phun mới hiện máy
+await page.click('.chmod[data-k="inphun"]'); await wait();
 assert.match(await text('#main'), /喷印机 VKY01/);
 assert.match(await text('#main'), /HNJX-HD2000/);
 assert.equal(await page.locator('.gaph[data-k="lkch:VKY01"]').count(), 0, 'kỹ thuật không thấy linh kiện / ERP của chuyền');
@@ -490,9 +492,10 @@ assert.equal(await page.locator('.stchips').count(), 0, 'Danh sách không còn 
 assert.equal(await page.locator('.khoibtn').count(), 2, 'có hai nút khối thiết bị');
 assert.equal(await page.locator('.hscroll .chip[data-act="listGrp"]').count(), 0, 'không còn dãy chip nhóm cuộn ngang');
 // Khối sản xuất: lưới chuyền; khối phụ trợ: các nhóm, bấm mới xổ máy
-assert.ok(await page.locator('.chgrid').count() > 0, 'khối sản xuất hiện lưới chuyền');
+// Từ v2.73, màn rộng hiện bảng chuyền × module thay cho lưới ô chuyền
+assert.ok(await page.locator('.chbang').count() > 0, 'khối sản xuất hiện bảng module các chuyền');
 await page.click('.khoibtn[data-k="HCD"]'); await wait(700);
-assert.equal(await page.locator('.chgrid').count(), 0, 'chọn khối phụ trợ thì không còn lưới chuyền');
+assert.equal(await page.locator('.chgrid, .chbang').count(), 0, 'chọn khối phụ trợ thì không còn lưới chuyền');
 const nhomPT = page.locator('#listBody .gap .gaph');
 assert.ok(await nhomPT.count() >= 3, 'khối phụ trợ xổ ra các nhóm thiết bị');
 await nhomPT.first().click(); await wait(700);
@@ -2192,10 +2195,12 @@ const chNhieu = await page.evaluate(() => {
   return Object.keys(d).sort((a, b) => d[b] - d[a])[0] || '';
 });
 await page.evaluate((ma) => go('chuyen', { ma }), chNhieu); await wait(900);
-const soMay29 = await page.evaluate((ma) => mayCuaCh(ma).length, chNhieu);
-const nhomCh = await page.locator('.nhomh').count();
-if (soMay29 >= 4) assert.ok(nhomCh > 0, 'chuyền nhiều máy thì gom theo nhóm');
-else assert.equal(nhomCh, 0, 'chuyền ít máy thì để phẳng cho gọn');
+// Từ v2.73: máy trong chuyền xếp vào các ô module cố định (đóng gói, tủ điện, quạt, in phun, chỉnh lệch, hút bụi, keo + linh kiện)
+const mod29 = await page.evaluate((ma) => ({ o: document.querySelectorAll('.chmods .chmod').length, can: CH_MOD.length + (xemHet() ? 1 : 0),
+  n: [...document.querySelectorAll('.chmods .chmod:not([data-k="lk"]) .n')].reduce((a, e) => a + (+e.textContent || 0), 0),
+  du: Object.values(chModData(ma, TODAY())).filter((x) => CH_MOD_IX[x.k] < 90).reduce((a, x) => a + x.n, 0) }), chNhieu);
+assert.equal(mod29.o, mod29.can, 'chuyền nào cũng đủ các ô module');
+assert.equal(mod29.n, mod29.du, 'số trên các ô khớp số máy của chuyền: ' + JSON.stringify(mod29));
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(400);
 ok('Bản 2.40: sổ thiết bị xếp thành cây — hai khối sản xuất / phụ trợ, chuyền và nhóm là từng tầng, bỏ dãy chip nhóm');
 
@@ -3331,14 +3336,14 @@ const c63 = await page.evaluate(async () => {
   while (S.stack.length > 1) back();
   const c = S.V.ch.find((x) => mayCuaCh(x.ma).length >= 2), a = mayCuaCh(c.ma).slice().sort(sapTrongCh);
   const goc = a.map((m) => m.hanKeTiep);
-  // Đảo hạn bảo dưỡng: máy cuối thành quá hạn sớm nhất
+  // Đảo hạn bảo dưỡng: máy cuối thành quá hạn sớm nhất — thứ tự vẫn theo module → loại → tên
   a[a.length - 1].hanKeTiep = '2020-01-01'; a[0].hanKeTiep = '2099-01-01';
-  go('chuyen', { ma: c.ma }); await new Promise((r) => setTimeout(r, 400));
-  const thuTu = [...document.querySelectorAll('#main .list .row[data-ma], #main .list [data-act="may"]')].map((r) => r.dataset.ma).filter((m) => a.some((x) => x.ma === m));
+  const thuTu = [...a].sort(sapTrongCh).map((m) => m.ma);
   a.forEach((m, i) => { m.hanKeTiep = goc[i]; });
-  return { ch: c.ma, thuTu: [...new Set(thuTu)], dung: a.map((m) => m.ma) };
+  return { thuTu, dung: a.map((m) => m.ma), mod: a.map((m) => CH_MOD_IX[chModOf(m)]) };
 });
-assert.deepEqual(c63.thuTu, c63.dung, 'máy trong chuyền theo loại → tên, không nhảy theo hạn: ' + JSON.stringify(c63));
+assert.deepEqual(c63.thuTu, c63.dung, 'máy trong chuyền theo module → loại → tên, không nhảy theo hạn: ' + JSON.stringify(c63));
+assert.deepEqual(c63.mod, c63.mod.slice().sort((p, q) => p - q), 'đúng thứ tự module');
 // Excel danh mục: máy thuộc chuyền gom theo chuyền đứng trước; sheet Theo chuyen chia khối từng chuyền
 const x63 = await page.evaluate(async () => {
   while (S.stack.length > 1) back();
@@ -3347,11 +3352,17 @@ const x63 = await page.evaluate(async () => {
   const chCol = r.slice(1).map((x) => x[7] || '');
   const dauRong = chCol.indexOf('');
   const khoi = tc.map((x) => String(x[0] || '')).filter((v) => /^Chuyền /.test(v)).map((v) => v.split(' · ')[0].replace('Chuyền ', ''));
+  const bm = await sh.find((s) => s.name === 'Bang module').rows();
   const f2 = tbXuatTheoChuyen();
   return { ten: sh.map((s) => s.name), gom: chCol.slice(0, dauRong < 0 ? chCol.length : dauRong), conLai: dauRong < 0 ? [] : chCol.slice(dauRong).filter(Boolean),
-    khoi, chuan: S.V.ch.filter((x) => x.hoatDong !== false || activeMay().some((m) => m.chuyen === x.ma)).map((x) => mh(x.ma)), f2: f2.ten };
+    khoi, chuan: chDangDung().map((x) => mh(x.ma)), f2: f2.ten,
+    bm: bm.map((x) => String(x[0] || '')).filter((v) => /^VKY/.test(v)), bmHd: bm.slice(0, 5).map((x) => x.join('|')).join('\n'),
+    mdTitle: tc.map((x) => String(x[0] || '')).filter((v) => /^▸ /.test(v)).length };
 });
-assert.deepEqual(x63.ten.slice(0, 2), ['Thiet bi', 'Theo chuyen'], 'danh mục thiết bị có thêm sheet Theo chuyen');
+assert.deepEqual(x63.ten.slice(0, 3), ['Thiet bi', 'Bang module', 'Theo chuyen'], 'danh mục thiết bị có thêm sheet Bang module và Theo chuyen');
+assert.deepEqual(x63.bm, x63.chuan, 'sheet Bang module: mỗi chuyền một dòng');
+assert.match(x63.bmHd, /Máy đóng gói[\s\S]*Tủ điện[\s\S]*Quạt gió[\s\S]*Máy in phun[\s\S]*Máy chỉnh lệch[\s\S]*Máy hút bụi[\s\S]*Máy keo/, 'cột theo module');
+assert.ok(x63.mdTitle >= x63.chuan.length * 7, 'sheet Theo chuyen: chuyền nào cũng ghi đủ 7 module');
 assert.deepEqual(x63.conLai, [], 'máy có chuyền đứng liền nhau ở đầu bảng');
 assert.deepEqual([...new Set(x63.gom)], x63.chuan.filter((c) => x63.gom.includes(c)), 'máy gom theo chuyền đúng thứ tự chuyền');
 assert.deepEqual(x63.khoi, x63.chuan, 'sheet Theo chuyen: mỗi chuyền một khối, đúng thứ tự');
@@ -3359,6 +3370,54 @@ assert.match(x63.f2, /^May-theo-chuyen_\d{4}-\d{2}-\d{2}\.xlsx$/);
 await page.evaluate(() => { tab('list'); }); await wait(500);
 assert.ok(await page.locator('[data-act="tbXuatCh"]').count() >= 1, 'có nút xuất máy theo chuyền ở danh sách thiết bị');
 ok('Bản 2.72: kho lọc dưới tối thiểu / hết hàng theo mục, nhắc hàng theo mục; chuyền xếp chuẩn, Excel máy theo chuyền');
+
+// 64. Module của chuyền: đủ ô cố định; thêm máy chỉnh lệch vào chuyền, đánh mã, cái thêm sau tự có mã; in QR theo module; bảng module
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.chMod = {}; go('chuyen', { ma: 'VKY03' }); }); await wait(700);
+assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.chmods .chmod')].map((b) => b.dataset.k)),
+  await page.evaluate(() => CH_MOD.map((m) => m.k).concat(['lk'])), 'đủ 7 ô module + linh kiện, đúng thứ tự');
+await page.click('.chmod[data-k="chinhlech"]'); await wait(400);
+assert.equal(await page.locator('.chmodp').count(), 1, 'bấm ô mở phần của module');
+assert.match(await text('.chmodp'), /chưa có Máy chỉnh lệch/, 'module trống ghi rõ chưa có');
+await page.click('.chmodp [data-act="chModThem"]'); await wait(600);
+assert.equal(await page.evaluate(() => topV().v + '|' + topV().p.g), 'qgSua|Máy chỉnh lệch · 纠偏器', 'thêm máy chỉnh lệch: loại mặc định');
+assert.equal(await page.inputValue('#qgsTen'), 'Chỉnh lệch số 1', 'tên gợi ý Chỉnh lệch số 1');
+assert.equal(await page.inputValue('#qgsCh'), 'VKY03', 'đúng chuyền');
+await page.click('[data-act="qgsLuu"]'); await wait(1200);
+await page.evaluate(() => closeSheet()); await wait(300);
+assert.equal(await page.evaluate(() => topV().v + '|' + topV().p.ma), 'chuyen|VKY03', 'lưu xong ở lại màn chuyền');
+const cl64 = await page.evaluate(() => { const x = chModData('VKY03', TODAY()).chinhlech; return { n: x.n, thieu: x.thieuMa, cls: document.querySelector('.chmod[data-k="chinhlech"]').className }; });
+assert.equal(cl64.n, 1, 'ô máy chỉnh lệch có 1 cái');
+// Chưa có mã loại thì cái đầu chưa có mã: hiện nút Đánh mã; đánh xong thì có mã, cái thêm sau tự lấy số kế tiếp
+if (cl64.thieu) {
+  assert.match(cl64.cls, /canh/, 'ô báo còn cái chưa có mã');
+  await page.click('.chmodp [data-act="qgDanhMa"]'); await wait(500);
+  await page.click('[data-act="qgDanhMaOk"]'); await wait(1200);
+}
+await page.click('.chmodp [data-act="chModThem"]'); await wait(600);
+assert.equal(await page.inputValue('#qgsTen'), 'Chỉnh lệch số 2');
+await page.click('[data-act="qgsLuu"]'); await wait(1200);
+await page.evaluate(() => closeSheet()); await wait(300);
+const ma64 = await page.evaluate(() => chModData('VKY03', TODAY()).chinhlech.dv.map((q) => q.maDV));
+assert.ok(ma64.length === 2 && ma64.every((v) => /^M\d{5}$/.test(v)) && new Set(ma64).size === 2, 'mỗi máy chỉnh lệch một mã riêng: ' + JSON.stringify(ma64));
+assert.equal(await page.locator('.chmodp .row[data-act="qgXem"]').count(), 2, 'từng máy chỉnh lệch một dòng, bấm ra thông tin + in QR');
+await shot('100-chuyen-module');
+await page.click('.chmodp [data-act="chModQR"]'); await wait(600);
+assert.deepEqual(await page.evaluate(() => [topV().v, topV().p.sel]), ['labels', ma64.map((v) => 'DV:' + v)], 'in QR đúng các máy chỉnh lệch của chuyền');
+await page.evaluate(() => back()); await wait(400);
+// Bảng module các chuyền (màn rộng: ngay trong danh sách thiết bị)
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('list'); }); await wait(700);
+const bang64 = await page.evaluate(() => {
+  const tr = [...document.querySelectorAll('.chbang tbody tr')].find((r) => /VKY03/.test(r.cells[0].textContent));
+  const k = CH_MOD.map((m) => m.k).indexOf('chinhlech') + 1;
+  return { n: document.querySelectorAll('.chbang tbody tr').length, ch: chDangDung().length, o: tr && tr.cells[k].textContent.trim() };
+});
+assert.equal(bang64.n, bang64.ch, 'bảng module: mỗi chuyền một dòng');
+assert.match(bang64.o, /^2/, 'ô máy chỉnh lệch của VKY03 = 2');
+await shot('101-bang-module');
+await page.click('.chbang [data-act="chModDi"][data-ch="VKY03"][data-k="chinhlech"]'); await wait(600);
+assert.equal(await page.evaluate(() => topV().v + '|' + topV().p.ma + '|' + S.f.chMod.VKY03), 'chuyen|VKY03|chinhlech', 'bấm số trong bảng mở đúng module của chuyền');
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+ok('Bản 2.73: chuyền theo module — đủ ô cố định, máy chỉnh lệch / quạt gió mỗi cái một mã in QR, bảng module các chuyền');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

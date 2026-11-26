@@ -842,6 +842,22 @@ test('thêm / chuyển máy theo chuyền dùng được cho mọi nhóm có b�
   assert.deepEqual(ok(b.call('translate', { ds: ['Cảm biến quang', ''] }, kt)).dich, ['光电传感器', '']);
 });
 
+test('máy chỉnh lệch: loại đã đặt mã loại thì cái đầu tiên thêm vào chuyền cũng tự có mã riêng (in QR); chưa đặt thì chưa có', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222');
+  const G = 'Máy chỉnh lệch · 纠偏器';
+  let r = ok(b.call('saveUnit', { nhom: G, chuyen: 'VKY01', cot: [['Model (型号)', 'TEST-CL']] }, ql));
+  assert.equal(r.donVi.maDV, '', 'chưa đặt mã loại: chưa cấp mã');
+  assert.equal(r.donVi.ten, 'Chỉnh lệch số 1', 'máy chỉnh lệch đặt tên "Chỉnh lệch số n"');
+  const ml = Object.assign({}, ok(b.call('data', {}, ql)).caiDat.maLoai || {}, { [G]: '45' });
+  ok(b.call('saveMaLoai', { maLoai: ml }, ql));
+  r = ok(b.call('saveUnit', { nhom: G, chuyen: 'VKY02', ten: 'Chỉnh lệch số 1', cot: [] }, ql));
+  assert.equal(r.donVi.maDV, 'M45001', 'đặt mã loại rồi: cái đầu tiên của chuyền mới cũng có mã');
+  r = ok(b.call('saveUnit', { nhom: G, chuyen: 'VKY02', cot: [] }, ql));
+  assert.equal(r.donVi.maDV, 'M45002');
+  assert.equal(r.donVi.ten, 'Chỉnh lệch số 2', 'tên theo kiểu đang dùng của loại');
+});
+
 test('phiếu đặt mua: lưu thành phiếu có số vào danh sách dùng chung, đổi trạng thái, xoá; kỹ thuật không lập được', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
