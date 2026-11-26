@@ -842,6 +842,25 @@ test('thêm / chuyển máy theo chuyền dùng được cho mọi nhóm có b�
   assert.deepEqual(ok(b.call('translate', { ds: ['Cảm biến quang', ''] }, kt)).dich, ['光电传感器', '']);
 });
 
+test('chuyền đang sản xuất sản phẩm nào: chỉ tài khoản xem được sản phẩm mới chọn; lưu ID (không lộ mã), giữ khi sửa chuyền', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-11-26T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const sp = ok(b.call('saveProduct', { ma: 'TEST-SP-CH', chuyen: 'VKY01', thongSo: [['Keo · 胶', 'TEST', 'TEST']] }, ql)).sanPham;
+  err(b.call('setLineProduct', { ma: 'VKY01', spId: sp.id }, kt), 'KHONG_QUYEN');
+  err(b.call('setLineProduct', { ma: 'VKY01', spId: 'SP-KHONG-CO' }, ql), 'KHONG_CO');
+  err(b.call('setLineProduct', { ma: 'KHONGCO', spId: sp.id }, ql), 'KHONG_CO_CHUYEN');
+  let c = ok(b.call('setLineProduct', { ma: 'vky01', spId: sp.id }, ql)).chuyen;
+  assert.equal(c.spDang, sp.id, 'lưu ID sản phẩm');
+  assert.match(c.spTu, /^2026-11-26 \d\d:\d\d:\d\d · /, 'ghi lúc chọn và người chọn');
+  // Sửa thông tin chuyền không làm mất sản phẩm đang chạy
+  ok(b.call('saveLine', { ma: 'VKY01', ghiChu: 'TEST' }, ql));
+  const dKt = ok(b.call('data', {}, kt));
+  assert.equal(dKt.chuyen.find((x) => x.ma === 'VKY01').spDang, sp.id, 'chuyền giữ sản phẩm đang chạy');
+  assert.equal((dKt.sanPham || []).length, 0, 'tài khoản không có quyền không nhận mã / thông số sản phẩm');
+  c = ok(b.call('setLineProduct', { ma: 'VKY01', spId: '' }, ql)).chuyen;
+  assert.deepEqual([c.spDang, c.spTu], ['', ''], 'bỏ chọn');
+});
+
 test('máy chỉnh lệch: loại đã đặt mã loại thì cái đầu tiên thêm vào chuyền cũng tự có mã riêng (in QR); chưa đặt thì chưa có', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222');

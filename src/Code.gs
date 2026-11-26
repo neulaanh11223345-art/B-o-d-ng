@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.73.0';
+var PHIEN_BAN = '2.74.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -33,7 +33,7 @@ var BANG = {
   // LinhKien (JSON): linh kiện của THÂN dây chuyền — driver, servo, biến tần, module PLC, xi lanh…
   // Những thứ này không thuộc máy con nào (máy in phun, hút bụi…) nên gắn thẳng vào chuyền.
   Chuyen: ['Ma', 'Ten', 'TenZh', 'MaTaiSan', 'QuyCach', 'NhaSX', 'TinhNang', 'TocDoChuan', 'TocDoThucTe', 'ViTri', 'SoXuatXuong',
-    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT', 'KhiNen', 'LinhKien'],
+    'NgaySX', 'NgayCaiTao', 'NgayVN', 'GhiChu', 'HoatDong', 'CapNhat', 'MaHT', 'KhiNen', 'LinhKien', 'SpDang', 'SpTu'],
   LichSu: ['ID', 'Ma', 'TenMay', 'Ngay', 'DenHan', 'NguoiLam', 'GhiChu', 'NguoiXacNhan', 'ThoiGian', 'TrangThai', 'OpId', 'UID', 'Huy', 'ChiTiet'],
   NguoiDung: ['ID', 'Ten', 'VaiTro', 'PinHash', 'Email', 'HoatDong', 'NgayTao', 'MaNV', 'TenZh', 'MaThe', 'BoPhan', 'BoPhanZh', 'ChucVu', 'Quyen'],
   TangCa: ['ID', 'UID', 'Ngay', 'Ca', 'Tu', 'Den', 'SoGio', 'LyDo', 'LyDoDich', 'NguoiTao', 'UIDTao', 'LucTao', 'Xoa', 'CapNhat'],
@@ -364,6 +364,7 @@ function dieuHuong(a, p, req) {
     case 'deleteMachines': canQuyen(u, 'may'); canQuyen(u, 'suatb'); return xoaThietBi(u, p);
     case 'saveSpot': canQuyen(u, 'xacnhan'); return luuViTriMay(u, p);
     case 'saveLine': canQuyen(u, 'may'); return luuChuyen(u, p);
+    case 'setLineProduct': canQuyen(u, 'xemsp'); return chonSpChuyen(u, p);
     case 'saveLists': canQuyen(u, 'may'); return luuDanhSach(u, p);
     case 'catalogFind': canQuyen(u, 'xemkho'); return khoTim(p);
     case 'addPart': canQuyen(u, 'xacnhan'); return themLKMot(u, p);
@@ -655,13 +656,16 @@ function chTuDong(r, i) {
   o.ma = o.ma.toUpperCase(); o.hoatDong = s(r[15]) === '' ? true : hd(r[15]); o.capNhat = tgStr(r[16]); o.maHT = s(r[17]);
   o.khiNen = s(r[18]) === '' ? '' : (Number(r[18]) || 0);
   o.linhKien = docJson(r[19], []);
+  // Sản phẩm chuyền đang sản xuất (v2.74): lưu ID sản phẩm, không lưu mã — dữ liệu chuyền gửi cho mọi tài khoản,
+  // còn mã / thông số sản phẩm chỉ tài khoản có quyền "Xem sản phẩm" mới nhận được
+  o.spDang = s(r[20]); o.spTu = s(r[21]);
   return o;
 }
 function chThanhDong(o) {
   return CH_KHOA.map(function (k) { return anToan(o[k] || ''); })
     .concat([o.hoatDong === false ? 0 : 1, o.capNhat || '', anToan(o.maHT || ''),
       o.khiNen === '' || o.khiNen === undefined ? '' : o.khiNen,
-      o.linhKien && o.linhKien.length ? JSON.stringify(o.linhKien) : '']);
+      o.linhKien && o.linhKien.length ? JSON.stringify(o.linhKien) : '', o.spDang || '', o.spTu || '']);
 }
 function dsChuyen() { return docTho('Chuyen').map(chTuDong).filter(function (x) { return x.ma; }); }
 function sachCh(o) {
@@ -670,7 +674,26 @@ function sachCh(o) {
   x.hoatDong = o.hoatDong !== false; x.maHT = o.maHT || '';
   x.khiNen = o.khiNen === '' || o.khiNen === undefined ? '' : o.khiNen;
   x.linhKien = o.linhKien || [];
+  x.spDang = o.spDang || ''; x.spTu = o.spTu || '';
   return x;
+}
+// Chọn sản phẩm chuyền đang sản xuất (spId rỗng = bỏ chọn). Ghi nhật ký để tra lại chuyền chạy mã nào, từ khi nào.
+function chonSpChuyen(u, p) {
+  var ma = s(p.ma).toUpperCase(), x = dsChuyen().filter(function (c) { return c.ma === ma; })[0];
+  if (!x) throw loi('KHONG_CO_CHUYEN', 'Không tìm thấy chuyền · 找不到产线');
+  var id = s(p.spId);
+  if (id) {
+    capNhatTieuDe('SanPham');
+    if (!docSanPham().some(function (y) { return y.id === id && !y.xoa; })) throw loi('KHONG_CO', 'Không tìm thấy sản phẩm · 找不到产品');
+  }
+  capNhatTieuDe('Chuyen');
+  var cu = x.spDang || '';
+  if (cu === id) return { chuyen: sachCh(x) };
+  x.spDang = id; x.spTu = id ? thoiGianStr() + (u.ten ? ' · ' + catChu(u.ten, 60) : '') : '';
+  x.capNhat = thoiGianStr();
+  suaDong('Chuyen', x._r, chThanhDong(x));
+  ghiNhatKy(u, 'DOI_SP_CHUYEN', 'Chuyen', ma, cu, id, 'Đổi sản phẩm đang sản xuất · 更换在产产品');
+  return { chuyen: sachCh(x) };
 }
 // Lần đầu: tạo 16 chuyền từ sổ cái, xếp máy in phun (喷印机 VKYxx) và máy hút bụi (Máy hút bụi VKYxx) vào chuyền cùng số. Chạy lại không trùng, không đè máy đã xếp.
 function napChuyen() {

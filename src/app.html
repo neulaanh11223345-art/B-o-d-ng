@@ -1077,6 +1077,14 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .qgso b{font:800 22px var(--f-mono);color:var(--brand)}.qgso small{font-size:11px;color:var(--ink3)}
 .lshd{font-size:12.5px;font-weight:700;color:var(--ink2);margin:14px 2px 6px}
 .dmmucs{margin-bottom:8px}
+/* Sản phẩm đang sản xuất (v2.74) */
+.chsp{margin-top:12px}.chsph{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.chsph .lb{font-weight:700;color:var(--green)}.chsph .lb .zi{display:inline;margin-left:6px}
+.chspb{display:flex;gap:8px;overflow-x:auto;margin-top:10px}.chspimg{height:110px;max-width:100%;border-radius:8px;border:1px solid var(--line);background:#fff;object-fit:contain;flex:none}
+.chspt{margin-top:8px}.chspt .lnk{font-size:18px;padding:0;border:0;background:none;color:var(--blue);cursor:pointer}
+.spnote.on{background:var(--blue-bg);border-color:var(--blue)}
+.chtsp{display:block;margin-top:4px;font-size:12px;color:var(--green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chbang td.chbsp{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Module của chuyền (v2.73) */
 .chmods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
 @media (min-width:700px){.chmods{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -3537,14 +3545,17 @@ function chTile(c, today) {
   const s = chTomTat(c.ma, today), k = s.qua ? 'qua' : s.nay ? 'nay' : s.sap ? 'sap' : s.n ? 'ok' : 'trong';
   const st = s.qua ? tv('chQua', { n: s.qua }) : s.nay ? tv('d_nay') : s.sap ? tv('chSap', { n: s.sap }) : s.n ? tv('chOk') : '';
   return `<button class="chtile t-${k}" data-act="chuyen" data-ma="${esc(c.ma)}"><b>${esc(mh(c.ma))}</b>${c.tenZh ? `<span class="zi" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}
-    <span class="sub">${esc(xuongNgan(c.viTri))}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}</span>${st ? `<span class="cst">${st}</span>` : ''}</button>`;
+    <span class="sub">${esc(xuongNgan(c.viTri))}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}</span>${st ? `<span class="cst">${st}</span>` : ''}
+    ${can('xemsp') && chSpDang(c) ? `<span class="chtsp mono">▶ ${esc(chSpDang(c).ma)}</span>` : ''}</button>`;
 }
 // Bảng chuyền × module: mỗi chuyền một dòng, mỗi module một cột (số máy / số đơn vị). Ô trống = chuyền chưa có module đó.
 function chBangHtml(today) {
   const chs = chDangDung(), lk = xemHet();
   if (!chs.length) return `<div class="card empty">${t('chChuaMay')}</div>`;
   const cot = CH_MOD.map((m) => m.k).concat(lk ? ['lk'] : [], ['sp']);
-  const th = `<th>${esc(tv('chuyenNgan'))}<small>${esc(tz('chuyenNgan'))}</small></th>` + cot.map((k) => `<th class="num">${esc(tv('chm_' + k))}<small>${esc(tz('chm_' + k))}</small></th>`).join('');
+  const coSp = can('xemsp') && !srvOld('sanpham');
+  const th = `<th>${esc(tv('chuyenNgan'))}<small>${esc(tz('chuyenNgan'))}</small></th>` + (coSp ? `<th>${esc(tv('chSpDang'))}<small>${esc(tz('chSpDang'))}</small></th>` : '')
+    + cot.map((k) => `<th class="num">${esc(tv('chm_' + k))}<small>${esc(tz('chm_' + k))}</small></th>`).join('');
   const tr = chs.map((c) => {
     const d = chModData(c.ma, today);
     const o = cot.map((k) => {
@@ -3558,7 +3569,8 @@ function chBangHtml(today) {
       if (!n && k === 'sp') return '<td class="num muted">—</td>';
       return `<td class="num chbc${n ? cls : ' trong'}"><button class="cellnm mono" data-act="chModDi" data-ch="${esc(c.ma)}" data-k="${k}">${n || '—'}</button>${ghi}</td>`;
     }).join('');
-    return `<tr><td><button class="cellnm" data-act="chuyen" data-ma="${esc(c.ma)}"><b class="mono">${esc(mh(c.ma))}</b>${c.tenZh ? `<span class="zi" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}</button></td>${o}</tr>`;
+    const sp = coSp ? chSpDang(c) : null;
+    return `<tr><td><button class="cellnm" data-act="chuyen" data-ma="${esc(c.ma)}"><b class="mono">${esc(mh(c.ma))}</b>${c.tenZh ? `<span class="zi" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}</button></td>${coSp ? `<td class="chbsp">${sp ? `<button class="cellnm mono" data-act="spMo" data-id="${esc(sp.id)}">${esc(sp.ma)}</button>` : '<span class="muted">—</span>'}</td>` : ''}${o}</tr>`;
   }).join('');
   return `<div class="dtwrap chbang"><table class="dt"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>
     <p class="help" style="margin:6px 2px 0">${t('chBangHelp')}</p>`;
@@ -3627,6 +3639,9 @@ function chModPanel(c, k, x, today, sua) {
     nut.push(`<button class="btn y sm" data-act="qgDanhMa" data-g="${esc(g)}">${IC.qr} ${t('chmDanhMa', { n: x.thieuMa })}</button>`);
   }
   if (k === 'tudien' && x.tu.length) nut.push(`<button class="btn ghost sm" data-act="tab" data-v="doTu">${IC.bolt || IC.list} ${t('navDoTu')}</button>`);
+  // Excel: xuất máy của module (chưa có thì ra bảng mẫu), sửa / thêm dòng rồi nhập lại
+  if (sua && def) nut.push(`<button class="btn ghost sm" data-act="chModXuat" data-ch="${esc(c.ma)}" data-k="${k}">${IC.dl} ${t('xlXuatBtn')}</button>`,
+    `<button class="btn ghost sm" data-act="chModNhap" data-ch="${esc(c.ma)}" data-k="${k}">${IC.plus} ${t('xlNhapBtn')}</button>`);
   if (nut.length) o += `<div class="btns pad" style="padding-top:10px">${nut.join('')}</div>`;
   if (def && def.gop && x.thieuMa) o += `<p class="help pad" style="margin:0;padding-top:0">${t('chmThieuMaHelp')}</p>`;
   return o + '</div>';
@@ -3840,12 +3855,22 @@ VIEWS.lkChuyen = {
     });
   }
 };
+// Hai nút Excel dùng chung cho các màn thêm / sửa linh kiện: xuất đúng bảng mẫu (đã điền linh kiện hiện có) và nhập lại
+function lkXlBtns(opt) {
+  const d = opt.ma ? 'data-ma="' + esc(opt.ma) + '"' : 'data-ch="' + esc(opt.ch || '') + '"';
+  return `<div class="card pad lkxl" style="margin:0 0 12px"><div class="help" style="margin:0 0 8px">${t('lkXlHelp')}</div>
+    <div class="btns"><button type="button" class="btn ghost sm" data-act="lkMauMot" ${d}>${IC.dl} ${t('xlXuatBtn')}</button>
+    <label class="btn ghost sm filebtn">${IC.plus} ${t('xlNhapBtn')}<input type="file" data-chg="lkFileNhap" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label></div></div>`;
+}
 // ---------- Nhập linh kiện của máy từ file Excel (theo bảng mẫu) ----------
 const LK_COT = [['chuyen', 'xChuyen', ['chuyen', 'chuyen san xuat', '产线', '所属产线']], ['ma', 'code', ['ma may', 'ma thiet bi', '设备编号']], ['tenMay', 'thMay', ['ten may', 'thiet bi', '设备', '设备名称']],
   ['ten', 'lkTen', ['ten linh kien', '零件名称', 'linh kien']], ['quyCach', 'quyCach', ['quy cach', '规格', 'model']], ['maKho', 'xMaERP', ['ma erp', 'erp编号', 'ma kho', 'erp']], ['dv', 'dv', ['don vi', 'dvt', '单位']],
   ['sl', 'slMay', ['sl tren may', 'sl lap', 'so luong', '装机数量', '数量']], ['viTriMay', 'viTriMay', ['vi tri lap', 'vi tri tren may', '安装位置']], ['mucDo', 'mucDo', ['muc do', 'muc do quan trong', '重要程度']], ['ghiChu', 'ghiChuLK', ['ghi chu', '备注']],
   ['nhom', 'lkLoai', ['loai linh kien', 'nhom linh kien', 'loai lk', '零件类别', '零件类型']]];
-function lkMauXlsx() {
+// opt.ch: chỉ một chuyền (thân chuyền + máy của chuyền); opt.ma: chỉ một máy (hoặc thân một chuyền) (v2.74)
+function lkMauXlsx(opt) {
+  opt = opt || {};
+  const chonCh = (ch) => (opt.ma ? ch.ma === opt.ma : !opt.ch || ch.ma === opt.ch), chonMay = (m) => (opt.ma ? m.ma === opt.ma : !opt.ch || m.chuyen === opt.ch);
   const B = { border: true }, H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' }, Y = { fill: '#FFF8E1' };
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1 }, B, x || {}) });
   const MD = { thap: 'Thấp', tb: 'Trung bình', cao: 'Cao' };
@@ -3853,12 +3878,12 @@ function lkMauXlsx() {
     [{ v: 'Giữ nguyên dòng tiêu đề (dòng 4). Mỗi dòng một linh kiện. Bắt buộc: Mã máy (hoặc Tên máy) và Tên linh kiện. Mã ERP để đối chiếu tồn kho. 保留第4行标题，每行一个零件。', s: { i: 1, color: '#55625F', wrap: 1 } }], [],
     LK_COT.map(([k, lbl]) => ({ v: tp(lbl).replace(' · ', '\n') + (k === 'ten' || k === 'ma' ? ' *' : ''), s: H }))];
   // Mỗi chuyền một khối: thân dây chuyền trước, rồi tới các máy con
-  (S.V.ch || []).filter((ch) => ch.hoatDong !== false).forEach((ch) => {
+  (S.V.ch || []).filter((ch) => ch.hoatDong !== false && chonCh(ch)).forEach((ch) => {
     const ds = lkOf(ch), dau = [c(ch.ma), c(ch.ma), c(tv('lkThanCh') + ' ' + ch.ma)];
     if (!ds.length) { r1.push(dau.concat([c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y)])); return; }
     ds.forEach((x) => r1.push(dau.concat([c(x.ten), c(x.quyCach || ''), c(x.maKho || ''), c(x.dv || ''), c(x.sl === '' || x.sl === undefined ? '' : +x.sl || x.sl), c(x.viTriMay || ''), c(MD[x.mucDo] || ''), c(x.ghiChu || ''), c(lkLoai(x)[1][0])])));
   });
-  const may = S.V.may.filter((m) => m.hoatDong).sort((a, b) => ((a.chuyen || 'zz') > (b.chuyen || 'zz') ? 1 : (a.chuyen || 'zz') < (b.chuyen || 'zz') ? -1 : a.ma.localeCompare(b.ma)));
+  const may = S.V.may.filter((m) => m.hoatDong && chonMay(m)).sort((a, b) => ((a.chuyen || 'zz') > (b.chuyen || 'zz') ? 1 : (a.chuyen || 'zz') < (b.chuyen || 'zz') ? -1 : a.ma.localeCompare(b.ma)));
   may.forEach((m) => {
     const ds = lkOf(m), dau = [c(m.chuyen || ''), c(m.ma), c(m.ten)];
     if (!ds.length) { r1.push(dau.concat([c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y), c('', Y)])); return; }
@@ -4008,6 +4033,7 @@ VIEWS.chuyen = {
     let o = `<div class="card pad chhead"><span class="code">${esc(mh(c.ma))}</span>${c.maHT ? ` <span class="code">${esc(c.ma)}</span>` : ''}${c.maTaiSan && c.maTaiSan !== c.ma ? ` <span class="code">${esc(c.maTaiSan)}</span>` : ''}
       <h1 class="cvh">${esc(c.ten || c.ma)}${c.tenZh ? `<span class="zh2" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}</h1>
       <div class="sub">${esc(c.viTri || '')}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}${s.qua ? ` · <b class="warnx">${tv('chQua', { n: s.qua })}</b>` : ''}</div></div>`;
+    o += chSpHtml(c);
     o += sec('chMay', a.length) + chModHtml(c, today);
     if (gcUrl()) o += `<div class="btns" style="margin:10px 0 4px">${gcNut(c.ma)}</div>`;
     // Quạt gió của chuyền: bấm số lượng ra từng quạt
@@ -4015,6 +4041,8 @@ VIEWS.chuyen = {
       if (qg.length) o += `<button class="scstrip" data-act="quatGio" data-ch="${esc(c.ma)}">${IC.list}<span><b>${esc(tv('t_quatGio'))}</b> <span class="zi">${esc(tz('t_quatGio'))}</span><br>
         <small><b class="mono">${qg.length}</b> ${esc(tv('qgN', { n: '' }).trim())} · ${esc(tv('qgXemDS'))}</small></span>${IC.chev}</button>`; }
     if (can('confirm') && !srvOld('lkthem')) o += `<div class="btns" style="margin:10px 0 4px"><button class="btn sm" data-act="lktMo" data-ma="${esc(c.ma)}" data-ch="${esc(c.ma)}">${IC.plus} ${t('lktMo')}</button></div>`;
+    if (can('may') && can('suatb')) o += `<div class="btns" style="margin:10px 0 4px"><button class="btn ghost sm" data-act="chMayXuat" data-ma="${esc(c.ma)}">${IC.dl} ${t('chMayXuat')}</button>
+      <button class="btn ghost sm" data-act="chMayNhap" data-ma="${esc(c.ma)}">${IC.plus} ${t('chMayNhap')}</button></div>`;
     if (can('may')) o += `<div class="btns" style="margin:10px 0 4px"><button class="btn ghost sm" data-act="chThemMay" data-ma="${esc(c.ma)}">${IC.plus} ${t('chThemMay')}</button><button class="btn ghost sm" data-act="chSua" data-ma="${esc(c.ma)}">${IC.edit} ${t('chSua')}</button><button class="btn ghost sm" data-act="labelsOne" data-ma="${esc(c.ma)}">${IC.qr} ${t('printQR')}</button></div>`;
     const tls = tlCua(c.ma);
     o += sec('tlSec', tls.length) + gap('tl:' + c.ma, tls.length ? esc(tls.slice(0, 3).map((x) => x.ten).join(' · ')) : t('tlChuaCo'), tls.length, '', () => tlSection(c.ma));
@@ -4024,7 +4052,8 @@ VIEWS.chuyen = {
     if (xemHet()) {
       const lk = lkCuaCh(c.ma), nl = lkLoiN(lk);
       o += '<div id="chLK"></div>' + sec('lkChSec', lk.length) + gap('lkch:' + c.ma, nl ? `<b class="warnx">${tv('xLoiN', { n: nl })}</b> ${tz('xLoiN', { n: nl })}` : t('lkChXem'), lk.length, nl ? 'g-qua' : '', () => lkChHtml(c.ma));
-      o += `<div class="btns" style="margin:4px 0 10px">${can('may') && !srvOld('lkchuyen') ? `<button class="btn ghost sm" data-act="lkChThanCh" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkThanChThem')}</button>` : ''}${can('may') && a.length ? `<button class="btn ghost sm" data-act="lkChThem" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkChThem')}</button>` : ''}<button class="btn ghost sm" data-act="lkChXuat" data-ma="${esc(c.ma)}">${IC.dl} ${t('lkChXuat')}</button></div>`;
+      o += `<div class="btns" style="margin:4px 0 10px">${can('may') && !srvOld('lkchuyen') ? `<button class="btn ghost sm" data-act="lkChThanCh" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkThanChThem')}</button>` : ''}${can('may') && a.length ? `<button class="btn ghost sm" data-act="lkChThem" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkChThem')}</button>` : ''}<button class="btn ghost sm" data-act="lkChXuat" data-ma="${esc(c.ma)}">${IC.dl} ${t('lkChXuat')}</button></div>`
+        + (can('may') ? lkXlBtns({ ch: c.ma }) : '');
     }
     // Sản phẩm chạy trên chuyền (chỉ tài khoản có quyền xem sản phẩm)
     if (can('xemsp') && !srvOld('sanpham')) {
@@ -4224,6 +4253,12 @@ Object.assign(TX, {
   tbXuatTat: ['Xuất tất cả (mỗi loại một file)', '全部导出（每类一个文件）'],
   tbXuatMot: ['Xuất toàn bộ thiết bị (1 file)', '导出全部设备（1个文件）'],
   tbXuatCh: ['Xuất Excel máy theo chuyền', '按产线导出设备Excel'],
+  xlXuatBtn: ['Xuất Excel', '导出Excel'], xlNhapBtn: ['Nhập Excel', '导入Excel'],
+  chMayXuat: ['Xuất Excel máy của chuyền', '导出本线设备Excel'], chMayNhap: ['Nhập máy từ Excel', '从Excel导入设备'],
+  mayMauXuat: ['Tải bảng mẫu Excel', '下载Excel模板'], tbMauTB: ['Thiết bị', '设备'],
+  mayXlHelp: ['Thêm nhiều máy cùng lúc: tải bảng mẫu, mỗi dòng một máy (để trống Mã máy), rồi bấm Nhập Excel.', '批量新增设备：下载模板，每行一台（设备编号留空），再点击导入Excel。'],
+  lkXlHelp: ['Làm bằng Excel: xuất danh sách linh kiện đang có (đúng bảng mẫu), sửa / thêm dòng rồi nhập lại.', '用Excel处理：导出现有零件清单（即模板），修改 / 添加行后重新导入。'],
+  tbNhapMd: ['Dòng để trống cột Chuyền nhận chuyền {c}; để trống cột Loại nhận loại {g}.', '“产线”为空的行归入 {c}；“类别”为空的行归入 {g}。'],
   chm_donggoi: ['Máy đóng gói', '包装机'], chm_tudien: ['Tủ điện', '电柜'], chm_quat: ['Quạt gió', '风机'], chm_inphun: ['Máy in phun', '喷印机'],
   chm_chinhlech: ['Máy chỉnh lệch', '纠偏器'], chm_hutbui: ['Máy hút bụi', '吸尘器'], chm_keo: ['Máy keo', '热熔胶机'], chm_lk: ['Linh kiện', '零件'],
   chm_sp: ['Theo sản phẩm', '随产品更换'], chm_khac: ['Thiết bị khác', '其他设备'],
@@ -4513,6 +4548,7 @@ async function tbDocChiTiet(sheets, ds) {
 VIEWS.tbNhap = {
   html(p) {
     let o = p.nhom !== undefined ? `<div class="note" style="margin-bottom:10px"><b>${esc(tv('tbNhapLoai', { g: p.nhom || '—' }))}</b> <span class="zi">${esc(tz('tbNhapLoai', { g: p.nhom || '—' }))}</span></div>` : '';
+    if (p.chuyenMd || p.nhomMd) o += `<div class="note" style="margin-bottom:10px">${esc(tv('tbNhapMd', { c: p.chuyenMd ? mh(p.chuyenMd) : '—', g: p.nhomMd || '—' }))}<span class="zi">${esc(tz('tbNhapMd', { c: p.chuyenMd ? mh(p.chuyenMd) : '—', g: p.nhomMd || '—' }))}</span></div>`;
     if (p.ketQua) {
       const k = p.ketQua;
       o += `<div class="card pad" style="margin-bottom:12px"><b>${esc(tv('tbNhapCoLoi', { a: k.them, b: k.capNhat, n: k.loi.length }))}</b>
@@ -4549,6 +4585,11 @@ VIEWS.tbNhap = {
         const byMa = {}, byHT = {};
         S.V.may.forEach((m) => { byMa[m.ma] = m; if (m.maHT) byHT[m.maHT.toUpperCase()] = m; });
         ds.forEach((x) => { x.cu = byMa[x.ma] || (x.maHT && byHT[x.maHT.toUpperCase()]) || null; });
+        // Mở từ một chuyền / một module (v2.74): ô Chuyền, ô Loại để trống thì nhận theo chỗ đang mở
+        ds.forEach((x) => {
+          if (!x.chuyen && p.chuyenMd && !(x.cu && x.cu.chuyen)) x.chuyen = p.chuyenMd;
+          if (!String(x.nhom || '').trim() && p.nhomMd) x.nhom = (x.cu && x.cu.nhom) || p.nhomMd;
+        });
         // Nhập theo một loại: dòng để trống nhóm thì nhận loại này; dòng thuộc loại khác thì bỏ qua
         if (p.nhom !== undefined) {
           const g = norm(p.nhom);
@@ -4671,6 +4712,12 @@ function tbXuatTatCa() {
 // ---------- Xuất: mỗi loại thiết bị một file ----------
 function tbXuatNhom(nhom) {
   const ds = activeMay().filter((m) => (m.nhom || '') === nhom).sort(sapMay);
+  return tbXuatDs(ds, nhom, norm(nhom).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'thiet-bi');
+}
+// ds: máy cần xuất; mau (khi ds trống): một dòng mẫu điền sẵn loại / chuyền để thêm máy mới bằng Excel (v2.74)
+//   mau.gop: loại có bản ghi gộp (quạt gió, máy chỉnh lệch…) → thêm sheet "chi tiet" mẫu, mỗi dòng một cái
+function tbXuatDs(ds, tieuDe, slug, mau) {
+  const nhom = tieuDe;
   const nhan = [];
   ds.forEach((m) => (m.thongSo || []).forEach(([k]) => { if (nhan.indexOf(k) < 0) nhan.push(k); }));
   const cot = ['Mã máy', 'Mã thiết bị (nhà máy)', 'Tên thiết bị', 'Tên tiếng Trung', 'Khối', 'Nhóm',
@@ -4684,8 +4731,9 @@ function tbXuatNhom(nhom) {
       m.chuyen || '', m.viTri || '', m.chuKy || '', last ? fmtD(last.ngay) : '',
       m.chuKy ? fmtD(m.hanKeTiep) : ''].concat(nhan.map((k) => ts[k] === undefined ? '' : ts[k])));
   });
+  // Dòng mẫu (chưa có máy nào): để trống Mã máy = thêm mới khi nhập lại
+  if (!ds.length && mau) rows.push(['', '', mau.ten || '', '', '', mau.nhom || '', mau.chuyen || '', '', mau.gop ? 0 : '', '', ''].concat(nhan.map(() => '')));
   const w = [11, 20, 42, 24, 18, 20, 10, 22, 11, 13, 13].concat(nhan.map(() => 22));
-  const slug = norm(nhom).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'thiet-bi';
   const sheets = [{ name: slug.replace(/-/g, ' ').slice(0, 31), rows, cols: w, freeze: { r: 2, c: 0 }, heights: { 2: 28 } }];
   // Bản ghi gộp (quạt gió, máy keo theo chuyền): thêm sheet "chi tiet" liệt kê từng đơn vị,
   // đúng cột mà phần Nhập từ file đọc lại được, nên xuất ra rồi nhập lại là khớp.
@@ -4702,6 +4750,13 @@ function tbXuatNhom(nhom) {
       rows2.push([m.chuyen || '', m.ten].concat(nhanCt.map((k) => (o[k] === undefined ? '' : o[k]))));
     }));
     sheets.push({ name: 'chi tiet', rows: rows2, cols: [12, 34].concat(nhanCt.map(() => 19)), freeze: { r: 2, c: 2 }, heights: { 2: 28 } });
+  } else if (mau && mau.gop) {
+    // Chưa có cái nào: sheet chi tiết mẫu — mỗi dòng một cái (quạt, máy chỉnh lệch…), mã riêng để trống, app cấp khi đánh mã
+    const cot2 = ['Chuyền', 'Thuộc bản ghi', 'Tên'].concat(mau.cot || []);
+    const rows2 = [[{ v: `${nhom} — chi tiết từng đơn vị · khớp theo cột "Thuộc bản ghi"`, s: { b: 1, sz: 13 } }], cot2.map((c) => ({ v: c, s: { b: 1, bg: 'E7EFFE' } }))];
+    const ten0 = (ds[0] && ds[0].ten) || mau.ten || '';
+    [1, 2].forEach((i) => rows2.push([mau.chuyen || '', ten0, (mau.tenDV || 'Máy') + ' số ' + i].concat((mau.cot || []).map(() => ''))));
+    sheets.push({ name: 'chi tiet', rows: rows2, cols: [12, 34, 20].concat((mau.cot || []).map(() => 19)), freeze: { r: 2, c: 2 }, heights: { 2: 28 } });
   }
   return { ten: 'Thiet-bi_' + slug + '_' + TODAY() + '.xlsx', blob: XW.build(sheets) };
 }
@@ -4735,7 +4790,10 @@ VIEWS.mayEdit = {
     const v = m || { ten: '', tenPhu: '', nhom: p.nhom || (S.f.grp && S.f.grp.indexOf('__') !== 0 ? S.f.grp : ''), viTri: '', chuKy: 30, hanKeTiep: TODAY(), noiDung: '', hoatDong: true, phuTrach: '', ngayDuaVao: '', chuyen: p.chuyen || '' };
     if (p.bdOff === undefined) p.bdOff = !!(m && !(m.chuKy > 0));
     const chOpt = (S.V.ch || []).length ? `<label class="fld"><span>${t('chuyen')}</span><select class="inp" id="eCh"><option value="">${esc(tp('chKhong'))}</option>${S.V.ch.map((c) => `<option value="${esc(c.ma)}"${(v.chuyen || '') === c.ma ? ' selected' : ''}>${esc(mh(c.ma) + (c.tenZh ? ' · ' + c.tenZh : ''))}</option>`).join('')}</select></label>` : '';
-    return `<form id="mayForm" class="card pad" autocomplete="off">
+    const xlMoi = !m && can('suatb') ? `<div class="card pad" style="margin-bottom:12px"><div class="help" style="margin:0 0 8px">${t('mayXlHelp')}</div>
+      <div class="btns"><button type="button" class="btn ghost sm" data-act="mayMauXuat">${IC.dl} ${t('mayMauXuat')}</button>
+      <button type="button" class="btn ghost sm" data-act="mayXlNhap">${IC.plus} ${t('xlNhapBtn')}</button></div></div>` : '';
+    return `${xlMoi}<form id="mayForm" class="card pad" autocomplete="off">
       ${m ? `<p style="margin:0 0 12px"><span class="code">${esc(m.ma)}</span></p>` : ''}
       <label class="fld"><span>${t('name')}</span><input class="inp" id="eTen" value="${esc(v.ten)}" maxlength="120" required><div class="help">${t('mNameHelp')}</div></label>
       <label class="fld"><span>${t('name2')}</span><input class="inp" id="eTenPhu" value="${esc(v.tenPhu)}" maxlength="120"></label>
@@ -5598,6 +5656,35 @@ const ACT = {
     go('labels', { sel: keys });
   },
   chBang: () => go('chBang'),
+  // Excel máy của một module trong chuyền (chưa có máy thì ra bảng mẫu điền sẵn loại, chuyền)
+  chModXuat: async (el) => {
+    const ch = el.dataset.ch, k = el.dataset.k, def = chModDef(k), g = chModNhom(k), x = chModData(ch, TODAY())[k];
+    const mau = { nhom: g, chuyen: ch, gop: def.gop, ten: g + ' chuyền ' + ch, cot: def.gop ? qgCot(g) : [], tenDV: k === 'chinhlech' ? 'Chỉnh lệch' : k === 'quat' ? 'Quạt' : 'Máy' };
+    const f = tbXuatDs(x.may, mh(ch) + ' · ' + tv('chm_' + k), 'chuyen-' + ch + '-' + k, mau);
+    await saveFile(f.blob, f.ten);
+  },
+  chModNhap: (el) => go('tbNhap', { chuyenMd: el.dataset.ch, nhomMd: chModNhom(el.dataset.k) }),
+  chMayXuat: async (el) => {
+    const ch = el.dataset.ma, f = tbXuatDs(mayCuaCh(ch).sort(sapTrongCh), tv('chuyenNgan') + ' ' + mh(ch), 'chuyen-' + ch, { chuyen: ch });
+    await saveFile(f.blob, f.ten);
+  },
+  chMayNhap: (el) => go('tbNhap', { chuyenMd: el.dataset.ma }),
+  mayMauXuat: async () => {
+    const p = topV().p, f = tbXuatDs([], p.nhom || tv('tbMauTB'), 'mau-thiet-bi', { nhom: p.nhom || '', chuyen: p.chuyen || '' });
+    await saveFile(f.blob, f.ten);
+  },
+  mayXlNhap: () => { const p = topV().p; go('tbNhap', { chuyenMd: p.chuyen || '', nhomMd: p.nhom || '' }); },
+  lkMauMot: async (el) => {
+    const opt = el.dataset.ma ? { ma: el.dataset.ma } : { ch: el.dataset.ch };
+    let b; try { b = lkMauXlsx(opt); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    await saveFile(b, 'Linh-kien-' + (opt.ma || opt.ch || 'mau') + '_' + TODAY() + '.xlsx');
+  },
+  lkFileNhap: async (el) => {
+    const f = el.files && el.files[0]; el.value = '';
+    if (!f) return;
+    toast(t('khoDoc'));
+    try { const r = await lkDocFile(f); const tt = $('.toast'); if (tt) tt.remove(); go('lkNhap', { r }); } catch (e) { toast(e && e.code ? t(e.code) : t('LOI', { m: e && e.message }), true); }
+  },
   lkChXuat: (el) => lkChXuat(el.dataset.ma || ''),
   lkMau: async () => { toast(t('exporting')); await sleep(30); let b; try { b = lkMauXlsx(); } catch (e) { toast(t('LOI', { m: e.message }), true); return; } const tt = $('.toast'); if (tt) tt.remove(); await saveFile(b, 'Bang-mau-linh-kien-' + TODAY() + '.xlsx'); },
   lkChe: (el) => { topV().p.che = el.dataset.v; render(); },
@@ -5816,7 +5903,7 @@ function imgCompress(file, maxPx, maxKb) {
         let w = im.width, h = im.height;
         if (w > maxPx || h > maxPx) { const sc = maxPx / Math.max(w, h); w = Math.round(w * sc); h = Math.round(h * sc); }
         const cv = document.createElement('canvas'); cv.width = Math.max(1, w); cv.height = Math.max(1, h);
-        const ctx = cv.getContext('2d'); ctx.drawImage(im, 0, 0, w, h);
+        const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height); ctx.drawImage(im, 0, 0, w, h);
         let q = 0.72, out = cv.toDataURL('image/jpeg', q);
         while (out.length > maxKb * 1370 && q > 0.32) { q -= 0.08; out = cv.toDataURL('image/jpeg', q); }
         resolve(out);
@@ -8759,6 +8846,7 @@ VIEWS.dsEdit = {
     const val = (v) => esc(v === undefined || v === null ? '' : v);
     let o = srvWarn('kt') + `<div class="card pad dshead"><span class="code">${esc(mh(m.ma))}</span> <b>${esc(m.ten)}</b><div class="help">${t(hm ? 'hmHelp' : 'lkHelp')}</div></div>`;
     o += `<div class="btns dstools" style="margin:12px 0">${hm && m.noiDung ? `<button class="btn ghost sm" data-act="dsFromND">${t('layND')}</button>` : ''}<button class="btn ghost sm" data-act="dsCopy">${t('chepTu')}</button></div>`;
+    if (!hm && can('may')) o += lkXlBtns({ ma: m.ma });
     if (!hm && S.kho.ds.length) {
       o += `<div class="card pad khotim"><div class="kst2">${IC.box}<span>${tv('timKho')}<span class="zi">${tz('timKho')}</span></span></div>
         <div class="searchbox">${IC.search}<input class="inp" id="dsKhoQ" type="search" value="${esc(p.khoQ || '')}" placeholder="${esc(tp('timKhoPh'))}" autocomplete="off" enterkeyhint="search"></div>
@@ -9070,17 +9158,20 @@ function unzipFile(buf) {
   for (let k = 0; k < n && p + 46 <= u8.length && dv.getUint32(p, true) === 0x02014b50; k++) {
     const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
     const name = td.decode(u8.subarray(p + 46, p + 46 + nl)).replace(/^\/+/, '');
-    ent[name.toLowerCase()] = { meth: dv.getUint16(p + 10, true), cs: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true) };
+    ent[name.toLowerCase()] = { meth: dv.getUint16(p + 10, true), cs: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true), name };
     p += 46 + nl + xl + cl;
   }
-  return async (name) => {
+  // bin = true: trả về Uint8Array (ảnh…), không thì chuỗi UTF-8 (XML trong file Excel)
+  const get = async (name, bin) => {
     const x = ent[String(name).replace(/^\/+/, '').toLowerCase()]; if (!x) return null;
     const st = x.off + 30 + dv.getUint16(x.off + 26, true) + dv.getUint16(x.off + 28, true);
     const raw = u8.subarray(st, st + x.cs);
-    if (x.meth === 0) return td.decode(raw);
-    if (x.meth === 8) return td.decode(await inflateRaw(raw));
+    if (x.meth === 0) return bin ? raw.slice() : td.decode(raw);
+    if (x.meth === 8) { const r = await inflateRaw(raw); return bin ? r : td.decode(r); }
     throw { code: 'FILE_SAI' };
   };
+  get.ten = Object.keys(ent).map((k) => ent[k].name);
+  return get;
 }
 const xmlDec = (s) => String(s).replace(/&(lt|gt|amp|quot|apos|#\d+|#x[0-9a-fA-F]+);/g, (m, e) => (e === 'lt' ? '<' : e === 'gt' ? '>' : e === 'amp' ? '&' : e === 'quot' ? '"' : e === 'apos' ? "'"
   : String.fromCodePoint(e[1] === 'x' ? parseInt(e.slice(2), 16) : +e.slice(1)))).replace(/_x([0-9A-Fa-f]{4})_/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
@@ -12947,7 +13038,8 @@ Object.assign(TX, {
   spNhapTD: ['Nhập sản phẩm từ file', '从文件导入产品'], spNhapN: ['{a} sản phẩm mới · {b} sản phẩm cập nhật', '新增{a}个 · 更新{b}个'],
   spNhapHelp: ['Mỗi dòng một hạng mục thông số: cột Mã sản phẩm, Chuyền, Nhóm, Ngày SX đầu, Thông số (hạng mục), Tiếng Trung, Tiếng Việt, Ghi chú. Mã đã có thì thay bảng thông số; ảnh giữ nguyên. File xuất ra từ app nhập lại được.',
     '每行一个参数项目：产品型号、产线、类别、首产日期、项目、中文、越南语、备注。已有型号则替换参数表；图片不变。从应用导出的文件可直接导入。'],
-  spNhapTrong: ['Không thấy cột Mã sản phẩm trong file', '文件中未找到产品型号列'], spNhapXong: ['Đã nhập: {a} mới, {b} cập nhật', '已导入：新增{a}，更新{b}'],
+  spNhapTrong: ['Không thấy cột Mã sản phẩm trong file', '文件中未找到产品型号列'],
+  spNhapBoCu: ['Bỏ {n} sản phẩm cũ không có trong file này', '删除本文件中没有的 {n} 个旧产品'], spNhapDaBo: ['đã bỏ {n} sản phẩm cũ', '已删除 {n} 个旧产品'], spNhapXong: ['Đã nhập: {a} mới, {b} cập nhật', '已导入：新增{a}，更新{b}'],
   spCuaChuyen: ['Sản phẩm của chuyền', '本线产品'],
   q_xemsp: ['Xem sản phẩm (bảo mật)', '查看产品（保密）'], qm_xemsp: ['Mã hiệu sản phẩm, thông số keo, khuôn, lõi bông…', '产品型号、胶、模具、棉芯等参数'],
   q_suasp: ['Sửa sản phẩm', '编辑产品'], qm_suasp: ['Thêm, sửa, nhập file sản phẩm (cần cả quyền xem)', '新增、修改、导入产品（需同时有查看权限）'],
@@ -12978,7 +13070,8 @@ function spRow(x) {
   return `<button class="row" data-act="spMo" data-id="${esc(x.id)}">${(x.anh || [])[0] ? anhImg(x.anh[0], 'class="spthumb"') : ''}
     <div class="main"><div class="nm mono" style="font-size:16px">${esc(x.ma)}</div>
       <div class="sub">${[x.nhom ? esc(x.nhom) : '', spChuyenDS(x).map((c) => `<span class="code">${esc(c)}</span>`).join(' ')].filter(Boolean).join(' · ')}</div>
-      ${ts ? `<div class="sub" style="margin-top:2px">${esc(ts.length > 90 ? ts.slice(0, 90) + '…' : ts)}</div>` : ''}</div>${IC.chev}</button>`;
+      ${ts ? `<div class="sub" style="margin-top:2px">${esc(ts.length > 90 ? ts.slice(0, 90) + '…' : ts)}</div>` : ''}</div>
+    ${spChayO(x.id).length ? `<span class="pill p-ok">${esc(tv('spDangChay'))} ${esc(spChayO(x.id).map(mh).join(', '))}</span>` : ''}${IC.chev}</button>`;
 }
 VIEWS.sp = {
   html(p) {
@@ -12989,7 +13082,9 @@ VIEWS.sp = {
       <div class="note" style="margin:8px 0 0;font-size:13px">${IC.lock || ''} ${t('spBaoMat')}</div>
       ${sua ? `<div class="btns" style="margin-top:10px"><button class="btn sm" data-act="spThem">${IC.plus} ${t('spThem')}</button>
         <label class="btn ghost sm filebtn">${IC.dl} ${t('spNhap')}<input type="file" id="spFile" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label>
-        <button class="btn ghost sm" data-act="spXuat">${IC.dl} ${t('spXuat')}</button></div>` : ''}</div>`;
+        <button class="btn ghost sm" data-act="spXuat">${IC.dl} ${t('spXuat')}</button>
+        <label class="btn ghost sm filebtn">${IC.cam} ${t('spAnhNhap')}<input type="file" id="spAnhNhieu" accept=".zip,application/zip,image/*" multiple></label></div>
+        <div class="help" style="margin-top:6px">${t('spAnhNhapHelp')}</div>` : ''}</div>`;
     if (!ds.length) return o + `<div class="card empty" style="margin-top:12px">${t('spTrong')}${sua ? `<div class="help" style="margin-top:6px">${t('spTrongHelp')}</div>` : ''}</div>`;
     o += `<div class="searchbox" style="margin-top:12px">${IC.search}<input class="inp" id="spQ" type="search" value="${esc(p.q || '')}" placeholder="${esc(tp('spTim'))}" autocomplete="off"></div>
       <div class="hscroll" style="margin:10px 0 0">${[['', 'spTatCa']].map(([v, k]) => `<button class="chip${!loc ? ' on' : ''}" data-act="spLoc" data-v="${v}">${t(k)}</button>`).join('')}
@@ -13000,6 +13095,7 @@ VIEWS.sp = {
   after(p) {
     const q = $('#spQ'); if (q) q.addEventListener('input', () => { p.q = q.value; const b = $('#spBody'); if (b) b.innerHTML = spBody(p); });
     const f = $('#spFile'); if (f) f.addEventListener('change', spChonFile);
+    const fa = $('#spAnhNhieu'); if (fa) fa.addEventListener('change', spChonAnh);
   }
 };
 // Theo chuyền: mỗi chuyền một nhóm (sản phẩm chạy nhiều chuyền hiện ở mỗi chuyền)
@@ -13022,13 +13118,13 @@ VIEWS.spXem = {
         ${x.nhom ? `<dt>${t('spNhom')}</dt><dd>${esc(x.nhom)}</dd>` : ''}
         <dt>${t('spChuyen')}</dt><dd>${spChuyenDS(x).map((c) => S.V && S.V.chByMa[c] ? `<button class="lnk mono" data-act="chuyen" data-ma="${esc(c)}">${esc(c)}</button>` : `<span class="code">${esc(c)}</span>`).join(' ') || '—'}</dd>
         ${x.ngaySX ? `<dt>${t('spNgaySX')}</dt><dd class="mono">${esc(fmtD(x.ngaySX))}</dd>` : ''}
-      </dl></div>`;
-    if ((x.anh || []).length) o += `<div class="spanh">${x.anh.map((a) => anhImg(a, 'data-act="anhView" class="spimg"')).join('')}</div>`;
-    if ((x.thongSo || []).length) o += sec('spThongSo', x.thongSo.length) + `<div class="card"><div class="list">${x.thongSo.map((r) => `<div class="row" style="display:block">
-      <div class="sub" style="font-weight:700;color:var(--ink2)">${spNhanH(r[0])}</div>
-      ${r[2] ? `<div style="font-weight:600;white-space:pre-line">${esc(r[2])}</div>` : ''}
-      ${r[1] ? `<div class="zi" lang="zh-CN" style="white-space:pre-line;font-size:13.5px">${esc(r[1])}</div>` : ''}</div>`).join('')}</div></div>`;
-    if (x.ghiChu) o += sec('spGhiChu') + `<div class="card pad" style="white-space:pre-line">${esc(x.ghiChu)}</div>`;
+      </dl>${spChayO(x.id).length ? `<div style="margin-top:8px"><span class="pill p-ok">${esc(tv('spDangChay'))}: ${esc(spChayO(x.id).map(mh).join(', '))}</span></div>` : ''}</div>`;
+    S._anhViewArr = (x.anh || []).slice();
+    if ((x.anh || []).length) o += `<div class="spanh">${x.anh.map((a, i) => anhImg(a, `data-act="anhView" data-i="${i}" class="spimg"`)).join('')}</div>`;
+    // Thông số, ghi chú: gập sau nút Hướng dẫn · Note cho gọn (bấm mới hiện)
+    const k = 'sp:' + x.id;
+    o += `<div style="margin-top:12px">${spNoteBtn(k, (x.thongSo || []).length + (x.ghiChu ? 1 : 0))}</div>`;
+    if (spNoteMo(k)) o += `<div class="card" style="margin-top:8px;padding:4px 0">${spTsHtml(x)}</div>`;
     o += `<div class="help" style="margin-top:10px">${esc(tv('spSuaLuc'))} · ${esc(tz('spSuaLuc'))}: ${esc(x.nguoiSua || '')}${x.capNhat ? ' · ' + esc(fmtD(String(x.capNhat).slice(0, 10)) + ' ' + String(x.capNhat).slice(11, 16)) : ''}</div>`;
     if (can('suasp')) o += `<div class="btns" style="margin-top:12px"><button class="btn" data-act="spSuaMo" data-id="${esc(x.id)}">${IC.edit} ${t('edit')}</button>
       <button class="btn danger" data-act="spXoaHoi" data-id="${esc(x.id)}">${t('spXoa')}</button></div>`;
@@ -13145,6 +13241,10 @@ async function spChonFile(e) {
   let r;
   try { r = await docFileSP(f); } catch (x) { toast(x && x.code === 'SP_COT' ? t('spNhapTrong') : errMsg(x), true); return; }
   const co = new Set(spDS().map((x) => x.ma.toUpperCase())), moi = r.ds.filter((x) => !co.has(x.ma.toUpperCase())).length;
+  // Sản phẩm đang có mà file không nhắc tới (so mã + chuyền; file không ghi chuyền thì so theo mã)
+  const trongFile = new Set(), maFile = new Set();
+  r.ds.forEach((x) => { maFile.add(x.ma.toUpperCase()); if (x.chuyen) trongFile.add(x.ma.toUpperCase() + '|' + spChuyenChuan(x.chuyen)); else trongFile.add(x.ma.toUpperCase() + '|*'); });
+  r.thua = spDS().filter((x) => !trongFile.has(x.ma.toUpperCase() + '|' + spChuyenDS(x).join(',')) && !trongFile.has(x.ma.toUpperCase() + '|*'));
   S.spNhap = r;
   openSheet(`<div class="grab"></div><h3>${tv('spNhapTD')}<span class="zi">${tz('spNhapTD')}</span></h3>
     <div class="help mono" style="margin-bottom:8px">${esc(r.file)}</div>
@@ -13152,6 +13252,8 @@ async function spChonFile(e) {
     <div class="list" style="max-height:260px;overflow:auto;margin-bottom:10px">${r.ds.slice(0, 80).map((x) => `<div class="row"><div class="main"><div class="nm mono">${esc(x.ma)}${co.has(x.ma.toUpperCase()) ? '' : ` <span class="tag">${esc(tv('tbThem1'))}</span>`}</div>
       <div class="sub">${esc(x.chuyen || '')}${x.nhom ? ' · ' + esc(x.nhom) : ''} · ${esc(tv('spThongSo'))}: ${x.thongSo.length}</div></div></div>`).join('')}</div>
     <p class="help">${t('spNhapHelp')}</p>
+    ${r.thua.length ? `<label class="checkrow" style="margin:0 0 10px"><input type="checkbox" id="spnBoCu"><span class="main"><b>${esc(tv('spNhapBoCu', { n: r.thua.length }))}</b>
+      <span class="zi">${esc(tz('spNhapBoCu', { n: r.thua.length }))}</span><br><small class="mono muted">${esc(r.thua.slice(0, 12).map((x) => x.ma + (x.chuyen ? ' · ' + x.chuyen : '')).join(', '))}${r.thua.length > 12 ? '…' : ''}</small></span></label>` : ''}
     <div class="err" id="spnErr" hidden></div>
     <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
       <button class="btn g" data-act="spNhapGui"${r.ds.length ? '' : ' disabled'}>${IC.check} ${t('spNhap')}</button></div>`);
@@ -13198,13 +13300,199 @@ Object.assign(ACT, {
     if (!r || !r.ds.length) return;
     el.disabled = true;
     try {
+      const boCu = !!($('#spnBoCu') || {}).checked;
       const d = await api('importProducts', { file: r.file, ds: r.ds }, { timeout: 120 });
-      mergeResult(d); closeSheet(); S.spNhap = null;
-      toast(t('spNhapXong', { a: d.tk.moi, b: d.tk.sua })); render();
+      mergeResult(d);
+      // Bỏ sản phẩm cũ không có trong file (đánh dấu xoá, dòng vẫn giữ trên sheet để tra lại)
+      let bo = 0;
+      if (boCu) for (const x of r.thua) { mergeResult(await api('deleteProduct', { id: x.id })); bo++; }
+      closeSheet(); S.spNhap = null;
+      toast(t('spNhapXong', { a: d.tk.moi, b: d.tk.sua }) + (bo ? ' · ' + tv('spNhapDaBo', { n: bo }) : '')); render();
     } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
   }
 });
 Object.assign(ERR, { SP_TRUNG: ['Mã sản phẩm {m} đã có', '产品型号 {m} 已存在'] });
+// ---------- Nhập ảnh sản phẩm hàng loạt (v2.74) ----------
+// Chọn nhiều ảnh, hoặc một file .zip chứa ảnh; tên ảnh = mã sản phẩm (thêm _2, _3 cho ảnh thứ hai, thứ ba).
+// Một mã chạy nhiều chuyền (nhiều bản ghi) thì bản ghi nào cũng nhận ảnh; ảnh chỉ tải lên một lần rồi dùng chung.
+Object.assign(TX, {
+  spAnhNhap: ['Nhập ảnh', '导入图片'], spAnhNhapTD: ['Nhập ảnh sản phẩm', '导入产品图片'],
+  spAnhNhapHelp: ['Nhập ảnh: chọn nhiều ảnh hoặc một file .zip; tên ảnh là mã sản phẩm (vd "ABC-123.jpg", ảnh thứ hai "ABC-123_2.jpg").',
+    '导入图片：选择多张图片或一个 .zip 文件；图片名为产品型号（如 "ABC-123.jpg"，第二张 "ABC-123_2.jpg"）。'],
+  spAnhKhop: ['{a} ảnh khớp {b} sản phẩm ({c} bản ghi)', '{a} 张图片匹配 {b} 个产品（{c} 条记录）'], spAnhKhongKhop: ['{n} ảnh không khớp mã nào', '{n} 张图片未匹配任何型号'],
+  spAnhThay: ['Thay ảnh cũ', '替换旧图片'], spAnhThemVao: ['Thêm vào ảnh cũ (tối đa 3)', '追加（最多3张）'],
+  spAnhLuu: ['Lưu ảnh', '保存图片'], spAnhDang: ['Đang lưu ảnh {i}/{n}…', '正在保存图片 {i}/{n}…'], spAnhXong: ['Đã lưu ảnh cho {n} bản ghi', '已为 {n} 条记录保存图片'],
+  spAnhTrong: ['Không thấy ảnh nào (jpg, png, webp) trong file đã chọn', '所选文件中没有图片（jpg、png、webp）']
+});
+const ANH_DUOI = /\.(jpe?g|png|webp|gif|bmp)$/i;
+// Khoá so khớp: bỏ dấu, bỏ ký tự không phải chữ / số (giữ chữ Hán) — "S/M" khớp tên file "S-M"
+const spKhoa = (v) => norm(v).replace(/[^a-z0-9\u4e00-\u9fff]+/g, '');
+// "ABC-123_2.jpg" → khoá cả tên, và khoá khi bỏ đuôi _2 / -2 / (2) (ảnh thứ hai); tên đầy đủ khớp mã thì ưu tiên
+function spTenAnh(ten, theoKhoa) {
+  const goc = String(ten).split('/').pop().replace(ANH_DUOI, ''), k0 = spKhoa(goc);
+  if (theoKhoa[k0]) return { khoa: k0, thu: 1 };
+  const m = /^(.*?)\s*[ _-]\(?([2-9])\)?$/.exec(goc) || /^(.*?)\s*\(([2-9])\)$/.exec(goc);
+  return m && theoKhoa[spKhoa(m[1])] ? { khoa: spKhoa(m[1]), thu: +m[2] } : { khoa: k0, thu: 1 };
+}
+async function spChonAnh(e) {
+  const fs = Array.from((e.target.files || [])); e.target.value = '';
+  if (!fs.length) return;
+  const anh = [];
+  try {
+    for (const f of fs) {
+      if (/\.zip$/i.test(f.name || '') || /zip/.test(f.type || '')) {
+        const get = unzipFile(await f.arrayBuffer());
+        for (const ten of get.ten) {
+          if (!ANH_DUOI.test(ten) || /(^|\/)(__macosx|\.)/i.test(ten)) continue;
+          const u8 = await get(ten, true), duoi = ten.split('.').pop().toLowerCase();
+          anh.push({ ten: ten.split('/').pop(), file: new File([u8], ten.split('/').pop(), { type: duoi === 'png' ? 'image/png' : duoi === 'webp' ? 'image/webp' : 'image/jpeg' }) });
+        }
+      } else if (ANH_DUOI.test(f.name || '') || /^image\//.test(f.type || '')) anh.push({ ten: f.name, file: f });
+    }
+  } catch (x) { toast(errMsg(x), true); return; }
+  if (!anh.length) { toast(t('spAnhTrong'), true); return; }
+  // Khớp theo mã: một mã → mọi bản ghi của mã đó
+  const theoKhoa = {};
+  spDS().forEach((x) => { const k = spKhoa(x.ma); (theoKhoa[k] = theoKhoa[k] || []).push(x); });
+  const khop = {}, khong = [];
+  anh.forEach((a) => {
+    const t0 = spTenAnh(a.ten, theoKhoa), ds = theoKhoa[t0.khoa];
+    if (!ds) { khong.push(a.ten); return; }
+    const o = khop[t0.khoa] = khop[t0.khoa] || { ma: ds[0].ma, ds, anh: [] };
+    o.anh.push(Object.assign({ thu: t0.thu }, a));
+  });
+  Object.values(khop).forEach((o) => o.anh.sort((p0, q) => p0.thu - q.thu || p0.ten.localeCompare(q.ten)));
+  const ma = Object.values(khop), nAnh = ma.reduce((a, o) => a + o.anh.length, 0), nBG = ma.reduce((a, o) => a + o.ds.length, 0);
+  S.spAnhNhap = { khop: ma, che: 'thay' };
+  openSheet(`<div class="grab"></div><h3>${tv('spAnhNhapTD')}<span class="zi">${tz('spAnhNhapTD')}</span></h3>
+    <div class="note" style="margin:0 0 10px"><b>${t('spAnhKhop', { a: nAnh, b: ma.length, c: nBG })}</b>
+      ${khong.length ? `<div class="muted" style="font-weight:500;margin-top:4px">${t('spAnhKhongKhop', { n: khong.length })}: ${esc(khong.slice(0, 8).join(', '))}${khong.length > 8 ? '…' : ''}</div>` : ''}</div>
+    <div class="seg" style="margin-bottom:10px"><button class="on" data-act="spAnhChe" data-v="thay">${tv('spAnhThay')} ${tz('spAnhThay')}</button><button data-act="spAnhChe" data-v="them">${tv('spAnhThemVao')} ${tz('spAnhThemVao')}</button></div>
+    <div class="list" style="max-height:240px;overflow:auto;margin-bottom:10px">${ma.slice(0, 120).map((o) => `<div class="row"><div class="main"><div class="nm mono">${esc(o.ma)}</div>
+      <div class="sub">${o.anh.length} ${esc(tv('spAnh'))} · ${esc(o.ds.map((x) => x.chuyen || '—').join(' | '))}</div></div></div>`).join('')}</div>
+    <div class="err" id="spaErr" hidden></div>
+    <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
+      <button class="btn g" data-act="spAnhLuu"${ma.length ? '' : ' disabled'}>${IC.check} ${t('spAnhLuu')}</button></div>`);
+}
+Object.assign(ACT, {
+  spAnhChe: (el) => { if (S.spAnhNhap) S.spAnhNhap.che = el.dataset.v; $$('[data-act="spAnhChe"]').forEach((b) => b.classList.toggle('on', b === el)); },
+  spAnhLuu: async (el) => {
+    const r = S.spAnhNhap, fe = $('#spaErr'); if (!r) return;
+    el.disabled = true; fe.hidden = true;
+    const viec = r.khop.reduce((a, o) => a + o.ds.length, 0);
+    let i = 0, xong = 0;
+    try {
+      for (const o of r.khop) {
+        let moi = null;            // ảnh của mã này sau lần tải đầu: [{id}], các bản ghi sau dùng lại
+        for (const x0 of o.ds) {
+          i++; el.textContent = tv('spAnhDang', { i, n: viec });
+          const x = spDS().find((y) => y.id === x0.id) || x0, cu = r.che === 'them' ? (x.anh || []).slice() : [];
+          if (!moi) {
+            const data = [];
+            for (const a of o.anh.slice(0, 3)) data.push({ data: await imgCompress(a.file, 1600, 350) });
+            const d = await api('saveProduct', { id: x.id, ma: x.ma, anh: cu.concat(data).slice(0, 3) }, { timeout: 120 });
+            mergeResult(d); xong++;
+            moi = (d.sanPham.anh || []).slice(cu.length);
+          } else {
+            const d = await api('saveProduct', { id: x.id, ma: x.ma, anh: cu.concat(moi).slice(0, 3) }, { timeout: 60 });
+            mergeResult(d); xong++;
+          }
+        }
+      }
+      closeSheet(); S.spAnhNhap = null; toast(t('spAnhXong', { n: xong })); render();
+    } catch (e) {
+      el.disabled = false; el.textContent = tv('spAnhLuu');
+      fe.innerHTML = (xong ? esc(tv('spAnhXong', { n: xong })) + ' · ' : '') + (e.code === 'MANG' ? t('needNet') : errMsg(e)); fe.hidden = false; render();
+    }
+  }
+});
+// ---------- Sản phẩm chuyền đang sản xuất (v2.74) ----------
+// Chuyền lưu ID sản phẩm (không lưu mã): dữ liệu chuyền tới mọi tài khoản, còn mã / thông số / ảnh sản phẩm chỉ tài khoản
+// có quyền "Xem sản phẩm" mới nhận — người không có quyền không đọc ra được chuyền đang chạy mã nào.
+SRV_PHAN.push(['spdang', '2.74.0', 'srvMissSpDang']);
+Object.assign(TX, {
+  chSpDang: ['Đang sản xuất', '正在生产'], chSpChonBtn: ['Chọn sản phẩm', '选择产品'], chSpDoi: ['Đổi sản phẩm', '更换产品'],
+  chSpChua: ['Chưa chọn sản phẩm chuyền đang chạy. Bấm "Chọn sản phẩm".', '尚未选择本线在产产品。请点击“选择产品”。'],
+  chSpMat: ['Sản phẩm đã chọn không còn trong danh sách (đã xoá). Chọn lại.', '所选产品已不在清单中（已删除），请重新选择。'],
+  chSpTu: ['từ {d}', '自 {d}'], chSpChonTD: ['Chuyền {c} đang sản xuất', '{c} 线在产产品'], chSpKhac: ['Sản phẩm khác', '其他产品'],
+  chSpBo: ['Bỏ chọn (chuyền dừng)', '取消（产线停机）'], chSpDaDat: ['{c}: đang sản xuất {m}', '{c}：在产 {m}'], chSpDaBo: ['{c}: đã bỏ chọn sản phẩm', '{c}：已取消在产产品'],
+  spNoteBtn: ['Hướng dẫn · Note', '作业说明'], spDangChay: ['Đang chạy', '在产'], spKhongThay2: ['Không thấy sản phẩm', '没有找到产品'],
+  srvMissSpDang: ['Máy chủ chưa lưu được sản phẩm đang sản xuất. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不能保存在产产品。请更新 Code.gs 并重新部署。']
+});
+const spById = (id) => (id ? spDS().find((x) => x.id === id) || null : null);
+const chSpDang = (c) => (c && c.spDang ? spById(c.spDang) : null);
+const spChayO = (id) => chDangDung().filter((c) => c.spDang === id).map((c) => c.ma);
+// "2026-11-26 08:12:00 · Tên" → { luc, ai }
+const spTuTach = (v) => { const s0 = String(v || ''), i = s0.indexOf(' · '); return i < 0 ? { luc: s0, ai: '' } : { luc: s0.slice(0, i), ai: s0.slice(i + 3) }; };
+// Thông số + ghi chú của sản phẩm (dùng ở màn sản phẩm và màn chuyền, nằm sau nút Hướng dẫn · Note)
+function spTsHtml(x) {
+  let o = '';
+  if ((x.thongSo || []).length) o += `<div class="list sptslist">${x.thongSo.map((r) => `<div class="row" style="display:block">
+    <div class="sub" style="font-weight:700;color:var(--ink2)">${spNhanH(r[0])}</div>
+    ${r[2] ? `<div style="font-weight:600;white-space:pre-line">${esc(r[2])}</div>` : ''}
+    ${r[1] ? `<div class="zi" lang="zh-CN" style="white-space:pre-line;font-size:13.5px">${esc(r[1])}</div>` : ''}</div>`).join('')}</div>`;
+  if (x.ghiChu) o += `<div class="note" style="margin:8px 0 0;white-space:pre-line">${esc(x.ghiChu)}</div>`;
+  return o || `<div class="help">—</div>`;
+}
+// Nút Hướng dẫn · Note: bấm mới hiện thông số (đỡ chiếm chỗ)
+const spNoteMo = (k) => !!(S.f.spNote || {})[k];
+const spNoteBtn = (k, n) => `<button type="button" class="btn ghost sm spnote${spNoteMo(k) ? ' on' : ''}" data-act="spNote" data-k="${esc(k)}" aria-expanded="${spNoteMo(k)}">${IC.list} ${t('spNoteBtn')} <span class="mono">(${n})</span></button>`;
+// Thẻ "Đang sản xuất" trên màn chuyền: ảnh sản phẩm, mã, từ khi nào; thông số sau nút Note
+function chSpHtml(c) {
+  if (!can('xemsp') || srvOld('sanpham')) return '';
+  const x = chSpDang(c), k = 'ch:' + c.ma, tu = spTuTach(c.spTu);
+  let o = `<div class="card pad chsp"><div class="chsph"><span class="lb">${esc(tv('chSpDang'))}<span class="zi" lang="zh-CN">${esc(tz('chSpDang'))}</span></span>
+    ${srvOld('spdang') ? '' : `<button class="btn ghost sm" data-act="chSpChon" data-ma="${esc(c.ma)}">${IC.edit} ${t(x ? 'chSpDoi' : 'chSpChonBtn')}</button>`}</div>`;
+  if (srvOld('spdang')) return o + `<div class="help" style="margin-top:6px">${t('srvMissSpDang')}</div></div>`;
+  if (!x) return o + `<div class="help" style="margin-top:6px">${t(c.spDang ? 'chSpMat' : 'chSpChua')}</div></div>`;
+  S._anhViewArr = (x.anh || []).slice();
+  o += `<div class="chspb">${(x.anh || []).map((a, i) => anhImg(a, `data-act="anhView" data-i="${i}" class="chspimg"`)).join('')}</div>
+    <div class="chspt"><button class="lnk mono" data-act="spMo" data-id="${esc(x.id)}"><b>${esc(x.ma)}</b></button>
+      <div class="sub">${[x.nhom, tu.luc ? tv('chSpTu', { d: fmtD(tu.luc.slice(0, 10)) + ' ' + tu.luc.slice(11, 16) }) : '', tu.ai].filter(Boolean).map(esc).join(' · ')}</div></div>
+    <div style="margin-top:8px">${spNoteBtn(k, (x.thongSo || []).length + (x.ghiChu ? 1 : 0))}</div>`;
+  if (spNoteMo(k)) o += `<div style="margin-top:8px">${spTsHtml(x)}</div>`;
+  return o + '</div>';
+}
+// Chọn sản phẩm: sản phẩm của chuyền này trước, rồi sản phẩm khác (tìm theo mã / thông số)
+function chSpChonMo(ma) {
+  S.chSpQ = '';
+  const ve = () => {
+    const c = S.V.chByMa[ma] || {}, q = norm(S.chSpQ || ''), ds = spDS().filter((x) => !q || spTimTxt(x).includes(q));
+    const dong = (x) => `<button type="button" class="row${c.spDang === x.id ? ' on' : ''}" data-act="chSpDat" data-ma="${esc(ma)}" data-id="${esc(x.id)}">${(x.anh || [])[0] ? anhImg(x.anh[0], 'class="spthumb"') : ''}
+      <div class="main"><div class="nm mono">${esc(x.ma)}</div><div class="sub">${[x.nhom ? esc(x.nhom) : '', spChuyenDS(x).map((cc) => `<span class="code">${esc(cc)}</span>`).join(' ')].filter(Boolean).join(' · ')}</div></div>
+      ${c.spDang === x.id ? `<span class="pill p-ok">${esc(tv('spDangChay'))}</span>` : ''}</button>`;
+    const cua = ds.filter((x) => spChuyenDS(x).includes(ma)), khac = ds.filter((x) => !spChuyenDS(x).includes(ma));
+    return (cua.length ? `<div class="lshd">${esc(tv('spCuaChuyen'))} ${esc(mh(ma))} <span class="nhomn">${cua.length}</span></div><div class="list">${cua.map(dong).join('')}</div>` : '')
+      + (khac.length ? `<div class="lshd">${esc(tv('chSpKhac'))} <span class="nhomn">${khac.length}</span></div><div class="list">${khac.slice(0, 120).map(dong).join('')}</div>` : '')
+      || `<div class="card empty">${t('spKhongThay2')}</div>`;
+  };
+  const c = S.V.chByMa[ma] || {};
+  openSheet(`<div class="grab"></div><h3>${esc(tv('chSpChonTD', { c: mh(ma) }))}<span class="zi">${esc(tz('chSpChonTD', { c: mh(ma) }))}</span></h3>
+    <input class="inp" id="chSpQ" type="search" placeholder="${esc(tp('spTim'))}" autocomplete="off">
+    <div id="chSpDs" style="max-height:55vh;overflow:auto;margin-top:8px">${ve()}</div>
+    <div class="err" id="chSpErr" hidden></div>
+    <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="closeSheet">${t('close')}</button>
+      ${c.spDang ? `<button class="btn ghost" data-act="chSpDat" data-ma="${esc(ma)}" data-id="">${t('chSpBo')}</button>` : ''}</div>`, (bg) => {
+    $('#chSpQ', bg).addEventListener('input', (e) => { S.chSpQ = e.target.value; $('#chSpDs').innerHTML = ve(); });
+  });
+}
+Object.assign(ACT, {
+  spNote: (el) => { S.f.spNote = S.f.spNote || {}; S.f.spNote[el.dataset.k] = !S.f.spNote[el.dataset.k]; render(); },
+  chSpChon: (el) => chSpChonMo(el.dataset.ma),
+  chSpDat: async (el) => {
+    const ma = el.dataset.ma, id = el.dataset.id || '';
+    $$('[data-act="chSpDat"]').forEach((b) => { b.disabled = true; });
+    try {
+      const d = await api('setLineProduct', { ma, spId: id });
+      mergeResult(d); closeSheet();
+      const x = spById(id);
+      toast(x ? t('chSpDaDat', { c: mh(ma), m: x.ma }) : t('chSpDaBo', { c: mh(ma) })); render();
+    } catch (e) {
+      $$('[data-act="chSpDat"]').forEach((b) => { b.disabled = false; });
+      const fe = $('#chSpErr'); if (fe) { fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
+    }
+  }
+});
 // ===================== Nghiệm thu sửa chữa ngoài · 外修验收 =====================
 // Hai biên bản của cùng một lần gửi sửa: TRƯỚC khi đưa đi sửa và SAU khi nhận về.
 // Thợ tích và ghi số đo trên điện thoại; in ra đúng mẫu giấy rồi lưu PDF từ hộp thoại in.
@@ -18960,7 +19248,8 @@ VIEWS.lkThem = {
     if (srvOld('lkthem')) return srvWarn('lkthem');
     const chs = (S.V.ch || []).filter((c) => c.hoatDong !== false), dich = lktDich(p.ma), co = lkOf(dich);
     const mays = mayCuaCh(p.ch);
-    let o = `<div class="card pad"><div class="row2f">
+    let o = can('may') ? lkXlBtns(p.ma && p.ma !== p.ch ? { ma: p.ma } : { ch: p.ch }) : '';
+    o += `<div class="card pad"><div class="row2f">
       <label class="fld"><span>${t('lktChuyen')}</span><select class="inp" id="lktCh">${chs.map((c) => `<option value="${esc(c.ma)}"${c.ma === p.ch ? ' selected' : ''}>${esc(mh(c.ma))}${c.tenZh ? ' · ' + esc(c.tenZh) : ''}</option>`).join('')}</select></label>
       <label class="fld"><span>${t('lktLapO')}</span><select class="inp" id="lktMa"><option value="${esc(p.ch)}"${p.ma === p.ch ? ' selected' : ''}>${esc(tv('lktThan', { c: mh(p.ch) }))}</option>
         ${mays.map((m) => `<option value="${esc(m.ma)}"${m.ma === p.ma ? ' selected' : ''}>${esc(mh(m.ma))} · ${esc(m.ten)}</option>`).join('')}</select></label></div>

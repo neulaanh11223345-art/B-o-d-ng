@@ -3408,8 +3408,9 @@ await page.evaluate(() => back()); await wait(400);
 await page.evaluate(() => { while (S.stack.length > 1) back(); tab('list'); }); await wait(700);
 const bang64 = await page.evaluate(() => {
   const tr = [...document.querySelectorAll('.chbang tbody tr')].find((r) => /VKY03/.test(r.cells[0].textContent));
-  const k = CH_MOD.map((m) => m.k).indexOf('chinhlech') + 1;
-  return { n: document.querySelectorAll('.chbang tbody tr').length, ch: chDangDung().length, o: tr && tr.cells[k].textContent.trim() };
+  // Tìm ô theo module (từ v2.74 bảng có thêm cột Đang sản xuất nên không đếm vị trí cột)
+  const o = tr && tr.querySelector('[data-act="chModDi"][data-k="chinhlech"]');
+  return { n: document.querySelectorAll('.chbang tbody tr').length, ch: chDangDung().length, o: o && o.closest('td').textContent.trim() };
 });
 assert.equal(bang64.n, bang64.ch, 'bảng module: mỗi chuyền một dòng');
 assert.match(bang64.o, /^2/, 'ô máy chỉnh lệch của VKY03 = 2');
@@ -3418,6 +3419,74 @@ await page.click('.chbang [data-act="chModDi"][data-ch="VKY03"][data-k="chinhlec
 assert.equal(await page.evaluate(() => topV().v + '|' + topV().p.ma + '|' + S.f.chMod.VKY03), 'chuyen|VKY03|chinhlech', 'bấm số trong bảng mở đúng module của chuyền');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.73: chuyền theo module — đủ ô cố định, máy chỉnh lệch / quạt gió mỗi cái một mã in QR, bảng module các chuyền');
+
+// 65. Sản phẩm trên chuyền: chọn sản phẩm chuyền đang sản xuất (ảnh, thông số sau nút Note); nhập ảnh hàng loạt;
+//     nhập file bỏ sản phẩm cũ; nút Excel ở chỗ thêm máy / thêm linh kiện
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.spNote = {}; go('chuyen', { ma: 'VKY01' }); }); await wait(700);
+assert.equal(await page.locator('.chsp').count(), 1, 'màn chuyền có thẻ Đang sản xuất');
+await page.click('.chsp [data-act="chSpChon"]'); await wait(500);
+const id65 = await page.evaluate(() => spDS().find((x) => x.ma === 'TEST-A100' && spChuyenDS(x).includes('VKY01')).id);
+assert.match(await text('#chSpDs'), /Sản phẩm của chuyền VKY01[\s\S]*TEST-A100/, 'sản phẩm của chuyền lên đầu danh sách chọn');
+await page.click(`#chSpDs [data-act="chSpDat"][data-id="${id65}"]`); await wait(1200);
+assert.equal(await page.evaluate(() => S.V.chByMa.VKY01.spDang), id65, 'lưu sản phẩm đang chạy');
+assert.match(await text('.chsp'), /TEST-A100[\s\S]*Hướng dẫn · Note/, 'thẻ ghi mã đang chạy và nút Note');
+assert.equal(await page.locator('.chsp .sptslist').count(), 0, 'thông số gập sẵn, không chiếm chỗ');
+await page.click('.chsp [data-act="spNote"]'); await wait(400);
+assert.ok(await page.locator('.chsp .sptslist .row').count() >= 2, 'bấm Note mới hiện thông số');
+await shot('102-chuyen-dang-san-xuat');
+// Màn sản phẩm: thông số cũng sau nút Note; ghi đang chạy ở chuyền nào
+await page.evaluate((id) => go('spXem', { id }), id65); await wait(600);
+assert.match(await text('#main'), /Đang chạy: VKY01/, 'sản phẩm ghi đang chạy ở VKY01');
+assert.equal(await page.locator('#main .sptslist').count(), 0, 'màn sản phẩm: thông số gập sẵn');
+await page.click('#main [data-act="spNote"]'); await wait(400);
+assert.ok(await page.locator('#main .sptslist .row').count() >= 2);
+// Bảng module (màn rộng): cột Đang sản xuất
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('list'); }); await wait(700);
+assert.match(await page.evaluate(() => [...document.querySelectorAll('.chbang tbody tr')].find((r) => /VKY01/.test(r.cells[0].textContent)).cells[1].textContent), /TEST-A100/, 'bảng module có cột sản phẩm đang chạy');
+// Nhập ảnh hàng loạt: tên ảnh = mã sản phẩm (_2 = ảnh thứ hai); ảnh không khớp mã thì bỏ qua
+await page.evaluate(() => tab('sp')); await wait(600);
+const PNG65 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+await page.setInputFiles('#spAnhNhieu', [{ name: 'TEST-A100.png', mimeType: 'image/png', buffer: PNG65 }, { name: 'TEST-A100_2.png', mimeType: 'image/png', buffer: PNG65 },
+  { name: 'KHONG-CO-MA.png', mimeType: 'image/png', buffer: PNG65 }]); await wait(900);
+assert.match(await text('#sheetBg'), /2 ảnh khớp 1 sản phẩm[\s\S]*1 ảnh không khớp/, 'xem trước: ảnh khớp mã / không khớp');
+await page.click('[data-act="spAnhLuu"]'); await wait(2500);
+assert.deepEqual(await page.evaluate(() => spDS().filter((x) => x.ma === 'TEST-A100').map((x) => (x.anh || []).length)), [2], 'sản phẩm nhận đủ 2 ảnh');
+// Đọc ảnh trong file .zip: giải nén ra nhị phân, có danh sách tên tệp
+assert.deepEqual(await page.evaluate(async () => {
+  const get = unzipFile(await XW.build([{ name: 'a', rows: [['x']] }]).arrayBuffer());
+  const u8 = await get('[Content_Types].xml', true);
+  return [get.ten.includes('xl/workbook.xml'), u8 instanceof Uint8Array, new TextDecoder().decode(u8).indexOf('<?xml') === 0];
+}), [true, true, true], 'giải nén nhị phân từ file zip');
+// Nhập file sản phẩm: có tuỳ chọn bỏ sản phẩm cũ không có trong file
+await page.evaluate(async () => {
+  const f = new File([await (async () => XW.build([{ name: 'San pham', rows: [SP_COT, ['TEST-A100', 'VKY01, VKY02', 'Sản phẩm mẫu A', '', 'Keo · 胶', 'TEST', 'TEST', '']] }]))()], 'sp.xlsx');
+  await spChonFile({ target: { files: [f], value: '' } });
+}); await wait(600);
+assert.equal(await page.locator('#spnBoCu').count(), 1, 'có ô bỏ sản phẩm cũ không có trong file');
+assert.match(await text('#sheetBg'), /Bỏ \d+ sản phẩm cũ không có trong file này/);
+await page.evaluate(() => closeSheet()); await wait(300);
+// Nút Excel ở chỗ thêm máy / thêm linh kiện
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.chMod = { VKY01: 'chinhlech' }; go('chuyen', { ma: 'VKY01' }); }); await wait(700);
+assert.deepEqual(await page.evaluate(() => ['chMayXuat', 'chMayNhap', 'chModXuat', 'chModNhap', 'lkMauMot'].map((a) => document.querySelectorAll(`[data-act="${a}"]`).length > 0)),
+  [true, true, true, true, true], 'màn chuyền: Excel máy của chuyền, của module, linh kiện');
+const xl65 = await page.evaluate(async () => {
+  const g = chModNhom('chinhlech'), x = chModData('VKY01', TODAY()).chinhlech;
+  const f = tbXuatDs(x.may, 'x', 'x', { nhom: g, chuyen: 'VKY01', gop: 1, ten: g + ' chuyền VKY01', cot: qgCot(g), tenDV: 'Chỉnh lệch' });
+  const ds = await tbDocFile(new File([f.blob], 'm.xlsx'));
+  const lk = await lkDocFile(new File([lkMauXlsx({ ma: 'M001' })], 'l.xlsx'));
+  return { ds: ds.map((y) => [y.nhom, y.chuyen, (y.chiTiet || []).length > 0]), lk: [...new Set(lk.ds.map((o) => o.m && o.m.ma))] };
+});
+assert.ok(xl65.ds.length >= 1 && xl65.ds.every((y) => y[1] === 'VKY01' && y[2]), 'Excel module máy chỉnh lệch: đọc lại được, có sheet chi tiết từng cái: ' + JSON.stringify(xl65.ds));
+assert.deepEqual(xl65.lk, ['M001'], 'bảng mẫu linh kiện của một máy chỉ có máy đó');
+await page.click('[data-act="chMayNhap"]'); await wait(500);
+assert.match(await text('#main'), /để trống cột Chuyền nhận chuyền VKY01/, 'nhập máy từ chuyền: ô Chuyền trống nhận chuyền đang mở');
+await page.evaluate(() => { back(); go('mayEdit', { chuyen: 'VKY01' }); }); await wait(500);
+assert.equal(await page.locator('[data-act="mayMauXuat"]').count(), 1, 'form thêm máy có bảng mẫu Excel');
+await page.evaluate(() => { back(); go('dsEdit', { ma: 'M001', k: 'lk' }); }); await wait(500);
+assert.equal(await page.locator('.lkxl input[data-chg="lkFileNhap"]').count(), 1, 'sửa linh kiện máy: có nhập Excel');
+await shot('103-excel-them-may-linh-kien');
+await page.evaluate(async () => { while (S.stack.length > 1) back(); mergeResult(await api('setLineProduct', { ma: 'VKY01', spId: '' })); }); await wait(300);
+ok('Bản 2.74: chuyền đang sản xuất sản phẩm nào (ảnh, Note), nhập ảnh sản phẩm hàng loạt, bỏ sản phẩm cũ khi nhập, nút Excel thêm máy / linh kiện');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
