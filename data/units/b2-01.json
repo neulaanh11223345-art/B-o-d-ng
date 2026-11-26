@@ -1,0 +1,141 @@
+{
+  "id": "b2-01",
+  "level": "B2",
+  "order": 1,
+  "icon": "♻️",
+  "title": "Rethinking waste",
+  "titleVi": "Nghĩ lại về rác thải",
+  "goals": [
+    "Thảo luận về tái chế, đồ nhựa dùng một lần và kinh tế tuần hoàn",
+    "Nghe phỏng vấn trên đài, nắm ý chính và thái độ của người nói",
+    "Dùng từ vựng nâng cao về môi trường và các sáng kiến cộng đồng"
+  ],
+  "vocab": [
+    { "en": "circular economy", "vi": "kinh tế tuần hoàn", "ipa": "/ˌsɜːkjələr iˈkɒnəmi/", "ex": "In a circular economy, nothing is simply thrown away." },
+    { "en": "landfill", "vi": "bãi chôn lấp rác", "ipa": "/ˈlændfɪl/", "ex": "Millions of old phones end up in landfill every year." },
+    { "en": "single-use", "vi": "dùng một lần", "ipa": "/ˌsɪŋɡl ˈjuːs/", "ex": "The school has banned single-use plastic bottles." },
+    { "en": "upcycle", "vi": "tái chế sáng tạo (biến đồ cũ thành đồ mới có giá trị hơn)", "ipa": "/ˈʌpsaɪkl/", "ex": "She upcycles old T-shirts into shopping bags." },
+    { "en": "compost", "vi": "phân hữu cơ, ủ phân", "ipa": "/ˈkɒmpɒst/", "ex": "We turn our vegetable peel into compost." },
+    { "en": "donation", "vi": "khoản quyên góp", "ipa": "/dəʊˈneɪʃn/", "ex": "Entry is free, but donations are welcome." },
+    { "en": "manufacturer", "vi": "nhà sản xuất", "ipa": "/ˌmænjuˈfæktʃərə(r)/", "ex": "The manufacturer refused to sell spare parts." },
+    { "en": "throwaway culture", "vi": "văn hóa dùng rồi vứt", "ipa": "/ˈθrəʊəweɪ ˌkʌltʃə(r)/", "ex": "Cheap fashion is a big part of our throwaway culture." },
+    { "en": "initiative", "vi": "sáng kiến", "ipa": "/ɪˈnɪʃətɪv/", "ex": "The town started a new initiative to reduce food waste." },
+    { "en": "drive somebody mad", "vi": "làm ai phát điên, rất bực mình", "ipa": "/ˌdraɪv ˌsʌmbədi ˈmæd/", "ex": "It drives me mad when people leave rubbish on the beach." },
+    { "en": "a drop in the ocean", "vi": "muối bỏ bể, quá nhỏ bé so với vấn đề", "ipa": "/ə ˌdrɒp ɪn ði ˈəʊʃn/", "ex": "Some say one recycling bin is just a drop in the ocean." }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "Green Streets: the Fix-It Café",
+    "context": "Trong chương trình phát thanh cộng đồng Green Streets, người dẫn Tom phỏng vấn chị Grace, người sáng lập một “quán cà phê sửa đồ” – nơi tình nguyện viên giúp mọi người sửa đồ hỏng miễn phí.",
+    "speakers": [
+      { "id": "H", "name": "Tom", "voice": "male" },
+      { "id": "G", "name": "Grace", "voice": "female" }
+    ],
+    "lines": [
+      { "s": "H", "en": "Welcome back to Green Streets. With me today is Grace Okafor, who runs the Fix-It Café. Grace, how did it all begin?", "vi": "Chào mừng các bạn trở lại với Green Streets. Hôm nay cùng tôi là chị Grace Okafor, người điều hành Fix-It Café. Chị Grace, mọi chuyện bắt đầu thế nào?" },
+      { "s": "G", "en": "Three years ago my toaster broke, and the shop said it would be cheaper to buy a new one.", "vi": "Ba năm trước, máy nướng bánh mì của tôi bị hỏng, và cửa hàng bảo mua cái mới còn rẻ hơn." },
+      { "s": "G", "en": "And I thought, hang on, it's one tiny part! That seemed completely crazy to me.", "vi": "Và tôi nghĩ, khoan đã, chỉ là một bộ phận bé xíu thôi mà! Tôi thấy chuyện đó thật vô lý." },
+      { "s": "H", "en": "So you fixed it yourself?", "vi": "Vậy là chị tự sửa nó à?" },
+      { "s": "G", "en": "I tried, and failed, actually! But a retired electrician down the road fixed it in ten minutes.", "vi": "Thật ra tôi đã thử và thất bại! Nhưng một bác thợ điện đã nghỉ hưu ở cuối phố sửa nó trong mười phút." },
+      { "s": "G", "en": "That's when I realised how much knowledge people have that nobody is sharing.", "vi": "Lúc đó tôi mới nhận ra mọi người có biết bao kiến thức mà không ai chia sẻ cả." },
+      { "s": "H", "en": "And how does the café work now?", "vi": "Thế bây giờ quán hoạt động như thế nào?" },
+      { "s": "G", "en": "We meet on the first Saturday of every month at the community centre.", "vi": "Chúng tôi gặp nhau vào thứ Bảy đầu tiên của mỗi tháng ở nhà văn hóa cộng đồng." },
+      { "s": "G", "en": "About fifteen volunteers repair lamps, bikes, clothes, even laptops.", "vi": "Khoảng mười lăm tình nguyện viên sửa đèn, xe đạp, quần áo, thậm chí cả máy tính xách tay." },
+      { "s": "H", "en": "Do people have to pay?", "vi": "Mọi người có phải trả tiền không?" },
+      { "s": "G", "en": "No, it's free, although most people leave a small donation. And there's always cake.", "vi": "Không, miễn phí, dù hầu hết mọi người đều để lại một chút tiền quyên góp. Và lúc nào cũng có bánh ngọt." },
+      { "s": "H", "en": "Some listeners might say one little café can't change much. What would you say to them?", "vi": "Có thể vài thính giả sẽ nói một quán nhỏ thì chẳng thay đổi được bao nhiêu. Chị sẽ nói gì với họ?" },
+      { "s": "G", "en": "Well, it's true we only manage to fix about seventy per cent of things. The rest are often glued shut, which drives me mad.", "vi": "À, đúng là chúng tôi chỉ sửa được khoảng bảy mươi phần trăm đồ. Số còn lại thường bị dán keo kín, điều đó làm tôi phát điên." },
+      { "s": "G", "en": "But the point isn't really the toaster. People watch, ask questions, and go home thinking differently about what they throw away.", "vi": "Nhưng vấn đề thật ra không nằm ở cái máy nướng bánh. Mọi người xem, đặt câu hỏi, và ra về với cách nghĩ khác về những thứ họ vứt đi." },
+      { "s": "H", "en": "What about recycling, though? Isn't that enough?", "vi": "Nhưng còn tái chế thì sao? Như thế chưa đủ à?" },
+      { "s": "G", "en": "Recycling helps, but it should be the last option, not the first. A lot of what goes in our bins never actually gets recycled.", "vi": "Tái chế có ích, nhưng nó nên là lựa chọn cuối cùng chứ không phải đầu tiên. Rất nhiều thứ ta bỏ vào thùng rác tái chế thật ra chẳng bao giờ được tái chế." },
+      { "s": "H", "en": "So what's next for the Fix-It Café?", "vi": "Vậy sắp tới Fix-It Café có kế hoạch gì?" },
+      { "s": "G", "en": "Next spring we're opening a tool library, so people can borrow a drill instead of buying one they'll use twice.", "vi": "Mùa xuân tới chúng tôi sẽ mở một thư viện dụng cụ, để mọi người có thể mượn máy khoan thay vì mua một cái mà họ chỉ dùng hai lần." }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "choice",
+      "title": "Attitude and main ideas",
+      "instruction": "Listen to the interview. Choose the best answer.",
+      "instructionVi": "Nghe bài phỏng vấn. Chọn đáp án đúng nhất.",
+      "listen": true,
+      "items": [
+        { "q": "How did Grace react when the shop told her to buy a new toaster?", "options": ["She felt the advice was unreasonable.", "She was grateful for the advice.", "She was embarrassed that she had broken it.", "She was not surprised at all."], "answer": 0, "explain": "Grace nói: “It's one tiny part! That seemed completely crazy to me.” – chị thấy lời khuyên mua cái mới là vô lý." },
+        { "q": "What does Grace imply when she talks about the retired electrician?", "options": ["Professional repair shops are too expensive.", "Many people have useful skills that others could benefit from.", "Electricians should teach repair skills in schools.", "Older people need more support from the community."], "answer": 1, "explain": "Sau chuyện bác thợ điện, chị nói: “I realised how much knowledge people have that nobody is sharing.” – nhiều người có kỹ năng hữu ích nhưng chưa được chia sẻ." },
+        { "q": "How does Grace feel about products that are glued shut?", "options": ["Amused", "Indifferent", "Frustrated", "Confused"], "answer": 2, "explain": "Chị nói đồ bị dán keo kín “drives me mad” – làm chị rất bực bội (frustrated)." },
+        { "q": "What is Grace's main reply to people who say the café can't change much?", "options": ["The café repairs almost everything that comes in.", "The café will soon open in other towns.", "The café makes a lot of money from donations.", "The café changes how people think about waste."], "answer": 3, "explain": "Chị thừa nhận chỉ sửa được khoảng 70%, nhưng “the point isn't really the toaster” – mọi người “go home thinking differently about what they throw away”." },
+        { "q": "What is Grace's opinion of recycling?", "options": ["It is useful, but it should not be the first solution we try.", "It is a complete waste of time and money.", "It is the most important way to deal with waste.", "It works well for most household products."], "answer": 0, "explain": "Grace nói: “Recycling helps, but it should be the last option, not the first.”" }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "Fact file: the Fix-It Café",
+      "instruction": "Listen again. Complete the notes. Write ONE word or a number in each gap.",
+      "instructionVi": "Nghe lại. Hoàn thành ghi chú. Mỗi chỗ trống viết MỘT từ hoặc một con số.",
+      "listen": true,
+      "bank": null,
+      "items": [
+        { "q": "Started: ___ years ago", "answer": ["three", "3"], "explain": "Grace kể: “Three years ago my toaster broke…” – quán ra đời từ đó." },
+        { "q": "Meets on the first ___ of every month", "answer": ["Saturday"], "explain": "“We meet on the first Saturday of every month.”" },
+        { "q": "Place: the community ___", "answer": ["centre", "center"], "explain": "“…at the community centre.” – nhà văn hóa cộng đồng." },
+        { "q": "Number of volunteers: about ___", "answer": ["fifteen", "15"], "explain": "“About fifteen volunteers repair lamps, bikes, clothes, even laptops.”" },
+        { "q": "Things successfully repaired: about ___ per cent", "answer": ["seventy", "70"], "explain": "“We only manage to fix about seventy per cent of things.”" },
+        { "q": "Next project: a ___ library", "answer": ["tool"], "explain": "“Next spring we're opening a tool library.” – thư viện cho mượn dụng cụ." }
+      ]
+    },
+    {
+      "type": "truefalse",
+      "title": "True, false or not given?",
+      "instruction": "Listen. Are the sentences true (T), false (F), or is the information not given (NG)?",
+      "instructionVi": "Nghe. Các câu sau đúng (T), sai (F) hay không có thông tin (NG)?",
+      "listen": true,
+      "ng": true,
+      "items": [
+        { "q": "Grace managed to repair her toaster by herself.", "answer": "F", "explain": "Sai. Chị nói: “I tried, and failed, actually!” – người sửa được là bác thợ điện." },
+        { "q": "The person who fixed the toaster no longer works as an electrician.", "answer": "T", "explain": "Đúng. Đó là “a retired electrician” – thợ điện đã nghỉ hưu." },
+        { "q": "Visitors have to pay a fee for each repair.", "answer": "F", "explain": "Sai. Grace nói: “No, it's free” – chỉ là nhiều người tự nguyện quyên góp." },
+        { "q": "The café receives money from the local council.", "answer": "NG", "explain": "Không có thông tin. Bài chỉ nhắc đến tiền quyên góp của khách, không nói gì về chính quyền địa phương." },
+        { "q": "Grace believes a lot of the waste in recycling bins is never recycled.", "answer": "T", "explain": "Đúng. “A lot of what goes in our bins never actually gets recycled.”" },
+        { "q": "Most of the volunteers are teenagers.", "answer": "NG", "explain": "Không có thông tin. Grace chỉ nói có khoảng mười lăm tình nguyện viên, không nói tuổi của họ." }
+      ]
+    },
+    {
+      "type": "multi",
+      "title": "What does Grace say?",
+      "instruction": "Listen. Tick ALL the correct answers.",
+      "instructionVi": "Nghe. Đánh dấu TẤT CẢ các đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Which things do the volunteers repair? Tick ALL correct answers.", "options": ["lamps", "phones", "bikes", "furniture", "laptops", "clothes"], "answers": [0, 2, 4, 5], "explain": "Grace liệt kê: “lamps, bikes, clothes, even laptops”. Chị không nhắc đến điện thoại hay đồ nội thất." },
+        { "q": "Which views does Grace express? Tick ALL correct answers.", "options": ["Recycling should be the first thing we try.", "Many people have knowledge that isn't being shared.", "Borrowing tools can be better than buying them.", "Shops should stop selling cheap toasters.", "A small project can change people's attitudes."], "answers": [1, 2, 4], "explain": "Grace nói về kiến thức “nobody is sharing”, về việc mượn máy khoan “instead of buying one they'll use twice”, và về việc mọi người “go home thinking differently”. Chị nói tái chế nên là “the last option”, và không đòi cửa hàng ngừng bán máy nướng bánh." }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "Waste words",
+      "instruction": "Complete the sentences with words from the box. There are two extra words.",
+      "instructionVi": "Hoàn thành câu bằng các từ trong khung. Có hai từ thừa.",
+      "bank": ["landfill", "single-use", "circular economy", "upcycle", "donation", "manufacturer", "compost"],
+      "items": [
+        { "q": "Most of the town's rubbish ends up in ___ sites outside the city.", "answer": ["landfill"], "explain": "“landfill site” = bãi chôn lấp rác." },
+        { "q": "Many cafés now refuse to serve drinks in ___ plastic cups.", "answer": ["single-use"], "explain": "“single-use plastic” = đồ nhựa dùng một lần rồi bỏ." },
+        { "q": "In a ___, products are designed to be repaired, reused and finally recycled.", "answer": ["circular economy"], "explain": "“circular economy” = kinh tế tuần hoàn: sản phẩm được sửa, dùng lại, tái chế thay vì vứt bỏ." },
+        { "q": "My sister loves to ___ old jeans into bags and cushions.", "answer": ["upcycle"], "explain": "“upcycle” = biến đồ cũ thành đồ mới có giá trị hơn." },
+        { "q": "We put fruit and vegetable peel on the ___ heap at the end of the garden.", "answer": ["compost"], "explain": "“compost heap” = đống ủ phân hữu cơ từ rác nhà bếp." }
+      ]
+    },
+    {
+      "type": "dictation",
+      "title": "Listen and write",
+      "instruction": "Listen and write the sentences.",
+      "instructionVi": "Nghe và chép lại các câu.",
+      "listen": true,
+      "items": [
+        { "text": "Recycling should be our last option rather than our first.", "explain": "“rather than” = thay vì, hơn là." },
+        { "text": "Volunteers repair lamps, bikes and clothes on the first Saturday of every month.", "explain": "Chú ý dấu phẩy khi liệt kê và cụm “the first Saturday of every month”." },
+        { "text": "Many products are designed so that they cannot be opened or repaired.", "explain": "Câu bị động “are designed”, “be opened”, “be repaired”; “so that” = để mà." },
+        { "text": "Borrowing a tool is often cheaper and greener than buying a new one.", "explain": "Danh động từ “Borrowing” làm chủ ngữ; so sánh hơn “cheaper and greener than”." }
+      ]
+    }
+  ]
+}

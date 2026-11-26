@@ -1,0 +1,139 @@
+{
+  "id": "b1-02",
+  "level": "B1",
+  "order": 2,
+  "icon": "🍎",
+  "title": "Healthy habits",
+  "titleVi": "Thói quen lành mạnh",
+  "goals": [
+    "Nói về giấc ngủ, ăn uống, vận động và căng thẳng",
+    "Hiểu lời khuyên về sức khỏe và ghi chú thông tin chính",
+    "Dùng từ vựng về lối sống lành mạnh"
+  ],
+  "vocab": [
+    { "en": "exhausted", "vi": "kiệt sức, rất mệt", "ipa": "/ɪɡˈzɔːstɪd/", "ex": "I was exhausted after the long run." },
+    { "en": "routine", "vi": "nếp sinh hoạt hằng ngày", "ipa": "/ruːˈtiːn/", "ex": "A good bedtime routine helps you sleep better." },
+    { "en": "caffeine", "vi": "chất caffeine (trong cà phê, nước tăng lực)", "ipa": "/ˈkæfiːn/", "ex": "Coffee has a lot of caffeine in it." },
+    { "en": "energy drink", "vi": "nước tăng lực", "ipa": "/ˈenədʒi drɪŋk/", "ex": "He drinks an energy drink before every exam." },
+    { "en": "a balanced diet", "vi": "chế độ ăn cân bằng", "ipa": "/ə ˌbælənst ˈdaɪət/", "ex": "A balanced diet includes fruit, vegetables and protein." },
+    { "en": "skip (a meal)", "vi": "bỏ (một bữa ăn)", "ipa": "/skɪp/", "ex": "Try not to skip breakfast on school days." },
+    { "en": "porridge", "vi": "cháo yến mạch", "ipa": "/ˈpɒrɪdʒ/", "ex": "I have porridge with banana every morning." },
+    { "en": "work out", "vi": "tập thể dục", "ipa": "/ˌwɜːk ˈaʊt/", "ex": "My brother works out at the gym three times a week." },
+    { "en": "stressed", "vi": "căng thẳng", "ipa": "/strest/", "ex": "She feels stressed before her exams." },
+    { "en": "breathe", "vi": "thở", "ipa": "/briːð/", "ex": "Breathe slowly when you feel nervous." },
+    { "en": "screen time", "vi": "thời gian dùng màn hình", "ipa": "/ˈskriːn taɪm/", "ex": "My parents want me to reduce my screen time." }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "A chat with the school nurse",
+    "context": "Jake hay ngủ gật trong lớp nên giáo viên gửi bạn ấy đến gặp cô Patel, y tá của trường.",
+    "speakers": [
+      { "id": "N", "name": "Mrs Patel", "voice": "female" },
+      { "id": "J", "name": "Jake", "voice": "male" }
+    ],
+    "lines": [
+      { "s": "N", "en": "Hi Jake, come in. Your teacher says you've been falling asleep in class.", "vi": "Chào Jake, vào đi em. Thầy cô nói dạo này em hay ngủ gật trong lớp." },
+      { "s": "J", "en": "Yeah, sorry. I'm just really tired all the time.", "vi": "Dạ vâng, em xin lỗi. Lúc nào em cũng thấy mệt lắm." },
+      { "s": "N", "en": "How many hours do you usually sleep?", "vi": "Em thường ngủ mấy tiếng?" },
+      { "s": "J", "en": "Um, about five, maybe six. I go to bed at around one.", "vi": "Ừm, khoảng năm, có khi sáu tiếng. Em đi ngủ lúc khoảng một giờ sáng." },
+      { "s": "N", "en": "That's not enough. Teenagers need eight to ten hours. What keeps you up so late?", "vi": "Như thế là không đủ. Tuổi thiếu niên cần ngủ từ tám đến mười tiếng. Điều gì khiến em thức khuya vậy?" },
+      { "s": "J", "en": "Mostly my phone. I watch videos or play games with my friends.", "vi": "Chủ yếu là điện thoại ạ. Em xem video hoặc chơi game với bạn." },
+      { "s": "N", "en": "Okay. Try putting your phone in another room an hour before bed.", "vi": "Được rồi. Em thử để điện thoại ở phòng khác một tiếng trước khi ngủ nhé." },
+      { "s": "J", "en": "An hour? That's going to be hard, but I'll try.", "vi": "Một tiếng ạ? Chắc sẽ khó đấy, nhưng em sẽ thử." },
+      { "s": "N", "en": "Good. And what do you have for breakfast?", "vi": "Tốt. Thế bữa sáng em ăn gì?" },
+      { "s": "J", "en": "Nothing, really. I usually buy an energy drink on the way to school.", "vi": "Thật ra là không ăn gì ạ. Em thường mua một lon nước tăng lực trên đường đến trường." },
+      { "s": "N", "en": "Those drinks are full of sugar and caffeine. A banana or some porridge would be much better.", "vi": "Mấy loại nước đó toàn đường và caffeine. Một quả chuối hoặc ít cháo yến mạch sẽ tốt hơn nhiều." },
+      { "s": "J", "en": "Fine. I'm also quite stressed about my exams next month.", "vi": "Vâng ạ. Em cũng khá căng thẳng vì kỳ thi tháng sau." },
+      { "s": "N", "en": "That's normal. Exercise helps a lot, and so does slow breathing. How do you get to school?", "vi": "Chuyện đó bình thường thôi. Tập thể dục giúp ích nhiều lắm, hít thở chậm cũng vậy. Em đến trường bằng gì?" },
+      { "s": "J", "en": "My dad drives me, but it's only a twenty-minute walk.", "vi": "Bố em chở em đi, nhưng thật ra đi bộ chỉ mất hai mươi phút." },
+      { "s": "N", "en": "Then walk! Let's meet again next Thursday to see how it's going.", "vi": "Vậy thì đi bộ đi! Thứ Năm tuần sau mình gặp lại để xem tình hình thế nào nhé." },
+      { "s": "J", "en": "Okay. Thanks, Mrs Patel.", "vi": "Vâng ạ. Em cảm ơn cô Patel." }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "choice",
+      "title": "Listen and choose",
+      "instruction": "Listen to the conversation. Choose the correct answer.",
+      "instructionVi": "Nghe đoạn hội thoại và chọn đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Why did Jake's teacher send him to the nurse?", "options": ["He felt sick in class.", "He was falling asleep in class.", "He hurt himself in PE.", "He missed an exam."], "answer": 1, "explain": "Cô Patel nói: “Your teacher says you've been falling asleep in class.” – Jake hay ngủ gật trong lớp." },
+        { "q": "What keeps Jake awake at night?", "options": ["His homework", "Noise from the street", "His phone", "Worrying about his family"], "answer": 2, "explain": "Jake trả lời: “Mostly my phone. I watch videos or play games with my friends.”" },
+        { "q": "What does the nurse suggest for breakfast?", "options": ["A banana or some porridge", "Eggs and toast", "A glass of fruit juice", "A smaller energy drink"], "answer": 0, "explain": "Cô Patel khuyên: “A banana or some porridge would be much better.”" },
+        { "q": "When are Jake's exams?", "options": ["Next week", "Next Thursday", "Next month", "Next year"], "answer": 2, "explain": "Jake nói: “I'm also quite stressed about my exams next month.” Thứ Năm tuần sau là ngày hẹn gặp lại y tá, không phải ngày thi." },
+        { "q": "How does Jake usually get to school?", "options": ["He walks.", "He takes the bus.", "He cycles.", "His dad drives him."], "answer": 3, "explain": "Jake nói: “My dad drives me” – bố chở Jake đến trường, dù đi bộ chỉ mất hai mươi phút." }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "The nurse's notes",
+      "instruction": "Listen again. Complete the nurse's notes. Write ONE or TWO words or a number.",
+      "instructionVi": "Nghe lại. Hoàn thành ghi chú của y tá. Viết MỘT hoặc HAI từ, hoặc một con số.",
+      "listen": true,
+      "bank": null,
+      "items": [
+        { "q": "Goes to bed at around ___ o'clock.", "answer": ["one", "1"], "explain": "Jake nói: “I go to bed at around one.” – khoảng một giờ sáng." },
+        { "q": "Teenagers need ___ to ten hours of sleep.", "answer": ["eight", "8"], "explain": "Cô Patel nói: “Teenagers need eight to ten hours.”" },
+        { "q": "Advice: put phone in another room ___ before bed.", "answer": ["an hour", "one hour", "1 hour"], "explain": "“Try putting your phone in another room an hour before bed.” – một tiếng trước khi ngủ." },
+        { "q": "Breakfast now: an ___ drink.", "answer": ["energy"], "explain": "Jake nói: “I usually buy an energy drink on the way to school.”" },
+        { "q": "Walk to school takes ___ minutes.", "answer": ["twenty", "20"], "explain": "“It's only a twenty-minute walk.” – đi bộ chỉ mất hai mươi phút." },
+        { "q": "Next appointment: next ___", "answer": ["Thursday"], "explain": "Cô Patel hẹn: “Let's meet again next Thursday.”" }
+      ]
+    },
+    {
+      "type": "truefalse",
+      "title": "True, false or not given?",
+      "instruction": "Listen. Are the sentences true (T), false (F), or is the information not given (NG)?",
+      "instructionVi": "Nghe. Các câu sau đúng (T), sai (F) hay không có thông tin (NG)?",
+      "listen": true,
+      "ng": true,
+      "items": [
+        { "q": "Jake sleeps for about five or six hours a night.", "answer": "T", "explain": "Đúng. Jake nói: “About five, maybe six.”" },
+        { "q": "Jake thinks it will be easy to put his phone away.", "answer": "F", "explain": "Sai. Jake nói: “That's going to be hard, but I'll try.” – bạn ấy nghĩ sẽ khó." },
+        { "q": "Jake plays football after school.", "answer": "NG", "explain": "Không có thông tin. Trong bài không ai nói Jake chơi môn thể thao nào." },
+        { "q": "The nurse says energy drinks contain a lot of sugar.", "answer": "T", "explain": "Đúng. Cô Patel nói: “Those drinks are full of sugar and caffeine.”" },
+        { "q": "Jake's school is a long way from his house.", "answer": "F", "explain": "Sai. Jake nói: “It's only a twenty-minute walk.” – trường khá gần nhà." },
+        { "q": "Jake's friends also have problems with sleep.", "answer": "NG", "explain": "Không có thông tin. Jake chỉ nói chơi game với bạn, không nói bạn bè có ngủ đủ hay không." }
+      ]
+    },
+    {
+      "type": "multi",
+      "title": "Problems and advice",
+      "instruction": "Listen. Tick ALL the correct answers.",
+      "instructionVi": "Nghe. Đánh dấu TẤT CẢ các đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Which pieces of advice does the nurse give Jake? Tick ALL correct answers.", "options": ["Keep his phone in another room before bed", "Go to bed at nine o'clock", "Eat a healthier breakfast", "Join a sports team", "Walk to school"], "answers": [0, 2, 4], "explain": "Cô Patel khuyên để điện thoại ở phòng khác (“putting your phone in another room”), ăn sáng lành mạnh hơn (“A banana or some porridge”) và đi bộ đến trường (“Then walk!”). Cô không nói giờ đi ngủ cụ thể hay tham gia đội thể thao." },
+        { "q": "Which problems does Jake mention? Tick ALL correct answers.", "options": ["He is tired all the time.", "He gets headaches.", "He is stressed about exams.", "He doesn't eat breakfast.", "He can't concentrate when he reads."], "answers": [0, 2, 3], "explain": "Jake nói: “I'm just really tired all the time”, “I'm also quite stressed about my exams” và bữa sáng thì “Nothing, really”. Bạn ấy không nhắc đến đau đầu hay khó tập trung khi đọc." }
+      ]
+    },
+    {
+      "type": "match",
+      "title": "Healthy words",
+      "instruction": "Match the words and phrases with their meanings.",
+      "instructionVi": "Nối từ và cụm từ với nghĩa của chúng.",
+      "pairs": [
+        { "left": "caffeine", "right": "a substance in coffee and energy drinks that keeps you awake", "explain": "“caffeine” là chất kích thích có trong cà phê, trà, nước tăng lực, làm ta tỉnh táo." },
+        { "left": "a balanced diet", "right": "eating the right amounts of different kinds of food", "explain": "“a balanced diet” = chế độ ăn cân bằng, đủ các nhóm chất." },
+        { "left": "stressed", "right": "worried and unable to relax", "explain": "“stressed” = căng thẳng, lo lắng, không thư giãn được." },
+        { "left": "work out", "right": "do exercise, for example at a gym", "explain": "“work out” = tập thể dục, tập luyện." },
+        { "left": "skip a meal", "right": "not eat a meal that you normally have", "explain": "“skip a meal” = bỏ bữa, như Jake bỏ bữa sáng." },
+        { "left": "screen time", "right": "the time you spend looking at a phone, computer or TV", "explain": "“screen time” = thời gian nhìn màn hình điện thoại, máy tính, ti vi." }
+      ]
+    },
+    {
+      "type": "dictation",
+      "title": "Listen and write",
+      "instruction": "Listen and write the sentences.",
+      "instructionVi": "Nghe và chép lại các câu.",
+      "listen": true,
+      "items": [
+        { "text": "Teenagers need between eight and ten hours of sleep every night.", "explain": "“between… and…” = trong khoảng từ… đến… Số viết bằng chữ: eight, ten." },
+        { "text": "I try to go for a walk when I feel stressed.", "explain": "“go for a walk” = đi dạo; “feel stressed” = cảm thấy căng thẳng." },
+        { "text": "Energy drinks are full of sugar, so I stopped buying them.", "explain": "“be full of” = chứa nhiều; “stop + V-ing” = ngừng làm gì." },
+        { "text": "My doctor told me to eat more fruit and vegetables.", "explain": "“tell somebody to do something” = bảo ai làm gì." }
+      ]
+    }
+  ]
+}

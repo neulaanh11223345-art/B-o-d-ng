@@ -1,0 +1,141 @@
+{
+  "id": "a1-01",
+  "level": "A1",
+  "order": 1,
+  "icon": "🦴",
+  "title": "Move your body!",
+  "titleVi": "Cơ thể chuyển động",
+  "goals": [
+    "Gọi tên xương, khớp và cơ trên cơ thể",
+    "Nói các khớp và cơ giúp ta làm gì",
+    "Làm theo các bước giãn cơ đơn giản bằng tiếng Anh"
+  ],
+  "vocab": [
+    { "en": "bone", "vi": "xương", "ipa": "/bəʊn/", "ex": "Bones are hard." },
+    { "en": "skeleton", "vi": "bộ xương", "ipa": "/ˈskelɪtn/", "ex": "This skeleton is very big." },
+    { "en": "joint", "vi": "khớp", "ipa": "/dʒɔɪnt/", "ex": "My knee is a joint." },
+    { "en": "muscle", "vi": "cơ, bắp thịt", "ipa": "/ˈmʌsl/", "ex": "Muscles move our bones." },
+    { "en": "bend", "vi": "gập, uốn cong", "ipa": "/bend/", "ex": "Bend your knees, please." },
+    { "en": "knee", "vi": "đầu gối", "ipa": "/niː/", "ex": "I can bend my knee." },
+    { "en": "elbow", "vi": "khuỷu tay", "ipa": "/ˈelbəʊ/", "ex": "My elbow is in the middle of my arm." },
+    { "en": "ankle", "vi": "mắt cá chân", "ipa": "/ˈæŋkl/", "ex": "My ankle helps me move my foot." },
+    { "en": "wrist", "vi": "cổ tay", "ipa": "/rɪst/", "ex": "I wear a watch on my wrist." },
+    { "en": "shoulder", "vi": "vai", "ipa": "/ˈʃəʊldə/", "ex": "Put your hands on your shoulders." },
+    { "en": "hip", "vi": "hông", "ipa": "/hɪp/", "ex": "Put your hands on your hips." },
+    { "en": "neck", "vi": "cổ", "ipa": "/nek/", "ex": "My neck helps me turn my head." }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "At the science club",
+    "context": "Thầy Ben cho hai bạn Nam và Lily xem một bộ xương mô hình ở câu lạc bộ khoa học, rồi cả lớp cùng giãn cơ.",
+    "speakers": [
+      { "id": "T", "name": "Mr Ben", "voice": "male" },
+      { "id": "N", "name": "Nam", "voice": "child" },
+      { "id": "L", "name": "Lily", "voice": "female" }
+    ],
+    "lines": [
+      { "s": "T", "en": "Welcome to science club! Look, this is a skeleton.", "vi": "Chào mừng các em đến câu lạc bộ khoa học! Nhìn này, đây là một bộ xương." },
+      { "s": "N", "en": "Wow, it's big! Is it made of bones?", "vi": "Ồ, nó to quá! Nó được làm từ xương ạ?" },
+      { "s": "T", "en": "Yes, it is. We have 206 bones in our body.", "vi": "Đúng vậy. Cơ thể chúng ta có 206 chiếc xương." },
+      { "s": "L", "en": "Are bones hard or soft?", "vi": "Xương cứng hay mềm ạ?" },
+      { "s": "T", "en": "Bones are hard. Muscles are soft. Muscles move our bones.", "vi": "Xương thì cứng. Cơ thì mềm. Cơ làm cho xương chuyển động." },
+      { "s": "N", "en": "What's this, Mr Ben?", "vi": "Cái này là gì vậy thầy Ben?" },
+      { "s": "T", "en": "It's a knee. A knee is a joint. Joints help us bend.", "vi": "Đó là đầu gối. Đầu gối là một khớp. Các khớp giúp chúng ta gập người, co duỗi." },
+      { "s": "L", "en": "Look! I can bend my elbow. I can bend my wrist too.", "vi": "Nhìn này! Em gập được khuỷu tay. Em cũng gập được cổ tay nữa." },
+      { "s": "N", "en": "And I can turn my head. My neck is a joint!", "vi": "Còn em quay được đầu. Cổ của em là một khớp!" },
+      { "s": "T", "en": "Great! Now let's stretch. First, stand up tall.", "vi": "Giỏi lắm! Bây giờ mình cùng giãn cơ nhé. Đầu tiên, đứng thẳng lên." },
+      { "s": "T", "en": "Next, put your arms up. Then touch your toes.", "vi": "Tiếp theo, giơ hai tay lên. Sau đó chạm tay vào ngón chân." },
+      { "s": "T", "en": "Last, shake your arms and legs!", "vi": "Cuối cùng, lắc lắc tay và chân nào!" }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "label",
+      "title": "Label the body",
+      "instruction": "Look at the picture. Write the words.",
+      "instructionVi": "Nhìn hình và ghi tên các bộ phận cơ thể.",
+      "image": "body",
+      "bank": ["head", "neck", "shoulder", "arm", "elbow", "hand", "knee", "leg", "foot"],
+      "points": [
+        { "n": 1, "answer": "head", "explain": "Số 1 là cái đầu (head), ở trên cùng của cơ thể." },
+        { "n": 2, "answer": "neck", "explain": "Số 2 là cái cổ (neck), nối đầu với thân người." },
+        { "n": 3, "answer": "shoulder", "explain": "Số 3 là vai (shoulder), chỗ cánh tay nối với thân." },
+        { "n": 4, "answer": "arm", "explain": "Số 4 là cánh tay (arm)." },
+        { "n": 5, "answer": "elbow", "explain": "Số 5 là khuỷu tay (elbow), khớp ở giữa cánh tay." },
+        { "n": 6, "answer": "hand", "explain": "Số 6 là bàn tay (hand), ở cuối cánh tay." },
+        { "n": 7, "answer": "knee", "explain": "Số 7 là đầu gối (knee), khớp ở giữa chân." },
+        { "n": 8, "answer": "leg", "explain": "Số 8 là cái chân (leg)." },
+        { "n": 9, "answer": "foot", "explain": "Số 9 là bàn chân (foot), ở dưới cùng." }
+      ]
+    },
+    {
+      "type": "pick",
+      "title": "Listen and pick",
+      "instruction": "Listen. Choose the correct word.",
+      "instructionVi": "Nghe và chọn từ đúng để hoàn thành câu.",
+      "listen": true,
+      "items": [
+        { "q": "Bones are ___.", "options": ["hard", "soft"], "answer": 0, "explain": "Thầy Ben nói: “Bones are hard.” – Xương thì cứng." },
+        { "q": "Muscles are ___.", "options": ["hard", "soft"], "answer": 1, "explain": "Thầy Ben nói: “Muscles are soft.” – Cơ thì mềm." },
+        { "q": "A knee is a ___.", "options": ["joint", "bone"], "answer": 0, "explain": "Thầy Ben nói: “A knee is a joint.” – Đầu gối là một khớp." },
+        { "q": "Muscles move our ___.", "options": ["eyes", "bones"], "answer": 1, "explain": "Thầy Ben nói: “Muscles move our bones.” – Cơ làm xương chuyển động." },
+        { "q": "The skeleton is ___.", "options": ["big", "small"], "answer": 0, "explain": "Nam nói: “Wow, it's big!” – Bộ xương rất to." },
+        { "q": "Nam says: “My ___ is a joint.”", "options": ["nose", "neck"], "answer": 1, "explain": "Nam nói: “My neck is a joint!” – Cổ là một khớp, giúp bạn ấy quay đầu." }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "Where is it?",
+      "instruction": "Choose the correct word for each sentence.",
+      "instructionVi": "Chọn từ đúng điền vào chỗ trống.",
+      "bank": ["wrist", "ankle", "neck", "knee", "elbow", "hip"],
+      "items": [
+        { "q": "My ___ is between my hand and my arm.", "answer": ["wrist"], "explain": "Cổ tay (wrist) nằm giữa bàn tay và cánh tay." },
+        { "q": "My ___ is between my foot and my leg.", "answer": ["ankle"], "explain": "Mắt cá chân (ankle) nằm giữa bàn chân và cẳng chân." },
+        { "q": "My ___ is between my head and my shoulders.", "answer": ["neck"], "explain": "Cổ (neck) nằm giữa đầu và hai vai." },
+        { "q": "My ___ is in the middle of my leg.", "answer": ["knee"], "explain": "Đầu gối (knee) là khớp ở giữa chân." },
+        { "q": "My ___ is in the middle of my arm.", "answer": ["elbow"], "explain": "Khuỷu tay (elbow) là khớp ở giữa cánh tay." }
+      ]
+    },
+    {
+      "type": "choice",
+      "title": "Listen and choose",
+      "instruction": "Listen. Choose the correct answer.",
+      "instructionVi": "Nghe và chọn đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Where are Nam and Lily?", "options": ["At home", "At the science club", "At the park"], "answer": 1, "explain": "Thầy Ben nói: “Welcome to science club!” – Các bạn đang ở câu lạc bộ khoa học." },
+        { "q": "How many bones do we have?", "options": ["26", "106", "206"], "answer": 2, "explain": "Thầy Ben nói: “We have 206 bones in our body.” – Cơ thể có 206 chiếc xương." },
+        { "q": "What helps us bend?", "options": ["Joints", "Bones", "Eyes"], "answer": 0, "explain": "Thầy Ben nói: “Joints help us bend.” – Các khớp giúp ta co duỗi." },
+        { "q": "What can Lily bend?", "options": ["Her ankle", "Her elbow", "Her hip"], "answer": 1, "explain": "Lily nói: “I can bend my elbow.” – Bạn ấy gập được khuỷu tay (và cổ tay)." },
+        { "q": "What can Nam turn?", "options": ["His foot", "His hand", "His head"], "answer": 2, "explain": "Nam nói: “I can turn my head.” – Bạn ấy quay được đầu nhờ khớp cổ." }
+      ]
+    },
+    {
+      "type": "match",
+      "title": "What can it do?",
+      "instruction": "Match the body part to what it helps you do.",
+      "instructionVi": "Nối bộ phận cơ thể với việc nó giúp em làm.",
+      "pairs": [
+        { "left": "my neck", "right": "turn my head", "explain": "Cổ (neck) giúp em quay đầu (turn my head)." },
+        { "left": "my knees", "right": "bend my legs", "explain": "Đầu gối (knees) giúp em gập chân (bend my legs)." },
+        { "left": "my elbows", "right": "bend my arms", "explain": "Khuỷu tay (elbows) giúp em gập tay (bend my arms)." },
+        { "left": "my ankles", "right": "move my feet", "explain": "Mắt cá chân (ankles) giúp em cử động bàn chân (move my feet)." },
+        { "left": "my wrists", "right": "move my hands", "explain": "Cổ tay (wrists) giúp em cử động bàn tay (move my hands)." }
+      ]
+    },
+    {
+      "type": "order",
+      "title": "Let's stretch!",
+      "instruction": "Listen. Put the stretching steps in order.",
+      "instructionVi": "Nghe và sắp xếp các bước giãn cơ theo đúng thứ tự.",
+      "listen": true,
+      "items": [
+        { "text": "Stand up tall.", "explain": "Thầy Ben nói “First, stand up tall.” – Đầu tiên (first) là đứng thẳng." },
+        { "text": "Put your arms up.", "explain": "“Next, put your arms up.” – Tiếp theo (next) là giơ hai tay lên." },
+        { "text": "Touch your toes.", "explain": "“Then touch your toes.” – Sau đó (then) chạm tay vào ngón chân." },
+        { "text": "Shake your arms and legs.", "explain": "“Last, shake your arms and legs!” – Cuối cùng (last) là lắc tay và chân." }
+      ]
+    }
+  ]
+}

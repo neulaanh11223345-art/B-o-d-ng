@@ -1,0 +1,141 @@
+{
+  "id": "a1-02",
+  "level": "A1",
+  "order": 2,
+  "icon": "👃",
+  "title": "My face and five senses",
+  "titleVi": "Khuôn mặt và năm giác quan",
+  "goals": [
+    "Gọi tên các bộ phận trên khuôn mặt",
+    "Nói về năm giác quan: nhìn, nghe, ngửi, nếm, chạm",
+    "Làm theo các bước của một thí nghiệm đoán mùi vị"
+  ],
+  "vocab": [
+    { "en": "eyebrow", "vi": "lông mày", "ipa": "/ˈaɪbraʊ/", "ex": "My eyebrows are above my eyes." },
+    { "en": "eyelash", "vi": "lông mi", "ipa": "/ˈaɪlæʃ/", "ex": "My cat has long eyelashes." },
+    { "en": "cheek", "vi": "má", "ipa": "/tʃiːk/", "ex": "Her cheeks are pink." },
+    { "en": "chin", "vi": "cằm", "ipa": "/tʃɪn/", "ex": "My chin is under my mouth." },
+    { "en": "tongue", "vi": "lưỡi", "ipa": "/tʌŋ/", "ex": "I taste with my tongue." },
+    { "en": "sense", "vi": "giác quan", "ipa": "/sens/", "ex": "We have five senses." },
+    { "en": "see", "vi": "nhìn thấy", "ipa": "/siː/", "ex": "I see with my eyes." },
+    { "en": "hear", "vi": "nghe thấy", "ipa": "/hɪə/", "ex": "I can hear a bird." },
+    { "en": "smell", "vi": "ngửi; có mùi", "ipa": "/smel/", "ex": "This flower smells nice." },
+    { "en": "taste", "vi": "nếm; có vị", "ipa": "/teɪst/", "ex": "Lemons taste sour." },
+    { "en": "touch", "vi": "chạm, sờ", "ipa": "/tʌtʃ/", "ex": "Touch your nose!" },
+    { "en": "blindfold", "vi": "khăn bịt mắt", "ipa": "/ˈblaɪndfəʊld/", "ex": "Put on the blindfold." }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "The mystery food game",
+    "context": "Cô Kim tổ chức trò chơi “món ăn bí ẩn”: bạn Mai và bạn Leo bịt mắt, ngửi, nếm rồi đoán xem đó là gì.",
+    "speakers": [
+      { "id": "T", "name": "Ms Kim", "voice": "female" },
+      { "id": "M", "name": "Mai", "voice": "child" },
+      { "id": "L", "name": "Leo", "voice": "male" }
+    ],
+    "lines": [
+      { "s": "T", "en": "Hello, everyone! Today we have a mystery food game.", "vi": "Chào cả lớp! Hôm nay chúng ta chơi trò “món ăn bí ẩn”." },
+      { "s": "M", "en": "I'm ready, Ms Kim!", "vi": "Em sẵn sàng rồi cô Kim ơi!" },
+      { "s": "T", "en": "First, put on this blindfold, Mai. Can you see?", "vi": "Đầu tiên, em đeo khăn bịt mắt này vào nhé, Mai. Em có nhìn thấy không?" },
+      { "s": "M", "en": "No, I can't see. It's dark!", "vi": "Không ạ, em không nhìn thấy gì. Tối om!" },
+      { "s": "T", "en": "Good. Next, smell this. Use your nose.", "vi": "Tốt. Tiếp theo, em ngửi cái này. Dùng mũi nhé." },
+      { "s": "M", "en": "Mmm, it smells sweet. Is it a mango?", "vi": "Ừm, nó có mùi ngọt. Có phải quả xoài không ạ?" },
+      { "s": "T", "en": "Now taste it. Use your tongue.", "vi": "Bây giờ em nếm thử đi. Dùng lưỡi nhé." },
+      { "s": "M", "en": "It's soft and sweet. Oh, it's a banana!", "vi": "Nó mềm và ngọt. À, là quả chuối!" },
+      { "s": "T", "en": "Yes! Last, take off the blindfold and look.", "vi": "Đúng rồi! Cuối cùng, em tháo khăn bịt mắt ra và nhìn xem." },
+      { "s": "L", "en": "My turn! Can I try, Ms Kim?", "vi": "Đến lượt em! Em thử được không cô Kim?" },
+      { "s": "T", "en": "OK, Leo. Put on the blindfold and smell this one.", "vi": "Được rồi, Leo. Em đeo khăn bịt mắt rồi ngửi cái này nhé." },
+      { "s": "L", "en": "Ooh, it smells sour. It's a lemon!", "vi": "Ôi, nó có mùi chua. Là quả chanh!" }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "label",
+      "title": "Label the face",
+      "instruction": "Look at the picture. Write the words.",
+      "instructionVi": "Nhìn hình và ghi tên các bộ phận trên khuôn mặt.",
+      "image": "face",
+      "bank": ["eyes", "eyelashes", "eyebrows", "ears", "cheeks", "nose", "mouth", "tongue", "chin"],
+      "points": [
+        { "n": 1, "answer": "eyebrows", "explain": "Số 1 là lông mày (eyebrows), nằm phía trên mắt." },
+        { "n": 2, "answer": "eyelashes", "explain": "Số 2 là lông mi (eyelashes), mọc ở mép mí mắt." },
+        { "n": 3, "answer": "eyes", "explain": "Số 3 là mắt (eyes) – ta dùng mắt để nhìn." },
+        { "n": 4, "answer": "ears", "explain": "Số 4 là tai (ears), ở hai bên đầu – ta dùng tai để nghe." },
+        { "n": 5, "answer": "cheeks", "explain": "Số 5 là má (cheeks), ở hai bên mũi." },
+        { "n": 6, "answer": "nose", "explain": "Số 6 là mũi (nose) – ta dùng mũi để ngửi." },
+        { "n": 7, "answer": "mouth", "explain": "Số 7 là miệng (mouth)." },
+        { "n": 8, "answer": "tongue", "explain": "Số 8 là lưỡi (tongue), ở trong miệng – ta dùng lưỡi để nếm." },
+        { "n": 9, "answer": "chin", "explain": "Số 9 là cằm (chin), ở dưới miệng." }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "My five senses",
+      "instruction": "Choose the correct word for each sentence.",
+      "instructionVi": "Chọn từ đúng điền vào chỗ trống.",
+      "bank": ["see", "hear", "smell", "taste", "touch"],
+      "items": [
+        { "q": "I ___ a rainbow with my eyes.", "answer": ["see"], "explain": "Ta nhìn (see) bằng mắt: “I see a rainbow” – Mình nhìn thấy cầu vồng." },
+        { "q": "Listen! I can ___ a bird.", "answer": ["hear"], "explain": "“Listen!” – Hãy lắng nghe! Ta nghe (hear) tiếng chim bằng tai." },
+        { "q": "Come here! These flowers ___ nice.", "answer": ["smell"], "explain": "Ta ngửi bằng mũi: “These flowers smell nice” – Những bông hoa này thơm quá." },
+        { "q": "Mmm! I ___ the cake with my tongue. It's sweet.", "answer": ["taste"], "explain": "Ta nếm (taste) bằng lưỡi và biết bánh có vị ngọt." },
+        { "q": "My cat is soft. I ___ it with my hand.", "answer": ["touch"], "explain": "Ta chạm, sờ (touch) bằng tay và biết con mèo mềm." }
+      ]
+    },
+    {
+      "type": "choice",
+      "title": "Listen and choose",
+      "instruction": "Listen. Choose the correct answer.",
+      "instructionVi": "Nghe và chọn đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "What does Mai put on first?", "options": ["A hat", "A blindfold", "A coat"], "answer": 1, "explain": "Cô Kim nói: “First, put on this blindfold, Mai.” – Đầu tiên Mai đeo khăn bịt mắt." },
+        { "q": "What is Mai's first guess?", "options": ["A mango", "A banana", "A lemon"], "answer": 0, "explain": "Mai ngửi rồi hỏi: “Is it a mango?” – Lần đầu bạn ấy đoán là quả xoài." },
+        { "q": "What is Mai's mystery food?", "options": ["An apple", "A lemon", "A banana"], "answer": 2, "explain": "Sau khi nếm, Mai nói: “Oh, it's a banana!” và cô Kim nói “Yes!”." },
+        { "q": "How does Mai's food smell?", "options": ["Sweet", "Sour", "Bad"], "answer": 0, "explain": "Mai nói: “Mmm, it smells sweet.” – Nó có mùi ngọt." },
+        { "q": "What does Leo smell?", "options": ["A mango", "A lemon", "A banana"], "answer": 1, "explain": "Leo nói: “It smells sour. It's a lemon!” – Bạn ấy ngửi thấy quả chanh." },
+        { "q": "What does Mai use to taste?", "options": ["Her ears", "Her eyes", "Her tongue"], "answer": 2, "explain": "Cô Kim nói: “Now taste it. Use your tongue.” – Ta nếm bằng lưỡi." }
+      ]
+    },
+    {
+      "type": "pick",
+      "title": "Pick the word",
+      "instruction": "Choose the correct word.",
+      "instructionVi": "Chọn từ đúng để hoàn thành câu.",
+      "items": [
+        { "q": "Lemons are ___.", "options": ["sweet", "sour"], "answer": 1, "explain": "Quả chanh có vị chua (sour), không ngọt." },
+        { "q": "Ice is ___.", "options": ["cold", "hot"], "answer": 0, "explain": "Đá lạnh (cold) khi ta chạm vào." },
+        { "q": "I have two ___.", "options": ["ears", "noses"], "answer": 0, "explain": "Chúng ta có hai tai (two ears) nhưng chỉ có một mũi." },
+        { "q": "I have one ___.", "options": ["cheeks", "mouth"], "answer": 1, "explain": "“One” đi với danh từ số ít: one mouth – một cái miệng. Còn má thì có hai (cheeks)." },
+        { "q": "My ___ is under my mouth.", "options": ["chin", "eyebrow"], "answer": 0, "explain": "Cằm (chin) ở dưới miệng. Lông mày ở trên mắt." },
+        { "q": "My ___ are above my eyes.", "options": ["cheeks", "eyebrows"], "answer": 1, "explain": "Lông mày (eyebrows) nằm phía trên mắt." }
+      ]
+    },
+    {
+      "type": "match",
+      "title": "What can you do?",
+      "instruction": "Match the part of the body to what you can do.",
+      "instructionVi": "Nối bộ phận cơ thể với việc em có thể làm.",
+      "pairs": [
+        { "left": "eyes", "right": "see a rainbow", "explain": "Mắt (eyes) giúp ta nhìn thấy cầu vồng." },
+        { "left": "ears", "right": "hear music", "explain": "Tai (ears) giúp ta nghe nhạc." },
+        { "left": "nose", "right": "smell flowers", "explain": "Mũi (nose) giúp ta ngửi mùi hoa." },
+        { "left": "tongue", "right": "taste a cake", "explain": "Lưỡi (tongue) giúp ta nếm vị bánh." },
+        { "left": "hands", "right": "touch a soft cat", "explain": "Tay (hands) giúp ta sờ chú mèo mềm mại." }
+      ]
+    },
+    {
+      "type": "order",
+      "title": "The mystery food game",
+      "instruction": "Listen. Put Mai's steps in order.",
+      "instructionVi": "Nghe và sắp xếp các bước Mai làm theo đúng thứ tự.",
+      "listen": true,
+      "items": [
+        { "text": "Put on the blindfold.", "explain": "Cô Kim nói “First, put on this blindfold” – Đầu tiên là đeo khăn bịt mắt." },
+        { "text": "Smell the food with your nose.", "explain": "“Next, smell this. Use your nose.” – Tiếp theo là ngửi bằng mũi." },
+        { "text": "Taste the food with your tongue.", "explain": "“Now taste it. Use your tongue.” – Sau khi ngửi, Mai nếm bằng lưỡi." },
+        { "text": "Take off the blindfold and look.", "explain": "“Last, take off the blindfold and look.” – Cuối cùng là tháo khăn bịt mắt ra và nhìn." }
+      ]
+    }
+  ]
+}

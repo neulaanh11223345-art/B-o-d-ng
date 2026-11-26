@@ -1,0 +1,139 @@
+{
+  "id": "b1-03",
+  "level": "B1",
+  "order": 3,
+  "icon": "💼",
+  "title": "Getting a job",
+  "titleVi": "Đi tìm việc làm",
+  "goals": [
+    "Trả lời các câu hỏi phỏng vấn thường gặp về kinh nghiệm, kỹ năng và thời gian rảnh",
+    "Nghe và ghi lại thông tin về công việc: lương, ca làm, ngày bắt đầu",
+    "Dùng từ vựng về việc làm thêm và hồ sơ xin việc"
+  ],
+  "vocab": [
+    { "en": "apply (for)", "vi": "nộp đơn (xin việc, xin học)", "ipa": "/əˈplaɪ/", "ex": "I'm going to apply for a job at the bookshop." },
+    { "en": "CV", "vi": "sơ yếu lý lịch, hồ sơ xin việc", "ipa": "/ˌsiː ˈviː/", "ex": "Keep your CV short and clear." },
+    { "en": "interview", "vi": "buổi phỏng vấn", "ipa": "/ˈɪntəvjuː/", "ex": "My interview is on Monday morning." },
+    { "en": "part-time", "vi": "bán thời gian", "ipa": "/ˌpɑːt ˈtaɪm/", "ex": "She has a part-time job in a restaurant." },
+    { "en": "shift", "vi": "ca làm việc", "ipa": "/ʃɪft/", "ex": "The evening shift finishes at ten." },
+    { "en": "trial shift", "vi": "ca làm thử", "ipa": "/ˈtraɪəl ʃɪft/", "ex": "They asked me to do a trial shift on Saturday." },
+    { "en": "experience", "vi": "kinh nghiệm", "ipa": "/ɪkˈspɪəriəns/", "ex": "Do you have any experience with children?" },
+    { "en": "wage", "vi": "tiền lương (theo giờ, theo tuần)", "ipa": "/weɪdʒ/", "ex": "The wage is better at weekends." },
+    { "en": "weakness", "vi": "điểm yếu", "ipa": "/ˈwiːknəs/", "ex": "My biggest weakness is that I talk too fast." },
+    { "en": "till", "vi": "máy tính tiền", "ipa": "/tɪl/", "ex": "Can you show me how to use the till?" },
+    { "en": "references", "vi": "người giới thiệu, thư giới thiệu", "ipa": "/ˈrefrənsɪz/", "ex": "You need two references from teachers or employers." }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "An interview at the café",
+    "context": "Ben, mười bảy tuổi, đến phỏng vấn cho công việc làm thêm mùa hè ở một quán cà phê. Chị Sophie là quản lý quán.",
+    "speakers": [
+      { "id": "S", "name": "Sophie", "voice": "female" },
+      { "id": "B", "name": "Ben", "voice": "male" }
+    ],
+    "lines": [
+      { "s": "S", "en": "Hi, you must be Ben. I'm Sophie, the manager. Thanks for coming in.", "vi": "Chào em, chắc em là Ben. Chị là Sophie, quản lý ở đây. Cảm ơn em đã đến." },
+      { "s": "B", "en": "Hi, nice to meet you. Thanks for inviting me.", "vi": "Em chào chị, rất vui được gặp chị. Cảm ơn chị đã mời em." },
+      { "s": "S", "en": "So, how did you hear about the job?", "vi": "Vậy em biết đến công việc này bằng cách nào?" },
+      { "s": "B", "en": "I saw your advert on the noticeboard at the library.", "vi": "Em thấy tờ quảng cáo của quán trên bảng thông báo ở thư viện." },
+      { "s": "S", "en": "Great. Have you ever worked in a café before?", "vi": "Tốt. Em đã từng làm ở quán cà phê nào chưa?" },
+      { "s": "B", "en": "Not exactly, but last summer I helped out at my aunt's bakery. I served customers and used the till.", "vi": "Không hẳn ạ, nhưng hè năm ngoái em phụ ở tiệm bánh của cô em. Em phục vụ khách và dùng máy tính tiền." },
+      { "s": "S", "en": "That's useful. Why do you want to work here?", "vi": "Thế thì hữu ích đấy. Tại sao em muốn làm ở đây?" },
+      { "s": "B", "en": "Well, I enjoy talking to people, and I'd like to save money for university.", "vi": "Dạ, em thích nói chuyện với mọi người, và em muốn để dành tiền học đại học." },
+      { "s": "S", "en": "Good. What would you say is your biggest weakness?", "vi": "Tốt. Em nghĩ điểm yếu lớn nhất của mình là gì?" },
+      { "s": "B", "en": "Um, I can be a bit slow when I'm learning something new. But once I know it, I'm very careful.", "vi": "Ừm, em hơi chậm khi học một việc mới. Nhưng một khi đã biết rồi thì em làm rất cẩn thận." },
+      { "s": "S", "en": "That's honest. The job is from the first of July until the end of August. Are you free then?", "vi": "Em thật thà đấy. Công việc kéo dài từ ngày một tháng Bảy đến cuối tháng Tám. Lúc đó em rảnh chứ?" },
+      { "s": "B", "en": "Yes, but I can't work on Sundays because I play in a football team.", "vi": "Dạ rảnh, nhưng em không làm được Chủ nhật vì em chơi trong một đội bóng đá." },
+      { "s": "S", "en": "That's fine. The morning shift starts at seven thirty, and the pay is eight pounds fifty an hour.", "vi": "Không sao. Ca sáng bắt đầu lúc bảy giờ rưỡi, lương là tám bảng năm mươi một giờ." },
+      { "s": "B", "en": "Seven thirty? Wow, okay. That's early, but I'm sure I'll get used to it.", "vi": "Bảy giờ rưỡi ạ? Ồ, vâng. Sớm thật, nhưng em chắc là em sẽ quen thôi." },
+      { "s": "S", "en": "Could you come in for a trial shift next Tuesday? Wear black trousers and comfortable shoes.", "vi": "Thứ Ba tuần sau em đến làm thử một ca được không? Em mặc quần dài màu đen và đi giày thoải mái nhé." },
+      { "s": "B", "en": "Of course. Thank you so much!", "vi": "Tất nhiên rồi ạ. Em cảm ơn chị nhiều!" }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "gap",
+      "title": "Interview notes",
+      "instruction": "Listen to the interview. Complete Sophie's notes. Write ONE or TWO words or a number.",
+      "instructionVi": "Nghe buổi phỏng vấn. Hoàn thành ghi chú của Sophie. Viết MỘT hoặc HAI từ, hoặc một con số.",
+      "listen": true,
+      "bank": null,
+      "items": [
+        { "q": "Saw the advert at the ___", "answer": ["library"], "explain": "Ben nói: “I saw your advert on the noticeboard at the library.”" },
+        { "q": "Experience: helped at his aunt's ___", "answer": ["bakery"], "explain": "“Last summer I helped out at my aunt's bakery.” – tiệm bánh của cô Ben." },
+        { "q": "Can't work on ___", "answer": ["Sundays", "Sunday"], "explain": "Ben nói: “I can't work on Sundays because I play in a football team.”" },
+        { "q": "Morning shift starts at ___", "answer": ["7.30", "7:30", "seven thirty", "half past seven", "7.30 am", "7:30 am"], "explain": "Sophie nói: “The morning shift starts at seven thirty.” – bảy giờ rưỡi." },
+        { "q": "Pay: £___ an hour", "answer": ["8.50", "8.5", "8,50", "eight fifty", "eight pounds fifty"], "explain": "“The pay is eight pounds fifty an hour.” – tám bảng năm mươi xu một giờ (£8.50)." },
+        { "q": "Trial shift: next ___", "answer": ["Tuesday"], "explain": "Sophie hỏi: “Could you come in for a trial shift next Tuesday?”" }
+      ]
+    },
+    {
+      "type": "choice",
+      "title": "Listen and choose",
+      "instruction": "Listen again. Choose the correct answer.",
+      "instructionVi": "Nghe lại và chọn đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Why does Ben want the job?", "options": ["To make new friends", "To save money for university", "To learn how to cook", "Because his aunt told him to"], "answer": 1, "explain": "Ben nói: “I'd like to save money for university.” Bạn ấy cũng thích nói chuyện với mọi người." },
+        { "q": "What did Ben do at the bakery?", "options": ["He baked bread.", "He cleaned the kitchen.", "He served customers and used the till.", "He delivered cakes."], "answer": 2, "explain": "“I served customers and used the till.” – Ben phục vụ khách và dùng máy tính tiền." },
+        { "q": "What weakness does Ben mention?", "options": ["He is sometimes late.", "He doesn't like working in a team.", "He gets nervous with customers.", "He is slow when he learns something new."], "answer": 3, "explain": "Ben nói: “I can be a bit slow when I'm learning something new.”" },
+        { "q": "How does Ben react to the start time of the morning shift?", "options": ["He refuses to work in the mornings.", "He is surprised but positive.", "He asks for the afternoon shift.", "He says it is too late for him."], "answer": 1, "explain": "Ben ngạc nhiên (“Seven thirty? Wow, okay. That's early”) nhưng vẫn tích cực: “I'm sure I'll get used to it.”" },
+        { "q": "What does Sophie ask Ben to wear for the trial shift?", "options": ["Black trousers and comfortable shoes", "A white shirt and a tie", "A café T-shirt and jeans", "Black shoes and an apron"], "answer": 0, "explain": "Sophie dặn: “Wear black trousers and comfortable shoes.”" }
+      ]
+    },
+    {
+      "type": "truefalse",
+      "title": "True, false or not given?",
+      "instruction": "Listen. Are the sentences true (T), false (F), or is the information not given (NG)?",
+      "instructionVi": "Nghe. Các câu sau đúng (T), sai (F) hay không có thông tin (NG)?",
+      "listen": true,
+      "ng": true,
+      "items": [
+        { "q": "Ben has worked in a café before.", "answer": "F", "explain": "Sai. Ben trả lời “Not exactly” – bạn ấy chưa làm ở quán cà phê, chỉ phụ ở tiệm bánh." },
+        { "q": "The job lasts for about two months.", "answer": "T", "explain": "Đúng. “From the first of July until the end of August” – khoảng hai tháng." },
+        { "q": "Ben is the first person Sophie has interviewed for the job.", "answer": "NG", "explain": "Không có thông tin. Sophie không nói đã phỏng vấn bao nhiêu người." },
+        { "q": "Sophie thinks Ben's answer about his weakness is honest.", "answer": "T", "explain": "Đúng. Sau khi Ben nói điểm yếu, Sophie nhận xét: “That's honest.”" },
+        { "q": "Ben is free to work on Sundays.", "answer": "F", "explain": "Sai. Ben nói: “I can't work on Sundays because I play in a football team.”" },
+        { "q": "The café is next to the library.", "answer": "NG", "explain": "Không có thông tin. Ben chỉ nói thấy quảng cáo ở thư viện, không nói quán ở đâu." }
+      ]
+    },
+    {
+      "type": "multi",
+      "title": "Ben and the job",
+      "instruction": "Listen. Tick ALL the correct answers.",
+      "instructionVi": "Nghe. Đánh dấu TẤT CẢ các đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Which of these does Ben say about himself? Tick ALL correct answers.", "options": ["He enjoys talking to people.", "He can speak Spanish.", "He plays in a football team.", "He is very careful once he knows a job.", "He has his own car."], "answers": [0, 2, 3], "explain": "Ben nói: “I enjoy talking to people”, “I play in a football team” và “once I know it, I'm very careful”. Bạn ấy không nhắc đến tiếng Tây Ban Nha hay ô tô." },
+        { "q": "Which details about the job does Sophie give? Tick ALL correct answers.", "options": ["the dates of the job", "the pay", "the number of staff", "the start time of the morning shift", "free lunch for staff"], "answers": [0, 1, 3], "explain": "Sophie nói ngày làm (“from the first of July until the end of August”), lương (“eight pounds fifty an hour”) và giờ bắt đầu ca sáng (“seven thirty”). Chị không nói số nhân viên hay bữa trưa miễn phí." }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "Job words",
+      "instruction": "Complete the sentences with words from the box. There are two extra words.",
+      "instructionVi": "Hoàn thành câu bằng các từ trong khung. Có hai từ thừa.",
+      "bank": ["CV", "apply", "shift", "references", "part-time", "interview", "wage"],
+      "items": [
+        { "q": "I'm going to ___ for a job at the cinema this weekend.", "answer": ["apply"], "explain": "“apply for a job” = nộp đơn xin việc." },
+        { "q": "Remember to update your ___ before you send it to employers.", "answer": ["CV"], "explain": "“CV” = hồ sơ tóm tắt học vấn, kinh nghiệm, kỹ năng gửi cho nhà tuyển dụng." },
+        { "q": "She has a ___ job at the weekends while she's still at school.", "answer": ["part-time"], "explain": "“part-time job” = việc làm bán thời gian, chỉ làm vài giờ hoặc vài ngày." },
+        { "q": "My ___ finishes at ten, so I can meet you after that.", "answer": ["shift"], "explain": "“shift” = ca làm việc. Ca của tôi kết thúc lúc mười giờ." },
+        { "q": "I was so nervous at the ___ that I forgot the manager's name.", "answer": ["interview"], "explain": "“interview” = buổi phỏng vấn; người ta hay hồi hộp khi đi phỏng vấn." }
+      ]
+    },
+    {
+      "type": "dictation",
+      "title": "Listen and write",
+      "instruction": "Listen and write the sentences.",
+      "instructionVi": "Nghe và chép lại các câu.",
+      "listen": true,
+      "items": [
+        { "text": "I am looking for a summer job in a coffee shop.", "explain": "“look for” = tìm kiếm. Câu nói về việc tìm việc làm mùa hè." },
+        { "text": "Please send your CV and a short letter before Friday.", "explain": "“CV” viết hoa; “before Friday” = trước thứ Sáu." },
+        { "text": "I enjoy working with people and I learn new things quickly.", "explain": "“enjoy + V-ing” = thích làm gì; “quickly” là trạng từ bổ nghĩa cho “learn”." },
+        { "text": "The pay is better if you work at the weekend.", "explain": "“at the weekend” = vào cuối tuần (cách nói Anh-Anh)." }
+      ]
+    }
+  ]
+}

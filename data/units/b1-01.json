@@ -1,0 +1,139 @@
+{
+  "id": "b1-01",
+  "level": "B1",
+  "order": 1,
+  "icon": "🧳",
+  "title": "Planning a trip",
+  "titleVi": "Lên kế hoạch cho chuyến đi",
+  "goals": [
+    "Đặt chỗ ở, vé và tour bằng tiếng Anh qua điện thoại",
+    "Nghe và ghi lại thông tin: tên, ngày, giá, giờ",
+    "Dùng từ vựng về phương tiện, chỗ ở và lịch trình"
+  ],
+  "vocab": [
+    { "en": "book", "vi": "đặt (phòng, vé, chỗ)", "ipa": "/bʊk/", "ex": "I booked a bed at the hostel for three nights." },
+    { "en": "accommodation", "vi": "chỗ ở", "ipa": "/əˌkɒməˈdeɪʃn/", "ex": "Accommodation in the city centre is very expensive." },
+    { "en": "itinerary", "vi": "lịch trình chuyến đi", "ipa": "/aɪˈtɪnərəri/", "ex": "Our itinerary includes two days by the sea." },
+    { "en": "hostel", "vi": "nhà nghỉ giá rẻ (thường ở chung phòng)", "ipa": "/ˈhɒstl/", "ex": "The hostel is full of students from all over the world." },
+    { "en": "shared room", "vi": "phòng ở chung", "ipa": "/ˌʃeəd ˈruːm/", "ex": "A bed in a shared room is cheaper than a private room." },
+    { "en": "check in", "vi": "làm thủ tục nhận phòng", "ipa": "/ˌtʃek ˈɪn/", "ex": "You can check in after two o'clock." },
+    { "en": "return ticket", "vi": "vé khứ hồi", "ipa": "/rɪˈtɜːn ˌtɪkɪt/", "ex": "A return ticket to London costs forty pounds." },
+    { "en": "fare", "vi": "giá vé (xe, tàu)", "ipa": "/feə(r)/", "ex": "The bus fare went up again this year." },
+    { "en": "delayed", "vi": "bị hoãn, bị trễ", "ipa": "/dɪˈleɪd/", "ex": "Our flight was delayed by two hours." },
+    { "en": "sightseeing", "vi": "đi tham quan", "ipa": "/ˈsaɪtsiːɪŋ/", "ex": "We spent the whole afternoon sightseeing in the old town." },
+    { "en": "on a tight budget", "vi": "có ít tiền để tiêu", "ipa": "/ɒn ə ˌtaɪt ˈbʌdʒɪt/", "ex": "I'm on a tight budget, so I always take the bus." }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "Booking a bed by phone",
+    "context": "Leo gọi điện đến nhà nghỉ Riverside Hostel để đặt chỗ cho chuyến đi cuối tuần và hỏi về tour tham quan.",
+    "speakers": [
+      { "id": "R", "name": "Maria", "voice": "female" },
+      { "id": "C", "name": "Leo", "voice": "male" }
+    ],
+    "lines": [
+      { "s": "R", "en": "Good morning, Riverside Hostel. Maria speaking. How can I help?", "vi": "Chào buổi sáng, nhà nghỉ Riverside xin nghe. Tôi là Maria. Tôi có thể giúp gì cho anh?" },
+      { "s": "C", "en": "Hi! I'd like to book a bed for next weekend, please.", "vi": "Chào chị! Tôi muốn đặt một giường cho cuối tuần tới." },
+      { "s": "R", "en": "Sure. Which dates are you looking at?", "vi": "Được ạ. Anh định đặt những ngày nào?" },
+      { "s": "C", "en": "I'm arriving on Friday the fourteenth of July and leaving on Monday the seventeenth.", "vi": "Tôi đến vào thứ Sáu, ngày mười bốn tháng Bảy và rời đi vào thứ Hai, ngày mười bảy." },
+      { "s": "R", "en": "So that's three nights. A shared room is twenty-two pounds a night, and a private room is forty-five.", "vi": "Vậy là ba đêm. Phòng ở chung giá hai mươi hai bảng một đêm, còn phòng riêng là bốn mươi lăm bảng." },
+      { "s": "C", "en": "Um, the shared room is fine. I'm travelling on a tight budget.", "vi": "Ừm, phòng chung là được rồi. Tôi đi du lịch với ngân sách khá eo hẹp." },
+      { "s": "R", "en": "No problem. Could I have your name, please?", "vi": "Không vấn đề gì. Anh cho tôi xin tên được không?" },
+      { "s": "C", "en": "It's Leo Barnes. That's B-A-R-N-E-S.", "vi": "Tôi là Leo Barnes. Đánh vần là B-A-R-N-E-S." },
+      { "s": "R", "en": "Thanks, Leo. Breakfast is included, and check-in is from two in the afternoon.", "vi": "Cảm ơn anh Leo. Giá đã bao gồm bữa sáng, và anh có thể nhận phòng từ hai giờ chiều." },
+      { "s": "C", "en": "Great. Er, is there anything to do on Saturday? It's my first time in the city.", "vi": "Tuyệt. À, thứ Bảy có gì để làm không chị? Đây là lần đầu tôi đến thành phố này." },
+      { "s": "R", "en": "We have a walking tour of the old town at half past ten. It costs eight pounds.", "vi": "Chúng tôi có tour đi bộ tham quan phố cổ lúc mười giờ rưỡi. Giá tám bảng." },
+      { "s": "C", "en": "That sounds perfect. Where does it start?", "vi": "Nghe hay quá. Tour bắt đầu ở đâu vậy?" },
+      { "s": "R", "en": "In front of the City Museum. Shall I put your name down?", "vi": "Trước Bảo tàng Thành phố. Tôi ghi tên anh vào nhé?" },
+      { "s": "C", "en": "Yes, please. Oh, and how do I get to you from the train station?", "vi": "Vâng, nhờ chị. À, từ ga tàu tôi đến chỗ chị bằng cách nào?" },
+      { "s": "R", "en": "Take the number twelve bus. It's about fifteen minutes. A taxi costs around ten pounds.", "vi": "Anh đi xe buýt số mười hai, mất khoảng mười lăm phút. Đi taxi thì khoảng mười bảng." },
+      { "s": "C", "en": "Brilliant. Thanks so much, Maria. See you on the fourteenth!", "vi": "Tuyệt vời. Cảm ơn chị Maria nhiều. Hẹn gặp chị ngày mười bốn nhé!" }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "gap",
+      "title": "Complete the booking form",
+      "instruction": "Listen to the phone call. Complete the booking notes. Write ONE word or a number in each gap.",
+      "instructionVi": "Nghe cuộc gọi. Điền vào phiếu đặt chỗ. Mỗi chỗ trống viết MỘT từ hoặc một con số.",
+      "listen": true,
+      "bank": null,
+      "items": [
+        { "q": "Guest's surname: ___", "answer": ["Barnes"], "explain": "Leo đánh vần họ của mình: “It's Leo Barnes. That's B-A-R-N-E-S.”" },
+        { "q": "Arrival: Friday ___ July", "answer": ["14th", "14", "fourteenth", "the 14th", "the fourteenth"], "explain": "Leo nói: “I'm arriving on Friday the fourteenth of July” – đến vào thứ Sáu ngày 14 tháng Bảy." },
+        { "q": "Length of stay: ___ nights", "answer": ["three", "3"], "explain": "Maria tính: “So that's three nights.” (từ ngày 14 đến ngày 17)." },
+        { "q": "Price of a shared room: £___ per night", "answer": ["22", "twenty-two", "twenty two", "22.00"], "explain": "“A shared room is twenty-two pounds a night” – phòng chung giá 22 bảng một đêm." },
+        { "q": "Walking tour meets: in front of the City ___", "answer": ["Museum"], "explain": "Maria trả lời: “In front of the City Museum.”" },
+        { "q": "From the station: take bus number ___", "answer": ["12", "twelve"], "explain": "“Take the number twelve bus.” – đi xe buýt số 12." }
+      ]
+    },
+    {
+      "type": "choice",
+      "title": "Listen and choose",
+      "instruction": "Listen again. Choose the correct answer.",
+      "instructionVi": "Nghe lại và chọn đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Why does Leo choose the shared room?", "options": ["It is closer to reception.", "He is travelling with friends.", "He doesn't have much money to spend.", "The private rooms are all full."], "answer": 2, "explain": "Leo nói: “I'm travelling on a tight budget.” – anh ấy không có nhiều tiền nên chọn phòng chung rẻ hơn." },
+        { "q": "What time does the walking tour start?", "options": ["10:30", "10:00", "9:30", "11:30"], "answer": 0, "explain": "Maria nói tour bắt đầu “at half past ten” – tức là 10 giờ 30." },
+        { "q": "How much does a private room cost per night?", "options": ["£22", "£35", "£54", "£45"], "answer": 3, "explain": "“…and a private room is forty-five.” – phòng riêng giá 45 bảng. 22 bảng là giá phòng chung." },
+        { "q": "What is included in the price of the bed?", "options": ["A towel", "Breakfast", "The walking tour", "A taxi from the station"], "answer": 1, "explain": "Maria nói: “Breakfast is included.” Tour đi bộ phải trả thêm 8 bảng." },
+        { "q": "How long is the bus journey from the station?", "options": ["About five minutes", "About ten minutes", "About fifteen minutes", "About fifty minutes"], "answer": 2, "explain": "“Take the number twelve bus. It's about fifteen minutes.” – đi xe buýt mất khoảng mười lăm phút." }
+      ]
+    },
+    {
+      "type": "truefalse",
+      "title": "True, false or not given?",
+      "instruction": "Listen. Are the sentences true (T), false (F), or is the information not given (NG)?",
+      "instructionVi": "Nghe. Các câu sau đúng (T), sai (F) hay không có thông tin (NG)?",
+      "listen": true,
+      "ng": true,
+      "items": [
+        { "q": "Leo is going to stay at the hostel for three nights.", "answer": "T", "explain": "Đúng. Maria xác nhận: “So that's three nights.”" },
+        { "q": "Leo has visited the city before.", "answer": "F", "explain": "Sai. Leo nói: “It's my first time in the city.” – đây là lần đầu anh ấy đến." },
+        { "q": "Leo has to pay extra for breakfast.", "answer": "F", "explain": "Sai. Maria nói: “Breakfast is included.” – bữa sáng đã tính trong giá phòng." },
+        { "q": "The walking tour lasts about two hours.", "answer": "NG", "explain": "Không có thông tin. Maria chỉ nói giờ bắt đầu, giá tiền và điểm hẹn, không nói tour kéo dài bao lâu." },
+        { "q": "Leo is going to arrive in the city by train.", "answer": "T", "explain": "Đúng. Leo hỏi: “How do I get to you from the train station?” – anh ấy sẽ đến ga tàu rồi đi tiếp đến nhà nghỉ." },
+        { "q": "Guests at the hostel can use a kitchen.", "answer": "NG", "explain": "Không có thông tin. Trong cuộc gọi không ai nhắc đến nhà bếp." }
+      ]
+    },
+    {
+      "type": "multi",
+      "title": "Tick all the correct answers",
+      "instruction": "Listen. Tick ALL the correct answers.",
+      "instructionVi": "Nghe. Đánh dấu TẤT CẢ các đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Which information does Maria give Leo? Tick ALL correct answers.", "options": ["the price of a taxi", "the check-in time", "the Wi-Fi password", "where the tour starts", "the hostel's street address"], "answers": [0, 1, 3], "explain": "Maria nói giá taxi (“around ten pounds”), giờ nhận phòng (“from two in the afternoon”) và điểm bắt đầu tour (“In front of the City Museum”). Cô ấy không nói mật khẩu Wi-Fi hay địa chỉ nhà nghỉ." },
+        { "q": "Which of these are PRICES mentioned in the call? Tick ALL correct answers.", "options": ["£8", "£10", "£12", "£22", "£45", "£15"], "answers": [0, 1, 3, 4], "explain": "Các mức giá: tour 8 bảng, taxi khoảng 10 bảng, phòng chung 22 bảng, phòng riêng 45 bảng. “Twelve” là số xe buýt và “fifteen” là số phút, không phải giá tiền." }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "Travel words",
+      "instruction": "Complete the sentences with words from the box. There are two extra words.",
+      "instructionVi": "Hoàn thành câu bằng các từ trong khung. Có hai từ thừa.",
+      "bank": ["itinerary", "accommodation", "delayed", "return ticket", "sightseeing", "book", "fare"],
+      "items": [
+        { "q": "We need to ___ our hotel early because it's a busy holiday.", "answer": ["book"], "explain": "“book” = đặt trước (phòng, vé). Đi dịp lễ đông khách nên cần đặt phòng sớm." },
+        { "q": "Our ___ includes three days in Hanoi and two days in Ha Long Bay.", "answer": ["itinerary"], "explain": "“itinerary” = lịch trình, kế hoạch đi những nơi nào, bao nhiêu ngày." },
+        { "q": "The train was ___ for an hour because of the snow.", "answer": ["delayed"], "explain": "“delayed” = bị trễ, bị hoãn. Tàu trễ một tiếng vì tuyết." },
+        { "q": "I bought a ___, so I don't need another ticket to come home.", "answer": ["return ticket"], "explain": "“return ticket” = vé khứ hồi, dùng cho cả chiều đi và chiều về." },
+        { "q": "The ___ in the city centre was too expensive, so we stayed in a guesthouse outside.", "answer": ["accommodation"], "explain": "“accommodation” = chỗ ở. Chỗ ở trung tâm đắt quá nên họ ở nhà khách ngoại thành." }
+      ]
+    },
+    {
+      "type": "dictation",
+      "title": "Listen and write",
+      "instruction": "Listen and write the sentences.",
+      "instructionVi": "Nghe và chép lại các câu.",
+      "listen": true,
+      "items": [
+        { "text": "We are leaving on Monday morning and coming back on Friday.", "explain": "Chú ý “leaving” và “coming back” dùng thì hiện tại tiếp diễn để nói về kế hoạch đã sắp xếp." },
+        { "text": "Could you tell me how to get to the train station?", "explain": "Câu hỏi lịch sự để hỏi đường: “Could you tell me how to get to…?”" },
+        { "text": "The hostel is cheap, but you have to share a room.", "explain": "“have to” = phải. Nhà nghỉ rẻ nhưng phải ở chung phòng." },
+        { "text": "I would like to book a double room for two nights.", "explain": "“I would like to book…” = Tôi muốn đặt… Số “two” viết bằng chữ." }
+      ]
+    }
+  ]
+}

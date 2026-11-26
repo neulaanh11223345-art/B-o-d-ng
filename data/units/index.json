@@ -1,0 +1,124 @@
+{
+  "units": [
+    {
+      "id": "a1-01",
+      "level": "A1",
+      "order": 1,
+      "icon": "🦴",
+      "title": "Move your body!",
+      "titleVi": "Cơ thể chuyển động",
+      "exercises": 6,
+      "questions": 34
+    },
+    {
+      "id": "a1-02",
+      "level": "A1",
+      "order": 2,
+      "icon": "👃",
+      "title": "My face and five senses",
+      "titleVi": "Khuôn mặt và năm giác quan",
+      "exercises": 6,
+      "questions": 35
+    },
+    {
+      "id": "a1-03",
+      "level": "A1",
+      "order": 3,
+      "icon": "🏠",
+      "title": "My family and my home",
+      "titleVi": "Gia đình và ngôi nhà của em",
+      "exercises": 5,
+      "questions": 27
+    },
+    {
+      "id": "a2-01",
+      "level": "A2",
+      "order": 1,
+      "icon": "⏰",
+      "title": "A day in my life",
+      "titleVi": "Một ngày của tôi",
+      "exercises": 6,
+      "questions": 32
+    },
+    {
+      "id": "a2-02",
+      "level": "A2",
+      "order": 2,
+      "icon": "🍓",
+      "title": "At the market",
+      "titleVi": "Đi chợ",
+      "exercises": 6,
+      "questions": 31
+    },
+    {
+      "id": "a2-03",
+      "level": "A2",
+      "order": 3,
+      "icon": "🌦️",
+      "title": "Weather and seasons",
+      "titleVi": "Thời tiết và các mùa",
+      "exercises": 6,
+      "questions": 32
+    },
+    {
+      "id": "b1-01",
+      "level": "B1",
+      "order": 1,
+      "icon": "🧳",
+      "title": "Planning a trip",
+      "titleVi": "Lên kế hoạch cho chuyến đi",
+      "exercises": 6,
+      "questions": 28
+    },
+    {
+      "id": "b1-02",
+      "level": "B1",
+      "order": 2,
+      "icon": "🍎",
+      "title": "Healthy habits",
+      "titleVi": "Thói quen lành mạnh",
+      "exercises": 6,
+      "questions": 29
+    },
+    {
+      "id": "b1-03",
+      "level": "B1",
+      "order": 3,
+      "icon": "💼",
+      "title": "Getting a job",
+      "titleVi": "Đi tìm việc làm",
+      "exercises": 6,
+      "questions": 28
+    },
+    {
+      "id": "b2-01",
+      "level": "B2",
+      "order": 1,
+      "icon": "♻️",
+      "title": "Rethinking waste",
+      "titleVi": "Nghĩ lại về rác thải",
+      "exercises": 6,
+      "questions": 28
+    },
+    {
+      "id": "b2-02",
+      "level": "B2",
+      "order": 2,
+      "icon": "📱",
+      "title": "Life online",
+      "titleVi": "Cuộc sống trên mạng",
+      "exercises": 6,
+      "questions": 27
+    },
+    {
+      "id": "b2-03",
+      "level": "B2",
+      "order": 3,
+      "icon": "🎓",
+      "title": "Studying abroad",
+      "titleVi": "Du học",
+      "exercises": 6,
+      "questions": 29
+    }
+  ]
+}

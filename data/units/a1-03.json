@@ -1,0 +1,124 @@
+{
+  "id": "a1-03",
+  "level": "A1",
+  "order": 3,
+  "icon": "🏠",
+  "title": "My family and my home",
+  "titleVi": "Gia đình và ngôi nhà của em",
+  "goals": [
+    "Gọi tên các thành viên trong gia đình và các phòng trong nhà",
+    "Dùng my, your, his, her để nói đồ vật, người thân của ai",
+    "Giới thiệu nhà mình với bạn bè"
+  ],
+  "vocab": [
+    { "en": "mum", "vi": "mẹ", "ipa": "/mʌm/", "ex": "My mum is in the kitchen." },
+    { "en": "dad", "vi": "bố", "ipa": "/dæd/", "ex": "My dad likes flowers." },
+    { "en": "brother", "vi": "anh trai, em trai", "ipa": "/ˈbrʌðə/", "ex": "I have a little brother." },
+    { "en": "sister", "vi": "chị gái, em gái", "ipa": "/ˈsɪstə/", "ex": "My sister is ten." },
+    { "en": "grandma", "vi": "bà", "ipa": "/ˈɡrænmɑː/", "ex": "My grandma makes nice cakes." },
+    { "en": "grandpa", "vi": "ông", "ipa": "/ˈɡrænpɑː/", "ex": "My grandpa reads every day." },
+    { "en": "living room", "vi": "phòng khách", "ipa": "/ˈlɪvɪŋ ruːm/", "ex": "We watch TV in the living room." },
+    { "en": "kitchen", "vi": "nhà bếp", "ipa": "/ˈkɪtʃɪn/", "ex": "Mum is cooking in the kitchen." },
+    { "en": "bedroom", "vi": "phòng ngủ", "ipa": "/ˈbedruːm/", "ex": "My bedroom is small." },
+    { "en": "bathroom", "vi": "phòng tắm", "ipa": "/ˈbɑːθruːm/", "ex": "The bathroom is next to my bedroom." },
+    { "en": "garden", "vi": "khu vườn", "ipa": "/ˈɡɑːdn/", "ex": "There are flowers in the garden." },
+    { "en": "upstairs", "vi": "trên lầu, lên lầu", "ipa": "/ˌʌpˈsteəz/", "ex": "My bedroom is upstairs." }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "Welcome to my house!",
+    "context": "Bạn Lan dẫn bạn Amy đi xem nhà mình và giới thiệu các thành viên trong gia đình.",
+    "speakers": [
+      { "id": "L", "name": "Lan", "voice": "child" },
+      { "id": "A", "name": "Amy", "voice": "female" },
+      { "id": "G", "name": "Grandpa", "voice": "male" }
+    ],
+    "lines": [
+      { "s": "L", "en": "Welcome to my house, Amy! Come in.", "vi": "Chào mừng bạn đến nhà mình, Amy! Vào đi." },
+      { "s": "A", "en": "Thanks, Lan. Your house is lovely!", "vi": "Cảm ơn Lan. Nhà bạn đẹp quá!" },
+      { "s": "L", "en": "This is the living room. That's my grandpa.", "vi": "Đây là phòng khách. Kia là ông của mình." },
+      { "s": "G", "en": "Hello, Amy! Nice to meet you.", "vi": "Chào cháu Amy! Rất vui được gặp cháu." },
+      { "s": "L", "en": "And this is the kitchen. My mum is cooking.", "vi": "Còn đây là nhà bếp. Mẹ mình đang nấu ăn." },
+      { "s": "A", "en": "Mmm, it smells good! Where's your dad?", "vi": "Ừm, thơm quá! Bố bạn đâu rồi?" },
+      { "s": "L", "en": "He's in the garden. He's watering the flowers.", "vi": "Bố ở ngoài vườn. Bố đang tưới hoa." },
+      { "s": "A", "en": "Do you have a brother or a sister?", "vi": "Bạn có anh chị em không?" },
+      { "s": "L", "en": "I have a little brother. His name is Bin. He's five.", "vi": "Mình có một em trai. Tên em ấy là Bin. Em ấy năm tuổi." },
+      { "s": "A", "en": "Where's Bin now?", "vi": "Bây giờ Bin ở đâu?" },
+      { "s": "L", "en": "He's in the bathroom. He's having a bath!", "vi": "Em ấy ở trong phòng tắm. Em ấy đang tắm!" },
+      { "s": "L", "en": "Come upstairs. This is my bedroom. My bed is blue.", "vi": "Lên lầu đi. Đây là phòng ngủ của mình. Giường của mình màu xanh dương." }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "match",
+      "title": "Who is where?",
+      "instruction": "Listen. Match the person or thing to the room.",
+      "instructionVi": "Nghe và nối người hoặc đồ vật với căn phòng.",
+      "listen": true,
+      "pairs": [
+        { "left": "Grandpa", "right": "living room", "explain": "Lan nói: “This is the living room. That's my grandpa.” – Ông ở phòng khách." },
+        { "left": "Mum", "right": "kitchen", "explain": "Lan nói: “This is the kitchen. My mum is cooking.” – Mẹ ở nhà bếp." },
+        { "left": "Dad", "right": "garden", "explain": "Lan nói: “He's in the garden.” – Bố ở ngoài vườn." },
+        { "left": "Bin", "right": "bathroom", "explain": "Lan nói: “He's in the bathroom.” – Bin ở trong phòng tắm." },
+        { "left": "Lan's blue bed", "right": "bedroom", "explain": "Lan nói: “This is my bedroom. My bed is blue.” – Giường xanh ở phòng ngủ." }
+      ]
+    },
+    {
+      "type": "choice",
+      "title": "Listen and choose",
+      "instruction": "Listen. Choose the correct answer.",
+      "instructionVi": "Nghe và chọn đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Who is Amy?", "options": ["Lan's sister", "Lan's friend", "Lan's mum"], "answer": 1, "explain": "Lan mời Amy đến nhà chơi: “Welcome to my house, Amy!” – Amy là bạn của Lan." },
+        { "q": "What is Mum doing?", "options": ["Cooking", "Reading", "Sleeping"], "answer": 0, "explain": "Lan nói: “My mum is cooking.” – Mẹ đang nấu ăn." },
+        { "q": "What is Dad doing?", "options": ["Washing the car", "Cooking", "Watering the flowers"], "answer": 2, "explain": "Lan nói: “He's watering the flowers.” – Bố đang tưới hoa." },
+        { "q": "How old is Bin?", "options": ["Three", "Five", "Nine"], "answer": 1, "explain": "Lan nói: “His name is Bin. He's five.” – Bin năm tuổi." },
+        { "q": "What colour is Lan's bed?", "options": ["Blue", "Pink", "Green"], "answer": 0, "explain": "Lan nói: “My bed is blue.” – Giường của Lan màu xanh dương." }
+      ]
+    },
+    {
+      "type": "pick",
+      "title": "My, your, his, her",
+      "instruction": "Choose the correct word.",
+      "instructionVi": "Chọn từ đúng để hoàn thành câu.",
+      "items": [
+        { "q": "This is Bin. ___ is five.", "options": ["He", "She"], "answer": 0, "explain": "Bin là con trai nên dùng “He” (cậu ấy)." },
+        { "q": "Lan is my friend. ___ house is lovely.", "options": ["His", "Her"], "answer": 1, "explain": "Lan là con gái nên dùng “Her” – Her house: nhà của bạn ấy." },
+        { "q": "I'm Lan. This is ___ bedroom.", "options": ["my", "your"], "answer": 0, "explain": "Lan đang nói về phòng của chính mình (I) nên dùng “my”." },
+        { "q": "Amy, is this ___ bag?", "options": ["his", "your"], "answer": 1, "explain": "Đang nói chuyện trực tiếp với Amy nên dùng “your” – túi của bạn." },
+        { "q": "Grandpa has a book. It's ___ book.", "options": ["his", "her"], "answer": 0, "explain": "Ông (Grandpa) là nam nên dùng “his” – sách của ông." },
+        { "q": "We cook in the ___.", "options": ["bathroom", "kitchen"], "answer": 1, "explain": "Ta nấu ăn trong nhà bếp (kitchen), không phải phòng tắm." }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "Family and rooms",
+      "instruction": "Choose the correct word for each sentence.",
+      "instructionVi": "Chọn từ đúng điền vào chỗ trống.",
+      "bank": ["grandma", "grandpa", "brother", "sister", "bedroom", "bathroom", "kitchen"],
+      "items": [
+        { "q": "My mum's mum is my ___.", "answer": ["grandma"], "explain": "Mẹ của mẹ là bà (grandma)." },
+        { "q": "My dad's dad is my ___.", "answer": ["grandpa"], "explain": "Bố của bố là ông (grandpa)." },
+        { "q": "Bin is a boy. He's Lan's little ___.", "answer": ["brother"], "explain": "Bin là con trai, nhỏ tuổi hơn Lan nên là em trai (little brother)." },
+        { "q": "Lan is a girl. She's Bin's ___.", "answer": ["sister"], "explain": "Lan là con gái nên là chị gái (sister) của Bin." },
+        { "q": "I sleep in my ___.", "answer": ["bedroom"], "explain": "Ta ngủ trong phòng ngủ (bedroom)." },
+        { "q": "Bin has a bath in the ___.", "answer": ["bathroom"], "explain": "Ta tắm trong phòng tắm (bathroom)." }
+      ]
+    },
+    {
+      "type": "order",
+      "title": "Amy's visit",
+      "instruction": "Listen. Put the events in order.",
+      "instructionVi": "Nghe và sắp xếp các sự việc theo đúng thứ tự.",
+      "listen": true,
+      "items": [
+        { "text": "Amy comes into Lan's house.", "explain": "Đầu tiên Lan nói: “Welcome to my house, Amy! Come in.”" },
+        { "text": "Amy meets Lan's grandpa.", "explain": "Trong phòng khách, ông chào: “Hello, Amy! Nice to meet you.”" },
+        { "text": "Amy sees the kitchen.", "explain": "Tiếp theo Lan nói: “And this is the kitchen.”" },
+        { "text": "Lan talks about her little brother.", "explain": "Amy hỏi về anh chị em, Lan kể: “I have a little brother.”" },
+        { "text": "Amy sees Lan's bedroom.", "explain": "Cuối cùng Lan nói: “Come upstairs. This is my bedroom.”" }
+      ]
+    }
+  ]
+}

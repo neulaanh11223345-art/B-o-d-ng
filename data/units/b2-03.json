@@ -1,0 +1,141 @@
+{
+  "id": "b2-03",
+  "level": "B2",
+  "order": 3,
+  "icon": "🎓",
+  "title": "Studying abroad",
+  "titleVi": "Du học",
+  "goals": [
+    "Nói về hồ sơ du học, sốc văn hóa, tính tự lập và nỗi nhớ nhà",
+    "Nghe một bài podcast, suy luận cảm xúc và thái độ của người nói",
+    "Dùng từ vựng về cuộc sống sinh viên ở nước ngoài"
+  ],
+  "vocab": [
+    { "en": "scholarship", "vi": "học bổng", "ipa": "/ˈskɒləʃɪp/", "ex": "She won a scholarship to study in Australia." },
+    { "en": "application", "vi": "hồ sơ, đơn đăng ký", "ipa": "/ˌæplɪˈkeɪʃn/", "ex": "The deadline for applications is the end of January." },
+    { "en": "homesick", "vi": "nhớ nhà", "ipa": "/ˈhəʊmsɪk/", "ex": "I felt homesick during my first winter abroad." },
+    { "en": "culture shock", "vi": "sốc văn hóa", "ipa": "/ˈkʌltʃə ʃɒk/", "ex": "Culture shock can make simple things feel difficult." },
+    { "en": "flatmate", "vi": "bạn cùng căn hộ", "ipa": "/ˈflætmeɪt/", "ex": "My flatmate is from Brazil." },
+    { "en": "seminar", "vi": "buổi học thảo luận nhóm nhỏ", "ipa": "/ˈsemɪnɑː(r)/", "ex": "We discuss the reading in the weekly seminar." },
+    { "en": "internship", "vi": "kỳ thực tập", "ipa": "/ˈɪntɜːnʃɪp/", "ex": "He's doing an internship at a design company." },
+    { "en": "independence", "vi": "sự tự lập", "ipa": "/ˌɪndɪˈpendəns/", "ex": "Living alone taught me independence." },
+    { "en": "budget", "vi": "ngân sách, khoản chi tiêu dự kiến", "ipa": "/ˈbʌdʒɪt/", "ex": "My weekly food budget is thirty pounds." },
+    { "en": "keep track of", "vi": "theo dõi, ghi lại", "ipa": "/ˌkiːp ˈtræk əv/", "ex": "I use an app to keep track of my spending." },
+    { "en": "adapt (to)", "vi": "thích nghi (với)", "ipa": "/əˈdæpt/", "ex": "It took me a few months to adapt to the weather." },
+    { "en": "awkward", "vi": "khó xử, ngượng ngùng", "ipa": "/ˈɔːkwəd/", "ex": "There was an awkward silence after his question." }
+  ],
+  "listening": {
+    "kind": "monologue",
+    "title": "Far From Home: looking back on year one",
+    "context": "Mai, một sinh viên Việt Nam học kỹ thuật ở Scotland, nhìn lại năm học đầu tiên ở nước ngoài trong podcast của mình.",
+    "speakers": [
+      { "id": "M", "name": "Mai", "voice": "female" }
+    ],
+    "lines": [
+      { "s": "M", "en": "Hi everyone, and welcome back to Far From Home. Today I'm looking back on my first year at university in Edinburgh.", "vi": "Chào mọi người, chào mừng trở lại với Far From Home. Hôm nay mình sẽ nhìn lại năm đầu đại học của mình ở Edinburgh." },
+      { "s": "M", "en": "If you'd told me a year ago that I'd be studying engineering in Scotland, I'd have laughed.", "vi": "Nếu một năm trước có ai bảo mình sẽ học kỹ thuật ở Scotland, chắc mình đã bật cười." },
+      { "s": "M", "en": "My first scholarship application was rejected. I almost gave up, but I applied again, and on the second attempt, I got it.", "vi": "Hồ sơ xin học bổng đầu tiên của mình bị từ chối. Mình suýt bỏ cuộc, nhưng mình nộp lại, và đến lần thứ hai thì mình được nhận." },
+      { "s": "M", "en": "The first few weeks were a blur of excitement. Everything was new, even the supermarkets.", "vi": "Mấy tuần đầu trôi qua trong sự háo hức. Mọi thứ đều mới mẻ, kể cả siêu thị." },
+      { "s": "M", "en": "Then November arrived. It got dark at four in the afternoon, and suddenly I felt really homesick.", "vi": "Rồi tháng Mười Một đến. Bốn giờ chiều trời đã tối, và bỗng nhiên mình thấy nhớ nhà kinh khủng." },
+      { "s": "M", "en": "I missed my mum's cooking so much that I tried to make pho in my tiny student kitchen.", "vi": "Mình nhớ đồ mẹ nấu đến mức đã thử nấu phở trong căn bếp sinh viên bé xíu." },
+      { "s": "M", "en": "Let's just say it tasted like hot water and disappointment. My flatmates were very polite about it.", "vi": "Nói ngắn gọn là nó có vị như nước nóng pha thất vọng. Các bạn cùng nhà thì rất lịch sự về chuyện đó." },
+      { "s": "M", "en": "The biggest shock, though, was seminars. Students here argue with their tutors, and at first I thought that was quite rude.", "vi": "Nhưng cú sốc lớn nhất là các buổi seminar. Sinh viên ở đây tranh luận với giảng viên, và lúc đầu mình thấy như thế khá bất lịch sự." },
+      { "s": "M", "en": "So I stayed silent for weeks, until my tutor said, 'We really want to hear what you think.'", "vi": "Vì vậy mình im lặng suốt mấy tuần, cho đến khi giảng viên nói: “Chúng tôi thật sự muốn nghe em nghĩ gì.”" },
+      { "s": "M", "en": "That changed everything. Now I'm actually the one who asks the awkward questions.", "vi": "Câu đó thay đổi tất cả. Giờ mình lại chính là người hay đặt những câu hỏi khó." },
+      { "s": "M", "en": "Money was another lesson. I spent half my monthly budget in the first ten days, mostly on taxis and takeaways.", "vi": "Tiền bạc là một bài học khác. Mình tiêu hết nửa ngân sách cả tháng chỉ trong mười ngày đầu, chủ yếu cho taxi và đồ ăn mua mang về." },
+      { "s": "M", "en": "These days I keep track of every pound in a spreadsheet. My dad is very proud.", "vi": "Bây giờ mình ghi lại từng đồng bảng trong một bảng tính. Bố mình tự hào lắm." },
+      { "s": "M", "en": "Joining the badminton club helped more than anything. I made my closest friends there.", "vi": "Tham gia câu lạc bộ cầu lông giúp mình nhiều hơn bất cứ điều gì. Mình đã có những người bạn thân nhất ở đó." },
+      { "s": "M", "en": "I used to call home every single night. Now it's more like twice a week.", "vi": "Trước đây tối nào mình cũng gọi về nhà. Giờ thì khoảng hai lần một tuần." },
+      { "s": "M", "en": "That's not because I miss my family less. It's because I've built a life here too.", "vi": "Không phải vì mình bớt nhớ gia đình. Mà vì mình cũng đã xây dựng được một cuộc sống ở đây." },
+      { "s": "M", "en": "If you're about to go abroad, remember that homesickness isn't a sign you've made a mistake.", "vi": "Nếu bạn sắp đi du học, hãy nhớ rằng nhớ nhà không phải là dấu hiệu bạn đã chọn sai." },
+      { "s": "M", "en": "And please don't compare your first month with other people's highlights online.", "vi": "Và đừng so sánh tháng đầu tiên của bạn với những khoảnh khắc đẹp nhất người khác đăng lên mạng nhé." },
+      { "s": "M", "en": "As for me, I'm staying in Edinburgh this summer for an internship. Wish me luck!", "vi": "Còn mình, hè này mình sẽ ở lại Edinburgh để thực tập. Chúc mình may mắn nhé!" }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "choice",
+      "title": "Feelings and attitudes",
+      "instruction": "Listen to the podcast. Choose the best answer.",
+      "instructionVi": "Nghe bài podcast. Chọn đáp án đúng nhất.",
+      "listen": true,
+      "items": [
+        { "q": "What does Mai mean when she says that a year ago she 'would have laughed'?", "options": ["She thought Scotland would be a funny place to live.", "She never expected to end up studying abroad.", "She thought engineering was an easy subject.", "She was very confident about her application."], "answer": 1, "explain": "“If you'd told me a year ago… I'd have laughed.” – một năm trước, Mai không hề nghĩ mình sẽ du học ở Scotland." },
+        { "q": "What does Mai suggest about her attempt to cook pho?", "options": ["Her flatmates loved it.", "Her flatmates refused to try it.", "She couldn't find the right ingredients.", "It tasted bad, but her flatmates didn't say so."], "answer": 3, "explain": "Món phở “tasted like hot water and disappointment” (rất dở), và “My flatmates were very polite about it” – các bạn lịch sự, không chê thẳng." },
+        { "q": "How did Mai's behaviour in seminars change?", "options": ["She went from staying silent to taking an active part.", "She started to find seminars boring.", "She decided to stop going to seminars.", "She still believes arguing with tutors is rude."], "answer": 0, "explain": "Lúc đầu “I stayed silent for weeks”, nhưng giờ “I'm actually the one who asks the awkward questions.”" },
+        { "q": "Why does Mai mention that her dad is 'very proud'?", "options": ["To complain that her father controls her money", "To explain why she took so many taxis", "To show that she has become better at managing money", "To say that her dad made the spreadsheet for her"], "answer": 2, "explain": "Câu này đi sau “I keep track of every pound in a spreadsheet” – bố tự hào vì Mai đã biết quản lý tiền, khác hẳn hồi tiêu nửa ngân sách trong mười ngày." },
+        { "q": "What is the main message of Mai's advice to future students?", "options": ["Studying abroad is easier than people think.", "Feeling homesick is normal and doesn't mean you have failed.", "You should call your family every night.", "Joining a club is the only way to make friends."], "answer": 1, "explain": "Mai khuyên: “Homesickness isn't a sign you've made a mistake.” – nhớ nhà là bình thường, không có nghĩa là thất bại." }
+      ]
+    },
+    {
+      "type": "truefalse",
+      "title": "True, false or not given?",
+      "instruction": "Listen. Are the sentences true (T), false (F), or is the information not given (NG)?",
+      "instructionVi": "Nghe. Các câu sau đúng (T), sai (F) hay không có thông tin (NG)?",
+      "listen": true,
+      "ng": true,
+      "items": [
+        { "q": "Mai's first scholarship application was successful.", "answer": "F", "explain": "Sai. “My first scholarship application was rejected.” – lần thứ hai mới được nhận." },
+        { "q": "The early darkness in November made Mai feel worse.", "answer": "T", "explain": "Đúng. “It got dark at four in the afternoon, and suddenly I felt really homesick.”" },
+        { "q": "All of Mai's flatmates are from Scotland.", "answer": "NG", "explain": "Không có thông tin. Mai có nhắc đến các bạn cùng nhà nhưng không nói họ đến từ đâu." },
+        { "q": "At first, Mai thought it was rude to argue with tutors.", "answer": "T", "explain": "Đúng. “At first I thought that was quite rude.”" },
+        { "q": "Mai calls home less often now because she misses her family less.", "answer": "F", "explain": "Sai. Mai nói rõ: “That's not because I miss my family less. It's because I've built a life here too.”" },
+        { "q": "Mai's summer internship is with an engineering company.", "answer": "NG", "explain": "Không có thông tin. Mai chỉ nói sẽ ở lại Edinburgh “for an internship”, không nói thực tập ở đâu." }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "Mai's year in numbers and facts",
+      "instruction": "Listen again. Complete the notes. Write ONE word or a number in each gap.",
+      "instructionVi": "Nghe lại. Hoàn thành ghi chú. Mỗi chỗ trống viết MỘT từ hoặc một con số.",
+      "listen": true,
+      "bank": null,
+      "items": [
+        { "q": "University city: ___", "answer": ["Edinburgh"], "explain": "“My first year at university in Edinburgh.”" },
+        { "q": "Subject: ___", "answer": ["engineering"], "explain": "“…that I'd be studying engineering in Scotland.”" },
+        { "q": "Got the scholarship on the ___ attempt", "answer": ["second", "2nd"], "explain": "“On the second attempt, I got it.”" },
+        { "q": "Started to feel homesick in ___", "answer": ["November"], "explain": "“Then November arrived… suddenly I felt really homesick.”" },
+        { "q": "Joined the ___ club", "answer": ["badminton"], "explain": "“Joining the badminton club helped more than anything.”" },
+        { "q": "Calls home now: ___ a week", "answer": ["twice", "two times", "2 times"], "explain": "“Now it's more like twice a week.” – trước đây là mỗi tối." }
+      ]
+    },
+    {
+      "type": "multi",
+      "title": "Challenges and advice",
+      "instruction": "Listen. Tick ALL the correct answers.",
+      "instructionVi": "Nghe. Đánh dấu TẤT CẢ các đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Which difficulties did Mai experience in her first year? Tick ALL correct answers.", "options": ["homesickness", "failing an exam", "spending too much money", "speaking up in seminars", "losing her passport", "dark winter afternoons"], "answers": [0, 2, 3, 5], "explain": "Mai kể về nỗi nhớ nhà (“really homesick”), tiêu quá tay (“half my monthly budget in the first ten days”), im lặng trong seminar (“stayed silent for weeks”) và trời tối sớm (“dark at four in the afternoon”). Mai không nhắc đến trượt thi hay mất hộ chiếu." },
+        { "q": "Which pieces of advice does Mai give? Tick ALL correct answers.", "options": ["Don't see homesickness as a sign of a mistake.", "Call your family every night.", "Don't compare your first month with other people's online highlights.", "Learn to cook before you leave home.", "Choose a university in a warm country."], "answers": [0, 2], "explain": "Mai khuyên: “homesickness isn't a sign you've made a mistake” và “don't compare your first month with other people's highlights online”. Việc gọi điện mỗi tối là thói quen cũ của Mai, không phải lời khuyên." }
+      ]
+    },
+    {
+      "type": "match",
+      "title": "Student life words",
+      "instruction": "Match the words with their meanings.",
+      "instructionVi": "Nối từ với nghĩa của chúng.",
+      "pairs": [
+        { "left": "homesick", "right": "sad because you are far away from your home and family", "explain": "“homesick” = nhớ nhà, như Mai vào tháng Mười Một." },
+        { "left": "culture shock", "right": "confusion you feel when you start living in a very different culture", "explain": "“culture shock” = sốc văn hóa, ví dụ Mai ngạc nhiên khi sinh viên tranh luận với giảng viên." },
+        { "left": "scholarship", "right": "money given to a student to help pay for their studies", "explain": "“scholarship” = học bổng." },
+        { "left": "flatmate", "right": "a person you share a flat with", "explain": "“flatmate” = bạn ở cùng căn hộ." },
+        { "left": "seminar", "right": "a small class where students discuss a topic with a tutor", "explain": "“seminar” = buổi học nhóm nhỏ, sinh viên thảo luận với giảng viên." },
+        { "left": "internship", "right": "a short period of work to gain experience", "explain": "“internship” = kỳ thực tập để lấy kinh nghiệm làm việc." }
+      ]
+    },
+    {
+      "type": "dictation",
+      "title": "Listen and write",
+      "instruction": "Listen and write the sentences.",
+      "instructionVi": "Nghe và chép lại các câu.",
+      "listen": true,
+      "items": [
+        { "text": "Homesickness is not a sign that you have made a mistake.", "explain": "“a sign that…” = dấu hiệu cho thấy…; “have made” là thì hiện tại hoàn thành." },
+        { "text": "I spent half my monthly budget in the first ten days.", "explain": "“half my budget” – không cần “of”; số “ten” viết bằng chữ." },
+        { "text": "At first I stayed silent in seminars because I felt shy.", "explain": "“At first” = lúc đầu; “stay silent” = giữ im lặng." },
+        { "text": "Joining a club is a great way to meet new people abroad.", "explain": "Danh động từ “Joining” làm chủ ngữ; “a great way to + V” = cách tuyệt vời để…" }
+      ]
+    }
+  ]
+}

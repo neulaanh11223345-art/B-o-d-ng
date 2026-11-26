@@ -1,0 +1,445 @@
+{
+  "id": "b2-02",
+  "level": "B2",
+  "order": 2,
+  "icon": "📱",
+  "title": "Life online",
+  "titleVi": "Cuộc sống trên mạng",
+  "goals": [
+    "Bày tỏ và so sánh quan điểm về mạng xã hội, thời gian dùng màn hình và tin giả",
+    "Nghe một cuộc thảo luận, nhận ra ai giữ quan điểm nào và thái độ của họ",
+    "Dùng từ vựng về đời sống số và sức khỏe tinh thần trên mạng"
+  ],
+  "vocab": [
+    {
+      "en": "misinformation",
+      "vi": "thông tin sai lệch",
+      "ipa": "/ˌmɪsɪnfəˈmeɪʃn/",
+      "ex": "Misinformation spreads faster than the truth."
+    },
+    {
+      "en": "algorithm",
+      "vi": "thuật toán",
+      "ipa": "/ˈælɡərɪðəm/",
+      "ex": "The algorithm decides which posts you see first."
+    },
+    {
+      "en": "feed",
+      "vi": "bảng tin (trên mạng xã hội)",
+      "ipa": "/fiːd/",
+      "ex": "My feed is full of cooking videos."
+    },
+    {
+      "en": "scroll",
+      "vi": "lướt (màn hình)",
+      "ipa": "/skrəʊl/",
+      "ex": "I scrolled through my phone for an hour."
+    },
+    {
+      "en": "notification",
+      "vi": "thông báo (trên điện thoại)",
+      "ipa": "/ˌnəʊtɪfɪˈkeɪʃn/",
+      "ex": "I turn off notifications when I'm studying."
+    },
+    {
+      "en": "fact-check",
+      "vi": "kiểm chứng thông tin",
+      "ipa": "/ˈfækt tʃek/",
+      "ex": "Always fact-check a story before you share it."
+    },
+    {
+      "en": "echo chamber",
+      "vi": "buồng vang (môi trường chỉ nghe ý kiến giống mình)",
+      "ipa": "/ˈekəʊ ˌtʃeɪmbə(r)/",
+      "ex": "Social media can become an echo chamber."
+    },
+    {
+      "en": "digital wellbeing",
+      "vi": "sức khỏe số (dùng công nghệ lành mạnh)",
+      "ipa": "/ˌdɪdʒɪtl ˈwelbiːɪŋ/",
+      "ex": "Our school runs workshops on digital wellbeing."
+    },
+    {
+      "en": "convincing",
+      "vi": "thuyết phục, trông như thật",
+      "ipa": "/kənˈvɪnsɪŋ/",
+      "ex": "The fake photo looked very convincing."
+    },
+    {
+      "en": "exaggerate",
+      "vi": "phóng đại, cường điệu",
+      "ipa": "/ɪɡˈzædʒəreɪt/",
+      "ex": "I think the newspapers exaggerate the danger."
+    },
+    {
+      "en": "compare yourself to",
+      "vi": "so sánh bản thân với",
+      "ipa": "/kəmˈpeə jɔːˌself tə/",
+      "ex": "Try not to compare yourself to people online."
+    }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "The Northfield podcast: harm or help?",
+    "context": "Trong podcast của trường Northfield, cô Hayes (giáo viên) thảo luận với ông Doyle (một phụ huynh) và Kai (học sinh lớp 11) về câu hỏi: mạng xã hội gây hại hay có ích cho thanh thiếu niên?",
+    "speakers": [
+      {
+        "id": "H",
+        "name": "Ms Hayes",
+        "voice": "female"
+      },
+      {
+        "id": "D",
+        "name": "Mr Doyle",
+        "voice": "male"
+      },
+      {
+        "id": "K",
+        "name": "Kai",
+        "voice": "child"
+      }
+    ],
+    "lines": [
+      {
+        "s": "H",
+        "en": "Welcome to the Northfield podcast. Today's question: is social media doing teenagers more harm than good?",
+        "vi": "Chào mừng đến với podcast Northfield. Câu hỏi hôm nay: mạng xã hội gây hại cho thanh thiếu niên nhiều hơn là có ích phải không?"
+      },
+      {
+        "s": "D",
+        "en": "I'll be honest, I think the harm is greater. My daughter compares herself to perfect lives online, and she feels worse for it.",
+        "vi": "Thật lòng mà nói, tôi nghĩ tác hại lớn hơn. Con gái tôi so sánh mình với những cuộc sống hoàn hảo trên mạng, và con bé thấy tệ hơn vì điều đó."
+      },
+      {
+        "s": "K",
+        "en": "But that's not the whole picture. Through an online art group, I found people who actually share my interests.",
+        "vi": "Nhưng đó chưa phải là toàn bộ vấn đề. Nhờ một nhóm vẽ trên mạng, cháu đã tìm được những người thật sự có cùng sở thích."
+      },
+      {
+        "s": "D",
+        "en": "I'm not saying it's all bad. But teenagers need limits. In our house, phones charge in the kitchen overnight.",
+        "vi": "Tôi không nói nó hoàn toàn xấu. Nhưng thanh thiếu niên cần giới hạn. Ở nhà tôi, điện thoại được sạc trong bếp suốt đêm."
+      },
+      {
+        "s": "K",
+        "en": "Honestly, most of us can manage our own screen time. My phone says I spend about three hours a day, and I set limits myself.",
+        "vi": "Thật ra, hầu hết bọn cháu có thể tự quản lý thời gian dùng màn hình. Điện thoại cho biết cháu dùng khoảng ba tiếng mỗi ngày, và cháu tự đặt giới hạn."
+      },
+      {
+        "s": "H",
+        "en": "Three hours sounds like a lot to some parents, Kai.",
+        "vi": "Ba tiếng nghe có vẻ nhiều với một số phụ huynh đấy, Kai."
+      },
+      {
+        "s": "K",
+        "en": "Maybe, but a lot of that is music and messaging friends. Adults tend to imagine the worst.",
+        "vi": "Có thể ạ, nhưng phần lớn thời gian đó là nghe nhạc và nhắn tin với bạn. Người lớn hay tưởng tượng ra điều tồi tệ nhất."
+      },
+      {
+        "s": "D",
+        "en": "Fair enough. And I'm hardly perfect myself. I check my emails at dinner, which my kids love pointing out.",
+        "vi": "Cũng đúng. Mà bản thân tôi cũng chẳng hoàn hảo gì. Tôi hay kiểm tra email trong bữa tối, và bọn trẻ nhà tôi rất thích chỉ ra điều đó."
+      },
+      {
+        "s": "H",
+        "en": "For me, the bigger issue is misinformation. Last term I showed my class five news stories, and one was completely made up.",
+        "vi": "Với tôi, vấn đề lớn hơn là tin sai lệch. Học kỳ trước tôi cho lớp xem năm bài báo, trong đó một bài hoàn toàn bịa đặt."
+      },
+      {
+        "s": "H",
+        "en": "Only four students out of twenty-eight spotted the fake one.",
+        "vi": "Chỉ có bốn trên hai mươi tám học sinh nhận ra bài giả."
+      },
+      {
+        "s": "K",
+        "en": "To be fair, it was a really convincing fake!",
+        "vi": "Công bằng mà nói, bài giả đó trông thật lắm ạ!"
+      },
+      {
+        "s": "H",
+        "en": "Exactly, and that's the problem. Students need to learn to ask who wrote something and why.",
+        "vi": "Chính xác, và đó mới là vấn đề. Học sinh cần học cách hỏi ai đã viết bài đó và viết để làm gì."
+      },
+      {
+        "s": "D",
+        "en": "Wouldn't it be simpler just to ban phones in schools?",
+        "vi": "Cấm điện thoại trong trường chẳng phải đơn giản hơn sao?"
+      },
+      {
+        "s": "H",
+        "en": "A ban might make classrooms calmer, but it avoids the real problem. Students still go home to their phones.",
+        "vi": "Lệnh cấm có thể giúp lớp học yên tĩnh hơn, nhưng nó né tránh vấn đề thật sự. Về nhà học sinh vẫn dùng điện thoại."
+      },
+      {
+        "s": "K",
+        "en": "What worries me is the algorithms. If you watch one angry video, suddenly your feed is full of them.",
+        "vi": "Điều cháu lo là các thuật toán. Chỉ cần xem một video giận dữ, bỗng nhiên bảng tin của mình toàn những video như thế."
+      },
+      {
+        "s": "D",
+        "en": "Now that's something we agree on, Kai.",
+        "vi": "Đó là điều mà chúng ta đồng ý với nhau đấy, Kai."
+      },
+      {
+        "s": "H",
+        "en": "So maybe the answer isn't less technology, but smarter users. Thanks, both of you.",
+        "vi": "Vậy có lẽ lời giải không phải là bớt công nghệ, mà là người dùng thông minh hơn. Cảm ơn cả hai người."
+      }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "match",
+      "title": "Who thinks what?",
+      "instruction": "Listen. Match each opinion with the speaker or speakers who hold it.",
+      "instructionVi": "Nghe. Nối mỗi ý kiến với người (hoặc những người) có ý kiến đó.",
+      "listen": true,
+      "pairs": [
+        {
+          "left": "Seeing perfect lives online makes young people feel worse.",
+          "right": "Mr Doyle",
+          "explain": "Ông Doyle nói con gái ông “compares herself to perfect lives online, and she feels worse for it”."
+        },
+        {
+          "left": "Most teenagers can manage their own screen time.",
+          "right": "Kai",
+          "explain": "Kai nói: “Most of us can manage our own screen time… I set limits myself.”"
+        },
+        {
+          "left": "Banning phones in schools avoids the real problem.",
+          "right": "Ms Hayes",
+          "explain": "Cô Hayes nói lệnh cấm “avoids the real problem. Students still go home to their phones.”"
+        },
+        {
+          "left": "Algorithms can quickly fill your feed with angry content.",
+          "right": "Mr Doyle and Kai",
+          "explain": "Kai lo về thuật toán (“your feed is full of them”), và ông Doyle đáp: “Now that's something we agree on, Kai.”"
+        },
+        {
+          "left": "The fake news story was genuinely hard to recognise.",
+          "right": "Ms Hayes and Kai",
+          "explain": "Kai nói: “It was a really convincing fake!” và cô Hayes đồng ý: “Exactly, and that's the problem.”"
+        }
+      ]
+    },
+    {
+      "type": "choice",
+      "title": "Attitudes and implied meaning",
+      "instruction": "Listen again. Choose the best answer.",
+      "instructionVi": "Nghe lại. Chọn đáp án đúng nhất.",
+      "listen": true,
+      "items": [
+        {
+          "q": "What is Kai's attitude towards adults' worries about screen time?",
+          "options": [
+            "He thinks they are completely right.",
+            "He thinks adults often exaggerate the problem.",
+            "He is not interested in what adults think.",
+            "He thinks teachers worry more than parents."
+          ],
+          "answer": 1,
+          "explain": "Kai nói: “Adults tend to imagine the worst.” – bạn ấy cho rằng người lớn hay phóng đại vấn đề."
+        },
+        {
+          "q": "When Mr Doyle mentions checking his emails at dinner, he is…",
+          "options": [
+            "complaining about his job.",
+            "criticising his children.",
+            "admitting that he has bad habits too.",
+            "explaining why he is always busy."
+          ],
+          "answer": 2,
+          "explain": "Ông nói: “I'm hardly perfect myself” rồi kể chuyện xem email trong bữa tối – ông thừa nhận mình cũng có thói quen chưa tốt."
+        },
+        {
+          "q": "What does the result of Ms Hayes's class activity suggest?",
+          "options": [
+            "Most students read the news every day.",
+            "Students are better at spotting fake news than adults.",
+            "The students were not interested in the activity.",
+            "Most students found it hard to identify false information."
+          ],
+          "answer": 3,
+          "explain": "“Only four students out of twenty-eight spotted the fake one.” – phần lớn học sinh không nhận ra tin giả."
+        },
+        {
+          "q": "Why does Ms Hayes disagree with a phone ban?",
+          "options": [
+            "It wouldn't help students outside school.",
+            "Phones are needed in most lessons.",
+            "Parents would complain about it.",
+            "Students would simply ignore it."
+          ],
+          "answer": 0,
+          "explain": "Cô nói lệnh cấm “avoids the real problem. Students still go home to their phones.” – ra khỏi trường, vấn đề vẫn còn đó."
+        },
+        {
+          "q": "What is the main idea of Ms Hayes's final comment?",
+          "options": [
+            "Teenagers should use technology much less.",
+            "Young people need the skills to use technology wisely.",
+            "Schools should buy more technology.",
+            "Parents should control their children's phones."
+          ],
+          "answer": 1,
+          "explain": "Cô kết luận: “The answer isn't less technology, but smarter users.” – điều cần là kỹ năng sử dụng công nghệ một cách khôn ngoan."
+        }
+      ]
+    },
+    {
+      "type": "truefalse",
+      "title": "True, false or not given?",
+      "instruction": "Listen. Are the sentences true (T), false (F), or is the information not given (NG)?",
+      "instructionVi": "Nghe. Các câu sau đúng (T), sai (F) hay không có thông tin (NG)?",
+      "listen": true,
+      "ng": true,
+      "items": [
+        {
+          "q": "Mr Doyle believes social media does more harm than good.",
+          "answer": "T",
+          "explain": "Đúng. Ông nói ngay từ đầu: “I think the harm is greater.”"
+        },
+        {
+          "q": "Mr Doyle's children keep their phones in their bedrooms at night.",
+          "answer": "F",
+          "explain": "Sai. “In our house, phones charge in the kitchen overnight.” – điện thoại để trong bếp."
+        },
+        {
+          "q": "Kai's online art group meets in person every month.",
+          "answer": "NG",
+          "explain": "Không có thông tin. Kai chỉ nói nhóm giúp bạn ấy tìm người cùng sở thích, không nói họ có gặp trực tiếp không."
+        },
+        {
+          "q": "Ms Hayes accepts that a phone ban might have some benefits.",
+          "answer": "T",
+          "explain": "Đúng. Cô nói: “A ban might make classrooms calmer” – cô công nhận một lợi ích, dù vẫn phản đối."
+        },
+        {
+          "q": "More than half of Ms Hayes's students spotted the fake story.",
+          "answer": "F",
+          "explain": "Sai. Chỉ có “four students out of twenty-eight” nhận ra bài giả."
+        },
+        {
+          "q": "Mr Doyle works as a teacher at Northfield School.",
+          "answer": "NG",
+          "explain": "Không có thông tin. Ông Doyle chỉ nói về con cái và gia đình mình; bài không cho biết nghề nghiệp của ông."
+        }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "Facts and figures",
+      "instruction": "Listen. Complete the sentences. Write ONE word or a number in each gap.",
+      "instructionVi": "Nghe. Hoàn thành câu. Mỗi chỗ trống viết MỘT từ hoặc một con số.",
+      "listen": true,
+      "bank": null,
+      "items": [
+        {
+          "q": "Kai's screen time: about ___ hours a day",
+          "answer": [
+            "three",
+            "3"
+          ],
+          "explain": "Kai nói: “My phone says I spend about three hours a day.”"
+        },
+        {
+          "q": "In Mr Doyle's house, phones charge in the ___ overnight.",
+          "answer": [
+            "kitchen"
+          ],
+          "explain": "“Phones charge in the kitchen overnight.”"
+        },
+        {
+          "q": "Mr Doyle checks his ___ at dinner.",
+          "answer": [
+            "emails",
+            "email"
+          ],
+          "explain": "“I check my emails at dinner, which my kids love pointing out.”"
+        },
+        {
+          "q": "Ms Hayes showed her class ___ news stories.",
+          "answer": [
+            "five",
+            "5"
+          ],
+          "explain": "“Last term I showed my class five news stories.”"
+        },
+        {
+          "q": "Only ___ out of twenty-eight students spotted the fake story.",
+          "answer": [
+            "four",
+            "4"
+          ],
+          "explain": "“Only four students out of twenty-eight spotted the fake one.”"
+        }
+      ]
+    },
+    {
+      "type": "multi",
+      "title": "Risks and views",
+      "instruction": "Listen. Tick ALL the correct answers.",
+      "instructionVi": "Nghe. Đánh dấu TẤT CẢ các đáp án đúng.",
+      "listen": true,
+      "items": [
+        {
+          "q": "Which RISKS of being online are mentioned in the discussion? Tick ALL correct answers.",
+          "options": [
+            "comparing yourself to other people",
+            "finding people with similar interests",
+            "believing made-up news stories",
+            "angry content filling your feed",
+            "messaging friends"
+          ],
+          "answers": [
+            0,
+            2,
+            3
+          ],
+          "explain": "Các rủi ro được nhắc đến: so sánh bản thân (“compares herself to perfect lives online”), tin bịa đặt (“one was completely made up”) và video giận dữ tràn ngập bảng tin (“your feed is full of them”). Tìm người cùng sở thích và nhắn tin với bạn là mặt tích cực mà Kai nêu."
+        },
+        {
+          "q": "Which statements about Mr Doyle are true? Tick ALL correct answers.",
+          "options": [
+            "He has a daughter.",
+            "He thinks social media is completely bad.",
+            "He admits he uses his phone at dinner.",
+            "He has rules about phones at home.",
+            "He wants schools to stop teaching about the internet."
+          ],
+          "answers": [
+            0,
+            2,
+            3
+          ],
+          "explain": "Ông Doyle nhắc đến “my daughter”, thừa nhận “I check my emails at dinner” và có quy định ở nhà (“phones charge in the kitchen overnight”). Ông nói rõ “I'm not saying it's all bad”, nên phương án 2 sai; phương án 5 không được nhắc đến."
+        }
+      ]
+    },
+    {
+      "type": "dictation",
+      "title": "Listen and write",
+      "instruction": "Listen and write the sentences.",
+      "instructionVi": "Nghe và chép lại các câu.",
+      "listen": true,
+      "items": [
+        {
+          "text": "Students need to learn to ask who wrote something and why.",
+          "explain": "Câu nói của cô Hayes; chú ý “who wrote something and why” là mệnh đề danh từ."
+        },
+        {
+          "text": "Most of my screen time is spent listening to music and messaging friends.",
+          "explain": "Câu bị động “is spent”; “spend time + V-ing”."
+        },
+        {
+          "text": "A ban might make classrooms calmer, but it avoids the real problem.",
+          "explain": "“make + tân ngữ + tính từ”: make classrooms calmer = làm lớp học yên tĩnh hơn."
+        },
+        {
+          "text": "If you watch one angry video, your feed quickly fills with similar ones.",
+          "explain": "Câu điều kiện loại 0 nói về sự thật chung; “fill with” = đầy những…"
+        }
+      ]
+    }
+  ]
+}

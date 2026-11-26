@@ -1,0 +1,140 @@
+{
+  "id": "a2-03",
+  "level": "A2",
+  "order": 3,
+  "icon": "🌦️",
+  "title": "Weather and seasons",
+  "titleVi": "Thời tiết và các mùa",
+  "goals": [
+    "Nói về thời tiết, nhiệt độ và bốn mùa",
+    "Chọn quần áo, đồ dùng phù hợp với thời tiết",
+    "Dùng “be going to” để nói về kế hoạch và dự báo"
+  ],
+  "vocab": [
+    { "en": "weather", "vi": "thời tiết", "ipa": "/ˈweðə/", "ex": "What's the weather like today?" },
+    { "en": "forecast", "vi": "dự báo (thời tiết)", "ipa": "/ˈfɔːkɑːst/", "ex": "Let's check the forecast." },
+    { "en": "season", "vi": "mùa", "ipa": "/ˈsiːzn/", "ex": "Summer is my favourite season." },
+    { "en": "rainy", "vi": "có mưa", "ipa": "/ˈreɪni/", "ex": "It's rainy, so take an umbrella." },
+    { "en": "windy", "vi": "có gió", "ipa": "/ˈwɪndi/", "ex": "It's windy. Let's fly a kite!" },
+    { "en": "sunny", "vi": "nắng", "ipa": "/ˈsʌni/", "ex": "It's going to be sunny tomorrow." },
+    { "en": "cloudy", "vi": "nhiều mây", "ipa": "/ˈklaʊdi/", "ex": "The sky is grey and cloudy." },
+    { "en": "autumn", "vi": "mùa thu", "ipa": "/ˈɔːtəm/", "ex": "Leaves fall in autumn." },
+    { "en": "degree", "vi": "độ (nhiệt độ)", "ipa": "/dɪˈɡriː/", "ex": "It's thirty degrees today." },
+    { "en": "sunglasses", "vi": "kính râm", "ipa": "/ˈsʌnɡlɑːsɪz/", "ex": "Don't forget your sunglasses." },
+    { "en": "sun cream", "vi": "kem chống nắng", "ipa": "/ˈsʌn kriːm/", "ex": "Put on some sun cream at the beach." },
+    { "en": "jacket", "vi": "áo khoác", "ipa": "/ˈdʒækɪt/", "ex": "Bring a jacket. It's cool in the evening." }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "Beach this weekend?",
+    "context": "Jack rủ Linh đi biển cuối tuần. Hai bạn xem dự báo thời tiết trên điện thoại để chọn ngày đi và chuẩn bị đồ.",
+    "speakers": [
+      { "id": "J", "name": "Jack", "voice": "male" },
+      { "id": "L", "name": "Linh", "voice": "female" }
+    ],
+    "lines": [
+      { "s": "J", "en": "Hey Linh, are you free this weekend? Let's go to the beach!", "vi": "Này Linh, cuối tuần này cậu rảnh không? Mình đi biển đi!" },
+      { "s": "L", "en": "Good idea! But what's the weather like? Let me check the forecast.", "vi": "Ý hay đấy! Nhưng thời tiết thế nào nhỉ? Để mình xem dự báo đã." },
+      { "s": "L", "en": "Hmm. On Saturday it's going to be rainy and windy.", "vi": "Hừm. Thứ Bảy trời sẽ mưa và có gió." },
+      { "s": "J", "en": "Oh no. What about Sunday?", "vi": "Ôi không. Thế còn Chủ nhật?" },
+      { "s": "L", "en": "Sunday looks better. It's going to be sunny and hot, about thirty-two degrees.", "vi": "Chủ nhật có vẻ đẹp hơn. Trời sẽ nắng và nóng, khoảng ba mươi hai độ." },
+      { "s": "J", "en": "Perfect! So let's go on Sunday morning.", "vi": "Tuyệt! Vậy sáng Chủ nhật mình đi nhé." },
+      { "s": "L", "en": "OK. And on Saturday we can watch a film at my house.", "vi": "Được. Còn thứ Bảy mình xem phim ở nhà mình nhé." },
+      { "s": "J", "en": "Great. What should I bring on Sunday?", "vi": "Hay đấy. Chủ nhật mình nên mang gì?" },
+      { "s": "L", "en": "Bring a hat, sunglasses and sun cream. The sun is really strong in summer.", "vi": "Mang mũ, kính râm và kem chống nắng nhé. Mùa hè nắng gắt lắm." },
+      { "s": "J", "en": "Do I need a jacket?", "vi": "Mình có cần áo khoác không?" },
+      { "s": "L", "en": "Yes, a light one. It's often cool in the evening by the sea.", "vi": "Có, một chiếc áo khoác mỏng thôi. Buổi tối ở biển thường mát." },
+      { "s": "J", "en": "OK. I love summer. Winter here is too cold for me!", "vi": "Ừ. Mình thích mùa hè lắm. Mùa đông ở đây lạnh quá đối với mình!" },
+      { "s": "L", "en": "Really? Autumn is my favourite season. It's not too hot and not too cold.", "vi": "Thật à? Mùa thu là mùa mình thích nhất. Không quá nóng mà cũng không quá lạnh." },
+      { "s": "J", "en": "Nice. See you on Sunday at seven, then!", "vi": "Hay đấy. Vậy hẹn gặp cậu lúc bảy giờ sáng Chủ nhật nhé!" }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "choice",
+      "title": "Listen and choose",
+      "instruction": "Listen to the conversation. Choose the correct answer.",
+      "instructionVi": "Nghe đoạn hội thoại và chọn đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "Where do Jack and Linh want to go?", "options": ["To the mountains", "To the cinema", "To the beach", "To the park"], "answer": 2, "explain": "Jack nói: “Let's go to the beach!” – Hai bạn muốn đi biển." },
+        { "q": "What's the weather going to be like on Saturday?", "options": ["Sunny and hot", "Rainy and windy", "Cloudy and cool", "Snowy and cold"], "answer": 1, "explain": "Linh đọc dự báo: “On Saturday it's going to be rainy and windy.”" },
+        { "q": "How hot is it going to be on Sunday?", "options": ["About 23°C", "About 30°C", "About 13°C", "About 32°C"], "answer": 3, "explain": "Linh nói: “about thirty-two degrees” – khoảng 32 độ C." },
+        { "q": "What are they going to do on Saturday?", "options": ["Watch a film", "Go swimming", "Go shopping", "Play football"], "answer": 0, "explain": "Linh nói: “on Saturday we can watch a film at my house.”" },
+        { "q": "What is Linh's favourite season?", "options": ["Spring", "Summer", "Autumn", "Winter"], "answer": 2, "explain": "Linh nói: “Autumn is my favourite season.” – Jack mới là người thích mùa hè." }
+      ]
+    },
+    {
+      "type": "truefalse",
+      "title": "True or false?",
+      "instruction": "Listen again. Are the sentences true (T) or false (F)?",
+      "instructionVi": "Nghe lại. Các câu sau đúng (T) hay sai (F)?",
+      "listen": true,
+      "ng": false,
+      "items": [
+        { "q": "Jack wants to go to the beach.", "answer": "T", "explain": "Jack rủ: “Let's go to the beach!”" },
+        { "q": "They decide to go to the beach on Saturday.", "answer": "F", "explain": "Thứ Bảy trời mưa nên hai bạn chọn Chủ nhật: “let's go on Sunday morning.”" },
+        { "q": "Linh tells Jack to bring sun cream.", "answer": "T", "explain": "Linh nói: “Bring a hat, sunglasses and sun cream.”" },
+        { "q": "Linh says Jack doesn't need a jacket.", "answer": "F", "explain": "Linh nói: “Yes, a light one.” – Nên mang một áo khoác mỏng vì buổi tối ở biển mát." },
+        { "q": "Jack loves winter.", "answer": "F", "explain": "Jack nói: “I love summer. Winter here is too cold for me!”" },
+        { "q": "They are going to meet at seven o'clock on Sunday.", "answer": "T", "explain": "Jack nói: “See you on Sunday at seven, then!”" }
+      ]
+    },
+    {
+      "type": "match",
+      "title": "What do you need?",
+      "instruction": "Match the weather to what you can do or need.",
+      "instructionVi": "Nối kiểu thời tiết với việc em có thể làm hoặc đồ em cần.",
+      "pairs": [
+        { "left": "It's rainy.", "right": "Take an umbrella.", "explain": "Trời mưa (rainy) thì mang ô (umbrella)." },
+        { "left": "It's sunny.", "right": "Wear your sunglasses.", "explain": "Trời nắng (sunny) thì đeo kính râm (sunglasses)." },
+        { "left": "It's windy.", "right": "Let's fly a kite!", "explain": "Trời có gió (windy) rất hợp để thả diều (fly a kite)." },
+        { "left": "It's snowy.", "right": "Let's build a snowman!", "explain": "Có tuyết (snowy) thì có thể đắp người tuyết (build a snowman)." },
+        { "left": "It's foggy.", "right": "Drive slowly. You can't see well.", "explain": "Có sương mù (foggy) thì khó nhìn, phải lái xe chậm." }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "Seasons and weather",
+      "instruction": "Choose the correct word for each sentence.",
+      "instructionVi": "Chọn từ đúng điền vào chỗ trống.",
+      "bank": ["spring", "summer", "autumn", "winter", "cloudy", "degrees", "sunny"],
+      "items": [
+        { "q": "Leaves turn yellow and fall from the trees in ___.", "answer": ["autumn"], "explain": "Lá vàng rơi vào mùa thu (autumn)." },
+        { "q": "After the cold winter, flowers start to grow in ___.", "answer": ["spring"], "explain": "Sau mùa đông lạnh là mùa xuân (spring), hoa bắt đầu nở." },
+        { "q": "It's very hot in ___, so we often go swimming.", "answer": ["summer"], "explain": "Mùa hè (summer) nóng nên người ta hay đi bơi." },
+        { "q": "In ___, it's cold and it sometimes snows.", "answer": ["winter"], "explain": "Mùa đông (winter) lạnh và đôi khi có tuyết." },
+        { "q": "There's no sun today. The sky is grey and ___.", "answer": ["cloudy"], "explain": "Không có nắng, trời xám – tức là nhiều mây (cloudy). “sunny” không hợp vì “no sun”." },
+        { "q": "It's thirty-five ___ today. It's really hot!", "answer": ["degrees"], "explain": "Nhiệt độ dùng “degrees” (độ): thirty-five degrees = 35 độ." }
+      ]
+    },
+    {
+      "type": "dictation",
+      "title": "Listen and write",
+      "instruction": "Listen. Write the sentences you hear.",
+      "instructionVi": "Nghe và chép lại các câu em nghe được.",
+      "listen": true,
+      "items": [
+        { "text": "What's the weather like?", "explain": "Câu hỏi về thời tiết: “What's the weather like?” – Thời tiết thế nào?" },
+        { "text": "It's going to be rainy and windy.", "explain": "“be going to” dùng để nói dự báo: “It's going to be…” – Trời sẽ…" },
+        { "text": "Bring a hat, sunglasses and sun cream.", "explain": "Chú ý “sunglasses” viết liền, còn “sun cream” viết tách hai từ." },
+        { "text": "Autumn is my favourite season.", "explain": "Kiểu Anh-Anh viết “favourite” (có chữ u) và dùng “autumn” cho mùa thu." }
+      ]
+    },
+    {
+      "type": "order",
+      "title": "Making a plan",
+      "instruction": "Listen. Put the events in order.",
+      "instructionVi": "Nghe và sắp xếp các sự việc theo đúng thứ tự.",
+      "listen": true,
+      "items": [
+        { "text": "Jack asks Linh to go to the beach.", "explain": "Mở đầu, Jack rủ: “Let's go to the beach!”" },
+        { "text": "Linh checks the forecast.", "explain": "Linh nói: “Let me check the forecast.”" },
+        { "text": "They find out Saturday is going to be rainy.", "explain": "Linh đọc dự báo: “On Saturday it's going to be rainy and windy.”" },
+        { "text": "They choose Sunday for the beach.", "explain": "Chủ nhật nắng đẹp nên Jack nói: “let's go on Sunday morning.”" },
+        { "text": "Linh tells Jack what to bring.", "explain": "Jack hỏi nên mang gì, Linh dặn mang mũ, kính râm và kem chống nắng." },
+        { "text": "They agree to meet at seven.", "explain": "Cuối cùng Jack nói: “See you on Sunday at seven, then!”" }
+      ]
+    }
+  ]
+}

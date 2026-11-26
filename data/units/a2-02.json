@@ -1,0 +1,139 @@
+{
+  "id": "a2-02",
+  "level": "A2",
+  "order": 2,
+  "icon": "🍓",
+  "title": "At the market",
+  "titleVi": "Đi chợ",
+  "goals": [
+    "Gọi tên thực phẩm và các đơn vị số lượng (a kilo of, a loaf of…)",
+    "Hỏi giá và đọc giá tiền",
+    "Dùng câu yêu cầu lịch sự khi mua hàng"
+  ],
+  "vocab": [
+    { "en": "market", "vi": "chợ", "ipa": "/ˈmɑːkɪt/", "ex": "We go to the market on Saturdays." },
+    { "en": "kilo", "vi": "ký, ki-lô-gam", "ipa": "/ˈkiːləʊ/", "ex": "Can I have a kilo of tomatoes?" },
+    { "en": "carrot", "vi": "cà rốt", "ipa": "/ˈkærət/", "ex": "Rabbits love carrots." },
+    { "en": "strawberry", "vi": "dâu tây", "ipa": "/ˈstrɔːbəri/", "ex": "These strawberries are very sweet." },
+    { "en": "lemon", "vi": "chanh vàng", "ipa": "/ˈlemən/", "ex": "I'd like two lemons, please." },
+    { "en": "loaf", "vi": "ổ (bánh mì)", "ipa": "/ləʊf/", "ex": "Can I have a loaf of bread?" },
+    { "en": "bunch", "vi": "nải, chùm, bó", "ipa": "/bʌntʃ/", "ex": "I bought a bunch of bananas." },
+    { "en": "price", "vi": "giá tiền", "ipa": "/praɪs/", "ex": "The price is on the box." },
+    { "en": "pound", "vi": "bảng Anh (đơn vị tiền)", "ipa": "/paʊnd/", "ex": "It costs two pounds." },
+    { "en": "altogether", "vi": "tổng cộng", "ipa": "/ˌɔːltəˈɡeðə/", "ex": "How much is that altogether?" },
+    { "en": "change", "vi": "tiền thối lại", "ipa": "/tʃeɪndʒ/", "ex": "Here's your change." }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "Saturday at the market",
+    "context": "Emma và em trai Leo đi chợ cuối tuần ở Anh. Emma mua rau, trứng và trái cây ở sạp của chú bán hàng.",
+    "speakers": [
+      { "id": "S", "name": "Seller", "voice": "male" },
+      { "id": "E", "name": "Emma", "voice": "female" },
+      { "id": "L", "name": "Leo", "voice": "child" }
+    ],
+    "lines": [
+      { "s": "S", "en": "Good morning! What can I get for you?", "vi": "Chào buổi sáng! Cháu muốn mua gì nào?" },
+      { "s": "E", "en": "Hello. Can I have a kilo of tomatoes, please?", "vi": "Cháu chào chú. Cho cháu một ký cà chua ạ." },
+      { "s": "S", "en": "Sure. They're £2 a kilo. Anything else?", "vi": "Được chứ. Hai bảng một ký. Cháu cần gì nữa không?" },
+      { "s": "E", "en": "Yes, I'd like six eggs and a bag of carrots, please.", "vi": "Dạ có, cho cháu sáu quả trứng và một túi cà rốt ạ." },
+      { "s": "S", "en": "Here you are. The eggs are £1.80 and the carrots are 90p.", "vi": "Của cháu đây. Trứng giá 1,80 bảng, còn cà rốt 90 xu." },
+      { "s": "L", "en": "Emma, look! Strawberries! Can we get some, please?", "vi": "Chị Emma, nhìn kìa! Dâu tây! Mình mua một ít nhé chị?" },
+      { "s": "E", "en": "OK, Leo. How much are the strawberries?", "vi": "Được rồi Leo. Dâu tây bao nhiêu tiền vậy chú?" },
+      { "s": "S", "en": "They're £3 a box, but today it's two boxes for £5.", "vi": "Ba bảng một hộp, nhưng hôm nay năm bảng được hai hộp." },
+      { "s": "E", "en": "Great! Two boxes, please. Oh, and do you have any lemons?", "vi": "Tuyệt quá! Cho cháu hai hộp. À, chú có chanh vàng không ạ?" },
+      { "s": "S", "en": "Sorry, we haven't got any lemons today.", "vi": "Xin lỗi cháu, hôm nay chú không có chanh." },
+      { "s": "E", "en": "No problem. How much is that altogether?", "vi": "Không sao ạ. Tổng cộng bao nhiêu tiền ạ?" },
+      { "s": "S", "en": "That's nine pounds seventy, please.", "vi": "Của cháu hết chín bảng bảy mươi xu." },
+      { "s": "E", "en": "Here's ten pounds.", "vi": "Cháu gửi chú mười bảng." },
+      { "s": "S", "en": "And here's thirty pence change. Thanks, and have a nice day!", "vi": "Chú thối lại cháu ba mươi xu. Cảm ơn cháu, chúc một ngày vui vẻ!" }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "choice",
+      "title": "Listen and choose",
+      "instruction": "Listen to the conversation. Choose the correct answer.",
+      "instructionVi": "Nghe đoạn hội thoại và chọn đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "How many eggs does Emma buy?", "options": ["Four", "Six", "Ten", "Twelve"], "answer": 1, "explain": "Emma nói: “I'd like six eggs and a bag of carrots, please.”" },
+        { "q": "How much are the tomatoes?", "options": ["£1.80 a kilo", "90p a kilo", "£2 a kilo", "£3 a kilo"], "answer": 2, "explain": "Người bán nói: “They're £2 a kilo.” – 1,80 bảng là giá trứng, 90 xu là giá cà rốt." },
+        { "q": "What does Leo want?", "options": ["Bananas", "Lemons", "Carrots", "Strawberries"], "answer": 3, "explain": "Leo nói: “Strawberries! Can we get some, please?”" },
+        { "q": "How much are two boxes of strawberries today?", "options": ["£5", "£6", "£3", "£2"], "answer": 0, "explain": "Người bán nói: “today it's two boxes for £5.” – Bình thường 3 bảng một hộp, hôm nay 5 bảng hai hộp." },
+        { "q": "What doesn't the seller have today?", "options": ["Eggs", "Carrots", "Lemons", "Tomatoes"], "answer": 2, "explain": "Người bán nói: “Sorry, we haven't got any lemons today.”" }
+      ]
+    },
+    {
+      "type": "truefalse",
+      "title": "True or false?",
+      "instruction": "Listen again. Are the sentences true (T) or false (F)?",
+      "instructionVi": "Nghe lại. Các câu sau đúng (T) hay sai (F)?",
+      "listen": true,
+      "ng": false,
+      "items": [
+        { "q": "Emma buys a kilo of tomatoes.", "answer": "T", "explain": "Emma nói: “Can I have a kilo of tomatoes, please?” và người bán đồng ý." },
+        { "q": "The carrots are £1.80.", "answer": "F", "explain": "Cà rốt giá 90 xu (90p). 1,80 bảng là giá của trứng." },
+        { "q": "Emma buys one box of strawberries.", "answer": "F", "explain": "Emma nói: “Two boxes, please.” – Bạn ấy mua hai hộp." },
+        { "q": "There are no lemons at the stall today.", "answer": "T", "explain": "Người bán nói: “we haven't got any lemons today.”" },
+        { "q": "Emma gives the seller ten pounds.", "answer": "T", "explain": "Emma nói: “Here's ten pounds.”" },
+        { "q": "Emma gets fifty pence change.", "answer": "F", "explain": "Người bán nói: “here's thirty pence change.” – Tiền thối là ba mươi xu (10 − 9,70 = 0,30)." }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "Polite shopping phrases",
+      "instruction": "Complete the conversations with words from the box.",
+      "instructionVi": "Hoàn thành các đoạn hội thoại bằng cụm từ trong khung.",
+      "bank": ["How much", "Can I have", "Here you are", "Anything else", "altogether", "change", "pounds"],
+      "items": [
+        { "q": "“___ are the apples?” “They're £2 a kilo.”", "answer": ["How much"], "explain": "Hỏi giá dùng “How much are…?” – … giá bao nhiêu?" },
+        { "q": "“___ a bag of carrots, please?” “Of course.”", "answer": ["Can I have"], "explain": "“Can I have…, please?” là cách yêu cầu lịch sự khi mua hàng." },
+        { "q": "“Two boxes of strawberries, please.” “Sure. ___.”", "answer": ["Here you are"], "explain": "Khi đưa đồ cho ai, ta nói “Here you are” – Của bạn đây." },
+        { "q": "“A loaf of bread, please.” “OK. ___?” “No, thanks. That's all.”", "answer": ["Anything else"], "explain": "Người bán hỏi “Anything else?” – Còn cần gì nữa không? Câu trả lời “That's all” cho thấy điều đó." },
+        { "q": "“How much is that ___?” “That's £9.70, please.”", "answer": ["altogether"], "explain": "“altogether” – tổng cộng; hỏi tổng số tiền phải trả." },
+        { "q": "“Here's £10.” “Thank you. And here's your ___.”", "answer": ["change"], "explain": "“change” – tiền thối lại khi khách đưa nhiều tiền hơn giá." }
+      ]
+    },
+    {
+      "type": "match",
+      "title": "How much of it?",
+      "instruction": "Match the quantity to the food.",
+      "instructionVi": "Nối đơn vị số lượng với loại thực phẩm phù hợp.",
+      "pairs": [
+        { "left": "a loaf of", "right": "bread", "explain": "“a loaf of bread” – một ổ bánh mì." },
+        { "left": "a bunch of", "right": "bananas", "explain": "“a bunch of bananas” – một nải chuối." },
+        { "left": "a bar of", "right": "chocolate", "explain": "“a bar of chocolate” – một thanh sô-cô-la." },
+        { "left": "a can of", "right": "cola", "explain": "“a can of cola” – một lon nước cola." },
+        { "left": "a kilo of", "right": "rice", "explain": "“a kilo of rice” – một ký gạo." }
+      ]
+    },
+    {
+      "type": "dictation",
+      "title": "Listen and write",
+      "instruction": "Listen. Write the sentences you hear.",
+      "instructionVi": "Nghe và chép lại các câu em nghe được.",
+      "listen": true,
+      "items": [
+        { "text": "Can I have a kilo of tomatoes, please?", "explain": "Câu yêu cầu lịch sự “Can I have…, please?”; nhớ dấu phẩy trước “please” và dấu chấm hỏi." },
+        { "text": "How much are the strawberries?", "explain": "“strawberries” là số nhiều nên dùng “are”; chú ý cách viết y → ies." },
+        { "text": "Sorry, we haven't got any lemons today.", "explain": "“haven't got any” – không có cái nào; dùng “any” trong câu phủ định." },
+        { "text": "That's nine pounds seventy, please.", "explain": "Giá tiền đọc là “nine pounds seventy” = 9,70 bảng; ở đây viết bằng chữ." }
+      ]
+    },
+    {
+      "type": "order",
+      "title": "Emma's shopping",
+      "instruction": "Listen. Put the events in order.",
+      "instructionVi": "Nghe và sắp xếp các sự việc theo đúng thứ tự.",
+      "listen": true,
+      "items": [
+        { "text": "Emma asks for some tomatoes.", "explain": "Đầu tiên Emma hỏi mua cà chua: “Can I have a kilo of tomatoes, please?”" },
+        { "text": "Emma asks for eggs and carrots.", "explain": "Khi người bán hỏi “Anything else?”, Emma mua thêm trứng và cà rốt." },
+        { "text": "Leo sees the strawberries.", "explain": "Sau đó Leo reo lên: “Emma, look! Strawberries!”" },
+        { "text": "Emma asks about lemons.", "explain": "Sau khi mua dâu, Emma hỏi: “do you have any lemons?”" },
+        { "text": "Emma pays and gets her change.", "explain": "Cuối cùng Emma trả mười bảng và nhận lại ba mươi xu." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "id": "a2-01",
+  "level": "A2",
+  "order": 1,
+  "icon": "⏰",
+  "title": "A day in my life",
+  "titleVi": "Một ngày của tôi",
+  "goals": [
+    "Kể về các hoạt động hằng ngày và giờ giấc",
+    "Dùng trạng từ chỉ tần suất: always, usually, often, sometimes, hardly ever, never",
+    "Nghe hiểu một cuộc phỏng vấn ngắn về thói quen hằng ngày"
+  ],
+  "vocab": [
+    { "en": "weekday", "vi": "ngày trong tuần (thứ Hai – thứ Sáu)", "ipa": "/ˈwiːkdeɪ/", "ex": "I get up early on weekdays." },
+    { "en": "get up", "vi": "thức dậy, ra khỏi giường", "ipa": "/ɡet ˈʌp/", "ex": "I get up at six o'clock." },
+    { "en": "half past", "vi": "rưỡi (… giờ 30)", "ipa": "/ˌhɑːf ˈpɑːst/", "ex": "School finishes at half past four." },
+    { "en": "breakfast", "vi": "bữa sáng", "ipa": "/ˈbrekfəst/", "ex": "We have breakfast at seven." },
+    { "en": "homework", "vi": "bài tập về nhà", "ipa": "/ˈhəʊmwɜːk/", "ex": "I do my homework after school." },
+    { "en": "always", "vi": "luôn luôn", "ipa": "/ˈɔːlweɪz/", "ex": "She always brushes her teeth before bed." },
+    { "en": "usually", "vi": "thường thường", "ipa": "/ˈjuːʒuəli/", "ex": "I usually walk to school." },
+    { "en": "often", "vi": "hay, thường", "ipa": "/ˈɒfn/", "ex": "We often eat noodle soup." },
+    { "en": "sometimes", "vi": "thỉnh thoảng", "ipa": "/ˈsʌmtaɪmz/", "ex": "I sometimes play football after school." },
+    { "en": "hardly ever", "vi": "hầu như không", "ipa": "/ˌhɑːdli ˈevə/", "ex": "He hardly ever watches TV." },
+    { "en": "never", "vi": "không bao giờ", "ipa": "/ˈnevə/", "ex": "My dad never drinks coffee." }
+  ],
+  "listening": {
+    "kind": "dialogue",
+    "title": "Teen Talk: Minh's weekday",
+    "context": "Trong chương trình podcast “Teen Talk”, chị Anna phỏng vấn Minh, 15 tuổi, về một ngày đi học bình thường của bạn ấy.",
+    "speakers": [
+      { "id": "A", "name": "Anna", "voice": "female" },
+      { "id": "M", "name": "Minh", "voice": "male" }
+    ],
+    "lines": [
+      { "s": "A", "en": "Hi, and welcome to Teen Talk. My guest today is Minh. He's fifteen and he lives in Da Nang.", "vi": "Xin chào và chào mừng các bạn đến với Teen Talk. Khách mời hôm nay là Minh. Bạn ấy mười lăm tuổi và sống ở Đà Nẵng." },
+      { "s": "M", "en": "Hi, Anna. Thanks for having me.", "vi": "Chào chị Anna. Cảm ơn chị đã mời em." },
+      { "s": "A", "en": "So, Minh, what's a normal weekday like for you?", "vi": "Vậy Minh, một ngày bình thường trong tuần của em thế nào?" },
+      { "s": "M", "en": "Well, I usually get up at half past five. It's early, I know!", "vi": "Dạ, em thường dậy lúc năm rưỡi. Sớm thật, em biết mà!" },
+      { "s": "A", "en": "Wow! Why so early?", "vi": "Ồ! Sao sớm vậy?" },
+      { "s": "M", "en": "I go swimming before school on Mondays, Wednesdays and Fridays.", "vi": "Em đi bơi trước giờ học vào thứ Hai, thứ Tư và thứ Sáu." },
+      { "s": "A", "en": "And what about breakfast?", "vi": "Còn bữa sáng thì sao?" },
+      { "s": "M", "en": "After swimming, I always have breakfast with my grandma. We often have noodle soup.", "vi": "Sau khi bơi, em luôn ăn sáng cùng bà. Hai bà cháu hay ăn phở hoặc bún." },
+      { "s": "A", "en": "What time does school start?", "vi": "Mấy giờ thì vào học?" },
+      { "s": "M", "en": "It starts at seven fifteen and finishes at half past four. I go to school by bike.", "vi": "Bảy giờ mười lăm vào học và bốn rưỡi tan học. Em đi học bằng xe đạp." },
+      { "s": "A", "en": "What do you do after school?", "vi": "Sau giờ học em làm gì?" },
+      { "s": "M", "en": "I do my homework first. Then I sometimes play football with my friends.", "vi": "Em làm bài tập trước. Sau đó thỉnh thoảng em đá bóng với các bạn." },
+      { "s": "A", "en": "Do you watch TV in the evening?", "vi": "Buổi tối em có xem TV không?" },
+      { "s": "M", "en": "Not really. I hardly ever watch TV. I usually read, and I go to bed at ten o'clock.", "vi": "Không hẳn ạ. Em hầu như không xem TV. Em thường đọc sách, và em đi ngủ lúc mười giờ." }
+    ]
+  },
+  "exercises": [
+    {
+      "type": "choice",
+      "title": "Listen and choose",
+      "instruction": "Listen to the interview. Choose the correct answer.",
+      "instructionVi": "Nghe cuộc phỏng vấn và chọn đáp án đúng.",
+      "listen": true,
+      "items": [
+        { "q": "What time does Minh usually get up?", "options": ["At 5:00", "At 5:30", "At 6:30", "At 7:15"], "answer": 1, "explain": "Minh nói: “I usually get up at half past five.” – half past five = 5:30." },
+        { "q": "How many days a week does Minh go swimming?", "options": ["One", "Two", "Three", "Five"], "answer": 2, "explain": "Minh đi bơi “on Mondays, Wednesdays and Fridays” – ba ngày một tuần." },
+        { "q": "Who does Minh have breakfast with?", "options": ["His mum", "His friends", "His cousin", "His grandma"], "answer": 3, "explain": "Minh nói: “I always have breakfast with my grandma.” – Bạn ấy ăn sáng với bà." },
+        { "q": "How does Minh get to school?", "options": ["By bike", "By bus", "On foot", "By car"], "answer": 0, "explain": "Minh nói: “I go to school by bike.” – Bạn ấy đi xe đạp." },
+        { "q": "What time does school finish?", "options": ["At 4:00", "At 4:15", "At 4:30", "At 5:30"], "answer": 2, "explain": "Minh nói trường “finishes at half past four” – tức là 4:30." }
+      ]
+    },
+    {
+      "type": "truefalse",
+      "title": "True or false?",
+      "instruction": "Listen again. Are the sentences true (T) or false (F)?",
+      "instructionVi": "Nghe lại. Các câu sau đúng (T) hay sai (F)?",
+      "listen": true,
+      "ng": false,
+      "items": [
+        { "q": "Minh lives in Da Nang.", "answer": "T", "explain": "Anna giới thiệu: “He's fifteen and he lives in Da Nang.”" },
+        { "q": "Minh goes swimming on Tuesdays.", "answer": "F", "explain": "Minh đi bơi vào thứ Hai, thứ Tư và thứ Sáu, không phải thứ Ba (Tuesday)." },
+        { "q": "School starts at seven fifteen.", "answer": "T", "explain": "Minh nói: “It starts at seven fifteen.”" },
+        { "q": "Minh plays football before he does his homework.", "answer": "F", "explain": "Minh nói: “I do my homework first. Then I sometimes play football.” – Làm bài tập trước, đá bóng sau." },
+        { "q": "Minh often watches TV in the evening.", "answer": "F", "explain": "Minh nói: “I hardly ever watch TV.” – Bạn ấy hầu như không xem TV." },
+        { "q": "Minh goes to bed at ten o'clock.", "answer": "T", "explain": "Minh nói: “I go to bed at ten o'clock.”" }
+      ]
+    },
+    {
+      "type": "gap",
+      "title": "How often?",
+      "instruction": "Look at the percentages. Choose the correct word.",
+      "instructionVi": "Nhìn tỉ lệ phần trăm và chọn trạng từ tần suất đúng.",
+      "bank": ["always", "usually", "often", "sometimes", "hardly ever", "never"],
+      "items": [
+        { "q": "I ___ brush my teeth before bed. (100%)", "answer": ["always"], "explain": "100% – lúc nào cũng làm – dùng “always” (luôn luôn)." },
+        { "q": "My sister ___ walks to school. (80%)", "answer": ["usually"], "explain": "Khoảng 80% – hầu hết các ngày – dùng “usually” (thường thường)." },
+        { "q": "We ___ have fish for dinner. (60%)", "answer": ["often"], "explain": "Khoảng 60% – hay làm – dùng “often”." },
+        { "q": "I ___ go to the cinema with my cousins. (40%)", "answer": ["sometimes"], "explain": "Khoảng 40% – thỉnh thoảng – dùng “sometimes”." },
+        { "q": "Tom ___ eats breakfast. He's always late! (10%)", "answer": ["hardly ever"], "explain": "Khoảng 10% – hầu như không – dùng “hardly ever”." },
+        { "q": "My grandma ___ drinks coffee. She doesn't like it. (0%)", "answer": ["never"], "explain": "0% – không bao giờ – dùng “never”." }
+      ]
+    },
+    {
+      "type": "match",
+      "title": "Daily routine phrases",
+      "instruction": "Match the verbs to the words to make daily activities.",
+      "instructionVi": "Nối động từ với từ phù hợp để tạo thành các hoạt động hằng ngày.",
+      "pairs": [
+        { "left": "get", "right": "up", "explain": "“get up” – thức dậy." },
+        { "left": "brush", "right": "my teeth", "explain": "“brush my teeth” – đánh răng." },
+        { "left": "do", "right": "my homework", "explain": "“do my homework” – làm bài tập về nhà (dùng “do”, không dùng “make”)." },
+        { "left": "play", "right": "football", "explain": "“play football” – đá bóng (môn thể thao có bóng dùng “play”)." },
+        { "left": "go", "right": "to bed", "explain": "“go to bed” – đi ngủ." }
+      ]
+    },
+    {
+      "type": "order",
+      "title": "Minh's Monday",
+      "instruction": "Listen. Put Minh's Monday in order.",
+      "instructionVi": "Nghe và sắp xếp các hoạt động trong ngày thứ Hai của Minh theo đúng thứ tự.",
+      "listen": true,
+      "items": [
+        { "text": "Minh gets up at half past five.", "explain": "Việc đầu tiên: “I usually get up at half past five.”" },
+        { "text": "Minh goes swimming.", "explain": "Thứ Hai Minh đi bơi “before school” – trước giờ học." },
+        { "text": "Minh has breakfast with his grandma.", "explain": "“After swimming, I always have breakfast with my grandma.” – Ăn sáng sau khi bơi." },
+        { "text": "Minh cycles to school.", "explain": "Sau bữa sáng Minh đến trường: “I go to school by bike.”" },
+        { "text": "Minh does his homework.", "explain": "Sau giờ học: “I do my homework first.”" },
+        { "text": "Minh goes to bed at ten.", "explain": "Việc cuối cùng trong ngày: “I go to bed at ten o'clock.”" }
+      ]
+    },
+    {
+      "type": "dictation",
+      "title": "Listen and write",
+      "instruction": "Listen. Write the sentences you hear.",
+      "instructionVi": "Nghe và chép lại các câu em nghe được.",
+      "listen": true,
+      "items": [
+        { "text": "I usually get up at half past five.", "explain": "Chú ý “half past five” = 5 giờ 30; trạng từ “usually” đứng trước động từ “get up”." },
+        { "text": "I go to school by bike.", "explain": "“by bike” – bằng xe đạp, không có “a” hay “the” sau “by”." },
+        { "text": "I hardly ever watch TV.", "explain": "“hardly ever” gồm hai từ, đứng trước động từ “watch”." },
+        { "text": "I go to bed at ten o'clock.", "explain": "“go to bed” – đi ngủ; “o'clock” có dấu nháy đơn." }
+      ]
+    }
+  ]
+}
