@@ -842,6 +842,26 @@ test('thêm / chuyển máy theo chuyền dùng được cho mọi nhóm có b�
   assert.deepEqual(ok(b.call('translate', { ds: ['Cảm biến quang', ''] }, kt)).dich, ['光电传感器', '']);
 });
 
+test('điểm danh: Quản lý ghi nghỉ phép / không phép / ốm / đi muộn; chỉ lưu ngoại lệ; nhân viên xem được, không sửa được', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-11-26T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const d0 = ok(b.call('data', {}, ql)), uid = d0.nhanVien.find((x) => x.maNV === 'NV004').id, uid2 = d0.nhanVien.find((x) => x.maNV === 'NV005').id;
+  err(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [uid]: 'P' } }, kt), 'KHONG_QUYEN');
+  err(b.call('attendanceSet', { ngay: '2026-13-40', tt: {} }, ql), 'NGAY_SAI');
+  // Ngày thường: X là mặc định nên không lưu; mã lạ / người lạ bị bỏ
+  let r = ok(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [uid]: 'p', [uid2]: 'M', U999: 'P', [ql.id || 'x']: 'ZZ', NV003: 'X' } }, ql)).diemDanh;
+  assert.deepEqual(r.tt, { [uid]: 'P', [uid2]: 'M' });
+  assert.equal(r.ngay, '2026-11-25');
+  // Chủ nhật: mặc định nghỉ tuần, đi làm thì ghi X
+  r = ok(b.call('attendanceSet', { ngay: '2026-11-22', tt: { [uid]: 'X' } }, ql)).diemDanh;
+  assert.deepEqual(r.tt, { [uid]: 'X' });
+  // Sửa lại cùng ngày: thay cả ngày (một dòng)
+  ok(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [uid]: 'KP' } }, ql));
+  const dk = ok(b.call('data', {}, kt)).diemDanh;
+  assert.deepEqual(dk.filter((x) => x.ngay === '2026-11-25').map((x) => x.tt), [{ [uid]: 'KP' }], 'nhân viên xem được, mỗi ngày một dòng');
+  assert.equal(dk.length, 2);
+});
+
 test('chuyền đang sản xuất sản phẩm nào: chỉ tài khoản xem được sản phẩm mới chọn; lưu ID (không lộ mã), giữ khi sửa chuyền', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-11-26T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');

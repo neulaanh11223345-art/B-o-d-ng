@@ -1077,6 +1077,13 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .qgso b{font:800 22px var(--f-mono);color:var(--brand)}.qgso small{font-size:11px;color:var(--ink3)}
 .lshd{font-size:12.5px;font-weight:700;color:var(--ink2);margin:14px 2px 6px}
 .dmmucs{margin-bottom:8px}
+/* Điểm danh (v2.75) */
+.ddrow{align-items:flex-start}.ddchon{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.ddchon .chip{font-family:inherit}
+.ddchon .chip.on.dd-X{background:var(--green);border-color:var(--green);color:#fff}
+.ddchon .chip.on.dd-M{background:var(--orange);border-color:var(--orange);color:#fff}
+.ddchon .chip.on.dd-P,.ddchon .chip.on.dd-O{background:var(--blue);border-color:var(--blue);color:#fff}
+.ddchon .chip.on.dd-KP{background:var(--red);border-color:var(--red);color:#fff}
+.ddchon .chip.on.dd-CN{background:var(--soft);border-color:var(--line);color:var(--ink2)}
 /* Sản phẩm đang sản xuất (v2.74) */
 .chsp{margin-top:12px}.chsph{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .chsph .lb{font-weight:700;color:var(--green)}.chsph .lb .zi{display:inline;margin-left:6px}
@@ -1764,7 +1771,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "https://script.google.com/macros/s/AKfycbzyfoIi9E0cSMIIcaXTQra0CBWSd8MBhrItcfTcUhatgNnep3IFSLyaU8oQS2-_cQlNKA/exec";
 const MODE = "live";
-const APP_VER = "2.74.0";
+const APP_VER = "2.75.0";
 const DemoBackend = null;
 
 const IS_DEMO = MODE === 'demo';
@@ -2285,6 +2292,11 @@ function mergeResult(d) {
     const i = L.findIndex((x) => x.ma === cc.ma);
     if (i >= 0) L[i] = cc; else L.push(cc);
   });
+  if (d.diemDanh) {
+    const L = S.base.diemDanh = S.base.diemDanh || [];
+    const i = L.findIndex((x) => x.ngay === d.diemDanh.ngay);
+    if (i >= 0) L[i] = d.diemDanh; else L.push(d.diemDanh);
+  }
   (d.congViec ? [d.congViec] : []).concat(d.dsCongViec || []).forEach((v) => {
     const L = S.base.congViec = S.base.congViec || [];
     const i = L.findIndex((x) => x.id === v.id);
@@ -15537,6 +15549,8 @@ const trucDS = () => (S.V && S.V.truc) || [];
 // Một ngày xếp được nhiều người, mỗi người một dòng và một nội dung trực riêng
 const TRUC_TOI_DA_NGAY = 6;
 const trucNgayDS = (d) => trucDS().filter((x) => x.ngay === d && (x.uid || x.noiDung));
+// Lịch trực gốc của một ngày (cả người hôm đó nghỉ) — dùng khi Quản lý xếp lại ngày
+const trucNgayGoc = (d) => ((S.V && S.V.trucGoc) || trucDS()).filter((x) => x.ngay === d && (x.uid || x.noiDung));
 const trucTuanDS = (tu) => [0, 1, 2, 3, 4, 5, 6].map((i) => { const d = addD(tu, i); return { ngay: d, ds: trucNgayDS(d) }; });
 const trucCoNguoi = (o) => (o.ds || []).some((x) => x.uid);
 // Giờ trực mặc định của một ngày: Chủ nhật một khung, ngày thường một khung
@@ -15790,7 +15804,15 @@ function rebuildTruc() {
       });
     }
   });
-  S.V.truc = lt; S.V.pc = pc; S.V.nt = nt;
+  // Điểm danh (v2.75): {ngày: {uid: mã}} — máy chủ + lượt điểm danh đang chờ gửi
+  const dd = {};
+  (b.diemDanh || []).forEach((x) => { dd[x.ngay] = Object.assign({}, x.tt || {}); });
+  S.Q.forEach((q) => { if (q.st === 'cho' && q.action === 'attendanceSet') dd[q.p.ngay] = Object.assign({}, q.p.tt || {}); });
+  S.V.dd = dd;
+  // Người nghỉ (phép / không phép / ốm) không còn trong lịch trực ngày đó; bản gốc giữ để Quản lý xếp lại
+  S.V.trucGoc = lt;
+  S.V.truc = lt.filter((x) => !(x.uid && ddNghi(x.ngay, x.uid)));
+  S.V.pc = pc; S.V.nt = nt;
 }
 
 // Dòng giờ mặc định ở đầu màn: ngày thường và Chủ nhật, Quản lý bấm sửa được
@@ -15800,7 +15822,7 @@ function trucGioDongHtml() {
     — ${esc(tp('trucGioThuong'))}: <b class="mono">${t0.tu} – ${t0.den}</b> · ${esc(tp('trucGioCN'))}: <b class="mono">${cn.tu} – ${cn.den}</b>
     ${trucSua() && !srvOld('trucgio') ? ` <button type="button" class="lnkbtn" data-act="trucGioCfg">${esc(tp('trucGioSua'))}</button>` : ''}</div>`;
 }
-const trucSegHtml = (che) => `<div class="seg" style="margin-bottom:12px">${[['thang', 'trucCheThang'], ['tuan', 'trucCheTuan']].map(([k, lb]) =>
+const trucSegHtml = (che) => `<div class="seg" style="margin-bottom:12px">${[['thang', 'trucCheThang'], ['tuan', 'trucCheTuan']].concat(srvOld('diemdanh') ? [] : [['dd', 'trucCheDD']]).map(([k, lb]) =>
   `<button class="${che === k ? 'on' : ''}" data-act="trucChe" data-m="${k}">${tv(lb)} ${tz(lb)}</button>`).join('')}</div>`;
 // Bảng chi tiết một tuần: mỗi ngày một dòng, kèm nội dung trực song ngữ
 function trucTuanHtml() {
@@ -15851,6 +15873,7 @@ VIEWS.truc = {
   html() {
     const che = S.f.trucChe || 'thang';
     if (che === 'tuan') return trucTuanHtml();
+    if (che === 'dd' && !srvOld('diemdanh')) return trucSegHtml(che) + ddHtml();
     const ym = trucThangHT(), [y, mo] = ym.split('-').map(Number), today = TODAY();
     const { ds, truoc } = trucThangDS(ym), me = (S.me || {}).id, sua = trucSua();
     const tg = trucTongDS(ym), ngan = trTenNganMap(tg.map((n) => n.ten)), mau = trucMauThang(ym);
@@ -15904,11 +15927,138 @@ VIEWS.truc = {
   }
 };
 
+// ===================== Điểm danh hằng ngày (v2.75) =====================
+// Mặc định ngày thường ai cũng đi làm, Chủ nhật nghỉ tuần. Quản lý chỉ cần bấm người nghỉ (phép / không phép / ốm),
+// người đi muộn, và người đi làm Chủ nhật. Người nghỉ tự ra khỏi lịch trực ngày đó. Nhân viên xem được, không sửa.
+SRV_PHAN.push(['diemdanh', '2.75.0', 'srvMissDD']);
+Object.assign(TX, {
+  trucCheDD: ['Điểm danh', '考勤'],
+  dd_X: ['Đi làm', '出勤'], dd_M: ['Đi muộn', '迟到'], dd_P: ['Nghỉ phép', '事假/年假'], dd_KP: ['Nghỉ không phép', '旷工'], dd_O: ['Nghỉ ốm', '病假'],
+  dd_CN: ['Nghỉ Chủ nhật', '周日休息'],
+  ddKyHieu_X: ['X'], ddKyHieu_M: ['M'], ddKyHieu_P: ['P'], ddKyHieu_KP: ['KP'], ddKyHieu_O: ['Ô'], ddKyHieu_CN: ['CN'],
+  ddHomNay: ['Hôm nay', '今天'], ddTomTat: ['Đi làm {a} · Đi muộn {b} · Nghỉ {c}', '出勤 {a} · 迟到 {b} · 请假 {c}'],
+  ddHelp: ['Mặc định ngày thường mọi người đi làm, Chủ nhật nghỉ. Bấm vào người nghỉ để chọn Nghỉ phép / Không phép / Ốm, hoặc Đi muộn. Người nghỉ tự ra khỏi lịch trực ngày đó.',
+    '默认工作日全员出勤，周日休息。点击请假人员选择事假/旷工/病假，或迟到。请假人员自动移出当天值班表。'],
+  ddCnHelp: ['Chủ nhật: mặc định nghỉ. Ai đi làm thì bấm Đi làm (hoặc Đi muộn).', '周日：默认休息。上班人员请点击出勤（或迟到）。'],
+  ddChiXem: ['Bảng điểm danh do Quản lý ghi; bạn chỉ xem.', '考勤由主管录入；您只能查看。'],
+  ddTrucHomNay: ['Trực', '值班'], ddNghiTruc: ['Người này {m} ngày này nên không có trong lịch trực. Chọn người khác để trực.', '此人当天{m}，不在值班表中。请另选值班人。'],
+  ddMatTruc: ['{n} người trực ngày này đã nghỉ — ngày này cần xếp người trực khác', '当天{n}名值班人请假——需另行安排值班'],
+  ddXepLai: ['Xếp lại người trực', '重新安排值班'],
+  ddThang: ['Tổng hợp tháng {m}/{y}', '{y}年{m}月汇总'], ddXuat: ['Xuất Excel chấm công tháng', '导出月度考勤Excel'],
+  ddCong: ['Công', '出勤天数'], ddMuon: ['Muộn', '迟到'], ddCnLam: ['CN đi làm', '周日出勤'],
+  ddLuu: ['Đã ghi: {t} — {m}', '已记录：{t} — {m}'], ddTuongLai: ['Chưa tới ngày này', '尚未到这一天'],
+  srvMissDD: ['Máy chủ chưa có điểm danh. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚无考勤功能。请更新 Code.gs 并重新部署。']
+});
+const DD_NGHI = ['P', 'KP', 'O'];
+// Mã của một người trong một ngày: lưu riêng thì theo mã đó, không thì mặc định (Chủ nhật CN, ngày thường X)
+const ddMa = (ngay, uid) => ((S.V && S.V.dd && S.V.dd[ngay]) || {})[uid] || (wday(ngay) === 0 ? 'CN' : 'X');
+const ddNghi = (ngay, uid) => DD_NGHI.indexOf(((S.V && S.V.dd && S.V.dd[ngay]) || {})[uid]) >= 0;
+// Người trong bảng điểm danh: tài khoản đang dùng, trừ tài khoản Quản trị hệ thống
+const ddNguoi = () => nvDS().filter((n) => n.vaiTro !== 'admin');
+const ddSua = () => trucSua() && !srvOld('diemdanh');
+const ddNgayHT = () => S.f.ddNgay || TODAY();
+const DD_PILL = { X: 'p-ok', M: 'p-nay', P: 'p-sap', KP: 'p-qua', O: 'p-sap', CN: 'p-off' };
+function ddHtml() {
+  const ngay = ddNgayHT(), cn = wday(ngay) === 0, sua = ddSua(), ds = ddNguoi(), today = TODAY();
+  const tl = ngay > today, ma = (n) => ddMa(ngay, n.id);
+  const nLam = ds.filter((n) => ['X', 'M'].indexOf(ma(n)) >= 0).length, nMuon = ds.filter((n) => ma(n) === 'M').length;
+  const nNghi = ds.filter((n) => DD_NGHI.indexOf(ma(n)) >= 0).length;
+  const truc = trucNgayGoc(ngay).filter((x) => x.uid), mat = truc.filter((x) => ddNghi(ngay, x.uid));
+  let o = `<div class="caltools"><div class="stepper">
+    <button data-act="ddNgayDoi" data-d="-1" aria-label="-">${IC.left}</button>
+    <b>${esc(WD_VI_F[wday(ngay)])}, ${esc(fmtD(ngay))}</b>
+    <button data-act="ddNgayDoi" data-d="1" aria-label="+">${IC.right}</button></div>
+    ${ngay !== today ? `<button class="btn ghost sm" data-act="ddNgayDoi" data-d="0">${t('ddHomNay')}</button>` : ''}</div>`;
+  o += `<div class="card pad" style="margin-top:10px"><b>${esc(tv('ddTomTat', { a: nLam, b: nMuon, c: nNghi }))}</b>
+    <span class="zi">${esc(tz('ddTomTat', { a: nLam, b: nMuon, c: nNghi }))}</span>
+    <div class="help" style="margin-top:6px">${t(sua ? (cn ? 'ddCnHelp' : 'ddHelp') : 'ddChiXem')}</div>
+    ${tl ? `<div class="note" style="margin-top:8px">${t('ddTuongLai')}</div>` : ''}</div>`;
+  if (mat.length) o += `<div class="note warn" style="margin-top:10px"><b>${esc(tv('ddMatTruc', { n: mat.length }))}</b> <span class="zi">${esc(tz('ddMatTruc', { n: mat.length }))}</span>
+    <div class="sub">${esc(mat.map((x) => x.ten + ' · ' + tv('dd_' + ddMa(ngay, x.uid))).join(', '))}</div>
+    ${trucSua() ? `<div class="btns" style="margin-top:8px"><button class="btn sm" data-act="trucXep" data-d="${esc(ngay)}">${IC.users} ${t('ddXepLai')}</button></div>` : ''}</div>`;
+  const chon = cn ? ['CN', 'X', 'M'] : ['X', 'M', 'P', 'KP', 'O'];
+  o += `<div class="list ddlist" style="margin-top:10px">${ds.map((n) => {
+    const m = ma(n), coTruc = truc.some((x) => x.uid === n.id);
+    return `<div class="row ddrow" data-uid="${esc(n.id)}"><div class="main"><div class="nm">${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ` <span class="zi" lang="zh-CN">${esc(n.tenZh)}</span>` : ''}
+        ${coTruc && !ddNghi(ngay, n.id) ? `<span class="pill p-ok" style="margin-left:6px">${esc(tv('ddTrucHomNay'))}</span>` : ''}</div>
+      ${sua ? `<div class="ddchon">${chon.map((k) => `<button type="button" class="chip sm${m === k ? ' on dd-' + k : ''}" data-act="ddDat" data-uid="${esc(n.id)}" data-v="${k}">${esc(tv('dd_' + k))}</button>`).join('')}</div>`
+        : `<div class="sub mono">${esc(n.maThe || n.maNV || '')}</div>`}</div>
+      ${sua ? '' : `<div class="end"><span class="pill ${DD_PILL[m]}">${esc(tv('dd_' + m))}</span></div>`}</div>`;
+  }).join('')}</div>`;
+  // Tổng hợp tháng của ngày đang xem
+  const ym = ngay.slice(0, 7), [y, mo] = ym.split('-').map(Number), th = ddThangDS(ym);
+  o += sec('ddThang', '', { m: mo, y }) + `<div class="dtwrap"><table class="dt"><thead><tr><th>${esc(tv('tcHoTen'))}<small>${esc(tz('tcHoTen'))}</small></th>
+    ${['ddCong', 'ddMuon', 'dd_P', 'dd_KP', 'dd_O', 'ddCnLam'].map((k) => `<th class="num">${esc(tv(k))}<small>${esc(tz(k))}</small></th>`).join('')}</tr></thead>
+    <tbody>${th.map((r) => `<tr><td><b>${esc(r.n.ten)}</b></td>${['cong', 'M', 'P', 'KP', 'O', 'cnLam'].map((k) => `<td class="num mono">${r[k] || (k === 'cong' ? 0 : '—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="ddXuat" data-m="${ym}">${IC.dl} ${t('ddXuat')}</button></div>`;
+  return o;
+}
+// Tổng hợp tháng mỗi người: số công (đi làm + đi muộn, kể cả Chủ nhật đi làm), đi muộn, phép, không phép, ốm. Ngày chưa tới không tính.
+function ddThangDS(ym) {
+  const [y, mo] = ym.split('-').map(Number), nd = new Date(y, mo, 0).getDate(), today = TODAY();
+  return ddNguoi().map((n) => {
+    const r = { n, cong: 0, M: 0, P: 0, KP: 0, O: 0, cnLam: 0, ngay: [] };
+    for (let i = 1; i <= nd; i++) {
+      const d = ym + '-' + pad2(i);
+      if (d > today) { r.ngay.push(''); continue; }
+      const m = ddMa(d, n.id); r.ngay.push(m);
+      if (m === 'X' || m === 'M') { r.cong++; if (wday(d) === 0) r.cnLam++; }
+      if (r[m] !== undefined && m !== 'X') r[m]++;
+    }
+    return r;
+  });
+}
+// Excel chấm công tháng của bộ phận: mỗi người một dòng, mỗi ngày một cột (X, M, P, KP, Ô, CN), cột tổng cuối
+function ddXlsx(ym) {
+  const [y, mo] = ym.split('-').map(Number), nd = new Date(y, mo, 0).getDate(), ds = ddThangDS(ym);
+  const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const CNF = { fill: '#FDECEA' }, MAU = { M: { color: '#B45309', b: 1 }, P: { color: '#1D4ED8', b: 1 }, KP: { color: '#B42318', b: 1 }, O: { color: '#7C3AED', b: 1 } };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'center', align: 'center', border: true }, x || {}) });
+  const dem = {}; ds.forEach((r) => { const b0 = r.n.boPhan || ''; if (b0) dem[b0] = (dem[b0] || 0) + 1; });
+  const bp = Object.keys(dem).sort((a, b) => dem[b] - dem[a])[0] || '', bpZh = ((ds.find((r) => r.n.boPhan === bp) || {}).n || {}).boPhanZh || '';
+  const ngay = []; for (let i = 1; i <= nd; i++) ngay.push(ym + '-' + pad2(i));
+  const TONG = [['ddCong', 'cong'], ['ddMuon', 'M'], ['dd_P', 'P'], ['dd_KP', 'KP'], ['dd_O', 'O'], ['ddCnLam', 'cnLam']];
+  const rows = [[{ v: 'BẢNG CHẤM CÔNG THÁNG ' + mo + '/' + y + ' · ' + y + '年' + mo + '月考勤表', s: { b: 1, sz: 14 } }],
+    [{ v: 'Bộ phận · 部门: ' + (bp || '—') + (bpZh ? ' · ' + bpZh : ''), s: { b: 1 } }], [],
+    [c('STT\n序号', H), c('Mã thẻ\n工号', H), c('Họ và tên\n姓名', H), c('Chức vụ\n职位', H)].concat(ngay.map((d) => c(+d.slice(8), H)), TONG.map(([k]) => c(tv(k) + '\n' + tz(k), H))),
+    [c('', H), c('', H), c('', H), c('', H)].concat(ngay.map((d) => c(WD_VI[wday(d)] + '\n' + WD_ZH[wday(d)], Object.assign({}, H, wday(d) === 0 ? { fill: '#B42318' } : {}))), TONG.map(() => c('', H)))];
+  ds.forEach((r, i) => {
+    rows.push([c(i + 1), c(r.n.maThe || r.n.maNV || ''), c(r.n.ten + (r.n.tenZh && r.n.tenZh !== r.n.ten ? '\n' + r.n.tenZh : ''), { align: 'left', wrap: 1 }), c(r.n.chucVu || '', { align: 'left', wrap: 1 })]
+      .concat(r.ngay.map((m, j) => c(m ? tv('ddKyHieu_' + m) : '', Object.assign({}, wday(ngay[j]) === 0 ? CNF : {}, MAU[m] || {}))), TONG.map(([, k]) => c(r[k] || 0, { b: 1 }))));
+  });
+  rows.push([]);
+  rows.push([{ v: 'Ký hiệu · 符号:  X = đi làm 出勤 · M = đi muộn 迟到 · P = nghỉ phép 事假/年假 · KP = nghỉ không phép 旷工 · Ô = nghỉ ốm 病假 · CN = nghỉ Chủ nhật 周日休息', s: { i: 1 } }]);
+  rows.push([]);
+  rows.push([{ v: 'Người lập · 制表', s: { b: 1 } }, '', '', { v: 'Trưởng bộ phận · 部门经理', s: { b: 1 } }]);
+  const nCot = 4 + nd + TONG.length, L = (i) => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
+  const merges = ['A1:' + L(nCot - 1) + '1', 'A2:' + L(nCot - 1) + '2', 'A4:A5', 'B4:B5', 'C4:C5', 'D4:D5'].concat(TONG.map((x, i) => L(4 + nd + i) + '4:' + L(4 + nd + i) + '5'));
+  merges.push('A' + (rows.length - 2) + ':' + L(nCot - 1) + (rows.length - 2));
+  return XW.build([{ name: 'Cham cong', rows, cols: [5, 10, 24, 14].concat(ngay.map(() => 4.2), TONG.map(() => 8)), merges,
+    heights: { 1: 26, 4: 22, 5: 30 }, freeze: { r: 5, c: 3 }, landscape: true }]);
+}
+Object.assign(ACT, {
+  ddNgayDoi: (el) => { const d = +el.dataset.d; S.f.ddNgay = d ? addD(ddNgayHT(), d) : TODAY(); render(); },
+  // Bấm một trạng thái: ghi cả ngày (mọi ngoại lệ của ngày đó) — mất mạng thì chờ gửi, màn hình đổi ngay
+  ddDat: async (el) => {
+    const ngay = ddNgayHT(), uid = el.dataset.uid, v = el.dataset.v, tt = Object.assign({}, (S.V.dd || {})[ngay] || {});
+    if ((wday(ngay) === 0 && v === 'CN') || (wday(ngay) !== 0 && v === 'X')) delete tt[uid]; else tt[uid] = v;
+    const r = await send('attendanceSet', { ngay, tt });
+    if (r.err) { toast(errMsg(r.err), true); return; }
+    toast(t('ddLuu', { t: nvTen(uid), m: tv('dd_' + v) })); render();
+  },
+  ddXuat: async (el) => {
+    const ym = el.dataset.m;
+    toast(t('exporting')); await sleep(30);
+    let blob; try { blob = ddXlsx(ym); } catch (e) { toast(t('LOI', { m: e.message }), true); return; }
+    const tt = $('.toast'); if (tt) tt.remove();
+    await saveFile(blob, 'Cham-cong_' + ym + '.xlsx');
+  }
+});
 // ---------- Xếp một ngày ----------
 VIEWS.trucGhi = {
   html(p) {
     if (!p.init) {
-      const a0 = trucNgayDS(p.d).filter((x) => x.uid || x.noiDung);
+      const a0 = trucNgayGoc(p.d).filter((x) => x.uid || x.noiDung);
       const md = trucGioMacDinh(p.d);
       Object.assign(p, { init: 1, md, ds: (a0.length ? a0 : [{ uid: '', noiDung: '', noiDungDich: '' }])
         .map((x) => ({ uid: x.uid || '', nd: x.noiDung || '', ndz: x.noiDungDich || '', zSua: 0,
@@ -15926,8 +16076,9 @@ VIEWS.trucGhi = {
           ${p.ds.length > 1 ? `<button type="button" class="btn ghost sm" data-act="trBoNguoi" data-i="${i}">${t('trucBoNguoi')}</button>` : ''}</div>
         <div class="fld" style="margin-top:10px"><span>${t('trucNguoiTruc')}</span>
           <select class="inp trNg" data-i="${i}"><option value=""${!o.uid ? ' selected' : ''}>— ${esc(tp('trucChuaXep'))} —</option>
-            ${dsNV.filter((n) => !daCo[n.id]).map((n) => `<option value="${esc(n.id)}"${n.id === o.uid ? ' selected' : ''}>${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ' ' + esc(n.tenZh) : ''}${n.maNV ? ' · ' + esc(n.maNV) : ''}</option>`).join('')}</select></div>
+            ${dsNV.filter((n) => !daCo[n.id]).map((n) => `<option value="${esc(n.id)}"${n.id === o.uid ? ' selected' : ''}>${esc(n.ten)}${n.tenZh && n.tenZh !== n.ten ? ' ' + esc(n.tenZh) : ''}${n.maNV ? ' · ' + esc(n.maNV) : ''}${ddNghi(p.d, n.id) ? ' · ' + esc(tv('dd_' + ddMa(p.d, n.id))) : ''}</option>`).join('')}</select></div>
         <div class="trleg" style="margin:10px 0 0"${m ? '' : ' hidden'}><span><i style="background:${m ? m[0] : 'transparent'}"></i><em>${esc(tp('trucChuThich'))}</em></span></div>
+        ${o.uid && ddNghi(p.d, o.uid) ? `<div class="note warn" style="margin:8px 0 0">${esc(tv('ddNghiTruc', { m: tv('dd_' + ddMa(p.d, o.uid)) }))}<span class="zi">${esc(tz('ddNghiTruc', { m: tz('dd_' + ddMa(p.d, o.uid)) }))}</span></div>` : ''}
         ${srvOld('trucgio') ? '' : `<div class="rdgrid" style="margin-top:10px">
           <label class="fld"><span>${t('trucTu')}</span><input class="inp mono trTu" data-i="${i}" type="time" value="${esc(o.tu)}"></label>
           <label class="fld"><span>${t('trucDen')}</span><input class="inp mono trDen" data-i="${i}" type="time" value="${esc(o.den)}"></label></div>

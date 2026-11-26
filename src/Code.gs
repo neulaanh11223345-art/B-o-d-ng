@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.74.0';
+var PHIEN_BAN = '2.75.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -93,6 +93,10 @@ var BANG = {
   // Bảng phân công ca trực từng tuần: TuNgay = thứ Hai của tuần · Ca: NGAY (7h30–19h30) · DEM (19h30–7h30)
   // Tên và số điện thoại lưu luôn theo người đã chọn, để bảng tuần cũ không đổi khi danh sách đổi
   PhanCa: ['TuNgay', 'Nhom', 'Ca', 'NguoiID', 'Ten', 'TenZh', 'DienThoai', 'Nguoi', 'CapNhat'],
+  // Điểm danh hằng ngày (v2.75): mỗi ngày một dòng. TrangThai (JSON) {uid: mã} chỉ ghi người KHÁC mặc định —
+  // ngày thường mặc định đi làm, Chủ nhật mặc định nghỉ tuần. Mã: X đi làm (Chủ nhật) · M đi muộn · P nghỉ phép ·
+  // KP nghỉ không phép · O nghỉ ốm. Người nghỉ (P / KP / O) không còn trong lịch trực của ngày đó.
+  DiemDanh: ['Ngay', 'TrangThai', 'GhiChu', 'Nguoi', 'CapNhat'],
   // Sổ kiểm định thiết bị. NghiemNgat = 1: thuộc danh mục máy, thiết bị có yêu cầu nghiêm ngặt về an toàn, vệ sinh lao động.
   // Ma: mã máy / chuyền trong danh mục (để trống nếu thiết bị không nằm trong danh mục máy, vd xe nâng, bình khí).
   // KetQua: DAT · KHONG_DAT · CHUA (chưa kiểm định lần nào) · ChuKy: số tháng giữa hai lần kiểm định
@@ -437,6 +441,7 @@ function dieuHuong(a, p, req) {
     case 'assignTasks': canQuyen(u, 'giaoviec'); return giaoNhieuViec(u, p, s(req.opId));
     case 'saveRecurring': canQuyen(u, 'giaoviec'); return luuViecLap(u, p);
     case 'dutySet': canQuyen(u, 'giaoviec'); return luuLichTruc(u, p);
+    case 'attendanceSet': canQuyen(u, 'giaoviec'); return luuDiemDanh(u, p);
     case 'shiftSet': canQuyen(u, 'giaoviec'); return luuPhanCa(u, p);
     case 'shiftRotate': canQuyen(u, 'giaoviec'); return luanPhienTuan(u, p);
     case 'shiftPeople': canQuyen(u, 'giaoviec'); return luuNguoiTruc(u, p);
@@ -999,6 +1004,8 @@ function layDuLieu(u) {
     viecLap: coQuyen(u, 'xemhet') ? docViecLap().map(sachCV) : [],
     tangCa: docTangCa().filter(function (x) { return !x.xoa && x.ngay >= tu && (coQuyen(u, 'xemhet') || x.uid === u.id); }).map(sachTC),
     lichTruc: docLichTruc().filter(function (x) { return x.ngay >= tu && (x.uid || x.noiDung); }).map(sachLT),
+    // Ai cũng xem được điểm danh (để biết ai nghỉ, ai trực); chỉ Quản lý sửa
+    diemDanh: docDiemDanh().filter(function (x) { return x.ngay >= tu; }).map(sachDD),
     nguoiTruc: docNguoiTruc().map(sachNT),
     phanCa: docPhanCa().filter(function (x) { return x.tuNgay >= tu; }).map(sachPC),
     nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) {
@@ -1075,6 +1082,34 @@ function gioHM(v) {
   return ('0' + k[1]).slice(-2) + ':' + k[2];
 }
 function docLichTruc() { return docTho('LichTruc').map(ltTuDong).filter(function (x) { return x.ngay; }); }
+// ----- Điểm danh (v2.75) -----
+var DD_MA = ['X', 'M', 'P', 'KP', 'O'];
+function docDiemDanh() {
+  return docTho('DiemDanh').map(function (r, i) {
+    return { _r: i + 2, ngay: ngayStr(r[0]), tt: docJson(r[1], {}), ghiChu: s(r[2]), nguoi: s(r[3]), capNhat: tgStr(r[4]) };
+  }).filter(function (x) { return x.ngay; });
+}
+function sachDD(x) { return { ngay: x.ngay, tt: x.tt || {}, ghiChu: x.ghiChu || '', nguoi: x.nguoi || '', capNhat: x.capNhat || '' }; }
+// Lưu trạng thái cả ngày: tt = {uid: mã}. Mã trùng mặc định thì bỏ (ngày thường X), để sheet chỉ còn ngoại lệ.
+function luuDiemDanh(u, p) {
+  var ngay = ngayStr(p.ngay);
+  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  capNhatTieuDe('DiemDanh');
+  var co = {}, tt = {}, vao = p.tt && typeof p.tt === 'object' ? p.tt : {};
+  dsNguoiDung().forEach(function (n) { co[n.id] = 1; });
+  var cn = new Date(ngay + 'T00:00:00Z').getUTCDay() === 0;
+  Object.keys(vao).slice(0, 500).forEach(function (k) {
+    var v = s(vao[k]).toUpperCase();
+    if (!co[k] || DD_MA.indexOf(v) < 0 || (!cn && v === 'X')) return;
+    tt[k] = v;
+  });
+  var x = docDiemDanh().filter(function (r) { return r.ngay === ngay; })[0], cu = x ? x.tt : {};
+  var o = { ngay: ngay, tt: tt, ghiChu: p.ghiChu !== undefined ? catNhieuDong(p.ghiChu, 300) : x ? x.ghiChu : '', nguoi: catChu(u.ten, 60), capNhat: thoiGianStr() };
+  var dong = [ngay, JSON.stringify(tt), o.ghiChu, o.nguoi, o.capNhat];
+  if (x) suaDong('DiemDanh', x._r, dong); else themDong('DiemDanh', dong);
+  ghiNhatKy(u, 'DIEM_DANH', 'DiemDanh', ngay, cu, tt, 'Điểm danh · 考勤');
+  return { diemDanh: sachDD(o) };
+}
 function sachLT(x) {
   return { ngay: x.ngay, uid: x.uid, ten: x.ten, noiDung: x.noiDung, noiDungDich: x.noiDungDich,
     nguoi: x.nguoi, capNhat: x.capNhat, tu: x.tu || '', den: x.den || '' };

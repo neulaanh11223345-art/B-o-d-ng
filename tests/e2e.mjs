@@ -3488,6 +3488,51 @@ await shot('103-excel-them-may-linh-kien');
 await page.evaluate(async () => { while (S.stack.length > 1) back(); mergeResult(await api('setLineProduct', { ma: 'VKY01', spId: '' })); }); await wait(300);
 ok('Bản 2.74: chuyền đang sản xuất sản phẩm nào (ảnh, Note), nhập ảnh sản phẩm hàng loạt, bỏ sản phẩm cũ khi nhập, nút Excel thêm máy / linh kiện');
 
+// 66. Điểm danh trong Lịch trực: mặc định đi làm (Chủ nhật nghỉ); Quản lý ghi nghỉ / đi muộn; người nghỉ ra khỏi lịch trực;
+//     Excel chấm công tháng; nhân viên chỉ xem
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.trucChe = 'dd'; tab('truc'); }); await wait(700);
+assert.equal(await page.locator('.seg [data-act="trucChe"][data-m="dd"].on').count(), 1, 'Lịch trực có tab Điểm danh');
+const d66 = await page.evaluate(() => {
+  // Ngày gần nhất (từ hôm nay lùi lại) có người trực
+  for (let i = 0; i < 30; i++) { const d = addD(TODAY(), -i); const a = trucNgayGoc(d).filter((x) => x.uid); if (a.length && wday(d) !== 0) return { d, uid: a[0].uid, ten: a[0].ten }; }
+  return null;
+});
+assert.ok(d66, 'có ngày có người trực');
+await page.evaluate((d) => { S.f.ddNgay = d; render(); }, d66.d); await wait(500);
+assert.ok(await page.evaluate(() => document.querySelectorAll('.ddrow').length === ddNguoi().length && ddNguoi().every((n) => ddMa(ddNgayHT(), n.id) === 'X')), 'mặc định ai cũng đi làm');
+await page.click(`[data-act="ddDat"][data-uid="${d66.uid}"][data-v="P"]`); await wait(900);
+assert.deepEqual(await page.evaluate((o) => [ddMa(o.d, o.uid), trucNgayDS(o.d).some((x) => x.uid === o.uid), trucNgayGoc(o.d).some((x) => x.uid === o.uid)], d66), ['P', false, true],
+  'nghỉ phép: ra khỏi lịch trực ngày đó (bản gốc vẫn giữ để xếp lại)');
+assert.match(await text('#main'), /người trực ngày này đã nghỉ/, 'báo ngày này mất người trực');
+const u66 = await page.evaluate((u) => ddNguoi().find((n) => n.id !== u).id, d66.uid);
+await page.click(`[data-act="ddDat"][data-uid="${u66}"][data-v="M"]`); await wait(900);
+assert.match(await text('#main .card.pad b'), /Đi làm \d+ · Đi muộn 1 · Nghỉ 1/);
+await shot('104-diem-danh');
+// Chủ nhật: mặc định nghỉ, chỉ có Nghỉ CN / Đi làm / Đi muộn
+await page.evaluate(() => { let d = TODAY(); while (wday(d) !== 0) d = addD(d, -1); S.f.ddNgay = d; render(); }); await wait(400);
+assert.deepEqual(await page.evaluate(() => [...new Set([...document.querySelectorAll('[data-act="ddDat"]')].map((b) => b.dataset.v))]), ['CN', 'X', 'M'], 'Chủ nhật: nghỉ CN / đi làm / đi muộn');
+// Lịch tháng: người nghỉ không còn tên trong ô ngày đó
+await page.evaluate((d) => { S.f.trucChe = 'thang'; S.f.trucThang = d.slice(0, 7); render(); }, d66.d); await wait(500);
+assert.ok(!(await page.evaluate((o) => (document.querySelector(`[data-act="trucXep"][data-d="${o.d}"]`) || { textContent: '' }).textContent.includes(o.ten.split(' ').pop()), d66)), 'lịch tháng không còn tên người nghỉ');
+// Excel chấm công tháng
+const x66 = await page.evaluate(async (o) => {
+  const sh = await readXlsx(await ddXlsx(o.d.slice(0, 7)).arrayBuffer()), r = await sh[0].rows();
+  const hang = r.filter((x) => /^\d+$/.test(String(x[0] || '')));
+  const ix = 3 + (+o.d.slice(8)), n = S.V.nvById[o.uid];
+  return { ten: sh[0].name, n: hang.length, can: ddNguoi().length, ma: (hang.find((x) => String(x[2]).indexOf(n.ten) === 0) || [])[ix], hd: r.slice(0, 9).map((x) => x.join('|')).join('\n') };
+}, d66);
+assert.equal(x66.n, x66.can, 'mỗi người một dòng');
+assert.equal(x66.ma, 'P', 'ô ngày nghỉ ghi P');
+assert.match(x66.hd, /BẢNG CHẤM CÔNG THÁNG[\s\S]*Công[\s\S]*Nghỉ phép[\s\S]*Nghỉ không phép[\s\S]*Nghỉ ốm/, 'Excel có cột tổng công, muộn, phép, không phép, ốm');
+// Nhân viên: xem được, không sửa được
+await logout(); await login('NV003', '333333');
+await page.evaluate((d) => { S.f.trucChe = 'dd'; S.f.ddNgay = d; tab('truc'); }, d66.d); await wait(700);
+assert.equal(await page.locator('[data-act="ddDat"]').count(), 0, 'nhân viên không có nút sửa');
+assert.match(await text('#main .ddlist'), /Nghỉ phép/, 'nhân viên xem được người nghỉ');
+await logout(); await login('NV002', '222222');
+await page.evaluate(async (d) => { mergeResult(await api('attendanceSet', { ngay: d, tt: {} })); }, d66.d); await wait(300);
+ok('Bản 2.75: điểm danh hằng ngày trong Lịch trực — nghỉ / đi muộn, người nghỉ ra khỏi lịch trực, Excel chấm công tháng, nhân viên chỉ xem');
+
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
 console.log(`\nĐạt ${step} bước, không lỗi JavaScript.`);
