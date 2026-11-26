@@ -3129,9 +3129,10 @@ await page.evaluate(() => { while (S.stack.length > 1) back(); go('tbXuat'); });
 assert.equal(await page.locator('[data-act="tbXuatMot"]').count(), 1, 'có nút xuất toàn bộ thiết bị 1 file');
 const x58 = await page.evaluate(async () => {
   const f = tbXuatTatCa(), sh = await readXlsx(await f.blob.arrayBuffer());
-  const r1 = await sh[0].rows(), r2 = sh[1] ? await sh[1].rows() : [];
+  // Từ v2.72 có thêm sheet Theo chuyen, nên tìm sheet Don vi theo tên
+  const dvSh = sh.find((x) => x.name === 'Don vi'), r1 = await sh[0].rows(), r2 = dvSh ? await dvSh.rows() : [];
   const gop = activeMay().filter((m) => (m.chiTiet || []).length).reduce((a, m) => a + m.chiTiet.length, 0);
-  return { ten: f.ten, n: activeMay().length, dong: r1.length - 1, hd: (r1[0] || []).join('|'), sheet2: sh[1] && sh[1].name, dv: r2.length - 1, gop,
+  return { ten: f.ten, n: activeMay().length, dong: r1.length - 1, hd: (r1[0] || []).join('|'), sheet2: dvSh && dvSh.name, dv: r2.length - 1, gop,
     coMa: r1.slice(1).every((r) => r && r[1]) };
 });
 assert.match(x58.ten, /^Danh-muc-thiet-bi_\d{4}-\d{2}-\d{2}\.xlsx$/);
@@ -3290,6 +3291,74 @@ assert.match(xl62.hd, /Ngày thường[\s\S]*Ngày Chủ nhật[\s\S]*Tổng/, '
 assert.deepEqual(xl62.thu, ['Chủ nhật', 'Chủ nhật'], 'sheet Chủ nhật chỉ có hai lượt Chủ nhật');
 await page.evaluate(() => { S.f.tcKieu = ''; S.f.tcDonMot = ''; while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.71.2: tăng ca ngày Chủ nhật tách riêng — tờ đơn riêng, tổng hợp tháng và Excel tách Ngày thường / Ngày Chủ nhật');
+
+// 63. Kho: lọc Dưới tối thiểu / Hết hàng… chọn thêm theo mục; màn Nhắc hàng lọc theo mục, Excel có cột Mục.
+//     Chuyền: xếp theo số tự nhiên, máy trong chuyền thứ tự cố định; Excel danh mục gom máy theo chuyền + sheet Theo chuyen
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('kho'); }); await page.waitForFunction(() => S.kho.ds.length > 0, null, { timeout: 20000 });
+await page.evaluate(() => { S.kho.ds.forEach((x, i) => { if (i % 5 === 0 && x.ng === 'ERP') x.ton = 0; }); khoSet(Object.assign({}, S.kho, { ds: S.kho.ds.slice() })); S.f.khoTab = 'ton'; S.f.khoQ = ''; S.f.khoLoai = ''; S.f.khoF = ''; render(); });
+await wait(500);
+await page.click('[data-act="khoF"][data-v="het"]'); await wait(500);
+const k63 = await page.evaluate(() => {
+  const chips = [...document.querySelectorAll('#khoBody [data-act="khoMucLoc"]')];
+  const ds = khoFind('', (x) => tonOf(x) === 0), muc = [...new Set(ds.map(khoMucOf))];
+  return { chip: chips.length, muc: muc.length, n: ds.length, tong: +chips[0].querySelector('.mono').textContent.replace(/\D/g, ''), hd: document.querySelectorAll('#khoBody .lshd').length, id: chips[2] && chips[2].dataset.v };
+});
+assert.ok(k63.n > 0 && k63.chip === k63.muc + 1 && k63.tong === k63.n, 'chip Tất cả mục + từng mục của hàng hết: ' + JSON.stringify(k63));
+assert.equal(k63.hd, k63.muc, 'danh sách hết hàng chia tiêu đề theo mục');
+await page.click(`#khoBody [data-act="khoMucLoc"][data-v="${k63.id}"]`); await wait(400);
+const k63b = await page.evaluate(() => ({ f: S.f.khoF, l: S.f.khoLoai, muc: [...new Set([...document.querySelectorAll('#khoBody .khorow')].map((r) => khoMucOf(khoGet(r.dataset.ma))))],
+  on: (document.querySelector('#khoBody [data-act="khoMucLoc"].on') || {}).dataset }));
+assert.deepEqual([k63b.f, k63b.l, k63b.muc, k63b.on.v], ['het', k63.id, [k63.id], k63.id], 'chọn mục: vẫn lọc hết hàng, chỉ còn mục đó');
+await shot('99-kho-het-theo-muc');
+await page.click('#khoBody [data-act="khoMucLoc"][data-v=""]'); await wait(300);
+assert.equal(await page.evaluate(() => S.f.khoF + '|' + S.f.khoLoai), 'het|all', 'Tất cả mục: bỏ lọc mục, giữ lọc hết hàng');
+// Màn nhắc hàng: chip mục, bốn nhóm chỉ còn mục đã chọn, Excel theo mục có cột Mục
+await page.evaluate(() => go('khoNhac', {})); await wait(600);
+const n63 = await page.evaluate(() => ({ chip: [...document.querySelectorAll('[data-act="khoNhacMucChon"]')].map((b) => b.dataset.v), rows: document.querySelectorAll('.khorow').length, tag: document.querySelectorAll('.khorow .kmtag').length }));
+assert.ok(n63.chip.length >= 2 && n63.rows === n63.tag, 'màn nhắc hàng có chip mục, dòng ghi mục: ' + JSON.stringify(n63));
+await page.click(`[data-act="khoNhacMucChon"][data-v="${n63.chip[1]}"]`); await wait(400);
+const n63b = await page.evaluate(async () => {
+  const muc = topV().p.muc, d = khoNhacMuc(khoNhacDS(), muc);
+  const sh = await readXlsx(await khoThieuBlob(d).arrayBuffer()), r = await sh[0].rows();
+  return { muc, rows: [...document.querySelectorAll('.khorow')].map((x) => khoMucOf(khoGet(x.dataset.ma))), hd: r.slice(0, 6).map((x) => x.join('|')).join('\n'), n: d.n };
+});
+assert.ok(n63b.rows.length === n63b.n && n63b.rows.every((m) => m === n63b.muc), 'chọn mục: chỉ còn hàng mục đó');
+assert.match(n63b.hd, /Tình trạng[\s\S]*Mục[\s\S]*Mã/, 'Excel cần mua có cột Mục');
+await shot('99b-nhac-hang-theo-muc');
+// Chuyền: số tự nhiên (VKY5 trước VKY10); máy trong chuyền không đổi chỗ theo hạn bảo dưỡng
+assert.ok(await page.evaluate(() => sapMay({ chuyen: 'VKY5', ten: 'a', ma: '1' }, { chuyen: 'VKY10', ten: 'a', ma: '2' }) < 0), 'VKY5 xếp trước VKY10');
+const c63 = await page.evaluate(async () => {
+  while (S.stack.length > 1) back();
+  const c = S.V.ch.find((x) => mayCuaCh(x.ma).length >= 2), a = mayCuaCh(c.ma).slice().sort(sapTrongCh);
+  const goc = a.map((m) => m.hanKeTiep);
+  // Đảo hạn bảo dưỡng: máy cuối thành quá hạn sớm nhất
+  a[a.length - 1].hanKeTiep = '2020-01-01'; a[0].hanKeTiep = '2099-01-01';
+  go('chuyen', { ma: c.ma }); await new Promise((r) => setTimeout(r, 400));
+  const thuTu = [...document.querySelectorAll('#main .list .row[data-ma], #main .list [data-act="may"]')].map((r) => r.dataset.ma).filter((m) => a.some((x) => x.ma === m));
+  a.forEach((m, i) => { m.hanKeTiep = goc[i]; });
+  return { ch: c.ma, thuTu: [...new Set(thuTu)], dung: a.map((m) => m.ma) };
+});
+assert.deepEqual(c63.thuTu, c63.dung, 'máy trong chuyền theo loại → tên, không nhảy theo hạn: ' + JSON.stringify(c63));
+// Excel danh mục: máy thuộc chuyền gom theo chuyền đứng trước; sheet Theo chuyen chia khối từng chuyền
+const x63 = await page.evaluate(async () => {
+  while (S.stack.length > 1) back();
+  const f = tbXuatTatCa(), sh = await readXlsx(await f.blob.arrayBuffer());
+  const r = await sh[0].rows(), tc = await sh.find((s) => s.name === 'Theo chuyen').rows();
+  const chCol = r.slice(1).map((x) => x[7] || '');
+  const dauRong = chCol.indexOf('');
+  const khoi = tc.map((x) => String(x[0] || '')).filter((v) => /^Chuyền /.test(v)).map((v) => v.split(' · ')[0].replace('Chuyền ', ''));
+  const f2 = tbXuatTheoChuyen();
+  return { ten: sh.map((s) => s.name), gom: chCol.slice(0, dauRong < 0 ? chCol.length : dauRong), conLai: dauRong < 0 ? [] : chCol.slice(dauRong).filter(Boolean),
+    khoi, chuan: S.V.ch.filter((x) => x.hoatDong !== false || activeMay().some((m) => m.chuyen === x.ma)).map((x) => mh(x.ma)), f2: f2.ten };
+});
+assert.deepEqual(x63.ten.slice(0, 2), ['Thiet bi', 'Theo chuyen'], 'danh mục thiết bị có thêm sheet Theo chuyen');
+assert.deepEqual(x63.conLai, [], 'máy có chuyền đứng liền nhau ở đầu bảng');
+assert.deepEqual([...new Set(x63.gom)], x63.chuan.filter((c) => x63.gom.includes(c)), 'máy gom theo chuyền đúng thứ tự chuyền');
+assert.deepEqual(x63.khoi, x63.chuan, 'sheet Theo chuyen: mỗi chuyền một khối, đúng thứ tự');
+assert.match(x63.f2, /^May-theo-chuyen_\d{4}-\d{2}-\d{2}\.xlsx$/);
+await page.evaluate(() => { tab('list'); }); await wait(500);
+assert.ok(await page.locator('[data-act="tbXuatCh"]').count() >= 1, 'có nút xuất máy theo chuyền ở danh sách thiết bị');
+ok('Bản 2.72: kho lọc dưới tối thiểu / hết hàng theo mục, nhắc hàng theo mục; chuyền xếp chuẩn, Excel máy theo chuyền');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();
