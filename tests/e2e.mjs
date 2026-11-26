@@ -3408,8 +3408,9 @@ await page.evaluate(() => back()); await wait(400);
 await page.evaluate(() => { while (S.stack.length > 1) back(); tab('list'); }); await wait(700);
 const bang64 = await page.evaluate(() => {
   const tr = [...document.querySelectorAll('.chbang tbody tr')].find((r) => /VKY03/.test(r.cells[0].textContent));
-  const k = CH_MOD.map((m) => m.k).indexOf('chinhlech') + 1;
-  return { n: document.querySelectorAll('.chbang tbody tr').length, ch: chDangDung().length, o: tr && tr.cells[k].textContent.trim() };
+  // Tìm ô theo module (từ v2.74 bảng có thêm cột Đang sản xuất nên không đếm vị trí cột)
+  const o = tr && tr.querySelector('[data-act="chModDi"][data-k="chinhlech"]');
+  return { n: document.querySelectorAll('.chbang tbody tr').length, ch: chDangDung().length, o: o && o.closest('td').textContent.trim() };
 });
 assert.equal(bang64.n, bang64.ch, 'bảng module: mỗi chuyền một dòng');
 assert.match(bang64.o, /^2/, 'ô máy chỉnh lệch của VKY03 = 2');
@@ -3418,6 +3419,134 @@ await page.click('.chbang [data-act="chModDi"][data-ch="VKY03"][data-k="chinhlec
 assert.equal(await page.evaluate(() => topV().v + '|' + topV().p.ma + '|' + S.f.chMod.VKY03), 'chuyen|VKY03|chinhlech', 'bấm số trong bảng mở đúng module của chuyền');
 await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
 ok('Bản 2.73: chuyền theo module — đủ ô cố định, máy chỉnh lệch / quạt gió mỗi cái một mã in QR, bảng module các chuyền');
+
+// 65. Sản phẩm trên chuyền: chọn sản phẩm chuyền đang sản xuất (ảnh, thông số sau nút Note); nhập ảnh hàng loạt;
+//     nhập file bỏ sản phẩm cũ; nút Excel ở chỗ thêm máy / thêm linh kiện
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.spNote = {}; go('chuyen', { ma: 'VKY01' }); }); await wait(700);
+assert.equal(await page.locator('.chsp').count(), 1, 'màn chuyền có thẻ Đang sản xuất');
+await page.click('.chsp [data-act="chSpChon"]'); await wait(500);
+const id65 = await page.evaluate(() => spDS().find((x) => x.ma === 'TEST-A100' && spChuyenDS(x).includes('VKY01')).id);
+assert.match(await text('#chSpDs'), /Sản phẩm của chuyền VKY01[\s\S]*TEST-A100/, 'sản phẩm của chuyền lên đầu danh sách chọn');
+await page.click(`#chSpDs [data-act="chSpDat"][data-id="${id65}"]`); await wait(1200);
+assert.equal(await page.evaluate(() => S.V.chByMa.VKY01.spDang), id65, 'lưu sản phẩm đang chạy');
+assert.match(await text('.chsp'), /TEST-A100[\s\S]*Hướng dẫn · Note/, 'thẻ ghi mã đang chạy và nút Note');
+assert.equal(await page.locator('.chsp .sptslist').count(), 0, 'thông số gập sẵn, không chiếm chỗ');
+await page.click('.chsp [data-act="spNote"]'); await wait(400);
+assert.ok(await page.locator('.chsp .sptslist .row').count() >= 2, 'bấm Note mới hiện thông số');
+await shot('102-chuyen-dang-san-xuat');
+// Màn sản phẩm: thông số cũng sau nút Note; ghi đang chạy ở chuyền nào
+await page.evaluate((id) => go('spXem', { id }), id65); await wait(600);
+assert.match(await text('#main'), /Đang chạy: VKY01/, 'sản phẩm ghi đang chạy ở VKY01');
+assert.equal(await page.locator('#main .sptslist').count(), 0, 'màn sản phẩm: thông số gập sẵn');
+await page.click('#main [data-act="spNote"]'); await wait(400);
+assert.ok(await page.locator('#main .sptslist .row').count() >= 2);
+// Bảng module (màn rộng): cột Đang sản xuất
+await page.evaluate(() => { while (S.stack.length > 1) back(); tab('list'); }); await wait(700);
+assert.match(await page.evaluate(() => [...document.querySelectorAll('.chbang tbody tr')].find((r) => /VKY01/.test(r.cells[0].textContent)).cells[1].textContent), /TEST-A100/, 'bảng module có cột sản phẩm đang chạy');
+// Nhập ảnh hàng loạt: tên ảnh = mã sản phẩm (_2 = ảnh thứ hai); ảnh không khớp mã thì bỏ qua
+await page.evaluate(() => tab('sp')); await wait(600);
+const PNG65 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+await page.setInputFiles('#spAnhNhieu', [{ name: 'TEST-A100.png', mimeType: 'image/png', buffer: PNG65 }, { name: 'TEST-A100_2.png', mimeType: 'image/png', buffer: PNG65 },
+  { name: 'KHONG-CO-MA.png', mimeType: 'image/png', buffer: PNG65 }]); await wait(900);
+assert.match(await text('#sheetBg'), /2 ảnh khớp 1 sản phẩm[\s\S]*1 ảnh không khớp/, 'xem trước: ảnh khớp mã / không khớp');
+await page.click('[data-act="spAnhLuu"]'); await wait(2500);
+assert.deepEqual(await page.evaluate(() => spDS().filter((x) => x.ma === 'TEST-A100').map((x) => (x.anh || []).length)), [2], 'sản phẩm nhận đủ 2 ảnh');
+// Đọc ảnh trong file .zip: giải nén ra nhị phân, có danh sách tên tệp
+assert.deepEqual(await page.evaluate(async () => {
+  const get = unzipFile(await XW.build([{ name: 'a', rows: [['x']] }]).arrayBuffer());
+  const u8 = await get('[Content_Types].xml', true);
+  return [get.ten.includes('xl/workbook.xml'), u8 instanceof Uint8Array, new TextDecoder().decode(u8).indexOf('<?xml') === 0];
+}), [true, true, true], 'giải nén nhị phân từ file zip');
+// Nhập file sản phẩm: có tuỳ chọn bỏ sản phẩm cũ không có trong file
+await page.evaluate(async () => {
+  const f = new File([await (async () => XW.build([{ name: 'San pham', rows: [SP_COT, ['TEST-A100', 'VKY01, VKY02', 'Sản phẩm mẫu A', '', 'Keo · 胶', 'TEST', 'TEST', '']] }]))()], 'sp.xlsx');
+  await spChonFile({ target: { files: [f], value: '' } });
+}); await wait(600);
+assert.equal(await page.locator('#spnBoCu').count(), 1, 'có ô bỏ sản phẩm cũ không có trong file');
+assert.match(await text('#sheetBg'), /Bỏ \d+ sản phẩm cũ không có trong file này/);
+await page.evaluate(() => closeSheet()); await wait(300);
+// Nút Excel ở chỗ thêm máy / thêm linh kiện
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.chMod = { VKY01: 'chinhlech' }; go('chuyen', { ma: 'VKY01' }); }); await wait(700);
+assert.deepEqual(await page.evaluate(() => ['chMayXuat', 'chMayNhap', 'chModXuat', 'chModNhap', 'lkMauMot'].map((a) => document.querySelectorAll(`[data-act="${a}"]`).length > 0)),
+  [true, true, true, true, true], 'màn chuyền: Excel máy của chuyền, của module, linh kiện');
+const xl65 = await page.evaluate(async () => {
+  const g = chModNhom('chinhlech'), x = chModData('VKY01', TODAY()).chinhlech;
+  const f = tbXuatDs(x.may, 'x', 'x', { nhom: g, chuyen: 'VKY01', gop: 1, ten: g + ' chuyền VKY01', cot: qgCot(g), tenDV: 'Chỉnh lệch' });
+  const ds = await tbDocFile(new File([f.blob], 'm.xlsx'));
+  const lk = await lkDocFile(new File([lkMauXlsx({ ma: 'M001' })], 'l.xlsx'));
+  return { ds: ds.map((y) => [y.nhom, y.chuyen, (y.chiTiet || []).length > 0]), lk: [...new Set(lk.ds.map((o) => o.m && o.m.ma))] };
+});
+assert.ok(xl65.ds.length >= 1 && xl65.ds.every((y) => y[1] === 'VKY01' && y[2]), 'Excel module máy chỉnh lệch: đọc lại được, có sheet chi tiết từng cái: ' + JSON.stringify(xl65.ds));
+assert.deepEqual(xl65.lk, ['M001'], 'bảng mẫu linh kiện của một máy chỉ có máy đó');
+await page.click('[data-act="chMayNhap"]'); await wait(500);
+assert.match(await text('#main'), /để trống cột Chuyền nhận chuyền VKY01/, 'nhập máy từ chuyền: ô Chuyền trống nhận chuyền đang mở');
+await page.evaluate(() => { back(); go('mayEdit', { chuyen: 'VKY01' }); }); await wait(500);
+assert.equal(await page.locator('[data-act="mayMauXuat"]').count(), 1, 'form thêm máy có bảng mẫu Excel');
+await page.evaluate(() => { back(); go('dsEdit', { ma: 'M001', k: 'lk' }); }); await wait(500);
+assert.equal(await page.locator('.lkxl input[data-chg="lkFileNhap"]').count(), 1, 'sửa linh kiện máy: có nhập Excel');
+await shot('103-excel-them-may-linh-kien');
+await page.evaluate(async () => { while (S.stack.length > 1) back(); mergeResult(await api('setLineProduct', { ma: 'VKY01', spId: '' })); }); await wait(300);
+ok('Bản 2.74: chuyền đang sản xuất sản phẩm nào (ảnh, Note), nhập ảnh sản phẩm hàng loạt, bỏ sản phẩm cũ khi nhập, nút Excel thêm máy / linh kiện');
+
+// 66. Điểm danh trong Lịch trực: danh sách theo TÊN người (không theo tài khoản / vai trò); mặc định đi làm (Chủ nhật nghỉ);
+//     Quản lý ghi nghỉ / đi muộn; người nghỉ (có nối tài khoản) ra khỏi lịch trực; Excel chấm công tháng; nhân viên chỉ xem
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.trucChe = 'dd'; S.f.ddNgay = ''; tab('truc'); }); await wait(700);
+assert.equal(await page.locator('.seg [data-act="trucChe"][data-m="dd"].on').count(), 1, 'Lịch trực có tab Điểm danh');
+const ten66 = await page.evaluate(() => [...document.querySelectorAll('.ddrow .nm')].map((e) => e.firstChild.textContent.trim()));
+assert.ok(ten66.length === (await page.evaluate(() => ddNguoi().length)) && !ten66.some((x) => /^(Quản lý|Quản trị|Kỹ thuật)$/.test(x)), 'dòng theo tên người, không theo vai trò: ' + JSON.stringify(ten66));
+// Sửa danh sách: thêm nhanh nhiều tên một lần
+await page.click('[data-act="go"][data-v="ddDS"]'); await wait(600);
+const n66 = await page.locator('.dddsrow').count();
+await page.fill('#ddNhanh', 'TEST Người B, 测试员'); await page.click('[data-act="ddNhanh"]'); await wait(400);
+assert.equal(await page.locator('.dddsrow').count(), n66 + 2, 'thêm nhanh hai tên');
+await page.click('[data-act="ddDSLuu"]'); await wait(1200);
+assert.deepEqual(await page.evaluate(() => ddNguoi().slice(-2).map((n) => [n.ten, !!n.id])), [['TEST Người B', true], ['测试员', true]], 'lưu danh sách theo tên');
+const d66 = await page.evaluate(() => {
+  // Ngày gần nhất (từ hôm nay lùi lại, trừ Chủ nhật) có người trực là người trong danh sách (đã nối tài khoản)
+  for (let i = 0; i < 30; i++) {
+    const d = addD(TODAY(), -i); if (wday(d) === 0) continue;
+    const x = trucNgayGoc(d).find((y) => y.uid && ddCuaTK(y.uid));
+    if (x) return { d, uid: x.uid, id: ddCuaTK(x.uid).id, ten: x.ten };
+  }
+  return null;
+});
+assert.ok(d66, 'có ngày người trong danh sách trực');
+await page.evaluate((d) => { S.f.ddNgay = d; render(); }, d66.d); await wait(500);
+assert.ok(await page.evaluate(() => ddNguoi().every((n) => ddMa(ddNgayHT(), n.id) === 'X')), 'mặc định ai cũng đi làm');
+await page.click(`[data-act="ddDat"][data-id="${d66.id}"][data-v="P"]`); await wait(900);
+assert.deepEqual(await page.evaluate((o) => [ddMa(o.d, o.id), trucNgayDS(o.d).some((x) => x.uid === o.uid), trucNgayGoc(o.d).some((x) => x.uid === o.uid)], d66), ['P', false, true],
+  'nghỉ phép: ra khỏi lịch trực ngày đó (bản gốc vẫn giữ để xếp lại)');
+assert.match(await text('#main'), /người trực ngày này đã nghỉ/, 'báo ngày này mất người trực');
+const u66 = await page.evaluate((id) => ddNguoi().find((n) => n.id !== id).id, d66.id);
+await page.click(`[data-act="ddDat"][data-id="${u66}"][data-v="M"]`); await wait(900);
+assert.match(await text('#main .card.pad b'), /Đi làm \d+ · Đi muộn 1 · Nghỉ 1/);
+await shot('104-diem-danh');
+// Chủ nhật: mặc định nghỉ, chỉ có Nghỉ CN / Đi làm / Đi muộn
+await page.evaluate(() => { let d = TODAY(); while (wday(d) !== 0) d = addD(d, -1); S.f.ddNgay = d; render(); }); await wait(400);
+assert.deepEqual(await page.evaluate(() => [...new Set([...document.querySelectorAll('[data-act="ddDat"]')].map((b) => b.dataset.v))]), ['CN', 'X', 'M'], 'Chủ nhật: nghỉ CN / đi làm / đi muộn');
+// Lịch tháng: người nghỉ không còn tên trong ô ngày đó
+await page.evaluate((d) => { S.f.trucChe = 'thang'; S.f.trucThang = d.slice(0, 7); render(); }, d66.d); await wait(500);
+assert.ok(!(await page.evaluate((o) => (document.querySelector(`[data-act="trucXep"][data-d="${o.d}"]`) || { textContent: '' }).textContent.includes(o.ten.split(' ').pop()), d66)), 'lịch tháng không còn tên người nghỉ');
+// Excel chấm công tháng: theo danh sách tên, tên bộ phận theo cài đặt
+const x66 = await page.evaluate(async (o) => {
+  const sh = await readXlsx(await ddXlsx(o.d.slice(0, 7)).arrayBuffer()), r = await sh[0].rows();
+  const hang = r.filter((x) => /^\d+$/.test(String(x[0] || '')));
+  const ix = 3 + (+o.d.slice(8)), n = ddNguoi().find((y) => y.id === o.id);
+  return { n: hang.length, can: ddNguoi().length, ma: (hang.find((x) => String(x[2]).indexOf(n.ten) === 0) || [])[ix],
+    ten: hang.map((x) => String(x[2]).split('\n')[0]), hd: r.slice(0, 9).map((x) => x.join('|')).join('\n') };
+}, d66);
+assert.equal(x66.n, x66.can, 'mỗi người trong danh sách một dòng');
+assert.deepEqual(x66.ten, ten66.concat(['TEST Người B', '测试员']), 'Excel ghi theo tên, đúng thứ tự danh sách');
+assert.equal(x66.ma, 'P', 'ô ngày nghỉ ghi P');
+assert.match(x66.hd, /BẢNG CHẤM CÔNG THÁNG[\s\S]*Bộ phận · 部门: Bảo trì thiết bị \(TEST\)[\s\S]*Công[\s\S]*Nghỉ phép[\s\S]*Nghỉ không phép[\s\S]*Nghỉ ốm/, 'Excel có tên bộ phận, cột tổng');
+// Nhân viên: xem được, không sửa được
+await logout(); await login('NV003', '333333');
+await page.evaluate((d) => { S.f.trucChe = 'dd'; S.f.ddNgay = d; tab('truc'); }, d66.d); await wait(700);
+assert.equal(await page.locator('[data-act="ddDat"]').count() + await page.locator('[data-v="ddDS"]').count(), 0, 'nhân viên không có nút sửa');
+assert.match(await text('#main .ddlist'), /Nghỉ phép/, 'nhân viên xem được người nghỉ');
+await logout(); await login('NV002', '222222');
+await page.evaluate(async (d) => { mergeResult(await api('attendanceSet', { ngay: d, tt: {} })); }, d66.d); await wait(300);
+ok('Bản 2.75: điểm danh hằng ngày trong Lịch trực theo tên người — nghỉ / đi muộn, người nghỉ ra khỏi lịch trực, Excel chấm công tháng, nhân viên chỉ xem');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

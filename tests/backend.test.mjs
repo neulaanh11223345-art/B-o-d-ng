@@ -842,6 +842,62 @@ test('thêm / chuyển máy theo chuyền dùng được cho mọi nhóm có b�
   assert.deepEqual(ok(b.call('translate', { ds: ['Cảm biến quang', ''] }, kt)).dich, ['光电传感器', '']);
 });
 
+test('điểm danh: Quản lý ghi nghỉ phép / không phép / ốm / đi muộn; chỉ lưu ngoại lệ; nhân viên xem được, không sửa được', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-11-26T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const d0 = ok(b.call('data', {}, ql)), uid = d0.nhanVien.find((x) => x.maNV === 'NV004').id, uid2 = d0.nhanVien.find((x) => x.maNV === 'NV005').id;
+  err(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [uid]: 'P' } }, kt), 'KHONG_QUYEN');
+  err(b.call('attendanceSet', { ngay: '2026-13-40', tt: {} }, ql), 'NGAY_SAI');
+  // Ngày thường: X là mặc định nên không lưu; mã lạ / người lạ bị bỏ
+  let r = ok(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [uid]: 'p', [uid2]: 'M', U999: 'P', [ql.id || 'x']: 'ZZ', NV003: 'X' } }, ql)).diemDanh;
+  assert.deepEqual(r.tt, { [uid]: 'P', [uid2]: 'M' });
+  assert.equal(r.ngay, '2026-11-25');
+  // Chủ nhật: mặc định nghỉ tuần, đi làm thì ghi X
+  r = ok(b.call('attendanceSet', { ngay: '2026-11-22', tt: { [uid]: 'X' } }, ql)).diemDanh;
+  assert.deepEqual(r.tt, { [uid]: 'X' });
+  // Sửa lại cùng ngày: thay cả ngày (một dòng)
+  ok(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [uid]: 'KP' } }, ql));
+  const dk = ok(b.call('data', {}, kt)).diemDanh;
+  assert.deepEqual(dk.filter((x) => x.ngay === '2026-11-25').map((x) => x.tt), [{ [uid]: 'KP' }], 'nhân viên xem được, mỗi ngày một dòng');
+  assert.equal(dk.length, 2);
+});
+
+test('danh sách điểm danh theo tên: Quản lý lập, giữ ID, nối tài khoản; điểm danh khoá theo người trong danh sách', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-11-26T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const d0 = ok(b.call('data', {}, ql)), tk = d0.nhanVien.find((x) => x.maNV === 'NV005').id;
+  err(b.call('attendancePeople', { ds: [{ ten: 'TEST A' }] }, kt), 'KHONG_QUYEN');
+  let r = ok(b.call('attendancePeople', { ds: [{ ten: '  TEST   A ', uid: tk, maThe: 'V1' }, { ten: '', uid: tk }, { ten: '测试', uid: 'U-KHONG-CO' }, { id: 'DDCU1', ten: 'TEST C' }],
+    boPhan: 'TEST Bảo trì', boPhanZh: '维修' }, ql)).caiDat;
+  assert.deepEqual(r.ddNguoi.map((x) => [x.ten, x.uid]), [['TEST A', tk], ['测试', ''], ['TEST C', '']], 'bỏ dòng không tên, tài khoản lạ thì không nối');
+  assert.equal(r.ddNguoi[2].id, 'DDCU1', 'giữ ID cũ');
+  assert.ok(r.ddNguoi.every((x) => /^DD/.test(x.id)) && new Set(r.ddNguoi.map((x) => x.id)).size === 3, 'ID riêng từng người');
+  assert.deepEqual([r.ddBoPhan, r.ddBoPhanZh], ['TEST Bảo trì', '维修']);
+  const id = r.ddNguoi[0].id;
+  assert.deepEqual(ok(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [id]: 'O', DDKHONGCO: 'P' } }, ql)).diemDanh.tt, { [id]: 'O' }, 'nhận người trong danh sách');
+  const dk = ok(b.call('data', {}, kt));
+  assert.deepEqual(dk.caiDat.ddNguoi.map((x) => x.ten), ['TEST A', '测试', 'TEST C'], 'nhân viên nhận danh sách để xem');
+});
+
+test('chuyền đang sản xuất sản phẩm nào: chỉ tài khoản xem được sản phẩm mới chọn; lưu ID (không lộ mã), giữ khi sửa chuyền', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-11-26T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const sp = ok(b.call('saveProduct', { ma: 'TEST-SP-CH', chuyen: 'VKY01', thongSo: [['Keo · 胶', 'TEST', 'TEST']] }, ql)).sanPham;
+  err(b.call('setLineProduct', { ma: 'VKY01', spId: sp.id }, kt), 'KHONG_QUYEN');
+  err(b.call('setLineProduct', { ma: 'VKY01', spId: 'SP-KHONG-CO' }, ql), 'KHONG_CO');
+  err(b.call('setLineProduct', { ma: 'KHONGCO', spId: sp.id }, ql), 'KHONG_CO_CHUYEN');
+  let c = ok(b.call('setLineProduct', { ma: 'vky01', spId: sp.id }, ql)).chuyen;
+  assert.equal(c.spDang, sp.id, 'lưu ID sản phẩm');
+  assert.match(c.spTu, /^2026-11-26 \d\d:\d\d:\d\d · /, 'ghi lúc chọn và người chọn');
+  // Sửa thông tin chuyền không làm mất sản phẩm đang chạy
+  ok(b.call('saveLine', { ma: 'VKY01', ghiChu: 'TEST' }, ql));
+  const dKt = ok(b.call('data', {}, kt));
+  assert.equal(dKt.chuyen.find((x) => x.ma === 'VKY01').spDang, sp.id, 'chuyền giữ sản phẩm đang chạy');
+  assert.equal((dKt.sanPham || []).length, 0, 'tài khoản không có quyền không nhận mã / thông số sản phẩm');
+  c = ok(b.call('setLineProduct', { ma: 'VKY01', spId: '' }, ql)).chuyen;
+  assert.deepEqual([c.spDang, c.spTu], ['', ''], 'bỏ chọn');
+});
+
 test('máy chỉnh lệch: loại đã đặt mã loại thì cái đầu tiên thêm vào chuyền cũng tự có mã riêng (in QR); chưa đặt thì chưa có', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
   const ql = b.login('NV002', '222222');
