@@ -1773,7 +1773,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.75.2";
+const APP_VER = "2.76.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -2172,7 +2172,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.75.2';
+var PHIEN_BAN = '2.76.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -2567,6 +2567,8 @@ function dieuHuong(a, p, req) {
     case 'archiveInfo': canQuyen(u, 'caidat'); return { nam: demLuuTru(), luuTru: docLuuTru() };
     case 'archiveRun': canQuyen(u, 'caidat'); return luuTruNam(u, p);
     case 'photo': return docAnh(p);
+    case 'photos': return docNhieuAnh(p);
+    case 'productThumbs': canQuyen(u, 'xemsp'); canQuyen(u, 'suasp'); return spAnhNhoLo(u, p);
     case 'audit': canQuyen(u, 'nhatky'); return docNhatKy(p);
     case 'saveMeter': canQuyen(u, 'may'); return luuCongTo(u, p);
     case 'saveParams': canQuyen(u, 'thongso'); return luuThongSo(p);
@@ -5309,14 +5311,51 @@ function spThongSo(ds) {
   });
   return out;
 }
+// Mỗi ảnh: {id, nho} — nho là ảnh nhỏ (~360px, ~25 KB) để danh sách / thẻ chuyền tải nhanh; bấm xem mới tải ảnh gốc (v2.76)
+var SP_ANH_NHO_TOI_DA = 200000;   // ký tự dataURL ảnh nhỏ
+function spAnhIdHopLe(v) { v = s(v); return /^[A-Za-z0-9_-]{10,80}$/.test(v) ? v : ''; }
+function spAnhNhoLuu(d, ten) {
+  d = String(d || '');
+  if (d.indexOf('data:image/') !== 0 || d.length > SP_ANH_NHO_TOI_DA) return '';
+  var r = luuAnhDrive(d, ten);
+  return r ? r.id : '';
+}
 function spAnh(anh, ma) {
-  var out = [];
+  var out = [], goc = 'SP_' + ma.replace(/[^\w.-]+/g, '_') + '_';
   (Array.isArray(anh) ? anh : []).slice(0, SP_ANH_TOI_DA).forEach(function (a, i) {
     if (!a) return;
-    if (a.data && String(a.data).indexOf('data:') === 0) { var r = luuAnhDrive(a.data, 'SP_' + ma.replace(/[^\w.-]+/g, '_') + '_' + (i + 1) + '.jpg'); if (r) out.push({ id: r.id }); }
-    else if (a.id && /^[A-Za-z0-9_-]{10,80}$/.test(s(a.id))) out.push({ id: s(a.id) });
+    var o = null;
+    if (a.data && String(a.data).indexOf('data:') === 0) { var r = luuAnhDrive(a.data, goc + (i + 1) + '.jpg'); if (r) o = { id: r.id }; }
+    else if (spAnhIdHopLe(a.id)) o = { id: s(a.id) };
+    if (!o) return;
+    var nho = spAnhIdHopLe(a.nho) || spAnhNhoLuu(a.nho, goc + (i + 1) + '_nho.jpg');
+    if (nho) o.nho = nho;
+    out.push(o);
   });
   return out;
+}
+// Tạo ảnh nhỏ cho ảnh đã lưu từ bản cũ: app tải ảnh gốc, thu nhỏ rồi gửi lên theo lô.
+// ds = [{id: ID sản phẩm, nho: [dataURL | '' theo thứ tự ảnh]}]. Chỉ điền chỗ còn thiếu, không đụng ảnh gốc.
+function spAnhNhoLo(u, p) {
+  var vao = Array.isArray(p.ds) ? p.ds.slice(0, 60) : [];
+  if (!vao.length) return { dsSanPham: [] };
+  capNhatTieuDe('SanPham');
+  var theoId = {}, sua = [];
+  docSanPham().forEach(function (x) { if (!x.xoa) theoId[x.id] = x; });
+  vao.forEach(function (o) {
+    var x = o && theoId[s(o.id)];
+    if (!x || !Array.isArray(o.nho)) return;
+    var doi = false;
+    (x.anh || []).forEach(function (a, i) {
+      if (!a || !a.id || a.nho || !o.nho[i]) return;
+      var n = spAnhNhoLuu(o.nho[i], 'SP_' + x.ma.replace(/[^\w.-]+/g, '_') + '_' + (i + 1) + '_nho.jpg');
+      if (n) { a.nho = n; doi = true; }
+    });
+    if (doi && sua.indexOf(x) < 0) sua.push(x);
+  });
+  sua.forEach(function (x) { suaDong('SanPham', x._r, spThanhDong(x)); });
+  if (sua.length) ghiNhatKy(u, 'ANH_NHO_SAN_PHAM', 'SanPham', '', '', sua.length + ' sản phẩm', '');
+  return { dsSanPham: sua.map(sachSP) };
 }
 function spGan(x, p, u) {
   if (p.nhom !== undefined) x.nhom = catChu(p.nhom, 60);
@@ -6904,17 +6943,39 @@ function docNhatKy(p) {
 }
 
 // ----- Ảnh công tơ / ảnh bảo dưỡng: đọc qua máy chủ (file Drive để riêng tư) -----
-function docAnh(p) {
-  var id = s(p.id);
-  if (!/^[A-Za-z0-9_-]{10,80}$/.test(id)) throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片');
+// Trả dataURL của ảnh, hoặc '' nếu không có / không nằm trong thư mục ảnh của app
+// (không cho đọc file Drive khác của chủ sheet)
+function docAnhTep(id, fid) {
+  id = s(id);
+  if (!/^[A-Za-z0-9_-]{10,80}$/.test(id)) return '';
   var f;
-  try { f = DriveApp.getFileById(id); } catch (e) { throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片'); }
-  // Chỉ trả ảnh nằm trong thư mục ảnh của app (không cho đọc file Drive khác của chủ sheet)
-  var fid = anhFolder().getId(), ok = false, it = f.getParents();
+  try { f = DriveApp.getFileById(id); } catch (e) { return ''; }
+  var ok = false, it = f.getParents();
   while (it.hasNext()) { if (it.next().getId() === fid) { ok = true; break; } }
-  if (!ok) throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片');
+  if (!ok) return '';
   var b = f.getBlob();
-  return { id: id, data: 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()) };
+  return 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes());
+}
+function docAnh(p) {
+  var d = docAnhTep(p.id, anhFolder().getId());
+  if (!d) throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片');
+  return { id: s(p.id), data: d };
+}
+// Nhiều ảnh trong một lần gọi (v2.76): mỗi lần gọi máy chủ mất ~1 giây dù ảnh nhỏ, gộp lại cho danh sách có ảnh.
+// Quá ~4 MB thì dừng, phần còn lại trả trong "con" để app gọi tiếp.
+var ANH_LO_TOI_DA = 30, ANH_LO_KICH_THUOC = 4000000;
+function docNhieuAnh(p) {
+  var ids = Array.isArray(p.ids) ? p.ids.slice(0, ANH_LO_TOI_DA) : [], fid = anhFolder().getId(), ds = [], mat = [], con = [], tong = 0;
+  ids.forEach(function (id) {
+    id = s(id);
+    if (!id) return;
+    if (tong >= ANH_LO_KICH_THUOC) { con.push(id); return; }
+    var d = docAnhTep(id, fid);
+    if (!d) { mat.push(id); return; }
+    tong += d.length;
+    ds.push({ id: id, data: d });
+  });
+  return { ds: ds, mat: mat, con: con };
 }
 function sachAnhCS(anh, tenGoc) {
   var out = [];
@@ -9412,11 +9473,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // store.get đọc từ bộ nhớ (đã nạp sẵn lúc mở app), store.set ghi ngay vào bộ nhớ rồi ghi xuống IndexedDB.
 const MEM = {};
 const IDB_KEYS = ['bd_q', 'bd_snap', 'bd_kho', 'bd_img'];
-const idb = (() => {
+function idbMo(ten) {
   let dbp = null;
   const open = () => dbp || (dbp = new Promise((res, rej) => {
     if (!('indexedDB' in window)) { rej(new Error('no idb')); return; }
-    const r = indexedDB.open('cmms', 1);
+    const r = indexedDB.open(ten, 1);
     r.onupgradeneeded = () => r.result.createObjectStore('kv');
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
   }));
@@ -9430,10 +9491,16 @@ const idb = (() => {
       c.onsuccess = () => { const x = c.result; if (x) { o[x.key] = x.value; x.continue(); } else res(o); };
       c.onerror = () => rej(c.error);
     })),
+    get: (k) => tx('readonly', (st) => st.get(k)),
     set: (k, v) => tx('readwrite', (st) => st.put(v, k)),
-    del: (k) => tx('readwrite', (st) => st.delete(k))
+    del: (k) => tx('readwrite', (st) => st.delete(k)),
+    clear: () => tx('readwrite', (st) => st.clear())
   };
-})();
+}
+const idb = idbMo('cmms');
+// Ảnh lưu đệm để kho riêng (v2.76): mỗi ảnh một khoá, chỉ đọc ảnh cần xem — không nạp hết lúc mở app,
+// không ghi lại cả kho mỗi khi thêm một ảnh. Bản thử dùng kho khác và xoá sạch mỗi lần mở.
+const idbAnh = idbMo(IS_DEMO ? 'cmms_anh_demo' : 'cmms_anh');
 const store = {
   ok: false,          // IndexedDB dùng được
   async init() {
@@ -13294,40 +13361,152 @@ Object.assign(TX, {
 });
 const ANH_TOI_DA = 8;
 // Ảnh trên Drive để riêng tư: app lấy ảnh qua máy chủ (cần đăng nhập), lưu đệm trên máy để xem lại khi mất mạng.
-// <img data-anh-id="…"> được tự nạp ảnh khi xuất hiện trên màn hình.
+// <img data-anh-id="…"> được tự nạp ảnh khi sắp hiện trên màn hình (v2.76: ảnh ở phần đang ẩn / cuộn xa chưa tải).
 const PIX = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 const IMG = {}, IMG_ORDER = [], IMG_WAIT = {};
-function IMG_CACHE_LOAD() { const o = store.get('bd_img', null); if (o && o.ids) o.ids.forEach((id, i) => { IMG[id] = o.d[i]; IMG_ORDER.push(id); }); }
-function imgCacheSave() { const ids = IMG_ORDER.slice(-80); store.set('bd_img', { ids, d: ids.map((id) => IMG[id]) }); }
+// Trong phiên giữ tối đa ~40 MB ảnh (ảnh lâu chưa xem bỏ khỏi bộ nhớ, vẫn còn trong kho trên máy);
+// kho trên máy tối đa ~120 MB, đầy thì bỏ ảnh lâu chưa xem nhất.
+const IMG_MEM_TOI_DA = 40e6, IMG_MAY_TOI_DA = 120e6;
+let imgMemTong = 0;
+function imgGiu(id, d) {
+  const j = IMG_ORDER.indexOf(id);
+  if (j >= 0) IMG_ORDER.splice(j, 1);
+  imgMemTong += d.length - (IMG[id] ? IMG[id].length : 0);
+  IMG[id] = d; IMG_ORDER.push(id);
+  while (imgMemTong > IMG_MEM_TOI_DA && IMG_ORDER.length > 1) { const k = IMG_ORDER.shift(); imgMemTong -= (IMG[k] || '').length; delete IMG[k]; }
+}
+// Kho ảnh trên máy: mục lục {id: [số ký tự, lần xem cuối]} ghi gộp sau 2 giây
+const IMG_MAY = { idx: null, p: null, hen: 0 };
+function imgMayMo() {
+  if (!IMG_MAY.p) IMG_MAY.p = (IS_DEMO ? idbAnh.clear().then(() => null) : idbAnh.get('_idx'))
+    .then((v) => { IMG_MAY.idx = v && typeof v === 'object' ? v : {}; }, () => { IMG_MAY.idx = null; });
+  return IMG_MAY.p;
+}
+function imgMayGhiIdx() {
+  clearTimeout(IMG_MAY.hen);
+  IMG_MAY.hen = setTimeout(() => { if (IMG_MAY.idx) idbAnh.set('_idx', IMG_MAY.idx).catch(() => {}); }, 2000);
+}
+function imgMayDoc(id) {
+  return imgMayMo().then(() => {
+    const idx = IMG_MAY.idx;
+    if (!idx || !idx[id]) return '';
+    return idbAnh.get(id).then((d) => {
+      if (typeof d === 'string' && d) { idx[id][1] = Date.now(); imgMayGhiIdx(); return d; }
+      delete idx[id]; imgMayGhiIdx(); return '';
+    });
+  }).catch(() => '');
+}
+function imgMayLuu(id, d) {
+  return imgMayMo().then(() => {
+    const idx = IMG_MAY.idx;
+    if (!idx || typeof d !== 'string' || d.indexOf('data:') !== 0) return;
+    idx[id] = [d.length, Date.now()];
+    idbAnh.set(id, d).catch(() => { delete idx[id]; });
+    const ks = Object.keys(idx);
+    let tong = ks.reduce((a, k) => a + idx[k][0], 0);
+    if (tong > IMG_MAY_TOI_DA) {
+      ks.sort((a, b) => idx[a][1] - idx[b][1]);
+      for (const k of ks) { if (tong <= IMG_MAY_TOI_DA * 0.85) break; if (k === id) continue; tong -= idx[k][0]; delete idx[k]; idbAnh.del(k).catch(() => {}); }
+    }
+    imgMayGhiIdx();
+  }).catch(() => {});
+}
+// Bản cũ lưu tối đa 80 ảnh trong một khoá (nạp hết lúc mở app, ghi lại hết mỗi lần thêm ảnh): chuyển sang kho ảnh rồi xoá
+function IMG_CACHE_LOAD() {
+  imgMayMo();
+  const o = store.get('bd_img', null);
+  if (o && o.ids) { o.ids.forEach((id, i) => { if (o.d && typeof o.d[i] === 'string') imgMayLuu(id, o.d[i]); }); store.del('bd_img'); }
+}
+// Tải từ máy chủ theo lô: gom ảnh cần trong 30 ms, mỗi lần gọi tối đa 12 ảnh, 2 lần gọi cùng lúc.
+// Máy chủ cũ (chưa có 'photos'): mỗi lần một ảnh, 3 lần cùng lúc.
+const IMG_HANG = [];
+let imgDangGoi = 0, imgHen = 0, imgMot = false;
+function imgXep(id) {
+  return new Promise((ok, ko) => { IMG_HANG.push({ id, ok, ko }); if (!imgHen) imgHen = setTimeout(imgGoi, 30); });
+}
+function imgGoi() {
+  imgHen = 0;
+  const mot = imgMot || srvOld('anhlo');
+  while (imgDangGoi < (mot ? 3 : 2) && IMG_HANG.length) {
+    const lo = IMG_HANG.splice(0, mot ? 1 : 12);
+    imgDangGoi++;
+    imgLayLo(lo, mot).finally(() => { imgDangGoi--; imgGoi(); });
+  }
+}
+function imgLayLo(lo, mot) {
+  const goi = mot ? api('photo', { id: lo[0].id }, { timeout: 40 }).then((d) => ({ ds: [d] }))
+    : api('photos', { ids: lo.map((x) => x.id) }, { timeout: 60 });
+  return goi.then((d) => {
+    const cho = {};
+    lo.forEach((x) => { (cho[x.id] = cho[x.id] || []).push(x); });
+    (d.ds || []).forEach((a) => { (cho[a.id] || []).forEach((x) => x.ok(a.data)); delete cho[a.id]; });
+    // Quá cỡ một lần gọi: phần còn lại xếp lên đầu hàng chờ
+    (d.con || []).filter((id) => cho[id]).reverse().forEach((id) => { IMG_HANG.unshift(...cho[id]); delete cho[id]; });
+    Object.keys(cho).forEach((id) => cho[id].forEach((x) => x.ko({ code: 'KHONG_CO' })));
+  }, (e) => {
+    if (e && e.code === 'KHONG_HIEU') {
+      if (!mot) { imgMot = true; IMG_HANG.unshift(...lo); return; }
+      lo.forEach((x) => x.ok('https://drive.google.com/uc?export=view&id=' + encodeURIComponent(x.id))); return;
+    }
+    lo.forEach((x) => x.ko(e));
+  });
+}
 function anhId(a) { if (!a) return ''; if (typeof a === 'string') return a.indexOf('data:') === 0 ? '' : a; return a.data ? '' : (a.id || ''); }
 function anhSrc(a) {
   if (!a) return '';
   if (typeof a === 'string') return a.indexOf('data:') === 0 ? a : (IMG[a] || PIX);
   if (a.data) return a.data;
-  if (a.id) return IMG[a.id] || PIX;
+  if (a.id) return IMG[a.id] || (a.nho && IMG[a.nho]) || PIX;
   return '';
 }
 // Thẻ <img> cho một ảnh (data hoặc id Drive)
 function anhImg(a, attrs) { const id = anhId(a); return `<img src="${esc(anhSrc(a))}"${id ? ` data-anh-id="${esc(id)}"` : ''} ${attrs || ''} alt="">`; }
+// Danh sách / thẻ nhỏ: dùng ảnh nhỏ (nho, ~25 KB) nếu có; bấm xem mới tải ảnh gốc (data-full)
+function anhNhoImg(a, attrs) {
+  if (!a || typeof a !== 'object' || a.data || !a.id || !a.nho) return anhImg(a, attrs);
+  return `<img src="${esc(IMG[a.nho] || PIX)}" data-anh-id="${esc(a.nho)}" data-full="${esc(a.id)}" ${attrs || ''} alt="">`;
+}
+// Ảnh: bộ nhớ → kho trên máy → máy chủ (theo lô)
 function napAnh(id) {
   if (IMG[id]) return Promise.resolve(IMG[id]);
   if (!IMG_WAIT[id]) {
-    IMG_WAIT[id] = api('photo', { id }, { timeout: 40 }).then((d) => { IMG[id] = d.data; IMG_ORDER.push(id); imgCacheSave(); return d.data; },
-      (e) => { if (e && e.code === 'KHONG_HIEU') return 'https://drive.google.com/uc?export=view&id=' + encodeURIComponent(id); throw e; })
-      .finally(() => { setTimeout(() => { delete IMG_WAIT[id]; }, 30000); });
+    IMG_WAIT[id] = imgMayDoc(id).then((d) => {
+      if (d) { imgGiu(id, d); return d; }
+      return imgXep(id).then((d2) => { if (String(d2).indexOf('data:') === 0) { imgGiu(id, d2); imgMayLuu(id, d2); } return d2; });
+    }).finally(() => { setTimeout(() => { delete IMG_WAIT[id]; }, 30000); });
   }
   return IMG_WAIT[id];
 }
+function napAnhImg(im) {
+  const id = im.dataset.anhId;
+  if (IMG[id]) { if (im.getAttribute('src') !== IMG[id]) im.src = IMG[id]; im.classList.remove('anhcho'); return; }
+  napAnh(id).then((src) => { if (im.dataset.anhId === id) im.src = src; im.classList.remove('anhcho'); })
+    .catch(() => { im.classList.remove('anhcho'); im.classList.add('anhloi'); });
+}
+// Chỉ tải ảnh sắp hiện (cách mép màn hình ~400px); ảnh trong phần đang ẩn / cuộn xa chờ tới khi hiện
+const IMG_THEO = new Set();
+const IMG_IO = 'IntersectionObserver' in window ? new IntersectionObserver((es) => {
+  es.forEach((e) => { if (e.isIntersecting || !e.target.isConnected) { IMG_IO.unobserve(e.target); IMG_THEO.delete(e.target); if (e.target.isConnected) napAnhImg(e.target); } });
+}, { rootMargin: '400px 0px' }) : null;
 function napAnhTrong(root) {
+  IMG_THEO.forEach((im) => { if (!im.isConnected) { IMG_IO.unobserve(im); IMG_THEO.delete(im); } });
   $$('img[data-anh-id]', root).forEach((im) => {
     const id = im.dataset.anhId;
     if (IMG[id]) { if (im.getAttribute('src') !== IMG[id]) im.src = IMG[id]; return; }
-    if (im.dataset.nap) return;
-    im.dataset.nap = '1'; im.classList.add('anhcho');
-    napAnh(id).then((src) => { im.src = src; im.classList.remove('anhcho'); }).catch(() => { im.classList.remove('anhcho'); im.classList.add('anhloi'); });
+    if (im.dataset.nap === id) return;
+    im.dataset.nap = id; im.classList.add('anhcho');
+    if (IMG_IO) { IMG_IO.observe(im); IMG_THEO.add(im); } else napAnhImg(im);
   });
 }
 new MutationObserver((ms) => { if (ms.some((m) => m.addedNodes.length)) napAnhTrong(document); }).observe(document.documentElement, { childList: true, subtree: true });
+// Vừa lưu ảnh lên máy chủ: ghi luôn bản đã nén vào kho ảnh theo id nhận về (khỏi tải lại)
+function anhGhiDem(gui, nhan) {
+  if (!Array.isArray(gui) || !Array.isArray(nhan) || gui.length !== nhan.length) return;
+  gui.forEach((a, i) => {
+    const b = nhan[i]; if (!a || !b) return;
+    [[a.data, b.id], [a.nho, b.nho]].forEach(([d, id]) => { if (id && typeof d === 'string' && d.indexOf('data:') === 0) { imgGiu(id, d); imgMayLuu(id, d); } });
+  });
+}
 function imgCompress(file, maxPx, maxKb) {
   return new Promise(function (resolve, reject) {
     const rd = new FileReader();
@@ -13416,6 +13595,11 @@ Object.assign(ACT, {
     else if (g && g.indexOf('ds:') === 0) { const j = +g.slice(3), x = topV().p && topV().p.ds && topV().p.ds[j]; if (x) { delete x.anhData; x.anh = ''; const cell = document.querySelector('.dsrow[data-i="' + j + '"] .anhds'); if (cell) cell.innerHTML = '<span class="acap">+</span>'; } }
   },
   anhView: (el) => {
+    const goc = el.tagName === 'IMG' && (el.dataset.full || el.dataset.anhId);
+    if (goc) {   // ảnh Drive: mở ngay (ảnh nhỏ / đang tải làm nền), ảnh gốc tự nạp vào
+      openSheet('<div class="grab"></div><img class="lkimgbig" src="' + esc(IMG[goc] || el.getAttribute('src') || PIX) + '" data-anh-id="' + esc(goc) + '" alt=""><div class="btns"><button class="btn ghost" data-act="closeSheet">' + tv('close') + '<span class="zi">' + tz('close') + '</span></button></div>');
+      return;
+    }
     let src = (el.tagName === 'IMG' && el.getAttribute('src')) || '';
     if (!src) {
       const g = el.dataset.g, i = +el.dataset.i;
@@ -20501,7 +20685,7 @@ function spChuyenChuan(v) {
 const spTimTxt = (x) => norm([x.ma, x.nhom, x.chuyen, x.ghiChu].concat((x.thongSo || []).map((r) => r.join(' '))).join(' '));
 function spRow(x) {
   const ts = (x.thongSo || []).slice(0, 2).map((r) => r[2] || r[1]).filter(Boolean).join(' · ');
-  return `<button class="row" data-act="spMo" data-id="${esc(x.id)}">${(x.anh || [])[0] ? anhImg(x.anh[0], 'class="spthumb"') : ''}
+  return `<button class="row" data-act="spMo" data-id="${esc(x.id)}">${(x.anh || [])[0] ? anhNhoImg(x.anh[0], 'class="spthumb"') : ''}
     <div class="main"><div class="nm mono" style="font-size:16px">${esc(x.ma)}</div>
       <div class="sub">${[x.nhom ? esc(x.nhom) : '', spChuyenDS(x).map((c) => `<span class="code">${esc(c)}</span>`).join(' ')].filter(Boolean).join(' · ')}</div>
       ${ts ? `<div class="sub" style="margin-top:2px">${esc(ts.length > 90 ? ts.slice(0, 90) + '…' : ts)}</div>` : ''}</div>
@@ -20518,7 +20702,9 @@ VIEWS.sp = {
         <label class="btn ghost sm filebtn">${IC.dl} ${t('spNhap')}<input type="file" id="spFile" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label>
         <button class="btn ghost sm" data-act="spXuat">${IC.dl} ${t('spXuat')}</button>
         <label class="btn ghost sm filebtn">${IC.cam} ${t('spAnhNhap')}<input type="file" id="spAnhNhieu" accept=".zip,application/zip,image/*" multiple></label></div>
-        <div class="help" style="margin-top:6px">${t('spAnhNhapHelp')}</div>` : ''}</div>`;
+        <div class="help" style="margin-top:6px">${t('spAnhNhapHelp')}</div>` : ''}
+      ${sua && !srvOld('anhlo') && spThieuNho().length ? `<div class="note spnho" style="margin:10px 0 0">${t('spNhoCan', { n: spThieuNho().length })}
+        <div class="btns" style="margin-top:8px"><button class="btn sm" data-act="spTaoNho"${S.spNhoDang ? ' disabled' : ''}>${S.spNhoDang ? esc(S.spNhoDang) : `${IC.img || ''} ${t('spTaoNho')}`}</button></div></div>` : ''}</div>`;
     if (!ds.length) return o + `<div class="card empty" style="margin-top:12px">${t('spTrong')}${sua ? `<div class="help" style="margin-top:6px">${t('spTrongHelp')}</div>` : ''}</div>`;
     o += `<div class="searchbox" style="margin-top:12px">${IC.search}<input class="inp" id="spQ" type="search" value="${esc(p.q || '')}" placeholder="${esc(tp('spTim'))}" autocomplete="off"></div>
       <div class="hscroll" style="margin:10px 0 0">${[['', 'spTatCa']].map(([v, k]) => `<button class="chip${!loc ? ' on' : ''}" data-act="spLoc" data-v="${v}">${t(k)}</button>`).join('')}
@@ -20604,7 +20790,7 @@ VIEWS.spSua = {
     if (fa) fa.addEventListener('change', async () => {
       const file = fa.files && fa.files[0]; fa.value = '';
       if (!file) return;
-      try { const d = await imgCompress(file, 1600, 350); f.anh.push({ data: d }); render(); } catch (e) { toast(errMsg(e), true); }
+      try { const [d, nho] = await Promise.all([imgCompress(file, 1600, 350), imgCompress(file, 360, 28)]); f.anh.push({ data: d, nho }); render(); } catch (e) { toast(errMsg(e), true); }
     });
   }
 };
@@ -20707,6 +20893,7 @@ Object.assign(ACT, {
     try {
       const d = await api('saveProduct', { id: p.id || '', ma: f.ma.trim(), nhom: f.nhom, chuyen: f.chuyen, ngaySX: f.ngaySX, ghiChu: f.ghiChu,
         thongSo: f.thongSo.filter((r) => r[0].trim() && (r[1].trim() || r[2].trim())), anh: f.anh }, { timeout: 90 });
+      anhGhiDem(f.anh, d.sanPham && d.sanPham.anh);
       mergeResult(d);
       back(); toast(t('spDaLuu', { m: d.sanPham.ma }));
     } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
@@ -20755,6 +20942,10 @@ Object.assign(TX, {
     '导入图片：选择多张图片或一个 .zip 文件；图片名为产品型号（如 "ABC-123.jpg"，第二张 "ABC-123_2.jpg"）。'],
   spAnhKhop: ['{a} ảnh khớp {b} sản phẩm ({c} bản ghi)', '{a} 张图片匹配 {b} 个产品（{c} 条记录）'], spAnhKhongKhop: ['{n} ảnh không khớp mã nào', '{n} 张图片未匹配任何型号'],
   spAnhThay: ['Thay ảnh cũ', '替换旧图片'], spAnhThemVao: ['Thêm vào ảnh cũ (tối đa 3)', '追加（最多3张）'],
+  spNhoCan: ['{n} sản phẩm có ảnh lưu từ bản cũ, chưa có ảnh nhỏ — danh sách tải chậm. Bấm "Tạo ảnh nhỏ" một lần (cần mạng, khoảng 1–2 phút).',
+    '{n} 个产品的图片为旧版保存，尚无缩略图，列表加载较慢。请点击“生成缩略图”一次（需联网，约1–2分钟）。'],
+  spTaoNho: ['Tạo ảnh nhỏ', '生成缩略图'], spNhoDang: ['Đang tạo ảnh nhỏ {i}/{n}…', '正在生成缩略图 {i}/{n}…'],
+  spNhoXong: ['Đã tạo ảnh nhỏ cho {n} sản phẩm', '已为 {n} 个产品生成缩略图'],
   spAnhLuu: ['Lưu ảnh', '保存图片'], spAnhDang: ['Đang lưu ảnh {i}/{n}…', '正在保存图片 {i}/{n}…'], spAnhXong: ['Đã lưu ảnh cho {n} bản ghi', '已为 {n} 条记录保存图片'],
   spAnhTrong: ['Không thấy ảnh nào (jpg, png, webp) trong file đã chọn', '所选文件中没有图片（jpg、png、webp）']
 });
@@ -20808,7 +20999,34 @@ async function spChonAnh(e) {
     <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
       <button class="btn g" data-act="spAnhLuu"${ma.length ? '' : ' disabled'}>${IC.check} ${t('spAnhLuu')}</button></div>`);
 }
+// Ảnh lưu từ bản cũ chưa có ảnh nhỏ: tải ảnh gốc theo lô 6 sản phẩm, thu nhỏ trên máy rồi gửi lên
+const spThieuNho = () => spDS().filter((x) => (x.anh || []).some((a) => a && a.id && !a.nho));
 Object.assign(ACT, {
+  spTaoNho: async () => {
+    const ds = spThieuNho(), n = ds.length;
+    if (!n || S.spNhoDang) return;
+    // Màn có thể vẽ lại giữa chừng (nhận dữ liệu mới): ghi tiến độ vào S để nút vẽ lại vẫn khoá, vẫn hiện tiến độ
+    const tienDo = (txt) => { S.spNhoDang = txt; const b = $('[data-act="spTaoNho"]'); if (b) { b.disabled = true; b.textContent = txt; } };
+    let xong = 0;
+    try {
+      for (let i = 0; i < n; i += 6) {
+        tienDo(tv('spNhoDang', { i: Math.min(i + 6, n), n }));
+        const lo = await Promise.all(ds.slice(i, i + 6).map(async (x) => ({ id: x.id, nho: await Promise.all((x.anh || []).map(async (a) => {
+          if (!a || !a.id || a.nho) return '';
+          try { const goc = await napAnh(a.id); return goc.indexOf('data:') === 0 ? await imgCompress(tlDataBlob(goc), 360, 28) : ''; }
+          catch (e) { if (e && e.code === 'MANG') throw e; return ''; }
+        })) })));
+        const gui = lo.filter((o) => o.nho.some(Boolean));
+        if (!gui.length) continue;
+        const d = await api('productThumbs', { ds: gui }, { timeout: 120 });
+        (d.dsSanPham || []).forEach((x) => { const o = gui.find((g) => g.id === x.id); if (o) anhGhiDem(o.nho.map((v) => ({ nho: v })), (x.anh || []).map((a) => ({ nho: a.nho }))); });
+        mergeResult(d); xong += (d.dsSanPham || []).length;
+      }
+      S.spNhoDang = ''; toast(t('spNhoXong', { n: xong })); render();
+    } catch (e) {
+      S.spNhoDang = ''; toast((xong ? tv('spNhoXong', { n: xong }) + ' · ' : '') + (e && e.code === 'MANG' ? tv('needNet') : errMsg(e)), true); render();
+    }
+  },
   spAnhChe: (el) => { if (S.spAnhNhap) S.spAnhNhap.che = el.dataset.v; $$('[data-act="spAnhChe"]').forEach((b) => b.classList.toggle('on', b === el)); },
   spAnhLuu: async (el) => {
     const r = S.spAnhNhap, fe = $('#spaErr'); if (!r) return;
@@ -20823,8 +21041,10 @@ Object.assign(ACT, {
           const x = spDS().find((y) => y.id === x0.id) || x0, cu = r.che === 'them' ? (x.anh || []).slice() : [];
           if (!moi) {
             const data = [];
-            for (const a of o.anh.slice(0, 3)) data.push({ data: await imgCompress(a.file, 1600, 350) });
-            const d = await api('saveProduct', { id: x.id, ma: x.ma, anh: cu.concat(data).slice(0, 3) }, { timeout: 120 });
+            for (const a of o.anh.slice(0, 3)) data.push({ data: await imgCompress(a.file, 1600, 350), nho: await imgCompress(a.file, 360, 28) });
+            const gui = cu.concat(data).slice(0, 3);
+            const d = await api('saveProduct', { id: x.id, ma: x.ma, anh: gui }, { timeout: 120 });
+            anhGhiDem(gui, d.sanPham && d.sanPham.anh);
             mergeResult(d); xong++;
             moi = (d.sanPham.anh || []).slice(cu.length);
           } else {
@@ -20844,6 +21064,7 @@ Object.assign(ACT, {
 // Chuyền lưu ID sản phẩm (không lưu mã): dữ liệu chuyền tới mọi tài khoản, còn mã / thông số / ảnh sản phẩm chỉ tài khoản
 // có quyền "Xem sản phẩm" mới nhận — người không có quyền không đọc ra được chuyền đang chạy mã nào.
 SRV_PHAN.push(['spdang', '2.74.0', 'srvMissSpDang']);
+SRV_PHAN.push(['anhlo', '2.76.0', 'srvMissAnhLo']);
 Object.assign(TX, {
   chSpDang: ['Đang sản xuất', '正在生产'], chSpChonBtn: ['Chọn sản phẩm', '选择产品'], chSpDoi: ['Đổi sản phẩm', '更换产品'],
   chSpChua: ['Chưa chọn sản phẩm chuyền đang chạy. Bấm "Chọn sản phẩm".', '尚未选择本线在产产品。请点击“选择产品”。'],
@@ -20851,7 +21072,8 @@ Object.assign(TX, {
   chSpTu: ['từ {d}', '自 {d}'], chSpChonTD: ['Chuyền {c} đang sản xuất', '{c} 线在产产品'], chSpKhac: ['Sản phẩm khác', '其他产品'],
   chSpBo: ['Bỏ chọn (chuyền dừng)', '取消（产线停机）'], chSpDaDat: ['{c}: đang sản xuất {m}', '{c}：在产 {m}'], chSpDaBo: ['{c}: đã bỏ chọn sản phẩm', '{c}：已取消在产产品'],
   spNoteBtn: ['Hướng dẫn · Note', '作业说明'], spDangChay: ['Đang chạy', '在产'], spKhongThay2: ['Không thấy sản phẩm', '没有找到产品'],
-  srvMissSpDang: ['Máy chủ chưa lưu được sản phẩm đang sản xuất. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不能保存在产产品。请更新 Code.gs 并重新部署。']
+  srvMissSpDang: ['Máy chủ chưa lưu được sản phẩm đang sản xuất. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不能保存在产产品。请更新 Code.gs 并重新部署。'],
+  srvMissAnhLo: ['Máy chủ chưa có ảnh nhỏ / tải ảnh gộp (ảnh sản phẩm tải chậm). Cập nhật Code.gs rồi Triển khai lại.', '服务器尚无缩略图 / 批量加载图片（产品图片加载较慢）。请更新 Code.gs 并重新部署。']
 });
 const spById = (id) => (id ? spDS().find((x) => x.id === id) || null : null);
 const chSpDang = (c) => (c && c.spDang ? spById(c.spDang) : null);
@@ -20880,7 +21102,7 @@ function chSpHtml(c) {
   if (srvOld('spdang')) return o + `<div class="help" style="margin-top:6px">${t('srvMissSpDang')}</div></div>`;
   if (!x) return o + `<div class="help" style="margin-top:6px">${t(c.spDang ? 'chSpMat' : 'chSpChua')}</div></div>`;
   S._anhViewArr = (x.anh || []).slice();
-  o += `<div class="chspb">${(x.anh || []).map((a, i) => anhImg(a, `data-act="anhView" data-i="${i}" class="chspimg"`)).join('')}</div>
+  o += `<div class="chspb">${(x.anh || []).map((a, i) => anhNhoImg(a, `data-act="anhView" data-i="${i}" class="chspimg"`)).join('')}</div>
     <div class="chspt"><button class="lnk mono" data-act="spMo" data-id="${esc(x.id)}"><b>${esc(x.ma)}</b></button>
       <div class="sub">${[x.nhom, tu.luc ? tv('chSpTu', { d: fmtD(tu.luc.slice(0, 10)) + ' ' + tu.luc.slice(11, 16) }) : '', tu.ai].filter(Boolean).map(esc).join(' · ')}</div></div>
     <div style="margin-top:8px">${spNoteBtn(k, (x.thongSo || []).length + (x.ghiChu ? 1 : 0))}</div>`;
@@ -20892,7 +21114,7 @@ function chSpChonMo(ma) {
   S.chSpQ = '';
   const ve = () => {
     const c = S.V.chByMa[ma] || {}, q = norm(S.chSpQ || ''), ds = spDS().filter((x) => !q || spTimTxt(x).includes(q));
-    const dong = (x) => `<button type="button" class="row${c.spDang === x.id ? ' on' : ''}" data-act="chSpDat" data-ma="${esc(ma)}" data-id="${esc(x.id)}">${(x.anh || [])[0] ? anhImg(x.anh[0], 'class="spthumb"') : ''}
+    const dong = (x) => `<button type="button" class="row${c.spDang === x.id ? ' on' : ''}" data-act="chSpDat" data-ma="${esc(ma)}" data-id="${esc(x.id)}">${(x.anh || [])[0] ? anhNhoImg(x.anh[0], 'class="spthumb"') : ''}
       <div class="main"><div class="nm mono">${esc(x.ma)}</div><div class="sub">${[x.nhom ? esc(x.nhom) : '', spChuyenDS(x).map((cc) => `<span class="code">${esc(cc)}</span>`).join(' ')].filter(Boolean).join(' · ')}</div></div>
       ${c.spDang === x.id ? `<span class="pill p-ok">${esc(tv('spDangChay'))}</span>` : ''}</button>`;
     const cua = ds.filter((x) => spChuyenDS(x).includes(ma)), khac = ds.filter((x) => !spChuyenDS(x).includes(ma));

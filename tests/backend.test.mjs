@@ -3031,3 +3031,42 @@ test('linh kiện: giữ loại linh kiện (Xi lanh, Động cơ servo…) khi 
   assert.deepEqual(r.chuyen.linhKien.map((x) => x.nhom || ''), ['Xi lanh', 'Động cơ servo', ''],
     'loại ghi gì giữ nguyên nấy, không ghi thì để trống cho app tự đoán');
 });
+
+test('ảnh sản phẩm nhanh (v2.76): lưu kèm ảnh nhỏ; đọc nhiều ảnh một lần (quá cỡ thì trả phần còn lại); tạo ảnh nhỏ cho ảnh cũ', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-10-14T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const jpg = (n) => 'data:image/jpeg;base64,' + Buffer.alloc(n, 7).toString('base64');
+  // Lưu ảnh kèm ảnh nhỏ: mỗi ảnh {id, nho}, hai tệp riêng trong thư mục ảnh, để riêng tư
+  const a = ok(b.call('saveProduct', { ma: 'TEST-ANH1', anh: [{ data: jpg(3000), nho: jpg(400) }, { data: jpg(2000) }] }, ql)).sanPham;
+  assert.equal(a.anh.length, 2);
+  assert.ok(a.anh[0].id && a.anh[0].nho && a.anh[0].id !== a.anh[0].nho, 'ảnh đầu có ảnh nhỏ riêng');
+  assert.equal(a.anh[1].nho, undefined, 'ảnh không gửi ảnh nhỏ thì chưa có');
+  assert.equal(b.ctx.DriveApp.__files[a.anh[0].nho].shared, false);
+  // Sửa sản phẩm giữ nguyên {id, nho}
+  const a2 = ok(b.call('saveProduct', { id: a.id, ma: 'TEST-ANH1', anh: a.anh }, ql)).sanPham;
+  assert.deepEqual(a2.anh, a.anh, 'sửa không mất ảnh nhỏ');
+  // Ảnh nhỏ không phải ảnh / quá lớn thì bỏ
+  const a3 = ok(b.call('saveProduct', { ma: 'TEST-ANH2', anh: [{ data: jpg(1000), nho: 'data:text/html;base64,PGI+' }] }, ql)).sanPham;
+  assert.equal(a3.anh[0].nho, undefined);
+  // Đọc nhiều ảnh một lần: ảnh lạ trả trong "mat"; ai đăng nhập cũng đọc được như 'photo'
+  const r = ok(b.call('photos', { ids: [a.anh[0].nho, a.anh[0].id, 'khongcofile123', a.anh[1].id] }, kt));
+  assert.deepEqual(r.ds.map((x) => x.id), [a.anh[0].nho, a.anh[0].id, a.anh[1].id]);
+  assert.ok(r.ds.every((x) => x.data.startsWith('data:image/jpeg;base64,')));
+  assert.deepEqual([r.mat, r.con], [['khongcofile123'], []]);
+  // Quá cỡ một lần: phần còn lại trả trong "con" (ảnh đầu luôn có)
+  const lon = ok(b.call('saveProduct', { ma: 'TEST-ANH3', anh: [{ data: jpg(3100000) }, { data: jpg(3100000) }] }, ql)).sanPham;
+  const r2 = ok(b.call('photos', { ids: [lon.anh[0].id, lon.anh[1].id, a.anh[0].id] }, kt));
+  assert.deepEqual([r2.ds.map((x) => x.id), r2.con], [[lon.anh[0].id], [lon.anh[1].id, a.anh[0].id]]);
+  // Không đọc được tệp Drive ngoài thư mục ảnh của app
+  const ngoai = b.ctx.DriveApp.createFolder('Khac').createFile(b.ctx.Utilities.newBlob([1, 2, 3], 'image/jpeg', 'x.jpg')).getId();
+  assert.deepEqual(ok(b.call('photos', { ids: [ngoai] }, kt)).mat, [ngoai]);
+  // Tạo ảnh nhỏ cho ảnh cũ: chỉ điền chỗ thiếu, cần quyền sửa sản phẩm
+  err(b.call('productThumbs', { ds: [{ id: a.id, nho: ['', jpg(300)] }] }, kt), 'KHONG_QUYEN');
+  const t = ok(b.call('productThumbs', { ds: [{ id: a.id, nho: [jpg(300), jpg(300)] }, { id: 'SP-KHONGCO', nho: [jpg(300)] }] }, ql));
+  assert.equal(t.dsSanPham.length, 1);
+  const x = t.dsSanPham[0];
+  assert.equal(x.anh[0].nho, a.anh[0].nho, 'ảnh đã có ảnh nhỏ thì giữ');
+  assert.ok(x.anh[1].nho && x.anh[1].id === a.anh[1].id, 'ảnh thiếu thì nhận ảnh nhỏ mới, ảnh gốc giữ');
+  assert.deepEqual(ok(b.call('data', {}, ql)).sanPham.find((y) => y.id === a.id).anh, x.anh, 'đã ghi vào bảng');
+  assert.deepEqual(ok(b.call('productThumbs', { ds: [{ id: a.id, nho: [jpg(300), jpg(300)] }] }, ql)).dsSanPham, [], 'đủ rồi thì không đổi');
+});
