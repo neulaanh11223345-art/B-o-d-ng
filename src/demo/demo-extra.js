@@ -473,6 +473,21 @@ mauTaiLieu();
 mauKiemDinh();
 mauMayNen();
 mauSanPham();
+mauDiemDanh();
+// Danh sách người điểm danh mẫu (bản demo): theo tên người, ba người có tài khoản, một người không có tài khoản
+function mauDiemDanh() {
+  var cd = docCaiDat();
+  if ((cd.ddNguoi || []).length) return;
+  var tk = {};
+  dsNguoiDung().forEach(function (n) { tk[n.maNV] = n; });
+  var ng = function (ma) { return tk[ma] || {}; };
+  cd.ddNguoi = [['DDDEMO1', 'NV004'], ['DDDEMO2', 'NV005'], ['DDDEMO3', 'NV006']].map(function (a) {
+    var n = ng(a[1]);
+    return { id: a[0], ten: n.ten || a[1], tenZh: n.tenZh || '', maThe: n.maThe || '', chucVu: n.chucVu || '', uid: n.id || '' };
+  }).concat([{ id: 'DDDEMO4', ten: 'TEST Nhân viên mới', tenZh: '', maThe: 'V2599X', chucVu: 'Thợ phụ', uid: '' }]);
+  cd.ddBoPhan = 'Bảo trì thiết bị (TEST)'; cd.ddBoPhanZh = '设备维修部';
+  ghiCaiDat(cd);
+}
 // Sáu máy nén khí: máy 3 và máy 6 chạy biến tần. Giờ chạy đọc trên đồng hồ của từng máy,
 // ghi mỗi tuần một lần nên tuần nào máy nghỉ thì giờ không tăng.
 function mauMayNen() {

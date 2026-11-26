@@ -862,6 +862,23 @@ test('điểm danh: Quản lý ghi nghỉ phép / không phép / ốm / đi mu�
   assert.equal(dk.length, 2);
 });
 
+test('danh sách điểm danh theo tên: Quản lý lập, giữ ID, nối tài khoản; điểm danh khoá theo người trong danh sách', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-11-26T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const d0 = ok(b.call('data', {}, ql)), tk = d0.nhanVien.find((x) => x.maNV === 'NV005').id;
+  err(b.call('attendancePeople', { ds: [{ ten: 'TEST A' }] }, kt), 'KHONG_QUYEN');
+  let r = ok(b.call('attendancePeople', { ds: [{ ten: '  TEST   A ', uid: tk, maThe: 'V1' }, { ten: '', uid: tk }, { ten: '测试', uid: 'U-KHONG-CO' }, { id: 'DDCU1', ten: 'TEST C' }],
+    boPhan: 'TEST Bảo trì', boPhanZh: '维修' }, ql)).caiDat;
+  assert.deepEqual(r.ddNguoi.map((x) => [x.ten, x.uid]), [['TEST A', tk], ['测试', ''], ['TEST C', '']], 'bỏ dòng không tên, tài khoản lạ thì không nối');
+  assert.equal(r.ddNguoi[2].id, 'DDCU1', 'giữ ID cũ');
+  assert.ok(r.ddNguoi.every((x) => /^DD/.test(x.id)) && new Set(r.ddNguoi.map((x) => x.id)).size === 3, 'ID riêng từng người');
+  assert.deepEqual([r.ddBoPhan, r.ddBoPhanZh], ['TEST Bảo trì', '维修']);
+  const id = r.ddNguoi[0].id;
+  assert.deepEqual(ok(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [id]: 'O', DDKHONGCO: 'P' } }, ql)).diemDanh.tt, { [id]: 'O' }, 'nhận người trong danh sách');
+  const dk = ok(b.call('data', {}, kt));
+  assert.deepEqual(dk.caiDat.ddNguoi.map((x) => x.ten), ['TEST A', '测试', 'TEST C'], 'nhân viên nhận danh sách để xem');
+});
+
 test('chuyền đang sản xuất sản phẩm nào: chỉ tài khoản xem được sản phẩm mới chọn; lưu ID (không lộ mã), giữ khi sửa chuyền', () => {
   const b = loadBackend({ seed: 'demo', now: '2026-11-26T03:00:00Z' });
   const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');

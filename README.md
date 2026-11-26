@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.75.0
+# Credible Việt Nam CMMS · 设备管理 — v2.75.1
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.75.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.75.1.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.75.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.75.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.75.1.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.75.1.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.75.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.75.1.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò | Xem được |
 |---|---|---|---|
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.75.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.75.1.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.75.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.75.1.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -97,16 +97,17 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
 
-## Điểm mới của v2.75.0: điểm danh hằng ngày trong Lịch trực, Excel chấm công tháng
+## Điểm mới của v2.75.1: điểm danh hằng ngày trong Lịch trực (theo tên người), Excel chấm công tháng
 
 Lịch trực có thêm tab **Điểm danh**:
 - Mặc định **ngày thường mọi người đi làm, Chủ nhật nghỉ**. Quản lý chỉ cần bấm người khác mặc định: **Đi muộn**, **Nghỉ phép (P)**, **Nghỉ không phép (KP)**, **Nghỉ ốm (Ô)**; Chủ nhật bấm **Đi làm** / **Đi muộn** cho người đi làm. Bấm là lưu (mất mạng thì chờ gửi).
 - **Người nghỉ tự ra khỏi lịch trực ngày đó** (lịch tháng, chi tiết tuần, tổng số ca, đối chiếu tăng ca). Màn điểm danh báo ngày nào mất người trực, có nút *Xếp lại người trực*; khi xếp lại, người nghỉ được ghi chú rõ.
 - Bảng tổng hợp tháng ngay dưới: công, đi muộn, phép, không phép, ốm, Chủ nhật đi làm của từng người.
 - **Xuất Excel chấm công tháng** của bộ phận: mỗi người một dòng, mỗi ngày một cột (X đi làm, M đi muộn, P, KP, Ô, CN), Chủ nhật tô màu, cột tổng cuối, chú thích ký hiệu, ô ký Người lập / Trưởng bộ phận.
-- **Nhân viên xem được, không sửa được** (máy chủ chỉ cho tài khoản giao việc ghi). Tài khoản Quản trị hệ thống không có trong bảng.
+- **Ghi theo tên người, không theo tài khoản** (tài khoản có thể đặt theo vai trò như "Quản lý", "Kỹ thuật"). Bấm *Danh sách người* để lập danh sách: gõ nhanh nhiều tên một lần (cách nhau dấu phẩy), thêm tên tiếng Trung, mã số thẻ, chức vụ, sắp thứ tự. Người có tài khoản dùng app thì chọn tài khoản (app tự gợi ý theo tên) — người đó nghỉ thì tự ra khỏi lịch trực. Tên bộ phận in trên bảng chấm công cũng đặt ở đây.
+- **Nhân viên xem được, không sửa được** (máy chủ chỉ cho tài khoản giao việc ghi).
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Trang `DiemDanh` tự tạo khi điểm danh lần đầu (mỗi ngày một dòng, chỉ ghi người khác mặc định). Máy chủ cũ thì tab Điểm danh không hiện.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`). Danh sách người lưu trong Cài đặt. Trang `DiemDanh` tự tạo khi điểm danh lần đầu (mỗi ngày một dòng, chỉ ghi người khác mặc định). Máy chủ cũ thì tab Điểm danh không hiện.
 
 ---
 
@@ -128,7 +129,7 @@ Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Trang `DiemDa
 - Form thêm máy: *Tải bảng mẫu Excel* / *Nhập Excel* để thêm nhiều máy một lần.
 - Sửa linh kiện của máy, linh kiện của chuyền, màn nhập linh kiện: *Xuất Excel* (đúng bảng mẫu, đã điền linh kiện hiện có, chỉ máy / chuyền đó) và *Nhập Excel*.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Trang `Chuyen` tự thêm hai cột `SpDang`, `SpTu`. Máy chủ cũ thì thẻ Đang sản xuất báo cần cập nhật, các phần khác vẫn dùng được.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`). Trang `Chuyen` tự thêm hai cột `SpDang`, `SpTu`. Máy chủ cũ thì thẻ Đang sản xuất báo cần cập nhật, các phần khác vẫn dùng được.
 
 ---
 
@@ -142,7 +143,7 @@ Chuyền nào cũng có đủ các **module** theo cùng một thứ tự: **Má
 - **Bảng module các chuyền:** mỗi chuyền một dòng, mỗi module một cột. Trên máy tính hiện ngay ở danh sách thiết bị; trên điện thoại bấm *Bảng module các chuyền*. Bấm số trong ô để mở đúng module của chuyền đó.
 - **Excel máy theo chuyền** (và file *Xuất toàn bộ thiết bị*): sheet **Bang module** như bảng trên; sheet **Theo chuyen** ghi chuyền → từng module (module chưa có vẫn ghi "chưa có") → từng máy / từng quạt, máy chỉnh lệch với mã riêng.
 
-Nâng cấp: **nên dán Code.gs mới** (`Code.gs-v2.75.0.txt`): loại đã đặt mã loại thì cái đầu tiên thêm vào chuyền cũng tự có mã riêng; tên gợi ý "Chỉnh lệch số n". Máy chủ cũ vẫn dùng được, chỉ cần bấm *Đánh mã* sau khi thêm.
+Nâng cấp: **nên dán Code.gs mới** (`Code.gs-v2.75.1.txt`): loại đã đặt mã loại thì cái đầu tiên thêm vào chuyền cũng tự có mã riêng; tên gợi ý "Chỉnh lệch số n". Máy chủ cũ vẫn dùng được, chỉ cần bấm *Đánh mã* sau khi thêm.
 
 ---
 
@@ -158,7 +159,7 @@ Nâng cấp: **nên dán Code.gs mới** (`Code.gs-v2.75.0.txt`): loại đã đ
 - **Xuất Excel máy theo chuyền** (nút mới ở *Chuyền sản xuất* và ở màn *Xuất / nhập*): mỗi chuyền một khối — dòng tiêu đề chuyền (mã, tên Việt / Trung, mã tài sản, vị trí, số máy) rồi các máy của chuyền, kể cả máy hút bụi, quạt gió… gắn vào chuyền, xếp theo loại máy, đánh số lại từ 1; cuối cùng là máy sản xuất chưa gắn chuyền. Khổ ngang để in.
 - *Xuất toàn bộ thiết bị (1 file)*: sheet *Thiet bi* nay gom máy thuộc chuyền theo từng chuyền (trước đây xếp theo loại nên máy của một chuyền nằm rải rác), có thêm sheet **Theo chuyen** như trên.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -166,7 +167,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi s
 
 Tờ đơn tăng ca Chủ nhật in riêng nhưng **giữ nguyên tiêu đề mẫu đơn công ty** *ĐƠN XIN TỰ NGUYỆN TĂNG CA · 自愿加班申请表* như tờ ngày thường. Chỉ dòng tổng cuối bảng ghi *Tổng số tiếng tăng ca Chủ nhật · 周日加班总小时数* để biết là tờ Chủ nhật. Ô ngày vẫn ghi các ngày Chủ nhật có trên tờ.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -178,7 +179,7 @@ Tăng ca Chủ nhật tính lương khác ngày thường, nên nay tách riêng
 - **Tổng hợp tháng:** thêm hai cột *Ngày thường* và *Ngày Chủ nhật* (cộng lại bằng cột Tổng); trên điện thoại mỗi người có thêm dòng tách hai loại.
 - **Excel** (tuần / khoảng ngày / tháng): sheet chi tiết tô màu dòng Chủ nhật và có thêm dòng tổng *Ngày thường* / *Ngày Chủ nhật*; có lượt Chủ nhật thì thêm sheet **Chu nhat** chỉ gồm các lượt Chủ nhật. Sheet tổng hợp tháng có hai cột mới như trên màn hình.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -191,7 +192,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi s
 - Không còn giới hạn 80 dòng.
 - Bộ lọc *Tất cả* (gõ chữ để tìm) vẫn là một danh sách theo độ khớp.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -211,7 +212,7 @@ Mục mới **Sản phẩm** (nhóm *Tra cứu · công cụ*) cho biết mã hi
 - **Một mã chạy nhiều chuyền mà thông số khác nhau** (ví dụ khuôn hàn biên "1-…" trên chuyền này, "2-…" trên chuyền kia) thì mỗi chuyền một bản ghi: cặp *mã + chuyền* là duy nhất. Chuyền ghi "VKY06/08" tự tách thành VKY06, VKY08.
 - **Nhập từ file / Xuất Excel**: mỗi dòng một hạng mục thông số, gồm các cột *Mã sản phẩm, Chuyền, Nhóm, Ngày SX đầu, Thông số, Tiếng Trung, Tiếng Việt, Ghi chú*. Dòng tiếp theo cùng mã để trống chuyền thì thuộc bản ghi đang đọc. Mã + chuyền đã có thì thay bảng thông số (ảnh giữ nguyên). File xuất ra từ app nhập lại được.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Trang `SanPham` tự tạo khi lưu sản phẩm đầu tiên.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`). Trang `SanPham` tự tạo khi lưu sản phẩm đầu tiên.
 
 ---
 
@@ -241,7 +242,7 @@ Một số quy tắc mới:
   - **Nhập tên song ngữ từ file**: đọc cột Mã + Tên tiếng Việt + Tên tiếng Trung. Ô trống thì giữ nguyên; tên giống hệt tên tách từ ERP thì không lưu đè.
 - Trong phiếu từng linh kiện: sửa tên Việt / Trung rồi bấm Lưu.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Trang `KhoLK` tự thêm hai cột `TenVi`, `TenZh`; có thêm lệnh `setKhoTen`.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`). Trang `KhoLK` tự thêm hai cột `TenVi`, `TenZh`; có thêm lệnh `setKhoTen`.
 
 ---
 
@@ -254,7 +255,7 @@ Màn *Thiết bị → Xuất / nhập theo loại* có thêm nút **Xuất toà
 
 Nút xuất *mỗi loại một file* (để sửa rồi nhập lại) vẫn giữ như cũ.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -272,7 +273,7 @@ Màn **Lập phiếu đặt mua** và tab **Phiếu mua hàng** mở chậm khi 
 - Tab Phiếu mua hàng: 0,36 s → 0,01 s.
 - Tab Kiểm tra kho lần đầu: 0,4 s → 0,04 s.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -285,7 +286,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi s
 - App báo bao nhiêu mã có trong kho và bao nhiêu mã không có (bỏ qua). Tên file có "máy in" thì chọn sẵn mục máy in, có "keo" thì chọn sẵn máy keo.
 - Bấm **Đưa vào mục**: cả loạt mã được lưu như chọn tay (cột `Loai`), nhập file ERP sau không mất.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`), có thêm lệnh lưu mục cho cả loạt mã. Nếu máy chủ còn bản cũ, nút nhập danh sách sẽ ẩn.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`), có thêm lệnh lưu mục cho cả loạt mã. Nếu máy chủ còn bản cũ, nút nhập danh sách sẽ ẩn.
 
 ---
 
@@ -300,7 +301,7 @@ Thêm nhóm **Linh kiện theo máy**, đứng đầu tổng quan kho, gồm hai
 
 Quy cách có chữ, như van `411A-D0A…`, không tính là máy keo. Mã nào xếp sai vẫn chọn lại tay được.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản; bản v2.68.0 trở lên đã lưu được mục chọn tay.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản; bản v2.68.0 trở lên đã lưu được mục chọn tay.
 
 ---
 
@@ -324,7 +325,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi s
 - Mới: giữ cả **ô kệ cũ** với số lượng 0, để biết hàng nằm ở đâu khi về lại.
 - Mỗi lần nhập, mã mới được thêm đủ thông số.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Trang `KhoLK` tự thêm cột `Loai`. Nếu máy chủ còn bản cũ, app vẫn tự xếp mục, chỉ chưa lưu được mục chọn tay.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`). Trang `KhoLK` tự thêm cột `Loai`. Nếu máy chủ còn bản cũ, app vẫn tự xếp mục, chỉ chưa lưu được mục chọn tay.
 
 ---
 
@@ -337,7 +338,7 @@ Phần **Gần giống trong kho** dưới ô *Mã ERP* giờ hiện đủ **mã
 
 Bấm vào gợi ý thì mã điền sẵn vào ô, kiểm tra rồi bấm **Gán**.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -362,7 +363,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi s
 
 **Đánh dấu tay:** hàng chưa có mã bấm **Đã về** khi nhận hàng (ở *Theo dõi hàng về* hoặc trong phiếu). Trong phiếu, dòng đã về có nút **Chưa về** để bỏ dấu khi tồn tăng không phải do hàng đặt về (hàng trả lại kho, kiểm kê điều chỉnh).
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Trang `NhapKho` tự thêm hai cột `Tang` (số mã tăng tồn) và `Ve` (danh sách hàng đặt đã về của lần nhập đó). Máy chủ cũ thì app báo cần cập nhật ở phần hàng về, các phần khác vẫn dùng được.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`). Trang `NhapKho` tự thêm hai cột `Tang` (số mã tăng tồn) và `Ve` (danh sách hàng đặt đã về của lần nhập đó). Máy chủ cũ thì app báo cần cập nhật ở phần hàng về, các phần khác vẫn dùng được.
 
 ---
 
@@ -381,7 +382,7 @@ Trong **Nhận định chuyền** (chỉ Quản lý), app so số đo tủ đi�
 
 Mỗi dòng ghi rõ ngày, số đo và mức thường (vd *20/11 pha B 55 A (thường 100 A)*) kèm việc nên làm. Ba ngưỡng khác thường sửa được trong *Ngưỡng cảnh báo*.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -405,7 +406,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi s
 - **Xuất Excel để tạo mã** (có logo, cột *Mã ERP mới* tô vàng) → tạo mã trong ERP → điền cột đó → **Nhập file đã điền mã**. Hoặc gõ mã ngay ở từng dòng rồi bấm **Gán** (có gợi ý mã ERP gần giống).
 - Gán xong: mọi máy, mọi thân chuyền đang dùng mã tạm đổi sang mã ERP; mã tạm gộp vào mã ERP. Mã ERP chưa có trong kho (chưa nhập lại file ERP) thì app tạo sẵn; lần nhập file ERP sau cập nhật tồn.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`).
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`).
 
 ---
 
@@ -443,7 +444,7 @@ So với kỳ trước cùng độ dài, app đưa ra nhận định. **Mỗi nh
 - **Xuất Excel** song ngữ: sheet xếp hạng + sheet chi tiết từng nhận định.
 - Tính ngay trên máy từ dữ liệu đã tải, không gửi dữ liệu ra ngoài. Thiếu số liệu thì ghi *Chưa đủ số liệu*, không đoán.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -454,7 +455,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi s
 - Màn in ghi luôn tổng giờ của khoảng đang chọn.
 - Sửa lỗi số giờ từ 100 trở lên bị in thiếu chữ số (vd 120 in thành 20).
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -470,7 +471,7 @@ Trước đây tài khoản Kỹ thuật bị chặn cứng màn Thiết bị. Q
 - Không có các nút thêm / sửa / xoá máy, nhập file, in tem, linh kiện theo chuyền. Xuất Excel chỉ có khi được bật quyền *Xuất Excel thiết bị*.
 - Khối nào bị tắt quyền xem thì máy của khối đó không gửi về máy nhân viên (như trước).
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -492,7 +493,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi s
 - Danh sách gợi ý hàng cần mua có chữ *đã đặt dd/mm* ở hàng đã đặt.
 - **Lưu phiếu** mà còn hàng đã đặt ở phiếu trước *chưa về* thì app hỏi lại, liệt kê từng hàng và ngày đặt. Phiếu cũ đã *Hàng đã về* thì chỉ nhắc nhẹ, không hỏi.
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -510,7 +511,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi s
   - **xoá phiếu** (dòng vẫn giữ trên sheet).
 - Chỉ Quản lý, Quản trị lập và xem danh sách phiếu.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Máy chủ cũ vẫn xuất Excel phiếu đang soạn được, chỉ chưa lưu vào danh sách được.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`). Máy chủ cũ vẫn xuất Excel phiếu đang soạn được, chỉ chưa lưu vào danh sách được.
 
 ---
 
@@ -527,7 +528,7 @@ Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Máy chủ c�
 - Thông tin là lúc in tem: máy chuyển chuyền hay đổi thông số thì in lại tem đó.
 - Tem công tơ điện vẫn là link (để ghi chỉ số).
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi số phiên bản.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs chỉ đổi số phiên bản.
 
 ---
 
@@ -542,7 +543,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs chỉ đổi s
   - tờ một quạt có nút **In tem QR** chọn sẵn quạt đó.
 - Chữ trên tem đổi thành *Quét để xem thông tin máy*. Máy không bảo dưỡng định kỳ ghi chuyền / tên tiếng Trung thay cho "chu kỳ 0 ngày".
 
-Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs không đổi gì ngoài số phiên bản, dán `Code.gs-v2.75.0.txt` hay giữ bản cũ đều được.
+Nâng cấp: chỉ cần đổi app (`app-v2.75.1.html`). Code.gs không đổi gì ngoài số phiên bản, dán `Code.gs-v2.75.1.txt` hay giữ bản cũ đều được.
 
 ---
 
@@ -567,7 +568,7 @@ Nâng cấp: chỉ cần đổi app (`app-v2.75.0.html`). Code.gs không đổi 
 - Mọi dòng trong phiếu (kể cả hàng có mã) chọn được **máy dùng**.
 - File Excel có thêm cột **Tên tiếng Trung**; cột *Dùng cho máy* lấy máy đã chọn.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Máy chủ cũ thì không tự dịch được (vẫn gõ tay tên tiếng Trung được) và không thêm máy vào bản ghi gộp được.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`). Máy chủ cũ thì không tự dịch được (vẫn gõ tay tên tiếng Trung được) và không thêm máy vào bản ghi gộp được.
 
 ---
 
@@ -588,7 +589,7 @@ Trước đây muốn thêm một quạt vào chuyền phải xuất Excel, thê
   - **Mã quạt giữ nguyên**, **lịch sử sửa chữa và biên bản nghiệm thu đi theo quạt**; đổi tên quạt cũng vậy.
 - **Bỏ quạt**: chỉ cho bỏ quạt thêm nhầm (chưa có lịch sử). Quạt đã có lịch sử thì chuyển về *Chưa gắn chuyền (dự phòng)*.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`).
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`).
 
 ---
 
@@ -602,7 +603,7 @@ Quạt hoặc động cơ sửa xong đã về nhà máy nhưng chưa lắp vào
 - Danh sách biên bản có bộ lọc **Chờ lắp đặt**. Mở biên bản còn N/A sẽ thấy nhắc *n mục N/A chưa kiểm tra* kèm nút ghi tiếp.
 - Tờ in: ô đánh giá ghi **☑ N/A**, có dòng chú thích N/A dưới bảng và ô kết luận *Chờ lắp đặt*.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Máy chủ cũ sẽ bỏ mất mục N/A và kết luận Chờ lắp đặt; app có báo nhắc.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`). Máy chủ cũ sẽ bỏ mất mục N/A và kết luận Chờ lắp đặt; app có báo nhắc.
 
 ---
 
@@ -611,7 +612,7 @@ Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`). Máy chủ c�
 - Nhập thiết bị từ file (kể cả *Xuất / nhập theo loại*): ô **Chu kỳ bảo dưỡng** ghi đúng số **0** → máy chuyển sang **chỉ ghi sổ, không theo dõi bảo dưỡng** (quạt gió, cáp điện…). Để **trống** thì giữ nguyên chu kỳ đang chạy như trước. Màn xem trước có nhãn *Tắt bảo dưỡng* cho các dòng này.
 - Tờ thông tin một quạt không còn hiện dòng *Vị trí* hai lần khi quạt có vị trí riêng.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`).
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`).
 
 ---
 
@@ -624,7 +625,7 @@ Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`).
 - Mã hiện ở danh sách quạt, tờ thông tin quạt, ô *Quạt nào* khi ghi sửa chữa, lịch sử sửa chữa (*M01003 · Quạt số 3*), biên bản nghiệm thu (ô Mã thiết bị). **Gõ hoặc quét mã quạt** (màn Quét, link `?m=M01003`) mở thẳng quạt đó. Ô tìm trong màn Quạt gió tìm được theo mã.
 - Xuất / nhập theo loại: sheet *chi tiet* có cột **Mã máy**, nhập lại giữ nguyên mã.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`) → Lưu → Quản lý triển khai → Phiên bản mới.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`) → Lưu → Quản lý triển khai → Phiên bản mới.
 
 ---
 
@@ -638,7 +639,7 @@ Quạt gió **không bảo dưỡng định kỳ**, chỉ ghi sổ: mỗi chuy�
 - **Biên bản nghiệm thu**: *Chọn quạt gió* liệt kê từng quạt theo chuyền; chọn xong điền sẵn tên (kèm model), mã + quạt nào, vị trí, công suất, dòng định mức; biên bản ghi vào lịch sử của đúng quạt đó. Có ô **Quạt nào** dưới ô chọn thiết bị. Động cơ / thiết bị khác vẫn ghi tay.
 - Máy chủ: thêm cột **DvMay** (quạt nào) cho trang `CongViec` và `NghiemThu`, tự thêm khi cập nhật; bỏ lệnh tách bản ghi.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`) → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ cũ thì app không hiện ô "Quạt nào".
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`) → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ cũ thì app không hiện ô "Quạt nào".
 
 ---
 
@@ -674,7 +675,7 @@ Nâng cấp: chỉ đổi app. Code.gs chỉ đổi số phiên bản (nếu đ�
 - Mỗi đơn vị (vd *Quạt số 3* của chuyền VKY01) thành một máy: tên `Quạt gió chuyền VKY01 · Quạt số 3`, tên Trung `VKY01风机 3#`, thông số riêng (model, công suất, dòng, tốc độ, lưu lượng, áp suất…), cùng chuyền / vị trí / khối, mã `M01003`.
 - Đánh số theo chuyền (VKY01, VKY02…) rồi theo số quạt. **Quạt số 1 giữ luôn bản ghi cũ** nên lịch sử, tài liệu không mất.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`) → Lưu → Quản lý triển khai → Phiên bản mới.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`) → Lưu → Quản lý triển khai → Phiên bản mới.
 
 ---
 
@@ -692,7 +693,7 @@ Mã máy do app tự đánh trước đây chỉ là số chạy chung (M001, M1
 - Mã mới ghi vào **mã hiển thị**: hiện trên mọi màn, tem QR, Excel, tìm kiếm, quét. **Mã hệ thống cũ (M130…) giữ nguyên bên trong** nên lịch sử bảo dưỡng, công việc, tài liệu, linh kiện không đứt liên kết; tem QR đã dán vẫn quét được. Nên in lại tem để thấy mã mới.
 - Máy chủ kiểm lại trùng mã trước khi ghi, ghi cả cột một lần nên vài trăm máy vẫn nhanh; có ghi Nhật ký sửa đổi.
 
-Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.0.txt`) → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ cũ thì màn này báo cần cập nhật và khoá nút lưu.
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.75.1.txt`) → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ cũ thì màn này báo cần cập nhật và khoá nút lưu.
 
 ---
 
@@ -902,7 +903,7 @@ Trước đây quyền gắn cứng theo ba vai trò (Quản trị / Quản lý 
 - **Khoá là khoá thật, không phải ẩn nút.** Khoá khối nào thì máy khối đó **không rời máy chủ**; khoá quyền xem thông số thì bảng thông số cũng không được gửi về máy. Có người gọi thẳng vào máy chủ cũng không lấy được.
 - Đổi quyền xong, người đó **đăng nhập lại hoặc bấm Cập nhật** là có hiệu lực.
 
-Nâng cấp: dán `Code.gs-v2.75.0.txt` → **Lưu** → **Quản lý triển khai** → **Phiên bản mới**. Trang `NguoiDung` tự thêm cột `Quyen`, để trống nghĩa là theo vai trò như cũ.
+Nâng cấp: dán `Code.gs-v2.75.1.txt` → **Lưu** → **Quản lý triển khai** → **Phiên bản mới**. Trang `NguoiDung` tự thêm cột `Quyen`, để trống nghĩa là theo vai trò như cũ.
 
 ## Điểm mới của v2.37.0: sổ thiết bị tách khỏi bảo dưỡng, hai khối thiết bị, nhập / xuất Excel theo từng loại
 
@@ -943,7 +944,7 @@ Trong hồ sơ máy, dòng **Vị trí** có nút **Sửa vị trí 修改位置
 - Trước khi ghi, app **xem trước**: bao nhiêu thêm mới, bao nhiêu cập nhật, dòng nào bỏ qua và vì sao.
 - Chu kỳ để trống: máy mới coi như **chỉ ghi sổ**, không nhắc bảo dưỡng (hợp với cáp điện, bình chứa khí); máy cũ giữ nguyên chu kỳ đang chạy.
 
-Nâng cấp: dán `Code.gs-v2.75.0.txt` → **Lưu** → **Quản lý triển khai** → **Phiên bản mới**. Trang `May` tự thêm hai cột `Khoi` và `ThongSo`, dữ liệu cũ giữ nguyên.
+Nâng cấp: dán `Code.gs-v2.75.1.txt` → **Lưu** → **Quản lý triển khai** → **Phiên bản mới**. Trang `May` tự thêm hai cột `Khoi` và `ThongSo`, dữ liệu cũ giữ nguyên.
 
 ## Điểm mới của v2.36.0: nút đồng bộ trên thanh trên cùng, gia hạn việc quá hạn, sửa nội dung việc đã xong
 
@@ -991,7 +992,7 @@ Trước đây việc đã đóng là **khoá hẳn** — nhân viên ghi thiế
 - **Kỹ thuật không thấy nút này.**
 - Riêng **linh kiện đã thay** thì không sửa ở đây, vì số lượng đã trừ vào kho. Muốn đổi linh kiện thì xoá bản ghi sửa chữa rồi ghi lại.
 
-Không có bảng dữ liệu mới. Dán `Code.gs-v2.75.0.txt` → **Lưu** → **Quản lý triển khai** → **Phiên bản mới** là xong.
+Không có bảng dữ liệu mới. Dán `Code.gs-v2.75.1.txt` → **Lưu** → **Quản lý triển khai** → **Phiên bản mới** là xong.
 
 ## Điểm mới của v2.35.0: nút Cập nhật, lọc hàng chưa khai tồn an toàn, xuất Excel theo tuần / tháng / năm
 
@@ -1259,7 +1260,7 @@ Nút **Xuất Excel cả tháng** ở màn **Lịch trực** và màn **Tổng s
 
 Tiêu đề song ngữ Việt – Trung, kẻ khung, khoá dòng tiêu đề, in vừa một trang ngang A4. Mở màn Lịch trực ở tháng nào thì xuất đúng tháng đó.
 
-Không đổi gì ở máy chủ — dán `Code.gs-v2.75.0.txt` chỉ để số phiên bản khớp.
+Không đổi gì ở máy chủ — dán `Code.gs-v2.75.1.txt` chỉ để số phiên bản khớp.
 
 ## Sửa lỗi ở v2.30.1: vỡ bố cục khi nhãn dài
 
@@ -1624,7 +1625,7 @@ Danh sách sắp theo **thiếu nhiều nhất lên trước**, và **xuất Exc
 
 Toàn bộ phần này nằm trong **Kho ngũ kim**, chỉ **Quản lý, Quản trị** xem và sửa. Trang chủ không còn ô cảnh báo linh kiện dưới mức tối thiểu, ô *Linh kiện* ở Tổng quan chỉ còn đếm số mã còn hàng.
 
-Dán `Code.gs-v2.75.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Không có trang mới.
+Dán `Code.gs-v2.75.1.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Không có trang mới.
 
 ## Điểm mới của v2.13.0: kho ngũ kim nhớ tồn qua từng lần nhập, nhắc thiếu hàng
 
@@ -1658,7 +1659,7 @@ Phiếu chi tiết mỗi linh kiện có thêm mục **Tồn qua các lần nh�
 
 Màn **Ca làm việc** (phần Tăng ca) khi lưu đang ghi đè cả khối cài đặt, làm mất **giá điện**, **sản lượng tháng**, ngưỡng cảnh báo điện và cả **token Telegram** đã nhập — những thứ đó âm thầm quay về mặc định. Nay sửa thành đọc rồi sửa, chỉ thay phần ca làm việc.
 
-Dán `Code.gs-v2.75.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Trang `NhapKho` và cột `TonCu` tự thêm, dữ liệu cũ giữ nguyên. Lịch sử tồn bắt đầu tính từ lần nhập file đầu tiên sau khi nâng cấp.
+Dán `Code.gs-v2.75.1.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Trang `NhapKho` và cột `TonCu` tự thêm, dữ liệu cũ giữ nguyên. Lịch sử tồn bắt đầu tính từ lần nhập file đầu tiên sau khi nâng cấp.
 
 ## Điểm mới của v2.12.0: lịch trực tuần và phân công ca trực
 
@@ -1688,7 +1689,7 @@ Dựng đúng bảng giấy của nhà máy: **ca ngày (7h30–19h30)** và **c
 
 **Phân quyền:** ai cũng **xem** được cả hai bảng (để biết ai trực, gọi số nào); chỉ **Quản lý, Quản trị** xếp lịch, nhập nội dung trực và sửa danh sách người trực ca.
 
-**Ba trang mới tự tạo khi nâng cấp:** `LichTruc` (mỗi ngày một dòng), `NguoiTruc` (danh sách người trực ca), `PhanCa` (bảng phân công từng tuần). Dán `Code.gs-v2.75.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới; dữ liệu cũ giữ nguyên.
+**Ba trang mới tự tạo khi nâng cấp:** `LichTruc` (mỗi ngày một dòng), `NguoiTruc` (danh sách người trực ca), `PhanCa` (bảng phân công từng tuần). Dán `Code.gs-v2.75.1.txt` → Lưu → Quản lý triển khai → Phiên bản mới; dữ liệu cũ giữ nguyên.
 
 ## Điểm mới của v2.11.3: Ghi sửa chữa chọn linh kiện từ kho
 
@@ -1710,7 +1711,7 @@ Máy chủ vẫn nhận dạng chữ nhiều dòng của bản cũ, nên bản g
 
 ## Điểm mới của v2.11.2: xác nhận tiêu thụ bất thường, mã việc lặp lại không trùng
 
-Bản sửa lỗi, không thêm bảng dữ liệu nào. Dán `Code.gs-v2.75.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới là xong, dữ liệu cũ giữ nguyên.
+Bản sửa lỗi, không thêm bảng dữ liệu nào. Dán `Code.gs-v2.75.1.txt` → Lưu → Quản lý triển khai → Phiên bản mới là xong, dữ liệu cũ giữ nguyên.
 
 ### Xác nhận tiêu thụ bất thường (chỉ Quản lý)
 
@@ -1740,7 +1741,7 @@ Nay mã **đánh số tăng dần** trong cùng một giây (`CV26102012340001`,
 
 ## Điểm mới của v2.11.1: chọn thiết bị cho mọi loại việc, mã bản ghi không trùng
 
-Bản này đã nằm trong v2.11.2 ở trên — dán `Code.gs-v2.75.0.txt` là có cả hai.
+Bản này đã nằm trong v2.11.2 ở trên — dán `Code.gs-v2.75.1.txt` là có cả hai.
 
 ### Mọi loại việc đều chọn được chuyền sản xuất hoặc máy của chuyền
 
@@ -1801,7 +1802,7 @@ Tài liệu đã để trên Google Drive thì **không cần tải lại**. App
 - **Bỏ khỏi danh mục:** tài liệu quét từ Drive chỉ bị gỡ khỏi danh mục của app, tệp gốc trên Drive không bị xoá và những lần quét sau cũng không thêm lại. Muốn nhận lại thì xoá dấu ở cột `Xoa` của dòng đó trên trang `TaiLieu`. Tệp do app tải lên thì vẫn vào thùng rác Drive như trước.
 - Trang `TaiLieu` có thêm 5 cột: `DuongDan` (đường dẫn thư mục trên Drive), `Nguon` (`APP` tải từ app · `DRIVE` tài liệu có sẵn), `ConTrenDrive`, `HienHanh`, `LucQuet`.
 
-- Nâng cấp: dán `Code.gs-v2.75.0.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
+- Nâng cấp: dán `Code.gs-v2.75.1.txt` → Lưu → Quản lý triển khai → Phiên bản mới. Máy chủ tự tạo trang `TangCa`, thêm 4 cột mới vào trang `NguoiDung` và 5 cột mới vào trang `TaiLieu`.
 
 ## Điểm mới của v2.10.0: phân quyền xem theo vai trò
 

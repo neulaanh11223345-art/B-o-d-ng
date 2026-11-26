@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.75.0';
+var PHIEN_BAN = '2.75.1';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -218,6 +218,10 @@ var CAI_DAT_MAC_DINH = {
   baoViec: true,                     // báo lên Telegram khi giao việc
   trucTu: '17:00', trucDen: '19:30',       // giờ trực mặc định ngày thường
   trucCnTu: '07:30', trucCnDen: '17:00',   // giờ trực mặc định Chủ nhật
+  // Danh sách người điểm danh của bộ phận (v2.75.1): ghi theo TÊN người, không theo tài khoản (tài khoản có thể đặt
+  // theo vai trò). [{id, ten, tenZh, maThe, chucVu, uid}] — uid: tài khoản app của người đó (nếu có) để người nghỉ
+  // ra khỏi lịch trực. ddBoPhan / ddBoPhanZh: tên bộ phận in trên bảng chấm công.
+  ddNguoi: [], ddBoPhan: '', ddBoPhanZh: '',
   saoLuuTat: false,                  // true = tắt sao lưu tự động hằng đêm
   maLoai: {},                        // mã loại máy 2 chữ số theo nhóm: { 'Quạt gió · 风机': '01' } → mã máy M01020
   // Giá điện sản xuất EVN, cấp 22 kV – dưới 110 kV, chưa VAT (QĐ 1279/QĐ-BCT, từ 10/05/2025). Quản lý sửa trong app khi EVN đổi giá.
@@ -442,6 +446,7 @@ function dieuHuong(a, p, req) {
     case 'saveRecurring': canQuyen(u, 'giaoviec'); return luuViecLap(u, p);
     case 'dutySet': canQuyen(u, 'giaoviec'); return luuLichTruc(u, p);
     case 'attendanceSet': canQuyen(u, 'giaoviec'); return luuDiemDanh(u, p);
+    case 'attendancePeople': canQuyen(u, 'giaoviec'); return luuNguoiDD(u, p);
     case 'shiftSet': canQuyen(u, 'giaoviec'); return luuPhanCa(u, p);
     case 'shiftRotate': canQuyen(u, 'giaoviec'); return luanPhienTuan(u, p);
     case 'shiftPeople': canQuyen(u, 'giaoviec'); return luuNguoiTruc(u, p);
@@ -993,10 +998,12 @@ function layDuLieu(u) {
     caiDat: coQuyen(u, 'may')
       ? { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam, giaDien: cd.giaDien, vatDien: cd.vatDien, sanLuong: cd.sanLuong, dvSanLuong: cd.dvSanLuong,
         caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram,
-        trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN, maLoai: cd.maLoai || {} }
+        trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN, maLoai: cd.maLoai || {},
+        ddNguoi: cd.ddNguoi || [], ddBoPhan: cd.ddBoPhan || '', ddBoPhanZh: cd.ddBoPhanZh || '' }
       : { nhacTruoc: cd.nhacTruoc, nguongTang: cd.nguongTang, nguongGiam: cd.nguongGiam,
         caTangCa: dsCaTC(), gioTCThang: cd.gioTCThang, gioTCNam: cd.gioTCNam, khoGanHet: cd.khoGanHet, khoPhanTram: cd.khoPhanTram,
-        trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN },
+        trucTu: cd.trucTu || TRUC_TU, trucDen: cd.trucDen || TRUC_DEN, trucCnTu: cd.trucCnTu || TRUC_CN_TU, trucCnDen: cd.trucCnDen || TRUC_CN_DEN,
+        ddNguoi: cd.ddNguoi || [], ddBoPhan: cd.ddBoPhan || '', ddBoPhanZh: cd.ddBoPhanZh || '' },
     taiLieu: tlChoNguoi(u),
     tlInfo: coQuyen(u, 'tailieu') ? tlThongTinNhe() : null,
     khoaKy: docKhoaKy(),
@@ -1089,6 +1096,26 @@ function docDiemDanh() {
     return { _r: i + 2, ngay: ngayStr(r[0]), tt: docJson(r[1], {}), ghiChu: s(r[2]), nguoi: s(r[3]), capNhat: tgStr(r[4]) };
   }).filter(function (x) { return x.ngay; });
 }
+// Lưu danh sách người điểm danh: theo tên; giữ ID cũ để điểm danh đã ghi không lạc người
+function luuNguoiDD(u, p) {
+  var tk = {}, ids = {}, ds = [], n0 = Date.now();
+  dsNguoiDung().forEach(function (n) { tk[n.id] = 1; });
+  (Array.isArray(p.ds) ? p.ds : []).slice(0, 200).forEach(function (o, i) {
+    var ten = catChu(o && o.ten, 60).replace(/\s+/g, ' ').trim();
+    if (!ten) return;
+    var id = s(o.id);
+    if (!/^DD[A-Za-z0-9]{1,20}$/.test(id) || ids[id]) id = 'DD' + (n0 + i).toString(36).toUpperCase();
+    ids[id] = 1;
+    ds.push({ id: id, ten: ten, tenZh: catChu(o.tenZh, 60), maThe: catChu(o.maThe, 30), chucVu: catChu(o.chucVu, 60), uid: tk[s(o.uid)] ? s(o.uid) : '' });
+  });
+  var cd = docCaiDat();
+  cd.ddNguoi = ds;
+  if (p.boPhan !== undefined) cd.ddBoPhan = catChu(p.boPhan, 80);
+  if (p.boPhanZh !== undefined) cd.ddBoPhanZh = catChu(p.boPhanZh, 80);
+  ghiCaiDat(cd);
+  ghiNhatKy(u, 'DS_DIEM_DANH', 'CaiDat', 'ddNguoi', '', ds.map(function (x) { return x.ten; }).join(', '), 'Danh sách điểm danh · 考勤名单');
+  return { caiDat: { ddNguoi: ds, ddBoPhan: cd.ddBoPhan, ddBoPhanZh: cd.ddBoPhanZh } };
+}
 function sachDD(x) { return { ngay: x.ngay, tt: x.tt || {}, ghiChu: x.ghiChu || '', nguoi: x.nguoi || '', capNhat: x.capNhat || '' }; }
 // Lưu trạng thái cả ngày: tt = {uid: mã}. Mã trùng mặc định thì bỏ (ngày thường X), để sheet chỉ còn ngoại lệ.
 function luuDiemDanh(u, p) {
@@ -1097,6 +1124,7 @@ function luuDiemDanh(u, p) {
   capNhatTieuDe('DiemDanh');
   var co = {}, tt = {}, vao = p.tt && typeof p.tt === 'object' ? p.tt : {};
   dsNguoiDung().forEach(function (n) { co[n.id] = 1; });
+  (docCaiDat().ddNguoi || []).forEach(function (n) { co[n.id] = 1; });
   var cn = new Date(ngay + 'T00:00:00Z').getUTCDay() === 0;
   Object.keys(vao).slice(0, 500).forEach(function (k) {
     var v = s(vao[k]).toUpperCase();
