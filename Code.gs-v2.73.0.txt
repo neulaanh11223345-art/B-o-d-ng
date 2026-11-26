@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.72.0';
+var PHIEN_BAN = '2.73.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -3722,7 +3722,7 @@ function tenDVKe(dich, tatCa, nhom) {
     (m.chiTiet || []).forEach(function (ct) { var k = /^(.*?)\s*s[oố]\s*\d+\s*$/i.exec(tenDV(ct)); if (k && k[1]) dem[k[1]] = (dem[k[1]] || 0) + 1; });
   });
   Object.keys(dem).forEach(function (k) { if (!best || dem[k] > dem[best]) best = k; });
-  if (!best) best = laNhomQuat(nhom) ? 'Quạt' : 'Máy';
+  if (!best) best = laNhomQuat(nhom) ? 'Quạt' : /ch[iỉ]nh l[eệ]ch|纠偏/i.test(nhom) ? 'Chỉnh lệch' : 'Máy';
   dich.chiTiet.forEach(function (ct) { var k = /s[oố]\s*(\d+)\s*$/i.exec(tenDV(ct)); if (k) n = Math.max(n, Number(k[1])); });
   return best + ' số ' + (Math.max(n, dich.chiTiet.length) + 1);
 }
@@ -3803,9 +3803,9 @@ function luuDonVi(u, p) {
     throw loi('TEN_TRUNG_DV', 'Chuyền này đã có "' + ten + '" — đặt tên khác · 该产线已有同名设备，请改名');
   var moiCt = { cot: (maCu ? [[KHOA_MA_DV, maCu]] : []).concat([['Tên', ten]], cot) };
   if (!maCu) {
-    // Quạt mới: cấp mã riêng kế tiếp nếu loại đã đánh mã từng quạt
-    var coMa = tatCa.some(function (m) { return s(m.nhom) === nhom && (m.chiTiet || []).some(function (ct) { return maDV(ct); }); });
-    var mt = coMa ? maTheoLoai(nhom, tatCa) : '';
+    // Đơn vị mới (quạt, máy chỉnh lệch…): cấp mã riêng kế tiếp khi loại đã có mã loại — đặt ở màn Mã loại,
+    // hoặc suy ra từ mã đã đánh của loại — kể cả đơn vị đầu tiên của loại, để cái nào cũng in được QR (v2.73)
+    var mt = maTheoLoai(nhom, tatCa);
     if (mt) moiCt.cot.unshift([KHOA_MA_DV, mt]);
   }
   if (dich === nguon) nguon.chiTiet[i] = moiCt;

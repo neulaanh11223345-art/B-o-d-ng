@@ -1077,6 +1077,22 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .qgso b{font:800 22px var(--f-mono);color:var(--brand)}.qgso small{font-size:11px;color:var(--ink3)}
 .lshd{font-size:12.5px;font-weight:700;color:var(--ink2);margin:14px 2px 6px}
 .dmmucs{margin-bottom:8px}
+/* Module của chuyền (v2.73) */
+.chmods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+@media (min-width:700px){.chmods{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.chmod{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:start;text-align:left;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--green);border-radius:12px;padding:10px 12px;min-height:74px;color:var(--ink);font:inherit;cursor:pointer}
+.chmod .t{font-weight:700;font-size:14px;line-height:1.25}.chmod .t small{display:block;font-weight:400;font-size:12px;color:var(--ink3);font-family:var(--f-zh)}
+.chmod .n{font:700 20px var(--f-mono);color:var(--brand)}
+.chmod .st{grid-column:1/-1;font-size:12px;color:var(--ink3)}
+.chmod.trong{border-style:dashed;border-left-width:1px;background:transparent}.chmod.trong .n{color:var(--ink3)}
+.chmod.qua{border-left-color:var(--red)}.chmod.qua .st{color:var(--red);font-weight:600}
+.chmod.canh{border-left-color:var(--orange)}.chmod.canh .st{color:var(--orange);font-weight:600}
+.chmod.on{outline:2px solid var(--blue);outline-offset:1px}
+.chmodp{margin:0 0 10px}.chmodh{display:flex;align-items:center;gap:6px;padding:12px 14px 4px}.chmodh .nhomn{margin-left:auto}
+.chbang td:first-child,.chbang th:first-child{position:sticky;left:0;background:var(--card);z-index:1}
+.chbang td.chbc small{display:block;font-size:11px}
+@media (max-width:699px){.chbang td:first-child,.chbang th:first-child{max-width:96px}.chbang td:first-child .zi{display:none}
+  .chbang td.chbc small{display:none}.chbang th,.chbang td{padding-left:8px;padding-right:8px}}.chbang td.trong .cellnm{color:var(--ink3)}.chbang td.qua .cellnm{color:var(--red)}.chbang td.canh .cellnm{color:var(--orange)}
 .dmmucs .chip .mono{font-size:12px;opacity:.75;margin-left:2px}
 .kdet.dmmuc{margin:0 0 8px}
 .kdet.dmmuc summary .ktag{margin:0 0 0 6px;font-size:11px}
@@ -3453,7 +3469,7 @@ function gap(k, tieuDe, n, cls, inner) {
 const theoHan = (a, today) => a.slice().sort((x, y) => stOf(x, today).d - stOf(y, today).d);
 const dsMayRows = (a, today) => `<div class="list">${theoHan(a, today).map((m) => mRow(m, stOf(m, today), true)).join('')}</div>`;
 // Máy trong một chuyền: thứ tự cố định như sổ thiết bị (loại máy → tên → mã), không đổi chỗ theo hạn bảo dưỡng (v2.72)
-const sapTrongCh = (a, b) => S.V.groups.indexOf(a.nhom || '') - S.V.groups.indexOf(b.nhom || '') || sapMay(a, b);
+const sapTrongCh = (a, b) => CH_MOD_IX[chModOf(a)] - CH_MOD_IX[chModOf(b)] || S.V.groups.indexOf(a.nhom || '') - S.V.groups.indexOf(b.nhom || '') || sapMay(a, b);
 const dsMayRowsCh = (a, today) => `<div class="list">${a.slice().sort(sapTrongCh).map((m) => mRow(m, stOf(m, today), true)).join('')}</div>`;
 // ---------- Chuyền sản xuất ----------
 const mayCuaCh = (ma) => activeMay().filter((m) => m.chuyen === ma);
@@ -3463,12 +3479,157 @@ function chTomTat(ma, today) {
   return o;
 }
 const xuongNgan = (v) => String(v || '').split(' · ')[0];
+// ---------- Module của chuyền (v2.73) ----------
+// Chuyền nào cũng có đủ các module theo cùng một thứ tự, ô nào chưa có máy vẫn hiện để biết chuyền thiếu gì.
+// Máy xếp vào module theo Loại thiết bị (không khớp thì theo tên máy). Quạt gió, máy chỉnh lệch: nhiều cái mỗi chuyền,
+// mỗi cái một mã riêng để in QR kiểm soát (bản ghi gộp theo chuyền, như quạt gió).
+// Máy dán thùng, máy dò kim loại đổi theo mã sản phẩm nên không cố định vào ô: để riêng "Thiết bị theo sản phẩm".
+const CH_MOD = [
+  { k: 'donggoi', re: /đ[oó]ng g[oó]i|包装/i, nhom: 'Máy đóng gói · 包装机' },
+  { k: 'tudien', re: /t[uủ] đi[eệ]n|电柜|配电|控制柜/i, nhom: 'Tủ điện · 电柜' },
+  { k: 'quat', re: /qu[aạ]t|风机/i, nhom: 'Quạt gió · 风机', gop: 1 },
+  { k: 'inphun', re: /in phun|喷印|喷码/i, nhom: 'Máy in phun · 喷印机' },
+  { k: 'chinhlech', re: /ch[iỉ]nh l[eệ]ch|纠偏/i, nhom: 'Máy chỉnh lệch · 纠偏器', gop: 1 },
+  { k: 'hutbui', re: /h[uú]t b[uụ]i|吸尘/i, nhom: 'Máy hút bụi · 吸尘器' },
+  { k: 'keo', re: /m[aá]y keo|keo n[oó]ng|热熔|胶机/i, nhom: 'Máy keo · 热熔胶机' }
+];
+const CH_MOD_SP = /d[aá]n th[uù]ng|封箱|d[oò] kim lo[aạ]i|金属|金检|金重检/i;
+const CH_MOD_IX = { sp: 90, khac: 99 };
+CH_MOD.forEach((d, i) => { CH_MOD_IX[d.k] = i; });
+const chModDef = (k) => CH_MOD.find((d) => d.k === k);
+function chModOf(m) {
+  for (const s0 of [m.nhom || '', m.ten || '']) {
+    if (!s0) continue;
+    if (CH_MOD_SP.test(s0)) return 'sp';
+    const d = CH_MOD.find((x) => x.re.test(s0));
+    if (d) return d.k;
+  }
+  return 'khac';
+}
+// Loại thiết bị dùng khi thêm máy vào một module: loại đang có nhiều máy nhất khớp module, chưa có thì tên mặc định
+function chModNhom(k) {
+  const d = chModDef(k), dem = {};
+  activeMay().forEach((m) => { if (m.nhom && d.re.test(m.nhom) && !CH_MOD_SP.test(m.nhom)) dem[m.nhom] = (dem[m.nhom] || 0) + 1; });
+  return Object.keys(dem).sort((a, b) => dem[b] - dem[a])[0] || d.nhom;
+}
+// Máy, đơn vị (quạt, máy chỉnh lệch…) và tủ nhánh của một chuyền, chia theo module
+function chModData(chMa, today) {
+  const out = {};
+  CH_MOD.map((d) => d.k).concat(['sp', 'khac']).forEach((k) => { out[k] = { k, may: [], dv: [], tu: [], n: 0, qua: 0, thieuMa: 0 }; });
+  mayCuaCh(chMa).forEach((m) => out[chModOf(m)].may.push(m));
+  Object.keys(out).forEach((k) => {
+    const o = out[k];
+    o.may.sort(sapMay);
+    o.may.forEach((m) => {
+      if ((m.chiTiet || []).length) { const qs = quatCua(m); o.dv.push(...qs); o.n += qs.length; o.thieuMa += qs.filter((q) => !q.maDV).length; } else o.n++;
+      if (stOf(m, today).k === 'qua') o.qua++;
+    });
+  });
+  // Tủ điện: cả tủ nhánh của chuyền đang đo ở "Đo tủ điện" (công tơ nhánh có mã chuyền trong tên)
+  out.tudien.tu = tuChuyen().filter((x) => x.ch.ma === chMa);
+  out.tudien.n += out.tudien.tu.length;
+  return out;
+}
+// Khoá in tem QR của các máy / đơn vị trong một danh sách module (đơn vị chưa có mã thì chưa in được)
+const chModQRKeys = (o) => o.may.flatMap((m) => ((m.chiTiet || []).length ? quatCua(m).filter((q) => q.maDV).map((q) => 'DV:' + q.maDV) : [m.ma]));
 // Ô gọn cho lưới chuyền: mã lớn, tên Trung một dòng, số máy, trạng thái
 function chTile(c, today) {
   const s = chTomTat(c.ma, today), k = s.qua ? 'qua' : s.nay ? 'nay' : s.sap ? 'sap' : s.n ? 'ok' : 'trong';
   const st = s.qua ? tv('chQua', { n: s.qua }) : s.nay ? tv('d_nay') : s.sap ? tv('chSap', { n: s.sap }) : s.n ? tv('chOk') : '';
   return `<button class="chtile t-${k}" data-act="chuyen" data-ma="${esc(c.ma)}"><b>${esc(mh(c.ma))}</b>${c.tenZh ? `<span class="zi" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}
     <span class="sub">${esc(xuongNgan(c.viTri))}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}</span>${st ? `<span class="cst">${st}</span>` : ''}</button>`;
+}
+// Bảng chuyền × module: mỗi chuyền một dòng, mỗi module một cột (số máy / số đơn vị). Ô trống = chuyền chưa có module đó.
+function chBangHtml(today) {
+  const chs = chDangDung(), lk = xemHet();
+  if (!chs.length) return `<div class="card empty">${t('chChuaMay')}</div>`;
+  const cot = CH_MOD.map((m) => m.k).concat(lk ? ['lk'] : [], ['sp']);
+  const th = `<th>${esc(tv('chuyenNgan'))}<small>${esc(tz('chuyenNgan'))}</small></th>` + cot.map((k) => `<th class="num">${esc(tv('chm_' + k))}<small>${esc(tz('chm_' + k))}</small></th>`).join('');
+  const tr = chs.map((c) => {
+    const d = chModData(c.ma, today);
+    const o = cot.map((k) => {
+      let n, cls = '', ghi = '';
+      if (k === 'lk') { const a = lkCuaCh(c.ma), nl = lkLoiN(a); n = a.length; if (nl) { cls = ' qua'; ghi = `<small class="warnx">${esc(tv('xLoiN', { n: nl }))}</small>`; } }
+      else {
+        const x = d[k]; n = x.n;
+        if (x.qua) { cls = ' qua'; ghi = `<small class="warnx">${esc(tv('chQua', { n: x.qua }))}</small>`; }
+        else if (x.thieuMa) { cls = ' canh'; ghi = `<small>${esc(tv('chmThieuMa', { n: x.thieuMa }))}</small>`; }
+      }
+      if (!n && k === 'sp') return '<td class="num muted">—</td>';
+      return `<td class="num chbc${n ? cls : ' trong'}"><button class="cellnm mono" data-act="chModDi" data-ch="${esc(c.ma)}" data-k="${k}">${n || '—'}</button>${ghi}</td>`;
+    }).join('');
+    return `<tr><td><button class="cellnm" data-act="chuyen" data-ma="${esc(c.ma)}"><b class="mono">${esc(mh(c.ma))}</b>${c.tenZh ? `<span class="zi" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}</button></td>${o}</tr>`;
+  }).join('');
+  return `<div class="dtwrap chbang"><table class="dt"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>
+    <p class="help" style="margin:6px 2px 0">${t('chBangHelp')}</p>`;
+}
+VIEWS.chBang = { html() { return chBangHtml(TODAY()); } };
+// Lưới module của một chuyền + phần mở ra của module đang chọn + thiết bị theo sản phẩm / thiết bị khác
+function chModHtml(c, today) {
+  const d = chModData(c.ma, today), mo = (S.f.chMod || {})[c.ma] || '', sua = can('may') && can('suatb');
+  const tile = (k, n, st, cls) => `<button class="chmod${cls ? ' ' + cls : ''}${mo === k ? ' on' : ''}" data-act="chModMo" data-ch="${esc(c.ma)}" data-k="${k}" aria-expanded="${mo === k}">
+    <span class="t">${esc(tv('chm_' + k))}<small lang="zh-CN">${esc(tz('chm_' + k))}</small></span>
+    <span class="n mono">${n || '—'}</span><span class="st">${st}</span></button>`;
+  let o = '<div class="chmods">' + CH_MOD.map((m) => {
+    const x = d[m.k];
+    let st = '', cls = '';
+    if (!x.n) { st = esc(tv('chmChuaCo')); cls = 'trong'; }
+    else if (x.qua) { st = esc(tv('chQua', { n: x.qua })); cls = 'qua'; }
+    else if (x.thieuMa) { st = esc(tv('chmThieuMa', { n: x.thieuMa })); cls = 'canh'; }
+    else if (m.k === 'tudien' && x.tu.length) { const n0 = x.tu.filter((y) => dtCuaNgay(y.ma, today)).length; st = esc(tv('chmDoTu', { n: n0, t: x.tu.length })); cls = n0 < x.tu.length ? 'canh' : 'ok'; }
+    else { st = esc(tv(m.gop ? 'chmDuMa' : 'chOk')); cls = 'ok'; }
+    return tile(m.k, x.n, st, cls);
+  }).join('');
+  if (xemHet()) {
+    const lk = lkCuaCh(c.ma), nl = lkLoiN(lk);
+    o += tile('lk', lk.length, nl ? `<b class="warnx">${esc(tv('xLoiN', { n: nl }))}</b>` : lk.length ? esc(tv('chOk')) : esc(tv('chmChuaCo')), nl ? 'qua' : lk.length ? 'ok' : 'trong');
+  }
+  o += '</div>';
+  if (mo && mo !== 'lk' && d[mo]) o += chModPanel(c, mo, d[mo], today, sua);
+  // Máy dán thùng, dò kim loại: đổi theo mã sản phẩm — ghi chuyền đang đặt, không tính là module thiếu
+  const dong = (arr) => `<div class="list">${arr.map((m) => mRow(m, stOf(m, today), true)).join('')}</div>`;
+  if (d.sp.may.length) o += gap('chsp:' + c.ma, esc(tv('chm_sp')) + ` <span class="zi">${esc(tz('chm_sp'))}</span>`, d.sp.n, '',
+    () => `<p class="help" style="margin:0 0 8px">${t('chmSpHelp')}</p>` + dong(d.sp.may));
+  if (d.khac.may.length) o += gap('chkh:' + c.ma, esc(tv('chm_khac')) + ` <span class="zi">${esc(tz('chm_khac'))}</span>`, d.khac.n, '', () => dong(d.khac.may));
+  if (can('may')) {
+    const tat = CH_MOD.map((m) => m.k).concat(['sp', 'khac']).flatMap((k) => chModQRKeys(d[k]));
+    if (tat.length) o += `<div class="btns" style="margin:10px 0 0"><button class="btn ghost sm" data-act="chModQR" data-ch="${esc(c.ma)}" data-k="*">${IC.qr} ${t('chmQRCaCh', { n: tat.length + 1 })}</button></div>`;
+  }
+  return o;
+}
+// Phần mở ra của một module: từng máy / từng đơn vị (mã riêng), thêm vào chuyền, in QR, đánh mã
+function chModPanel(c, k, x, today, sua) {
+  const def = chModDef(k);
+  let o = `<div class="card chmodp"><div class="chmodh"><b>${esc(tv('chm_' + k))}</b> <span class="zi">${esc(tz('chm_' + k))}</span><span class="nhomn">${x.n}</span></div>`;
+  if (!x.n) o += `<div class="empty" style="padding:14px">${esc(tv('chmTrong', { m: tv('chm_' + k) }))}<span class="zi">${esc(tz('chmTrong', { m: tz('chm_' + k) }))}</span></div>`;
+  const dongDV = (q) => {
+    const cs = tsLay(q.ts, RE_CS, 1), md = tsLay(q.ts, /^model/i), n = scCuaQuat(q).length + ntCuaQuat(q).length;
+    return `<button class="row" data-act="qgXem" data-ma="${esc(q.m.ma)}" data-i="${q.i}"><div class="main"><div class="nm">${q.maDV ? `<span class="code">${esc(q.maDV)}</span> ` : `<span class="pill p-nay">${esc(tv('chmChuaMa'))}</span> `}${esc(q.ten || q.m.ten)}</div>
+      <div class="sub">${[cs ? cs + ' kW' : '', md].filter(Boolean).map(esc).join(' · ') || esc(q.m.nhom || '')}</div></div>
+      <div class="end">${n ? `<span class="pill p-nay">${esc(tv(K('qgSuaN'), { n }))}</span>` : ''}${IC.chev}</div></button>`;
+  };
+  if (x.n) {
+    o += '<div class="list">';
+    x.may.forEach((m) => { o += (m.chiTiet || []).length ? quatCua(m).map(dongDV).join('') : mRow(m, stOf(m, today), true); });
+    // Tủ nhánh của chuyền (đo tủ điện): số đo gần nhất
+    x.tu.forEach((y) => {
+      const g = dtGanNhat(y.ma);
+      o += `<button class="row" data-act="tab" data-v="doTu"><div class="main"><div class="nm"><span class="code">${esc(y.ma)}</span> ${esc(y.ten || '')}</div>
+        <div class="sub">${esc(tv('chmTuNhanh'))}${g ? ' · ' + esc(tv('dtLanCuoi', { d: fmtD(g.ngay) })) : ''}</div></div><div class="end">${IC.chev}</div></button>`;
+    });
+    o += '</div>';
+  }
+  const nut = [];
+  if (sua && def) nut.push(`<button class="btn sm" data-act="chModThem" data-ch="${esc(c.ma)}" data-k="${k}">${IC.plus} ${esc(tv('chmThem', { m: tv('chm_' + k) }))}</button>`);
+  if (can('may') && chModQRKeys(x).length) nut.push(`<button class="btn ghost sm" data-act="chModQR" data-ch="${esc(c.ma)}" data-k="${k}">${IC.qr} ${t('chmQR', { n: chModQRKeys(x).length })}</button>`);
+  if (sua && x.thieuMa) {
+    const g = (x.may.find((m) => quatCua(m).some((q) => !q.maDV)) || {}).nhom || '';
+    nut.push(`<button class="btn y sm" data-act="qgDanhMa" data-g="${esc(g)}">${IC.qr} ${t('chmDanhMa', { n: x.thieuMa })}</button>`);
+  }
+  if (k === 'tudien' && x.tu.length) nut.push(`<button class="btn ghost sm" data-act="tab" data-v="doTu">${IC.bolt || IC.list} ${t('navDoTu')}</button>`);
+  if (nut.length) o += `<div class="btns pad" style="padding-top:10px">${nut.join('')}</div>`;
+  if (def && def.gop && x.thieuMa) o += `<p class="help pad" style="margin:0;padding-top:0">${t('chmThieuMaHelp')}</p>`;
+  return o + '</div>';
 }
 // ---------- Linh kiện của chuyền: gom linh kiện các máy trong chuyền, đối chiếu tồn ERP ----------
 function lkCuaCh(ma) {
@@ -3847,15 +4008,7 @@ VIEWS.chuyen = {
     let o = `<div class="card pad chhead"><span class="code">${esc(mh(c.ma))}</span>${c.maHT ? ` <span class="code">${esc(c.ma)}</span>` : ''}${c.maTaiSan && c.maTaiSan !== c.ma ? ` <span class="code">${esc(c.maTaiSan)}</span>` : ''}
       <h1 class="cvh">${esc(c.ten || c.ma)}${c.tenZh ? `<span class="zh2" lang="zh-CN">${esc(c.tenZh)}</span>` : ''}</h1>
       <div class="sub">${esc(c.viTri || '')}${c.viTri ? ' · ' : ''}${tv('chSoMay', { n: s.n })}${s.qua ? ` · <b class="warnx">${tv('chQua', { n: s.qua })}</b>` : ''}</div></div>`;
-    o += sec('chMay', a.length);
-    if (!a.length) o += `<div class="card empty">${t('chChuaMay')}</div>`;
-    else {
-      // Trong chuyền còn một tầng nữa: máy đóng gói, máy in phun, tủ điện… mỗi nhóm một mục
-      const gs = byGroup(a);
-      o += gs.length > 1 && a.length >= 4
-        ? gs.map(([g, arr]) => `<div class="nhomh">${esc(grpLabel(g))}<span class="nhomn">${arr.length}</span></div>` + dsMayRowsCh(arr, today)).join('')
-        : dsMayRowsCh(a, today);
-    }
+    o += sec('chMay', a.length) + chModHtml(c, today);
     if (gcUrl()) o += `<div class="btns" style="margin:10px 0 4px">${gcNut(c.ma)}</div>`;
     // Quạt gió của chuyền: bấm số lượng ra từng quạt
     { const qg = (quatTheoChuyen().find((x) => x.ch === c.ma) || { ds: [] }).ds;
@@ -3870,7 +4023,7 @@ VIEWS.chuyen = {
     // Linh kiện / ERP của chuyền: chỉ Quản lý, Quản trị
     if (xemHet()) {
       const lk = lkCuaCh(c.ma), nl = lkLoiN(lk);
-      o += sec('lkChSec', lk.length) + gap('lkch:' + c.ma, nl ? `<b class="warnx">${tv('xLoiN', { n: nl })}</b> ${tz('xLoiN', { n: nl })}` : t('lkChXem'), lk.length, nl ? 'g-qua' : '', () => lkChHtml(c.ma));
+      o += '<div id="chLK"></div>' + sec('lkChSec', lk.length) + gap('lkch:' + c.ma, nl ? `<b class="warnx">${tv('xLoiN', { n: nl })}</b> ${tz('xLoiN', { n: nl })}` : t('lkChXem'), lk.length, nl ? 'g-qua' : '', () => lkChHtml(c.ma));
       o += `<div class="btns" style="margin:4px 0 10px">${can('may') && !srvOld('lkchuyen') ? `<button class="btn ghost sm" data-act="lkChThanCh" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkThanChThem')}</button>` : ''}${can('may') && a.length ? `<button class="btn ghost sm" data-act="lkChThem" data-ma="${esc(c.ma)}">${IC.plus} ${t('lkChThem')}</button>` : ''}<button class="btn ghost sm" data-act="lkChXuat" data-ma="${esc(c.ma)}">${IC.dl} ${t('lkChXuat')}</button></div>`;
     }
     // Sản phẩm chạy trên chuyền (chỉ tài khoản có quyền xem sản phẩm)
@@ -4071,6 +4224,20 @@ Object.assign(TX, {
   tbXuatTat: ['Xuất tất cả (mỗi loại một file)', '全部导出（每类一个文件）'],
   tbXuatMot: ['Xuất toàn bộ thiết bị (1 file)', '导出全部设备（1个文件）'],
   tbXuatCh: ['Xuất Excel máy theo chuyền', '按产线导出设备Excel'],
+  chm_donggoi: ['Máy đóng gói', '包装机'], chm_tudien: ['Tủ điện', '电柜'], chm_quat: ['Quạt gió', '风机'], chm_inphun: ['Máy in phun', '喷印机'],
+  chm_chinhlech: ['Máy chỉnh lệch', '纠偏器'], chm_hutbui: ['Máy hút bụi', '吸尘器'], chm_keo: ['Máy keo', '热熔胶机'], chm_lk: ['Linh kiện', '零件'],
+  chm_sp: ['Theo sản phẩm', '随产品更换'], chm_khac: ['Thiết bị khác', '其他设备'],
+  chmChuaCo: ['Chưa có', '暂无'], chmThieuMa: ['{n} chưa có mã', '{n}台未编号'], chmDuMa: ['Đủ mã QR', '编号齐全'], chmDoTu: ['Đo hôm nay {n}/{t}', '今日已测 {n}/{t}'],
+  chmChuaMa: ['chưa có mã', '未编号'], chmTrong: ['Chuyền này chưa có {m}', '该产线暂无{m}'], chmTuNhanh: ['Tủ nhánh (đo tủ điện)', '分路柜（配电柜测量）'],
+  chmThem: ['Thêm {m}', '新增{m}'], chmQR: ['In QR ({n})', '打印二维码（{n}）'], chmQRCaCh: ['In QR cả chuyền ({n})', '打印整条产线二维码（{n}）'],
+  chmDanhMa: ['Đánh mã ({n} chưa có mã)', '编号（{n}台未编号）'],
+  chmThieuMaHelp: ['Mỗi cái cần một mã riêng để in QR kiểm soát. Bấm "Đánh mã": app cấp mã M + mã loại + số thứ tự cho mọi cái chưa có mã; cái thêm sau tự lấy số kế tiếp.',
+    '每台都需要独立编号以打印二维码管控。点击“编号”：系统为所有未编号的设备分配 M + 类别代码 + 序号；之后新增的自动取下一个序号。'],
+  chmSpHelp: ['Máy dán thùng, máy dò kim loại đổi theo mã sản phẩm. Chuyển máy sang chuyền khác: mở máy → Sửa → chọn chuyền.',
+    '封箱机、金属检测机随产品型号更换。调到其他产线：打开设备 → 修改 → 选择产线。'],
+  t_chBang: ['Bảng module các chuyền', '产线模块一览'],
+  chBangHelp: ['Số trong ô = số máy (quạt, máy chỉnh lệch: số cái). Bấm số để mở đúng module của chuyền đó. "—" = chuyền chưa có module này.',
+    '格内数字 = 设备台数（风机、纠偏器按台数）。点击数字打开该产线的对应模块。“—”= 该产线暂无此模块。'],
   tbXuatChHelp: ['Mỗi chuyền một khối: dòng tiêu đề chuyền rồi các máy của chuyền (cả máy hút bụi, quạt gió… gắn vào chuyền), xếp theo loại máy, đánh số lại từ 1; khổ ngang để in.',
     '每条产线一个区块：产线标题行，下面是该产线的设备（含挂在产线上的吸尘器、风机等），按设备类别排列，序号从1重新开始；横向排版便于打印。'],
   tbXuatMotHelp: ['Một file gồm mọi thiết bị đang dùng (mã, tên Việt / Trung, khối, loại, chuyền, vị trí, phụ trách, ngày đưa vào, bảo dưỡng, thông số) (máy thuộc chuyền gom theo từng chuyền), sheet "Theo chuyen" chia khối theo chuyền để in, và sheet "Don vi" liệt kê từng quạt / máy của bản ghi gộp — dùng để tra cứu, làm danh mục tài liệu ISO…',
@@ -4191,9 +4358,11 @@ function khoiSXHtml(list, today) {
   if (!chs.length && !list.length) return o + `<div class="card empty">${t('khoiTrong')}</div>`;
   if (chs.length) {
     o += sec('chSec', chs.length)
-      + (xemDuoc('lkChuyen') || can('xuattb') ? `<div class="btns" style="margin:-4px 0 8px">${xemDuoc('lkChuyen') ? `<button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button>` : ''}
-        ${can('xuattb') ? `<button class="btn ghost sm" data-act="tbXuatCh">${IC.dl} ${t('tbXuatCh')}</button>` : ''}</div>` : '')
-      + `<div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>`;
+      + `<div class="btns" style="margin:-4px 0 8px">${isWide() ? '' : `<button class="btn ghost sm" data-act="chBang">${IC.list} ${t('t_chBang')}</button>`}
+        ${xemDuoc('lkChuyen') ? `<button class="btn ghost sm" data-act="go" data-v="lkChuyen">${IC.box} ${t('t_lkChuyen')}</button>` : ''}
+        ${can('xuattb') ? `<button class="btn ghost sm" data-act="tbXuatCh">${IC.dl} ${t('tbXuatCh')}</button>` : ''}</div>`
+      // Màn rộng: bảng chuyền × module ngay tại chỗ; điện thoại: ô chuyền như cũ, bảng mở ở màn riêng
+      + (isWide() ? chBangHtml(today) : `<div class="chgrid">${chs.map((c) => chTile(c, today)).join('')}</div>`);
   }
   const khac = list.filter((m) => !m.chuyen || !S.V.chByMa[m.chuyen]);
   if (khac.length) o += sec('khoiSXKhac', khac.length) + nhomCayHtml(khac, 'lx:');
@@ -4406,41 +4575,70 @@ function sapXuatTB(a, b) {
   return chIx(a) - chIx(b) || (coCh(a) ? 0 : KHOI_DS.indexOf(khoiCua(a)) - KHOI_DS.indexOf(khoiCua(b))) || sapTrongCh(a, b);
 }
 const tbTsTxt = (ts) => (ts || []).filter(([k, v]) => String(k || '').trim() && String(v === undefined ? '' : v).trim()).map(([k, v]) => k + ': ' + v).join('\n');
-// Sheet "Theo chuyen": mỗi chuyền một khối — dòng tiêu đề chuyền (mã, tên Việt / Trung, mã tài sản, vị trí, số máy)
-// rồi các máy của chuyền, số thứ tự đếm lại từ 1; cuối cùng là máy sản xuất chưa gắn chuyền
+// Sheet "Bang module": mỗi chuyền một dòng, mỗi module một cột — nhìn một lần biết chuyền nào thiếu gì (v2.73)
+function tbSheetBangModule() {
+  const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
+  const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'center', wrap: 1, border: true }, x || {}) });
+  const today = TODAY(), cot = CH_MOD.map((m) => m.k).concat(['lk', 'sp', 'khac']);
+  const rows = [[{ v: 'CHUYỀN SẢN XUẤT THEO MODULE · 产线模块一览 — ' + fmtD(today), s: { b: 1, sz: 14 } }], [],
+    [{ v: 'Chuyền\n产线', s: H }, { v: 'Tên chuyền\n产线名称', s: H }].concat(cot.map((k) => ({ v: tv('chm_' + k) + '\n' + tz('chm_' + k), s: H })))];
+  chDangDung().forEach((ch) => {
+    const d = chModData(ch.ma, today), lk = lkCuaCh(ch.ma), nl = lkLoiN(lk);
+    rows.push([c(mh(ch.ma), { align: 'center', b: 1 }), c((ch.tenZh || '') + (ch.tenZh && ch.ten ? '\n' : '') + (ch.ten || ''))].concat(cot.map((k) => {
+      if (k === 'lk') return c(lk.length ? lk.length + (nl ? ' (' + nl + ' lỗi ERP)' : '') : '—', { align: 'center' });
+      const x = d[k];
+      if (!x.n) return c('—', CH_MOD_IX[k] < 90 ? { align: 'center', fill: '#FDECEA', color: '#9A9A9A' } : { align: 'center', color: '#9A9A9A' });
+      return c(x.n + (x.thieuMa ? '\n(' + x.thieuMa + ' chưa mã)' : '') + (x.qua ? '\n(' + x.qua + ' quá hạn)' : ''), { align: 'center', b: 1 });
+    })));
+  });
+  return { name: 'Bang module', rows, cols: [10, 30].concat(cot.map(() => 12)), merges: ['A1:' + String.fromCharCode(65 + 1 + cot.length) + '1'],
+    heights: { 1: 26, 3: 34 }, freeze: { r: 3, c: 2 }, landscape: true };
+}
+// Sheet "Theo chuyen": chuyền → module → từng máy / từng đơn vị có mã riêng (quạt, máy chỉnh lệch), tủ nhánh; module chưa có vẫn ghi
 function tbSheetTheoChuyen() {
   const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
-  const CH = { b: 1, fill: '#DCE6F7', color: '#13294F', valign: 'center', border: '#5B6B8A' };
+  const CH = { b: 1, fill: '#C9D8F0', color: '#13294F', valign: 'center', border: '#5B6B8A' };
+  const MD = { b: 1, fill: '#EEF3FA', color: '#1E3A6E', valign: 'center', border: '#C9D1CF' };
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'top', wrap: 1, border: true }, x || {}) });
-  const cot = ['STT\n序号', 'Mã máy\n设备编号', 'Mã thiết bị (nhà máy)\n工厂编号', 'Tên thiết bị\n设备名称', 'Tên tiếng Trung\n中文名称', 'Loại thiết bị\n设备类别',
-    'Khối\n区域', 'Vị trí\n位置', 'Số đơn vị\n台数', 'Chu kỳ BD (ngày)\n保养周期', 'Hạn kế tiếp\n下次保养', 'Thông số\n参数'];
-  const rows = [[{ v: 'MÁY MÓC THEO CHUYỀN SẢN XUẤT · 产线设备清单 — ' + fmtD(TODAY()), s: { b: 1, sz: 14 } }], [], cot.map((v) => ({ v, s: H }))];
-  const merges = ['A1:L1'], heights = { 1: 26, 3: 34 };
-  const khoi = (tieuDe, ds) => {
-    rows.push([c(tieuDe, CH)].concat(cot.slice(1).map(() => c('', CH))));
-    merges.push('A' + rows.length + ':L' + rows.length); heights[rows.length] = 24;
-    if (!ds.length) { rows.push([c('—', { align: 'center' })].concat(cot.slice(1).map(() => c('')))); return; }
-    ds.slice().sort(sapTrongCh).forEach((m, i) => {
-      const ct = m.chiTiet || [];
-      rows.push([c(i + 1, { align: 'center' }), c(m.ma, { align: 'center' }), c(m.maHT || '', { align: 'center' }), c(m.ten), c(m.tenPhu || ''),
-        c(m.nhom || ''), c(tv('khoi_' + khoiCua(m))), c(m.viTri || ''), c(ct.length || '', { align: 'center' }), c(m.chuKy || '', { align: 'center' }),
-        c(m.chuKy && m.hanKeTiep ? fmtD(m.hanKeTiep) : '', { align: 'center' }),
-        c(ct.length ? quatCua(m).map((q) => (q.maDV ? q.maDV + ' · ' : '') + q.ten).join('\n') : tbTsTxt(m.thongSo))]);
+  const cot = ['STT\n序号', 'Mã · 编号\n(in QR)', 'Mã thiết bị (nhà máy)\n工厂编号', 'Tên thiết bị\n设备名称', 'Tên tiếng Trung\n中文名称', 'Loại thiết bị\n设备类别',
+    'Vị trí\n位置', 'Chu kỳ BD (ngày)\n保养周期', 'Hạn kế tiếp\n下次保养', 'Thông số\n参数'];
+  const today = TODAY(), N = cot.length, L = String.fromCharCode(64 + N);
+  const rows = [[{ v: 'MÁY MÓC THEO CHUYỀN · MODULE · 产线设备（按模块） — ' + fmtD(today), s: { b: 1, sz: 14 } }], [], cot.map((v) => ({ v, s: H }))];
+  const merges = ['A1:' + L + '1'], heights = { 1: 26, 3: 34 };
+  const dongGop = (v, st) => { rows.push([c(v, st)].concat(cot.slice(1).map(() => c('', st)))); merges.push('A' + rows.length + ':' + L + rows.length); };
+  const chuyenKhoi = (tieuDe, d, lk) => {
+    dongGop(tieuDe, CH); heights[rows.length] = 24;
+    let stt = 0;
+    CH_MOD.map((m) => m.k).concat(['sp', 'khac']).forEach((k) => {
+      const x = d[k];
+      if (!x.n && CH_MOD_IX[k] >= 90) return;
+      dongGop('▸ ' + tv('chm_' + k) + ' · ' + tz('chm_' + k) + ' — ' + (x.n ? x.n : 'chưa có · 无') + (x.thieuMa ? ' (' + x.thieuMa + ' chưa có mã)' : ''), x.n ? MD : Object.assign({}, MD, { color: '#B42318' }));
+      x.may.forEach((m) => {
+        if ((m.chiTiet || []).length) quatCua(m).forEach((q) => rows.push([c(++stt, { align: 'center' }), c(q.maDV || 'chưa có mã', q.maDV ? { align: 'center' } : { align: 'center', color: '#B42318' }), c(''),
+          c(q.ten || m.ten), c(''), c(m.nhom || ''), c(tsLay(q.ts, /^v[iị] tr[ií]/i) || m.viTri || ''), c(''), c(''), c(tbTsTxt(q.ts))]));
+        else rows.push([c(++stt, { align: 'center' }), c(mh(m.ma), { align: 'center' }), c(m.maHT && m.maHT !== m.ma ? m.ma : '', { align: 'center' }), c(m.ten), c(m.tenPhu || ''),
+          c(m.nhom || ''), c(m.viTri || ''), c(m.chuKy || '', { align: 'center' }), c(m.chuKy && m.hanKeTiep ? fmtD(m.hanKeTiep) : '', { align: 'center' }), c(tbTsTxt(m.thongSo))]);
+      });
+      x.tu.forEach((y) => rows.push([c(++stt, { align: 'center' }), c(y.ma, { align: 'center' }), c(''), c(y.ten || ''), c(''), c('Tủ nhánh (đo tủ điện) · 分路柜'), c(''), c(''), c(''), c('')]));
     });
+    if (lk) dongGop('▸ ' + tv('chm_lk') + ' · ' + tz('chm_lk') + ' — ' + lk.n + ' mã' + (lk.loi ? ' (' + lk.loi + ' lỗi ERP)' : '') + ' · xem file Linh kiện các chuyền', MD);
   };
-  const may = activeMay();
-  // Chuyền đang chạy, và cả chuyền đã ngừng nếu vẫn còn máy gắn vào (để không sót máy nào)
-  S.V.ch.filter((x) => x.hoatDong !== false || may.some((m) => m.chuyen === x.ma)).forEach((ch) => {
-    const ds = may.filter((m) => m.chuyen === ch.ma);
-    khoi(['Chuyền ' + mh(ch.ma), ch.ten, ch.tenZh, ch.maTaiSan && ch.maTaiSan !== mh(ch.ma) ? 'Mã TS ' + ch.maTaiSan : '', ch.viTri].filter(Boolean).join(' · ')
-      + ' — ' + ds.length + ' máy · ' + ds.length + '台', ds);
+  chDangDung().forEach((ch) => {
+    const d = chModData(ch.ma, today), a = xemHet() ? lkCuaCh(ch.ma) : null;
+    chuyenKhoi(['Chuyền ' + mh(ch.ma), ch.ten, ch.tenZh, ch.maTaiSan && ch.maTaiSan !== mh(ch.ma) ? 'Mã TS ' + ch.maTaiSan : '', ch.viTri].filter(Boolean).join(' · '),
+      d, a ? { n: a.length, loi: lkLoiN(a) } : null);
   });
-  const chua = may.filter((m) => !coCh(m) && khoiCua(m) === 'SX');
-  if (chua.length) khoi('Thiết bị sản xuất chưa gắn chuyền · 未分配产线的生产设备 — ' + chua.length + ' máy', chua);
-  return { name: 'Theo chuyen', rows, cols: [6, 11, 16, 38, 24, 22, 14, 18, 8, 10, 12, 44], merges, heights, freeze: { r: 3, c: 0 }, landscape: true };
+  // Máy sản xuất chưa gắn chuyền (và máy gắn chuyền đã ngừng): liệt kê sau cùng để không sót
+  const con = activeMay().filter((m) => khoiCua(m) === 'SX' && !(m.chuyen && S.V.chByMa[m.chuyen] && S.V.chByMa[m.chuyen].hoatDong !== false)).sort(sapTrongCh);
+  if (con.length) {
+    dongGop('Thiết bị sản xuất chưa gắn chuyền · 未分配产线的生产设备 — ' + con.length, CH);
+    con.forEach((m, i) => rows.push([c(i + 1, { align: 'center' }), c(mh(m.ma), { align: 'center' }), c(''), c(m.ten), c(m.tenPhu || ''), c(m.nhom || ''), c(m.viTri || ''),
+      c(m.chuKy || '', { align: 'center' }), c(m.chuKy && m.hanKeTiep ? fmtD(m.hanKeTiep) : '', { align: 'center' }), c(tbTsTxt(m.thongSo))]));
+  }
+  return { name: 'Theo chuyen', rows, cols: [6, 13, 15, 34, 22, 22, 18, 10, 12, 44], merges, heights, freeze: { r: 3, c: 0 }, landscape: true };
 }
 function tbXuatTheoChuyen() {
-  return { ten: 'May-theo-chuyen_' + TODAY() + '.xlsx', blob: XW.build([tbSheetTheoChuyen()]) };
+  return { ten: 'May-theo-chuyen_' + TODAY() + '.xlsx', blob: XW.build([tbSheetBangModule(), tbSheetTheoChuyen()]) };
 }
 function tbXuatTatCa() {
   const ds = activeMay().slice().sort(sapXuatTB);
@@ -4464,7 +4662,7 @@ function tbXuatTatCa() {
   });
   const sheets = [{ name: 'Thiet bi', rows, cols: [6, 11, 18, 40, 24, 16, 22, 10, 22, 18, 13, 11, 13, 13, 9, 46],
     heights: { 1: 34 }, freeze: { r: 1, c: 4 }, landscape: true, logo: false }];
-  if (S.V.ch.length) sheets.push(tbSheetTheoChuyen());
+  if (S.V.ch.length) sheets.push(tbSheetBangModule(), tbSheetTheoChuyen());
   if (dv.length) sheets.push({ name: 'Don vi', rows: [
     ['Thuộc mã máy\n所属编号', 'Loại thiết bị\n设备类别', 'Chuyền\n产线', 'Mã đơn vị\n单台编号', 'Tên đơn vị\n名称', 'Thông số\n参数'].map((v) => ({ v, s: H }))].concat(dv),
     cols: [12, 22, 10, 14, 26, 60], heights: { 1: 34 }, freeze: { r: 1, c: 0 }, logo: false });
@@ -5380,6 +5578,26 @@ const ACT = {
   newMay: () => go('mayEdit', {}),
   gap: (el) => { S.f.mo = S.f.mo || {}; S.f.mo[el.dataset.k] = !S.f.mo[el.dataset.k]; softRender(); },
   chuyen: (el) => go('chuyen', { ma: el.dataset.ma }),
+  // Mở / đóng một module của chuyền; ô Linh kiện thì mở phần linh kiện của chuyền bên dưới
+  chModMo: (el) => {
+    const ch = el.dataset.ch, k = el.dataset.k;
+    S.f.chMod = S.f.chMod || {};
+    if (k === 'lk') { S.f.mo = S.f.mo || {}; S.f.mo['lkch:' + ch] = true; render(); const a = $('#chLK'); if (a) a.scrollIntoView({ block: 'start' }); return; }
+    S.f.chMod[ch] = S.f.chMod[ch] === k ? '' : k; render();
+  },
+  // Từ bảng module: mở chuyền với đúng module đó
+  chModDi: (el) => { S.f.chMod = S.f.chMod || {}; if (el.dataset.k !== 'lk') S.f.chMod[el.dataset.ch] = el.dataset.k; else { S.f.mo = S.f.mo || {}; S.f.mo['lkch:' + el.dataset.ch] = true; } go('chuyen', { ma: el.dataset.ch }); },
+  chModThem: (el) => {
+    const k = el.dataset.k, ch = el.dataset.ch, g = chModNhom(k);
+    S.qgG = g;
+    if (chModDef(k).gop || coGop(g)) go('qgSua', { ch, g, tuCh: 1 }); else go('mayEdit', { chuyen: ch, nhom: g });
+  },
+  chModQR: (el) => {
+    const d = chModData(el.dataset.ch, TODAY());
+    const keys = el.dataset.k === '*' ? [el.dataset.ch].concat(CH_MOD.map((m) => m.k).concat(['sp', 'khac']).flatMap((k) => chModQRKeys(d[k]))) : chModQRKeys(d[el.dataset.k]);
+    go('labels', { sel: keys });
+  },
+  chBang: () => go('chBang'),
   lkChXuat: (el) => lkChXuat(el.dataset.ma || ''),
   lkMau: async () => { toast(t('exporting')); await sleep(30); let b; try { b = lkMauXlsx(); } catch (e) { toast(t('LOI', { m: e.message }), true); return; } const tt = $('.toast'); if (tt) tt.remove(); await saveFile(b, 'Bang-mau-linh-kien-' + TODAY() + '.xlsx'); },
   lkChe: (el) => { topV().p.che = el.dataset.v; render(); },
@@ -17632,7 +17850,7 @@ VIEWS.quatGio = {
     if (i) i.addEventListener('input', () => { p.q = i.value; const pos = i.selectionStart; render(); const j = $('#qgTim'); if (j) { j.focus(); try { j.setSelectionRange(pos, pos); } catch (e) { /* bỏ qua */ } } });
   }
 };
-Object.assign(TITLES, { quatGio: 't_quatGio' });
+Object.assign(TITLES, { quatGio: 't_quatGio', chBang: 't_chBang' });
 // Các loại có quạt chưa có mã riêng → nút đánh mã (mỗi loại một nút)
 // Nhãn quạt trong lịch sử: "M01003 · Quạt số 3"
 function dvNhan(ma, ten) { const m = S.V.byMa[ma], q = m && quatCua(m).find((x) => x.ten === ten); return q && q.maDV ? q.maDV + ' · ' + ten : ten; }
@@ -17750,7 +17968,7 @@ function dvChonHtml(id, ma, cur) {
 Object.assign(ACT, {
   quatGio: (el) => go('quatGio', Object.assign(el && el.dataset.ch !== undefined ? { ch: el.dataset.ch } : {}, el && el.dataset.g ? { g: el.dataset.g } : {})),
   qgMo: (el) => { S.f.qgMo = S.f.qgMo || {}; S.f.qgMo[el.dataset.ch] = !S.f.qgMo[el.dataset.ch]; render(); },
-  qgDanhMa: (el) => qgDanhMaMo(el.dataset.g),
+  qgDanhMa: (el) => { if (el.dataset.g) S.qgG = el.dataset.g; qgDanhMaMo(el.dataset.g); },
   qgDanhMaOk: async (el) => {
     const f = S.f.qgDM; if (!f) return;
     const fe = $('#qgDMErr');
@@ -18215,7 +18433,8 @@ const qgSuaDuoc = () => can('may') && can('suatb');
 function qgCot(g) {
   const out = [];
   activeMay().filter(tbLoc(g)).forEach((m) => quatCua(m).forEach((q) => q.ts.forEach(([k]) => { k = String(k || '').trim(); if (k && out.indexOf(k) < 0) out.push(k); })));
-  return out.length ? out : laQuatGio({ nhom: g }) || !g ? QG_COT_MAC_DINH.slice() : ['Model', 'Công suất (kW)', 'Vị trí', 'Ghi chú'];
+  return out.length ? out : laQuatGio({ nhom: g }) || !g ? QG_COT_MAC_DINH.slice()
+    : /ch[iỉ]nh l[eệ]ch|纠偏/i.test(g) ? ['Model (型号)', 'Vị trí lắp (安装位置)', 'Cảm biến (传感器)', 'Ghi chú (备注)'] : ['Model', 'Công suất (kW)', 'Vị trí', 'Ghi chú'];
 }
 // Tên gợi ý "Quạt số n" kế tiếp của một chuyền (bỏ qua quạt đang sửa)
 function qgTenKe(ch, boMa, boI, nhom) {
@@ -18223,7 +18442,7 @@ function qgTenKe(ch, boMa, boI, nhom) {
   // Kiểu tên đang dùng nhiều nhất trong loại: "Quạt số n", "Máy keo số n"…
   const dem = {};
   tat.forEach((x) => x.ds.forEach((q) => { const k = /^(.*?)\s*s[oố]\s*\d+\s*$/i.exec(q.ten); if (k && k[1]) dem[k[1]] = (dem[k[1]] || 0) + 1; }));
-  const goc = Object.keys(dem).sort((a, b) => dem[b] - dem[a])[0] || (laQuatGio({ nhom }) || !nhom ? 'Quạt' : 'Máy');
+  const goc = Object.keys(dem).sort((a, b) => dem[b] - dem[a])[0] || (laQuatGio({ nhom }) || !nhom ? 'Quạt' : /ch[iỉ]nh l[eệ]ch|纠偏/i.test(nhom) ? 'Chỉnh lệch' : 'Máy');
   let n = ds.length;
   ds.forEach((q) => { const k = /s[oố]\s*(\d+)\s*$/i.exec(q.ten); if (k) n = Math.max(n, +k[1]); });
   return goc + ' số ' + (n + 1);
@@ -18296,7 +18515,7 @@ Object.assign(ACT, {
       S.f.qgMo = S.f.qgMo || {}; S.f.qgMo[p.ch] = true;
       toast(t(K('qgDaLuu'), { q: (dv.maDV ? dv.maDV + ' · ' : '') + (dv.ten || '') }));
       back();
-      if (topV().v === 'quatGio') Object.assign(topV().p, { ch: p.ch, g: nhom }); else go('quatGio', { ch: p.ch, g: nhom });
+      if (p.tuCh) { /* thêm từ màn chuyền: ở lại màn chuyền, module vẫn mở */ } else if (topV().v === 'quatGio') Object.assign(topV().p, { ch: p.ch, g: nhom }); else go('quatGio', { ch: p.ch, g: nhom });
       render();
       if (dv.ma) setTimeout(() => qgXemMo(dv.ma, dv.i), 60);
     } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
