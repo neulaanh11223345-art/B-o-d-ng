@@ -3497,10 +3497,10 @@ assert.ok(ten66.length === (await page.evaluate(() => ddNguoi().length)) && !ten
 // Sửa danh sách: thêm nhanh nhiều tên một lần
 await page.click('[data-act="go"][data-v="ddDS"]'); await wait(600);
 const n66 = await page.locator('.dddsrow').count();
-await page.fill('#ddNhanh', 'TEST Người B, 测试杰'); await page.click('[data-act="ddNhanh"]'); await wait(400);
+await page.fill('#ddNhanh', 'TEST Người B, 测试员'); await page.click('[data-act="ddNhanh"]'); await wait(400);
 assert.equal(await page.locator('.dddsrow').count(), n66 + 2, 'thêm nhanh hai tên');
 await page.click('[data-act="ddDSLuu"]'); await wait(1200);
-assert.deepEqual(await page.evaluate(() => ddNguoi().slice(-2).map((n) => [n.ten, !!n.id])), [['TEST Người B', true], ['测试杰', true]], 'lưu danh sách theo tên');
+assert.deepEqual(await page.evaluate(() => ddNguoi().slice(-2).map((n) => [n.ten, !!n.id])), [['TEST Người B', true], ['测试员', true]], 'lưu danh sách theo tên');
 const d66 = await page.evaluate(() => {
   // Ngày gần nhất (từ hôm nay lùi lại, trừ Chủ nhật) có người trực là người trong danh sách (đã nối tài khoản)
   for (let i = 0; i < 30; i++) {
@@ -3536,7 +3536,7 @@ const x66 = await page.evaluate(async (o) => {
     ten: hang.map((x) => String(x[2]).split('\n')[0]), hd: r.slice(0, 9).map((x) => x.join('|')).join('\n') };
 }, d66);
 assert.equal(x66.n, x66.can, 'mỗi người trong danh sách một dòng');
-assert.deepEqual(x66.ten, ten66.concat(['TEST Người B', '测试杰']), 'Excel ghi theo tên, đúng thứ tự danh sách');
+assert.deepEqual(x66.ten, ten66.concat(['TEST Người B', '测试员']), 'Excel ghi theo tên, đúng thứ tự danh sách');
 assert.equal(x66.ma, 'P', 'ô ngày nghỉ ghi P');
 assert.match(x66.hd, /BẢNG CHẤM CÔNG THÁNG[\s\S]*Bộ phận · 部门: Bảo trì thiết bị \(TEST\)[\s\S]*Công[\s\S]*Nghỉ phép[\s\S]*Nghỉ không phép[\s\S]*Nghỉ ốm/, 'Excel có tên bộ phận, cột tổng');
 // Nhân viên: xem được, không sửa được
