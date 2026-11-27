@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.78.0';
+var PHIEN_BAN = '2.79.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -1739,26 +1739,7 @@ function ghiGioChay(u, p, opId) {
   var ds = docMayNen(), id = s(p.mnkID).toUpperCase();
   var m = ds.filter(function (x) { return x.id === id; })[0];
   if (!m) throw loi('KHONG_CO_MAY_NEN', 'Không tìm thấy máy nén khí · 找不到空压机');
-  var ngay = ngayStr(p.ngay) || homNayStr();
-  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
-  if (ngay > homNayStr()) throw loi('NGAY_TUONG_LAI', 'Không ghi giờ cho ngày mai · 不能填写未来日期');
-  if (s(p.gio) === '') throw loi('CAN_GIO', 'Cần ghi số giờ trên đồng hồ · 请填写运行小时数');
-  var gio = Number(p.gio);
-  if (isNaN(gio) || gio < 0) throw loi('GIO_SAI', 'Số giờ không hợp lệ · 运行小时数无效');
-  var cuaMay = gc.filter(function (x) { return x.mnkID === id; });
-  var truoc = null, sau = null;
-  cuaMay.forEach(function (x) {
-    if (x.ngayGhi <= ngay && (!truoc || x.ngayGhi > truoc.ngayGhi)) truoc = x;
-    if (x.ngayGhi > ngay && (!sau || x.ngayGhi < sau.ngayGhi)) sau = x;
-  });
-  if (truoc && gio < truoc.gio) {
-    throw loi('GIO_GIAM', 'Giờ chạy không được giảm: ngày ' + ngayVN(truoc.ngayGhi) + ' đã ghi '
-      + truoc.gio + ' h · 运行小时数不能减少：' + truoc.ngayGhi + ' 已记录 ' + truoc.gio + ' 小时');
-  }
-  if (sau && gio > sau.gio) {
-    throw loi('GIO_VUOT', 'Giờ chạy vượt lần ghi sau: ngày ' + ngayVN(sau.ngayGhi) + ' đã ghi '
-      + sau.gio + ' h · 超过后一次记录：' + sau.ngayGhi + ' 已记录 ' + sau.gio + ' 小时');
-  }
+  var ngay = ngayStr(p.ngay) || homNayStr(), gio = mnkKiemGio(gc, id, ngay, p.gio);
   capNhatTieuDe('GioChay');
   var nguon = MNK_NGUON.indexOf(s(p.nguon).toUpperCase()) >= 0 ? s(p.nguon).toUpperCase() : 'GHI';
   if (p.bd) nguon = 'BD';
@@ -1776,6 +1757,30 @@ function ghiGioChay(u, p, opId) {
     ghiNhatKy(u, 'BAO_DUONG_MAY_NEN', 'MayNen', m.id, '', String(gio) + ' h', catChu(p.ghiChu, 200));
   }
   return { ban: sachGC(x), gioChay: [sachGC(x)], mayNen: docMayNen().map(sachMNK) };
+}
+// Kiểm số giờ trên đồng hồ của một máy nén khí ở một ngày: không ghi ngày mai, không nhỏ hơn lần ghi trước,
+// không lớn hơn lần ghi sau. Trả số giờ, sai thì báo lỗi.
+function mnkKiemGio(gc, id, ngay, v) {
+  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  if (ngay > homNayStr()) throw loi('NGAY_TUONG_LAI', 'Không ghi giờ cho ngày mai · 不能填写未来日期');
+  if (s(v) === '') throw loi('CAN_GIO', 'Cần ghi số giờ trên đồng hồ · 请填写运行小时数');
+  var gio = Number(v);
+  if (isNaN(gio) || gio < 0) throw loi('GIO_SAI', 'Số giờ không hợp lệ · 运行小时数无效');
+  var truoc = null, sau = null;
+  gc.forEach(function (x) {
+    if (x.mnkID !== id) return;
+    if (x.ngayGhi <= ngay && (!truoc || x.ngayGhi > truoc.ngayGhi)) truoc = x;
+    if (x.ngayGhi > ngay && (!sau || x.ngayGhi < sau.ngayGhi)) sau = x;
+  });
+  if (truoc && gio < truoc.gio) {
+    throw loi('GIO_GIAM', 'Giờ chạy không được giảm: ngày ' + ngayVN(truoc.ngayGhi) + ' đã ghi '
+      + truoc.gio + ' h · 运行小时数不能减少：' + truoc.ngayGhi + ' 已记录 ' + truoc.gio + ' 小时');
+  }
+  if (sau && gio > sau.gio) {
+    throw loi('GIO_VUOT', 'Giờ chạy vượt lần ghi sau: ngày ' + ngayVN(sau.ngayGhi) + ' đã ghi '
+      + sau.gio + ' h · 超过后一次记录：' + sau.ngayGhi + ' 已记录 ' + sau.gio + ' 小时');
+  }
+  return gio;
 }
 function xoaGioChay(u, p) {
   var gc = docGioChay(), id = s(p.id).toUpperCase();
@@ -3048,13 +3053,39 @@ function luuNghiemThu(u, p) {
   if (p.dvMay !== undefined) x.dvMay = catChu(p.dvMay, 80);   // quạt nào trong bản ghi gộp của chuyền
   if (moi || p.loai !== undefined) x.loai = p.loai === 'TN' ? 'TN' : (x.loai || '');
   // Chỉ ghi đè phần nào app gửi lên, để hai người ghi hai phần không đạp lên nhau
+  // Máy nén khí đã đặt lại giờ theo biên bản này (khoá chung "bd:<mã máy nén>"): máy chủ giữ, app gửi thiếu cũng không mất
+  var bdCu = {};
+  if (x.sau && x.sau.chung) Object.keys(x.sau.chung).forEach(function (k) { if (k.indexOf('bd:') === 0) bdCu[k] = x.sau.chung[k]; });
   if (p.truoc !== undefined) x.truoc = ngtSachPhan(p.truoc);
   if (p.sau !== undefined) x.sau = ngtSachPhan(p.sau);
+  if (x.sau) Object.keys(bdCu).forEach(function (k) { x.sau.chung[k] = bdCu[k]; });
   x.ketLuan = (x.sau && x.sau.ketLuan) || '';
+  // Biên bản bảo dưỡng máy nén khí kết luận Đạt (v2.79): giờ bảo dưỡng của từng máy về 0, tính từ số giờ trên đồng hồ
+  // lúc bảo dưỡng. Mỗi máy một lần cho mỗi biên bản. Kiểm hết số giờ trước rồi mới ghi, sai một máy thì không ghi gì.
+  var bdMoi = [];
+  if (x.loai === 'TN' && x.ketLuan === 'DAT' && Array.isArray(p.mnkBD) && p.mnkBD.length) {
+    var gcDs = docGioChay(), dsMN = docMayNen();
+    p.mnkBD.slice(0, 20).forEach(function (o) {
+      var id = s(o && o.mnkID).toUpperCase();
+      if (!id || bdCu['bd:' + id] !== undefined || bdMoi.some(function (b) { return b.mnkID === id; })) return;
+      var mn = dsMN.filter(function (y) { return y.id === id; })[0];
+      if (!mn) throw loi('KHONG_CO_MAY_NEN', 'Không tìm thấy máy nén khí · 找不到空压机');
+      try { bdMoi.push({ mnkID: id, gio: mnkKiemGio(gcDs, id, x.ngayNT, o.gio), mocLam: Array.isArray(o.mocLam) ? o.mocLam : [] }); }
+      catch (e) { e.message = mn.ten + ': ' + e.message; throw e; }
+    });
+  }
   x.capNhat = bay;
+  var gcMoi = [];
+  bdMoi.forEach(function (b) {
+    var r = ghiGioChay(u, { mnkID: b.mnkID, ngay: x.ngayNT, gio: b.gio, bd: true, mocLam: b.mocLam, ghiChu: 'Bảo dưỡng theo biên bản ' + x.soBB + ' · 按验收单保养' }, '');
+    gcMoi.push(r.ban);
+    x.sau.chung['bd:' + b.mnkID] = String(b.gio);
+  });
   if (moi) themDong('NghiemThu', ngtThanhDong(x)); else suaDong('NghiemThu', x._r, ngtThanhDong(x));
   ghiNhatKy(u, moi ? 'THEM_NGHIEM_THU' : 'SUA_NGHIEM_THU', 'NghiemThu', x.id, '', x.soBB + ' · ' + x.tenTB, '');
-  return { nghiemThu: sachNGT(x) };
+  var ra = { nghiemThu: sachNGT(x) };
+  if (gcMoi.length) { ra.gioChay = gcMoi; ra.mayNen = docMayNen().map(sachMNK); }
+  return ra;
 }
 // ----- Mẫu biên bản bảo dưỡng thuê ngoài (v2.78) -----
 // Mỗi mẫu: vật tư cho MỘT máy [tên, mã/quy cách, đơn vị, số lượng, bên cấp A/B], hạng mục vệ sinh [vi, zh],
