@@ -3528,11 +3528,13 @@ const cn66 = await page.evaluate(async (o) => {
   S.f.ddNgay = d; render(); await new Promise((r) => setTimeout(r, 400));
   return { d, ma: ddMa(d, o.id), nut: [...new Set([...document.querySelectorAll('[data-act="ddDat"]')].map((b) => b.dataset.v))],
     khoa: !!document.querySelector(`[data-act="ddDat"][data-id="${o.id}"][data-v="CN"]:disabled`), ghi: (document.querySelector(`.ddrow[data-id="${o.id}"] .ddtc`) || {}).textContent || '',
+    gio: tcSo(tcCong(ddTcCN(d, o.id))),
     khac: ddNguoi().filter((n) => n.id !== o.id && !ddTcCN(d, n.id).length).map((n) => ddMa(d, n.id)) };
 }, d66);
 assert.deepEqual(cn66.nut, ['CN', 'TC'], 'Chủ nhật: nghỉ CN / tăng ca (TC)');
 assert.equal(cn66.ma, 'TC', 'có ghi tăng ca Chủ nhật thì tự là TC');
-assert.ok(cn66.khoa && /08:00–17:00 · 9 giờ/.test(cn66.ghi), 'ghi giờ theo phần Tăng ca, khoá nút Nghỉ CN: ' + cn66.ghi);
+// (dữ liệu mẫu có thể đã có lượt tăng ca khác cùng ngày: tổng giờ theo phần Tăng ca)
+assert.ok(cn66.khoa && /08:00–17:00/.test(cn66.ghi) && cn66.ghi.indexOf('· ' + cn66.gio + ' giờ') > 0, 'ghi giờ theo phần Tăng ca, khoá nút Nghỉ CN: ' + cn66.ghi);
 assert.ok(cn66.khac.every((m) => m === 'CN'), 'người không tăng ca vẫn nghỉ CN');
 const kTK66 = await page.evaluate(() => ddNguoi().find((n) => !n.uid).id);
 await page.click(`[data-act="ddDat"][data-id="${kTK66}"][data-v="TC"]`); await wait(900);
@@ -3646,6 +3648,119 @@ await page.evaluate(async (ids) => {
   for (const id of ids) mergeResult(await api('deleteProduct', { id }));
 }, sp67.ids.concat([sp67.cu])); await wait(300);
 ok('Bản 2.76: ảnh sản phẩm nhanh — ảnh nhỏ cho danh sách, tải gộp, ảnh ẩn chưa tải, lưu đệm từng ảnh, tạo ảnh nhỏ cho ảnh cũ');
+
+// 68. Điểm danh: Nghỉ lễ (từng người, hoặc cả bộ phận một lần — trừ người trực / có tăng ca); cảnh báo khi điểm danh
+//     ghi nghỉ mà phần Tăng ca có ghi, hoặc Chủ nhật ghi đi làm mà Tăng ca không có; Tăng ca cũng báo ngược lại
+const o68 = await page.evaluate(() => {
+  let d = '';
+  for (let i = 0; i < 7 && !d; i++) { const x = addD(TODAY(), -i); if (wday(x) !== 0 && tcNgayOk(x)) d = x; }
+  const tk = ddNguoi().filter((n) => n.uid);
+  let cn = TODAY(); while (wday(cn) !== 0) cn = addD(cn, -1);
+  const b = tk.find((n) => !tcCuaNgay(n.uid, cn).length);
+  return { d, cn, a: tk[0].id, au: tk[0].uid, ten: tk[0].ten, b: b && b.id };
+});
+assert.ok(o68.d && o68.b, 'có ngày thường trong tuần mở tăng ca và người có tài khoản: ' + JSON.stringify(o68));
+await page.evaluate((o) => { while (S.stack.length > 1) back(); S.f.trucChe = 'dd'; S.f.ddNgay = o.d; tab('truc'); }, o68); await wait(700);
+assert.equal(await page.locator(`[data-act="ddDat"][data-id="${o68.a}"][data-v="L"]`).count(), 1, 'ngày thường có nút Nghỉ lễ');
+await page.click(`[data-act="ddDat"][data-id="${o68.a}"][data-v="L"]`); await wait(900);
+assert.equal(await page.evaluate((o) => ddMa(o.d, o.a), o68), 'L', 'ghi nghỉ lễ');
+assert.equal(await page.locator('.ddlechbao').count(), 0, 'chưa có tăng ca thì không báo');
+// Nghỉ lễ mà phần Tăng ca có ghi: báo ở ngày, ở dòng người đó và danh sách tháng
+const tcId68 = await page.evaluate(async (o) => {
+  mergeResult(await api('saveOT', { id: '', uid: o.au, ngay: o.d, ca: tcCaDS()[0].k, tu: '17:00', den: '19:00', soGio: 2, lyDo: 'TEST lệch điểm danh' }));
+  render(); return S.V.tc.find((x) => x.uid === o.au && x.ngay === o.d && x.lyDo === 'TEST lệch điểm danh').id;
+}, o68); await wait(500);
+assert.match(await text('.ddlechbao'), /1 chỗ điểm danh không khớp với Tăng ca/, 'báo ngày có chỗ không khớp');
+assert.match(await text(`.ddrow[data-id="${o68.a}"] .ddlech`), /Nghỉ lễ nhưng phần Tăng ca có ghi 17:00–19:00 \(2 giờ\) — kiểm tra lại/, 'dòng người đó ghi rõ giờ tăng ca');
+assert.match(await text('.ddlechthang'), new RegExp(o68.d.slice(8, 10) + '/' + o68.d.slice(5, 7) + ' · ' + o68.ten), 'danh sách không khớp trong tháng');
+assert.equal(await page.locator('#main .ddthang th', { hasText: 'Nghỉ lễ' }).count(), 1, 'tổng hợp tháng có cột Nghỉ lễ');
+await shot('105-diem-danh-nghi-le-lech-tang-ca');
+// Phần Tăng ca: lượt tăng ca đó báo điểm danh ghi nghỉ lễ
+await page.evaluate((o) => { S.f.tcUid = o.au; S.f.tcTuan = tcThuHai(o.d); go('tc'); }, o68); await wait(700);
+assert.match(await page.evaluate(() => [...document.querySelectorAll('.tcrow .ddlech')].map((e) => e.textContent).join('|')), /Điểm danh: Nghỉ lễ/, 'Tăng ca báo ngược lại');
+// Chủ nhật: ghi đi làm (TC bấm tay) mà phần Tăng ca không có → báo
+await page.evaluate((o) => { while (S.stack.length > 1) back(); S.f.ddNgay = o.cn; render(); }, o68); await wait(500);
+await page.click(`[data-act="ddDat"][data-id="${o68.b}"][data-v="TC"]`); await wait(900);
+assert.match(await text(`.ddrow[data-id="${o68.b}"] .ddlech`), /Ghi đi làm Chủ nhật nhưng phần Tăng ca chưa ghi/, 'Chủ nhật đi làm mà chưa ghi tăng ca');
+// Cả bộ phận nghỉ lễ: người trực / có tăng ca giữ Đi làm; bỏ được cả ngày
+const l68 = await page.evaluate(async (o) => {
+  mergeResult(await api('attendanceSet', { ngay: o.d, tt: {} })); S.f.ddNgay = o.d; render(); await sleep(300);
+  document.querySelector('[data-act="ddLe"][data-v="1"]').click(); await sleep(1200);
+  const truc = trucNgayGoc(o.d).map((x) => x.uid);
+  const giu = ddNguoi().filter((n) => n.uid && (truc.includes(n.uid) || tcCuaNgay(n.uid, o.d).length));
+  return { giu: giu.map((n) => ddMa(o.d, n.id)), con: ddNguoi().filter((n) => !giu.includes(n)).map((n) => ddMa(o.d, n.id)), nutBo: !!document.querySelector('[data-act="ddLe"][data-v="0"]'), a: ddMa(o.d, o.a) };
+}, o68);
+assert.ok(l68.giu.length && l68.giu.every((m) => m === 'X'), 'người trực / có tăng ca vẫn đi làm: ' + JSON.stringify(l68.giu));
+assert.ok(l68.con.length && l68.con.every((m) => m === 'L'), 'người còn lại nghỉ lễ: ' + JSON.stringify(l68.con));
+assert.deepEqual([l68.nutBo, l68.a], [true, 'X'], 'có nút bỏ nghỉ lễ; người có tăng ca giữ đi làm');
+// Excel: ô L, cột Nghỉ lễ, chú thích
+const x68 = await page.evaluate(async (o) => {
+  const r = await (await readXlsx(await ddXlsx(o.d.slice(0, 7)).arrayBuffer()))[0].rows();
+  const n = ddNguoi().find((y) => ddMa(o.d, y.id) === 'L'), hang = r.find((x) => String(x[2] || '').indexOf(n.ten) === 0);
+  return [hang[3 + (+o.d.slice(8))], r.slice(0, 6).some((x) => x.some((v) => /^Nghỉ lễ/.test(String(v || '')))), r.some((x) => /L = nghỉ lễ/.test(String(x[0] || '')))];
+}, o68);
+assert.deepEqual(x68, ['L', true, true], 'Excel ghi L, có cột Nghỉ lễ và chú thích');
+await page.click('[data-act="ddLe"][data-v="0"]'); await wait(1000);
+assert.ok(await page.evaluate((o) => ddNguoi().every((n) => ddMa(o.d, n.id) !== 'L'), o68), 'bỏ nghỉ lễ cả ngày');
+await page.evaluate(async (o) => {
+  mergeResult(await api('deleteOT', { id: o.id })); mergeResult(await api('attendanceSet', { ngay: o.cn, tt: {} })); mergeResult(await api('attendanceSet', { ngay: o.d, tt: {} }));
+}, Object.assign({ id: tcId68 }, o68)); await wait(300);
+ok('Bản 2.77: điểm danh có Nghỉ lễ (từng người / cả bộ phận), cảnh báo điểm danh không khớp với Tăng ca (cả hai chiều)');
+
+// 69. Nhận định chuyền làm lại: vấn đề đã giải quyết không hiện lại — tự ổn (sự cố không tái diễn 14 ngày, đo tủ lại
+//     đã bình thường), hoặc Quản lý bấm Đã xử lý (có số liệu mới thì báo lại "lặp lại sau khi đã xử lý"); không tính điểm;
+//     danh sách chỉ bày chuyền cần xử lý / theo dõi, chuyền ổn định gập lại
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+const o69 = await page.evaluate(async () => {
+  const bo = ['VKY01', 'VKY02', 'VKY10', 'VKY12', 'VKY13'];
+  const chs = (S.V.ch || []).filter((c) => c.hoatDong !== false && bo.indexOf(c.ma) < 0 && mayCuaCh(c.ma).length && tuChuyen().some((x) => x.maCh === c.ma));
+  const [a, m] = chs;
+  const sua = (ma, d) => send('saveRepair', { moTa: 'TEST kẹt băng tải', nguyenNhan: 'TEST lệch con lăn', ketQua: 'Chỉnh lại', ma, ngay: addD(TODAY(), -d), gioDung: 1, uidLam: S.me.id });
+  // Chuyền A: lỗi lặp đã lâu (16–20 ngày trước, đã sửa xong), tủ nóng hai hôm trước nhưng đo lại đã bình thường
+  const mA = mayCuaCh(a.ma)[0], tA = tuChuyen().find((x) => x.maCh === a.ma);
+  for (const d of [20, 18, 16]) await sua(mA.ma, d);
+  for (const [d, nd] of [[3, 75], [2, 74], [1, 45]]) await send('tuGhi', { maCT: tA.ma, ngay: addD(TODAY(), -d), nhietDo: nd, dienAp: 380, ia: 100, ib: 100, ic: 100, ghiChu: '' });
+  // Chuyền M: lỗi lặp đang diễn ra (5, 3, 1 ngày trước)
+  const mM = mayCuaCh(m.ma)[0];
+  for (const d of [5, 3, 1]) await sua(mM.ma, d);
+  rebuild();
+  return { a: a.ma, m: m.ma, mM: mM.ma };
+});
+const a69 = await page.evaluate((o) => { const r = ndPhanTich(S.V.chByMa[o.a], 30); return { mo: r.ds.map((x) => x.k), xong: r.xong.map((x) => x.k + ':' + x.on), on: r.xong.map((x) => tv('ndOn_' + x.on, x.onB)) }; }, o69);
+assert.ok(a69.xong.includes('lapMay:onSC') && !a69.mo.includes('lapMay'), 'lỗi lặp không tái diễn 14 ngày, đã sửa xong → tự ổn: ' + JSON.stringify(a69));
+assert.ok(a69.xong.includes('nhiet:onDT') && !a69.mo.includes('nhiet'), 'tủ đo lại đã bình thường → tự ổn: ' + JSON.stringify(a69));
+assert.ok(a69.on.some((x) => /14 ngày không có sự cố mới/.test(x)) && a69.on.some((x) => /lần đo gần nhất .* là 45 °C, đã trong ngưỡng/.test(x)), 'ghi lý do đã ổn: ' + a69.on.join(' | '));
+// Đã xử lý (bấm tay): chuyển xuống mục Đã xử lý, điểm tăng; bỏ đánh dấu thì quay lại
+await page.evaluate((o) => go('ndChuyen', { ma: o.m }), o69); await wait(700);
+const d69 = await page.evaluate((o) => ndPhanTich(S.V.chByMa[o.m], 30).diem, o69);
+assert.equal(await page.locator('[data-act="ndXongMo"][data-k="lapMay"]').count(), 1, 'nhận định đang mở có nút Đã xử lý');
+await page.click('[data-act="ndXongMo"][data-k="lapMay"]'); await wait(400);
+await page.fill('#ndXongGhi', 'TEST đã căn lại con lăn, thay bạc đạn'); await page.click('[data-act="ndXongLuu"]'); await wait(1200);
+const x69 = await page.evaluate((o) => { const r = ndPhanTich(S.V.chByMa[o.m], 30), x = r.xong.find((y) => y.k === 'lapMay'); return { mo: r.ds.map((y) => y.k), x: x && [x.xong.nguoi, x.xong.ghiChu], diem: r.diem }; }, o69);
+assert.ok(!x69.mo.includes('lapMay') && x69.x && x69.x[1] === 'TEST đã căn lại con lăn, thay bạc đạn', 'đã xử lý: chuyển xuống mục riêng, giữ ghi chú: ' + JSON.stringify(x69));
+assert.ok(x69.diem > d69, 'không tính điểm phần đã xử lý: ' + d69 + ' → ' + x69.diem);
+await page.click('.ndxong summary'); await wait(300);
+assert.match(await text('.ndxong'), /Đã xử lý \d\d\/\d\d\/\d{4} \d\d:\d\d · Quản lý[\s\S]*TEST đã căn lại con lăn/, 'mục Đã xử lý ghi ai, lúc nào, đã làm gì');
+await shot('106-nhan-dinh-da-xu-ly');
+await page.click('.ndxong [data-act="ndXongBo"] >> nth=0'); await wait(1200);
+assert.ok(await page.evaluate((o) => ndPhanTich(S.V.chByMa[o.m], 30).ds.some((y) => y.k === 'lapMay'), o69), 'bỏ đánh dấu thì mở lại');
+await page.click('[data-act="ndXongMo"][data-k="lapMay"]'); await wait(400); await page.click('[data-act="ndXongLuu"]'); await wait(1200);
+// Sau khi đã xử lý lại hỏng: báo lại, ghi "lặp lại sau khi đã xử lý"
+await page.evaluate(async (o) => {
+  await sleep(1100);   // sự cố mới sau lúc đánh dấu (cùng ngày)
+  await send('saveRepair', { moTa: 'TEST kẹt băng tải lần nữa', nguyenNhan: 'TEST lệch con lăn', ketQua: 'Chỉnh lại', ma: o.mM, ngay: TODAY(), gioDung: 1, uidLam: S.me.id }); rebuild(); render();
+}, o69); await wait(800);
+const l69 = await page.evaluate((o) => { const x = ndPhanTich(S.V.chByMa[o.m], 30).ds.find((y) => y.k === 'lapMay'); return x && !!x.lai; }, o69);
+assert.equal(l69, true, 'có sự cố mới sau lúc đánh dấu thì báo lại');
+assert.match(await text('#main'), /Lặp lại sau khi đã xử lý/, 'ghi lặp lại sau khi đã xử lý');
+// Danh sách: chuyền ổn định gập lại; Excel có cột trạng thái
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.ndLoc = 'all'; go('nhanDinh'); }); await wait(800);
+const g69 = await page.evaluate(() => { const kq = ndCacChuyen(30); return { xanh: kq.filter((r) => r.muc === 'xanh').length, gap: document.querySelectorAll('.ndon [data-act="ndMo"]').length,
+  ngoai: [...document.querySelectorAll('#main > .card [data-act="ndMo"], #main .card:not(.ndon *) [data-act="ndMo"]')].filter((b) => !b.closest('.ndon')).length, can: kq.filter((r) => r.muc !== 'xanh').length }; });
+assert.deepEqual([g69.gap, g69.ngoai], [g69.xanh, g69.can], 'chỉ bày chuyền cần xử lý / theo dõi, chuyền ổn định gập lại: ' + JSON.stringify(g69));
+const e69 = await page.evaluate(async () => { const sh = await readXlsx(await ndXlsx(30).arrayBuffer()); return (await sh[1].rows()).map((r) => (r || []).join('|')).join('\n'); });
+assert.match(e69, /Trạng thái[\s\S]*Đã xử lý \/ đã ổn[\s\S]*Đã ổn: 14 ngày không có sự cố mới/, 'Excel có trạng thái đã xử lý / đã ổn');
+ok('Bản 2.77: nhận định chuyền — vấn đề đã giải quyết (tự ổn hoặc bấm Đã xử lý) không hiện lại, không tính điểm; có số liệu mới thì báo lại; chuyền ổn định gập lại');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

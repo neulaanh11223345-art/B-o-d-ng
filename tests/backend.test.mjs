@@ -856,6 +856,9 @@ test('điểm danh: Quản lý ghi nghỉ phép / không phép / ốm / đi mu�
   r = ok(b.call('attendanceSet', { ngay: '2026-11-22', tt: { [uid]: 'X', [uid2]: 'TC' } }, ql)).diemDanh;
   assert.deepEqual(r.tt, { [uid]: 'X', [uid2]: 'TC' });
   assert.deepEqual(ok(b.call('attendanceSet', { ngay: '2026-11-24', tt: { [uid2]: 'TC' } }, ql)).diemDanh.tt, {}, 'ngày thường không nhận TC');
+  // Nghỉ lễ (L, v2.77): ngày thường nhận; Chủ nhật đã là ngày nghỉ nên không nhận
+  assert.deepEqual(ok(b.call('attendanceSet', { ngay: '2026-11-24', tt: { [uid]: 'l', [uid2]: 'L' } }, ql)).diemDanh.tt, { [uid]: 'L', [uid2]: 'L' }, 'ngày thường nhận nghỉ lễ');
+  assert.deepEqual(ok(b.call('attendanceSet', { ngay: '2026-11-22', tt: { [uid]: 'X', [uid2]: 'L' } }, ql)).diemDanh.tt, { [uid]: 'X' }, 'Chủ nhật không nhận nghỉ lễ');
   // Sửa lại cùng ngày: thay cả ngày (một dòng)
   ok(b.call('attendanceSet', { ngay: '2026-11-25', tt: { [uid]: 'KP' } }, ql));
   const dk = ok(b.call('data', {}, kt)).diemDanh;
@@ -3069,4 +3072,21 @@ test('ảnh sản phẩm nhanh (v2.76): lưu kèm ảnh nhỏ; đọc nhiều �
   assert.ok(x.anh[1].nho && x.anh[1].id === a.anh[1].id, 'ảnh thiếu thì nhận ảnh nhỏ mới, ảnh gốc giữ');
   assert.deepEqual(ok(b.call('data', {}, ql)).sanPham.find((y) => y.id === a.id).anh, x.anh, 'đã ghi vào bảng');
   assert.deepEqual(ok(b.call('productThumbs', { ds: [{ id: a.id, nho: [jpg(300), jpg(300)] }] }, ql)).dsSanPham, [], 'đủ rồi thì không đổi');
+});
+
+test('nhận định chuyền (v2.77): đánh dấu Đã xử lý lưu chung cho Quản lý, bỏ đánh dấu được; kỹ thuật không đánh dấu, không nhận', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-11-26T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  err(b.call('lineInsightDone', { khoa: 'VKY01|lap|M001|', loai: 'lapMay', chuyen: 'VKY01' }, kt), 'KHONG_QUYEN');
+  err(b.call('lineInsightDone', { khoa: 'khong hop le' }, ql), 'THIEU_MA');
+  const x = ok(b.call('lineInsightDone', { khoa: 'VKY01|lap|M001|', loai: 'lapMay', chuyen: 'VKY01', ghiChu: 'TEST đã thay vòng bi đúng loại' }, ql)).ndXong;
+  assert.deepEqual([x.khoa, x.loai, x.chuyen, x.nguoi, x.ghiChu, x.luc.slice(0, 10)], ['VKY01|lap|M001|', 'lapMay', 'VKY01', 'Quản lý', 'TEST đã thay vòng bi đúng loại', '2026-11-26']);
+  // Đánh dấu lại cùng khoá: một dòng, cập nhật lúc / ghi chú
+  ok(b.call('lineInsightDone', { khoa: 'VKY01|lap|M001|', ghiChu: 'TEST lần hai' }, ql));
+  const ds = ok(b.call('data', {}, b.login('NV001', '111111'))).ndXong;
+  assert.deepEqual(ds.map((y) => [y.khoa, y.ghiChu, y.loai]), [['VKY01|lap|M001|', 'TEST lần hai', 'lapMay']], 'mọi tài khoản Quản lý thấy như nhau, giữ loại cũ');
+  assert.deepEqual(ok(b.call('data', {}, kt)).ndXong, [], 'kỹ thuật không nhận');
+  // Bỏ đánh dấu
+  assert.equal(ok(b.call('lineInsightDone', { khoa: 'VKY01|lap|M001|', bo: true }, ql)).ndXong.bo, true);
+  assert.deepEqual(ok(b.call('data', {}, ql)).ndXong, [], 'bỏ đánh dấu thì không gửi nữa');
 });

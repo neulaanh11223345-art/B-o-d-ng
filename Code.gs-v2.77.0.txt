@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.76.0';
+var PHIEN_BAN = '2.77.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -98,6 +98,7 @@ var BANG = {
   // KP nghỉ không phép · O nghỉ ốm · TC tăng ca Chủ nhật (người có ghi tăng ca Chủ nhật app tự hiện TC).
   // Người nghỉ (P / KP / O) không còn trong lịch trực của ngày đó.
   DiemDanh: ['Ngay', 'TrangThai', 'GhiChu', 'Nguoi', 'CapNhat'],
+  NhanDinhXong: ['Khoa', 'Chuyen', 'Loai', 'Luc', 'Nguoi', 'GhiChu', 'Bo'],
   // Sổ kiểm định thiết bị. NghiemNgat = 1: thuộc danh mục máy, thiết bị có yêu cầu nghiêm ngặt về an toàn, vệ sinh lao động.
   // Ma: mã máy / chuyền trong danh mục (để trống nếu thiết bị không nằm trong danh mục máy, vd xe nâng, bình khí).
   // KetQua: DAT · KHONG_DAT · CHUA (chưa kiểm định lần nào) · ChuKy: số tháng giữa hai lần kiểm định
@@ -449,6 +450,7 @@ function dieuHuong(a, p, req) {
     case 'saveRecurring': canQuyen(u, 'giaoviec'); return luuViecLap(u, p);
     case 'dutySet': canQuyen(u, 'giaoviec'); return luuLichTruc(u, p);
     case 'attendanceSet': canQuyen(u, 'giaoviec'); return luuDiemDanh(u, p);
+    case 'lineInsightDone': canQuyen(u, 'xemhet'); return luuNDXong(u, p);
     case 'attendancePeople': canQuyen(u, 'giaoviec'); return luuNguoiDD(u, p);
     case 'shiftSet': canQuyen(u, 'giaoviec'); return luuPhanCa(u, p);
     case 'shiftRotate': canQuyen(u, 'giaoviec'); return luanPhienTuan(u, p);
@@ -1016,6 +1018,7 @@ function layDuLieu(u) {
     lichTruc: docLichTruc().filter(function (x) { return x.ngay >= tu && (x.uid || x.noiDung); }).map(sachLT),
     // Ai cũng xem được điểm danh (để biết ai nghỉ, ai trực); chỉ Quản lý sửa
     diemDanh: docDiemDanh().filter(function (x) { return x.ngay >= tu; }).map(sachDD),
+    ndXong: coQuyen(u, 'xemhet') ? docNDXong().filter(function (x) { return !x.bo && String(x.luc).slice(0, 10) >= tu; }).map(sachNDX) : [],
     nguoiTruc: docNguoiTruc().map(sachNT),
     phanCa: docPhanCa().filter(function (x) { return x.tuNgay >= tu; }).map(sachPC),
     nhanVien: dsNguoiDung().filter(function (x) { return x.hoatDong; }).map(function (x) {
@@ -1093,12 +1096,34 @@ function gioHM(v) {
 }
 function docLichTruc() { return docTho('LichTruc').map(ltTuDong).filter(function (x) { return x.ngay; }); }
 // ----- Điểm danh (v2.75) -----
-var DD_MA = ['X', 'M', 'P', 'KP', 'O', 'TC'];   // TC: tăng ca Chủ nhật (chỉ ghi ngày Chủ nhật, v2.75.2)
+var DD_MA = ['X', 'M', 'P', 'KP', 'O', 'TC', 'L'];   // TC: tăng ca Chủ nhật (chỉ ghi ngày Chủ nhật, v2.75.2); L: nghỉ lễ (ngày thường, v2.77)
 function docDiemDanh() {
   return docTho('DiemDanh').map(function (r, i) {
     return { _r: i + 2, ngay: ngayStr(r[0]), tt: docJson(r[1], {}), ghiChu: s(r[2]), nguoi: s(r[3]), capNhat: tgStr(r[4]) };
   }).filter(function (x) { return x.ngay; });
 }
+// ----- Nhận định chuyền: đánh dấu "Đã xử lý" (v2.77) -----
+// Mỗi nhận định có khoá ổn định (chuyền|loại|đối tượng). Đánh dấu thì app ẩn nhận định đó cho tới khi có số liệu mới
+// sau lúc đánh dấu (sự cố mới, đo tủ vẫn vượt ngưỡng…). Lưu chung để mọi tài khoản Quản lý thấy như nhau.
+function docNDXong() {
+  return docTho('NhanDinhXong').map(function (r, i) {
+    return { _r: i + 2, khoa: s(r[0]), chuyen: s(r[1]), loai: s(r[2]), luc: r[3] instanceof Date ? tgStr(r[3]) : s(r[3]), nguoi: s(r[4]), ghiChu: s(r[5]), bo: s(r[6]) !== '' && hd(r[6]) };
+  }).filter(function (x) { return x.khoa; });
+}
+function sachNDX(x) { var o = { khoa: x.khoa, chuyen: x.chuyen, loai: x.loai, luc: x.luc, nguoi: x.nguoi, ghiChu: x.ghiChu }; if (x.bo) o.bo = true; return o; }
+function luuNDXong(u, p) {
+  var khoa = catChu(p.khoa, 200);
+  if (!/^[^|<>"]+\|[A-Za-z]+(\|[^<>"]*)?$/.test(khoa)) throw loi('THIEU_MA', 'Nhận định không hợp lệ · 分析无效');
+  capNhatTieuDe('NhanDinhXong');
+  var x = docNDXong().filter(function (y) { return y.khoa === khoa; })[0];
+  var o = { khoa: khoa, chuyen: catChu(p.chuyen || (x && x.chuyen), 40), loai: catChu(p.loai || (x && x.loai), 30), luc: thoiGianStr(),
+    nguoi: catChu(u.ten, 60), ghiChu: p.bo ? (x ? x.ghiChu : '') : catNhieuDong(p.ghiChu, 300), bo: !!p.bo };
+  var dong = [o.khoa, o.chuyen, o.loai, o.luc, o.nguoi, anToan(o.ghiChu), o.bo ? 1 : ''];
+  if (x) suaDong('NhanDinhXong', x._r, dong); else themDong('NhanDinhXong', dong);
+  ghiNhatKy(u, o.bo ? 'BO_ND_XONG' : 'ND_XONG', 'NhanDinhXong', khoa, x ? sachNDX(x) : '', o.ghiChu, 'Nhận định chuyền · 产线分析');
+  return { ndXong: sachNDX(o) };
+}
+
 // Lưu danh sách người điểm danh: theo tên; giữ ID cũ để điểm danh đã ghi không lạc người
 function luuNguoiDD(u, p) {
   var tk = {}, ids = {}, ds = [], n0 = Date.now();
@@ -1131,7 +1156,7 @@ function luuDiemDanh(u, p) {
   var cn = new Date(ngay + 'T00:00:00Z').getUTCDay() === 0;
   Object.keys(vao).slice(0, 500).forEach(function (k) {
     var v = s(vao[k]).toUpperCase();
-    if (!co[k] || DD_MA.indexOf(v) < 0 || (!cn && (v === 'X' || v === 'TC'))) return;
+    if (!co[k] || DD_MA.indexOf(v) < 0 || (!cn && (v === 'X' || v === 'TC')) || (cn && v === 'L')) return;
     tt[k] = v;
   });
   var x = docDiemDanh().filter(function (r) { return r.ngay === ngay; })[0], cu = x ? x.tt : {};

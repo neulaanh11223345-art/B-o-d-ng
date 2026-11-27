@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.76.0
+# Credible Việt Nam CMMS · 设备管理 — v2.77.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.76.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.77.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.76.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.76.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.77.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.77.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.76.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.77.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò | Xem được |
 |---|---|---|---|
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.76.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.77.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.76.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.77.0.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -96,6 +96,30 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Việc chờ gửi chỉ được gửi khi app đang mở và có mạng. iOS không có gửi ngầm.
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
+
+## Điểm mới của v2.77.0: Nghỉ lễ, điểm danh đối chiếu Tăng ca, Nhận định chuyền gọn lại
+
+**Điểm danh**
+- Thêm trạng thái **Nghỉ lễ (L)** cho từng người (ngày thường). Người nghỉ lễ ra khỏi lịch trực ngày đó như các loại nghỉ khác.
+- Nút **Cả bộ phận nghỉ lễ**: đặt nghỉ lễ cho cả danh sách trong một lần. Người có lịch trực hoặc có ghi tăng ca ngày đó vẫn giữ *Đi làm*. Nút **Bỏ nghỉ lễ ngày này** để hoàn lại.
+- Tổng hợp tháng và Excel chấm công có cột **Nghỉ lễ**, ô ghi **L**, chú thích "L = nghỉ lễ". Nghỉ lễ không cộng vào cột *Công*.
+- **Cảnh báo không khớp với Tăng ca** (chỉ Quản lý thấy, chỉ với người đã nối tài khoản app):
+  - Điểm danh ghi nghỉ (phép / không phép / ốm / lễ, hoặc Nghỉ Chủ nhật) mà phần Tăng ca có ghi ngày đó.
+  - Chủ nhật ghi đi làm mà phần Tăng ca chưa ghi.
+  - Báo ở đầu ngày, ở dòng người đó (ghi rõ giờ tăng ca), và danh sách **Không khớp với Tăng ca trong tháng** dưới bảng tổng hợp (bấm để tới ngày đó).
+- Phần **Tăng ca**: lượt tăng ca của người mà điểm danh ghi nghỉ hiện "Điểm danh: Nghỉ …"; lưu tăng ca cho ngày người đó đang nghỉ thì app nhắc kiểm tra lại.
+
+**Nhận định chuyền**
+- Vấn đề đã giải quyết **không còn hiện ở danh sách chính**, không tính vào điểm, chuyển xuống mục **Đã xử lý / đã ổn** của từng chuyền:
+  - **Tự ổn**: sự cố / lỗi lặp không tái diễn 14 ngày và việc sửa đã đóng; linh kiện không phải thay thêm 14 ngày; **lần đo tủ gần nhất** đã về trong ngưỡng (trước đây lấy số cao nhất cả kỳ nên đo lại bình thường vẫn báo). Số ngày đổi được trong Ngưỡng.
+  - **Bấm "Đã xử lý"** ở từng nhận định, ghi thêm đã làm gì (không bắt buộc). Lưu ở máy chủ, mọi tài khoản Quản lý thấy như nhau; bỏ đánh dấu được.
+  - Nếu sau đó có **số liệu mới cùng vấn đề** (sự cố mới, đo tủ vẫn vượt ngưỡng…), nhận định hiện lại và ghi "Lặp lại sau khi đã xử lý".
+- Danh sách chuyền chỉ bày chuyền **cần xử lý / cần theo dõi**; chuyền ổn định gập lại một dòng "Ổn định (n chuyền)".
+- Excel nhận định có cột **Trạng thái** (đang mở / đã xử lý / đã ổn / lặp lại).
+
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.77.0.txt`) để lưu được Nghỉ lễ và nút "Đã xử lý" (trang `NhanDinhXong` tự tạo). Phần tự ổn và cảnh báo tăng ca chạy được ngay cả với máy chủ cũ.
+
+---
 
 ## Điểm mới của v2.76.0: ảnh sản phẩm tải nhanh, app nhẹ hơn
 
