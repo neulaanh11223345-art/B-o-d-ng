@@ -3152,3 +3152,30 @@ test('máy nén khí (v2.79): biên bản bảo dưỡng thuê ngoài kết lu�
   // Máy lạ
   err(b.call('saveAccept', { loai: 'TN', tenTB: 'TEST', sau: sau('DAT'), mnkBD: [{ mnkID: 'MNK999', gio: 10 }] }, b.kt), 'KHONG_CO_MAY_NEN');
 });
+
+test('biên bản (v2.80): tự dịch chữ tiếng Việt sang tiếng Trung khi lưu, dùng lại bản cũ; đề nghị bảo dưỡng nội bộ số DNBD, Đạt thì máy nén khí về 0', () => {
+  const b = setupMNK(), id1 = b.id(1);
+  b.ctx.__dichMau.push(['Kỹ thuật viên', '技术员'], ['Đã thay lọc dầu, vệ sinh két làm mát', '已更换机油滤芯，清洁冷却器'], ['Lọc tách dầu', '油气分离器'],
+    ['Kiểm tra dây curoa', '检查皮带'], ['TEST Hệ thống máy nén khí', 'TEST空压机系统'], ['Hơi bẩn', '有点脏']);
+  const sau = { chung: { chucVuB: 'Kỹ thuật viên', noiDung: '' }, vanBan: 'Đã thay lọc dầu, vệ sinh két làm mát',
+    vatTu: [{ ten: 'Lọc tách dầu', qc: 'TEST-LT', dv: 'cái', sl: '1', ben: 'A' }, { ten: 'Lọc dầu · 机油滤芯', dv: 'cái', sl: '3', ben: 'A' }, { ten: 'M001', sl: '1' }, { ten: '空气滤芯', sl: '1' }],
+    dsMuc: [['vs1', 'Vệ sinh quạt', '清洁风扇', 'vs'], ['vs2', 'Kiểm tra dây curoa', '', 'vs']], muc: { vs1: { dg: 'D', gc: 'Hơi bẩn' } } };
+  const g0 = b.ctx.__dich.goi;
+  const x = ok(b.call('saveAccept', { loai: 'TN', ngayNT: '2026-10-05', tenTB: 'TEST Hệ thống máy nén khí', sau }, b.kt)).nghiemThu;
+  assert.deepEqual(x.sau.dich, { 'TEST Hệ thống máy nén khí': 'TEST空压机系统', 'Kỹ thuật viên': '技术员', 'Lọc tách dầu': '油气分离器', 'Kiểm tra dây curoa': '检查皮带',
+    'Hơi bẩn': '有点脏', 'Đã thay lọc dầu, vệ sinh két làm mát': '已更换机油滤芯，清洁冷却器' }, 'chỉ dịch chữ tiếng Việt chưa có bản tiếng Trung; bỏ qua chữ hai thứ tiếng, mã, chữ Trung, mục đã có tiếng Trung');
+  assert.equal(b.ctx.__dich.goi - g0, 6);
+  // Lưu lại không đổi chữ: dùng bản cũ, không gọi dịch
+  const g1 = b.ctx.__dich.goi;
+  const x2 = ok(b.call('saveAccept', { id: x.id, loai: 'TN', ngayNT: '2026-10-05', tenTB: x.tenTB, sau }, b.kt)).nghiemThu;
+  assert.equal(b.ctx.__dich.goi, g1, 'chữ không đổi thì không dịch lại');
+  assert.deepEqual(x2.sau.dich, x.sau.dich);
+  // Đề nghị bảo dưỡng nội bộ: số DNBD, giữ loại DN
+  ok(b.call('compHour', { mnkID: id1, ngay: '2026-10-01', gio: 2950 }, b.kt));
+  const dn = ok(b.call('saveAccept', { loai: 'DN', ngayNT: '2026-10-05', tenTB: 'TEST Máy nén khí số 1', sau: { chung: { dsMay: id1, lyDoLoai: 'DK' }, vatTu: [{ ten: 'Lọc dầu · 机油滤芯', sl: '3', ben: 'A' }, { ten: 'Lọc khí · 空气滤芯', sl: '1', ben: 'B' }] } }, b.kt)).nghiemThu;
+  assert.deepEqual([dn.loai, dn.soBB, dn.sau.vatTu.map((r) => r.ben)], ['DN', 'DNBD2026.10.05/2', ['A', 'B']], 'đề nghị nội bộ: số DNBD, nguồn vật tư kho / mua');
+  // Làm xong: Đã hoàn thành → giờ bảo dưỡng về 0
+  const r = ok(b.call('saveAccept', { id: dn.id, loai: 'DN', ngayNT: '2026-10-05', tenTB: dn.tenTB, sau: { chung: { dsMay: id1 }, ketLuan: 'DAT' }, mnkBD: [{ mnkID: id1, gio: 2990 }] }, b.kt));
+  assert.equal(r.mayNen.find((m) => m.id === id1).gioBD, 2990, 'đề nghị nội bộ đã hoàn thành: giờ bảo dưỡng về 0');
+  assert.match(r.gioChay[0].ghiChu, /DNBD2026\.10\.05\/2/);
+});

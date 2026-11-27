@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.79.0';
+var PHIEN_BAN = '2.80.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -2975,9 +2975,11 @@ function ngtTuDong(r, i) {
 }
 function docNghiemThu() { return docTho('NghiemThu').map(ngtTuDong).filter(function (x) { return x.id; }); }
 function sachNGT(x) { var o = {}; Object.keys(x).forEach(function (k) { if (k !== '_r') o[k] = x[k]; }); return o; }
-function ngtSoBB(ngay, stt) {
-  return 'BBNT' + ngay.slice(0, 4) + '.' + ngay.slice(5, 7) + '.' + ngay.slice(8, 10) + '/' + stt;
+// Biên bản nghiệm thu: BBNT…; đề nghị bảo dưỡng nội bộ (v2.80): DNBD…
+function ngtSoBB(ngay, stt, loai) {
+  return (loai === 'DN' ? 'DNBD' : 'BBNT') + ngay.slice(0, 4) + '.' + ngay.slice(5, 7) + '.' + ngay.slice(8, 10) + '/' + stt;
 }
+var NGT_LOAI = ['TN', 'DN'];
 // Số thứ tự trong ngày: lấy số lớn nhất đã có của ngày đó rồi cộng một, kể cả biên bản đã xoá
 function ngtSttMoi(ds, ngay) {
   var m = 0;
@@ -3042,28 +3044,29 @@ function luuNghiemThu(u, p) {
   var bay = thoiGianStr(), moi = !x;
   capNhatTieuDe('NghiemThu');
   if (moi) {
-    var stt = ngtSttMoi(ds, ngay);
-    x = { id: idMoi('NT', dsIdCo(ds)), ngayNT: ngay, stt: stt, soBB: ngtSoBB(ngay, stt),
+    var stt = ngtSttMoi(ds, ngay), loai0 = NGT_LOAI.indexOf(s(p.loai)) >= 0 ? s(p.loai) : '';
+    x = { id: idMoi('NT', dsIdCo(ds)), ngayNT: ngay, stt: stt, soBB: ngtSoBB(ngay, stt, loai0),
       nguoiTao: u.ten, uidTao: u.id, lucTao: bay, xoa: false, truoc: null, sau: null };
   } else if (ngay !== x.ngayNT) {
     // Đổi ngày thì đánh lại số cho đúng ngày mới
-    x.ngayNT = ngay; x.stt = ngtSttMoi(ds.filter(function (r) { return r.id !== x.id; }), ngay); x.soBB = ngtSoBB(ngay, x.stt);
+    x.ngayNT = ngay; x.stt = ngtSttMoi(ds.filter(function (r) { return r.id !== x.id; }), ngay); x.soBB = ngtSoBB(ngay, x.stt, x.loai);
   }
   x.ma = ma; x.tenTB = ten; x.donVi = catChu(p.donVi, 150); x.cvId = s(p.cvId).toUpperCase();
   if (p.dvMay !== undefined) x.dvMay = catChu(p.dvMay, 80);   // quạt nào trong bản ghi gộp của chuyền
-  if (moi || p.loai !== undefined) x.loai = p.loai === 'TN' ? 'TN' : (x.loai || '');
+  if (moi || p.loai !== undefined) x.loai = NGT_LOAI.indexOf(s(p.loai)) >= 0 ? s(p.loai) : (x.loai || '');
   // Chỉ ghi đè phần nào app gửi lên, để hai người ghi hai phần không đạp lên nhau
   // Máy nén khí đã đặt lại giờ theo biên bản này (khoá chung "bd:<mã máy nén>"): máy chủ giữ, app gửi thiếu cũng không mất
-  var bdCu = {};
+  var bdCu = {}, sauCu = x.sau;
   if (x.sau && x.sau.chung) Object.keys(x.sau.chung).forEach(function (k) { if (k.indexOf('bd:') === 0) bdCu[k] = x.sau.chung[k]; });
   if (p.truoc !== undefined) x.truoc = ngtSachPhan(p.truoc);
   if (p.sau !== undefined) x.sau = ngtSachPhan(p.sau);
   if (x.sau) Object.keys(bdCu).forEach(function (k) { x.sau.chung[k] = bdCu[k]; });
+  if (x.sau && NGT_LOAI.indexOf(x.loai) >= 0) ntDich(x, sauCu);
   x.ketLuan = (x.sau && x.sau.ketLuan) || '';
   // Biên bản bảo dưỡng máy nén khí kết luận Đạt (v2.79): giờ bảo dưỡng của từng máy về 0, tính từ số giờ trên đồng hồ
   // lúc bảo dưỡng. Mỗi máy một lần cho mỗi biên bản. Kiểm hết số giờ trước rồi mới ghi, sai một máy thì không ghi gì.
   var bdMoi = [];
-  if (x.loai === 'TN' && x.ketLuan === 'DAT' && Array.isArray(p.mnkBD) && p.mnkBD.length) {
+  if (NGT_LOAI.indexOf(x.loai) >= 0 && x.ketLuan === 'DAT' && Array.isArray(p.mnkBD) && p.mnkBD.length) {
     var gcDs = docGioChay(), dsMN = docMayNen();
     p.mnkBD.slice(0, 20).forEach(function (o) {
       var id = s(o && o.mnkID).toUpperCase();
@@ -3086,6 +3089,31 @@ function luuNghiemThu(u, p) {
   var ra = { nghiemThu: sachNGT(x) };
   if (gcMoi.length) { ra.gioChay = gcMoi; ra.mayNen = docMayNen().map(sachMNK); }
   return ra;
+}
+// Chữ tiếng Việt người dùng gõ trong biên bản (bảo dưỡng thuê ngoài / đề nghị bảo dưỡng nội bộ) → tiếng Trung (v2.80).
+// Lưu sau.dich = {chữ gốc: bản dịch}; chữ không đổi thì dùng lại bản cũ, không gọi dịch lại. Chữ đã viết sẵn hai thứ tiếng
+// ("Lọc dầu · 机油滤芯"), chữ tiếng Trung, mã số thì bỏ qua. Mỗi lần lưu dịch tối đa 60 câu.
+var NT_DICH_CHUNG = ['noiDung', 'chucVuA', 'chucVuB', 'diaDiem', 'boPhan', 'chucVuDN', 'lyDo', 'anhHuong', 'nguoiTH'];
+function ntDich(x, cu) {
+  var sau = x.sau, cuD = (cu && cu.dich) || {}, d = {}, n = 0;
+  var them = function (t) {
+    t = s(t).trim();
+    if (!t || d[t] !== undefined || !canDich(t) || laTiengTrung(t)) return;
+    var i = t.indexOf(' · ');
+    if (i > 0 && laTiengTrung(t.slice(i + 3)) !== laTiengTrung(t.slice(0, i))) return;
+    if (cuD[t] !== undefined) { d[t] = cuD[t]; return; }
+    if (n >= 60) return;
+    n++;
+    var z = dichChu(t);
+    if (z) d[t] = z;
+  };
+  them(x.tenTB);
+  NT_DICH_CHUNG.forEach(function (k) { them(sau.chung[k]); });
+  (sau.vatTu || []).forEach(function (r) { them(r.ten); them(r.gc); });
+  (sau.dsMuc || []).forEach(function (r) { if (!s(r[2])) them(r[1]); if (s(r[4]) && !s(r[5])) them(r[4]); });
+  Object.keys(sau.muc || {}).forEach(function (k) { them((sau.muc[k] || {}).gc); });
+  them(sau.vanBan);
+  sau.dich = d;
 }
 // ----- Mẫu biên bản bảo dưỡng thuê ngoài (v2.78) -----
 // Mỗi mẫu: vật tư cho MỘT máy [tên, mã/quy cách, đơn vị, số lượng, bên cấp A/B], hạng mục vệ sinh [vi, zh],
