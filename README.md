@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.79.0
+# Credible Việt Nam CMMS · 设备管理 — v2.80.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.79.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.80.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.79.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.79.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.80.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.80.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.79.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.80.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò | Xem được |
 |---|---|---|---|
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.79.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.80.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.79.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.80.0.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -96,6 +96,29 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Việc chờ gửi chỉ được gửi khi app đang mở và có mạng. iOS không có gửi ngầm.
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
+
+## Điểm mới của v2.80.0: biên bản tự dịch sang tiếng Trung, đề nghị bảo dưỡng nội bộ, logo Credible
+
+**Tự dịch tiếng Việt → tiếng Trung**
+- Trong biên bản bảo dưỡng thuê ngoài và đề nghị bảo dưỡng nội bộ, chữ tiếng Việt bạn gõ (tên thiết bị, tên vật tư, ghi chú, nội dung công việc, lý do, chức vụ, ý kiến, hạng mục thêm riêng…) được máy chủ dịch sang tiếng Trung khi lưu (Google Dịch, như phần sửa chữa).
+- Bản dịch hiện chữ nhỏ ngay dưới ô đã nhập và in kèm trong Excel (dòng tiếng Việt, xuống dòng tiếng Trung). Đơn vị thường gặp in song ngữ (cái 个, lít 升, máy 台, bộ 套…).
+- Chữ đã viết sẵn hai thứ tiếng ("Lọc dầu · 机油滤芯"), chữ tiếng Trung, mã số thì giữ nguyên. Chữ không đổi thì dùng lại bản dịch cũ, không dịch lại.
+
+**Biên bản đề nghị bảo dưỡng nội bộ** (tổ bảo trì tự làm) — mở ở **Nghiệm thu sửa chữa → Đề nghị bảo dưỡng nội bộ**, ở màn **Máy nén khí** (nút trên cùng, và nút *Đề nghị bảo dưỡng* trên thẻ máy sắp đến hạn / quá hạn):
+- Bộ phận đề nghị, người đề nghị, chức vụ; thiết bị (chọn máy nén khí → ghi luôn giờ đồng hồ hiện tại, giờ từ lần bảo dưỡng, tình trạng).
+- **Lý do**: đến hạn bảo dưỡng định kỳ (theo giờ chạy) / bất thường khi vận hành / khác + mô tả.
+- **Nội dung công việc dự kiến** (mẫu: thay dầu BS46, thay lọc dầu, thay lọc khí, vệ sinh két làm mát, lưới lọc gió, tủ điện, van xả nước, dọn dầu thải) — làm xong tích *Đã làm*.
+- **Vật tư cần chuẩn bị**: mỗi dòng chọn nguồn **Kho** (có sẵn) / **Mua** (đề nghị mua); mẫu mỗi máy 3 lọc dầu, 1 lọc khí, 80 lít dầu BS46.
+- **Kế hoạch**: ngày dự kiến, dừng máy từ … đến …, người / tổ thực hiện, ảnh hưởng sản xuất / phương án dự phòng.
+- **Kết quả** (ghi sau khi làm): kiểm tra sau bảo dưỡng, giờ đồng hồ lúc bảo dưỡng; chọn **Đã hoàn thành** rồi lưu → giờ bảo dưỡng của máy nén khí về 0 (như biên bản thuê ngoài).
+- **Ký duyệt**: người đề nghị, trưởng bộ phận bảo trì, bộ phận sản xuất, phê duyệt (giám đốc nhà máy).
+- **Lưu & xuất Excel trình ký**: số đề nghị `DNBD năm.tháng.ngày/số`, song ngữ, A4 dọc.
+
+**Logo Credible** trên mọi biên bản: Excel biên bản bảo dưỡng thuê ngoài, Excel đề nghị bảo dưỡng nội bộ, tờ in biên bản kiểm tra trước / nghiệm thu sau sửa chữa.
+
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.80.0.txt`) để tự dịch và lưu được đề nghị bảo dưỡng nội bộ.
+
+---
 
 ## Điểm mới của v2.79.0: máy nén khí — bảo dưỡng xong lập biên bản, giờ bảo dưỡng về 0
 
