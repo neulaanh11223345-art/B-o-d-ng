@@ -3090,3 +3090,65 @@ test('nhận định chuyền (v2.77): đánh dấu Đã xử lý lưu chung cho
   assert.equal(ok(b.call('lineInsightDone', { khoa: 'VKY01|lap|M001|', bo: true }, ql)).ndXong.bo, true);
   assert.deepEqual(ok(b.call('data', {}, ql)).ndXong, [], 'bỏ đánh dấu thì không gửi nữa');
 });
+
+test('nghiệm thu bảo dưỡng thuê ngoài (v2.78): lưu vật tư ghi bên cung cấp, hạng mục vệ sinh; mẫu dùng lại; biên bản cũ không đổi', () => {
+  const b = loadBackend({ seed: 'demo', now: '2026-11-26T03:00:00Z' });
+  const ql = b.login('NV002', '222222'), kt = b.login('NV003', '333333');
+  const sau = { chung: { nguoiA: 'TEST A', nguoiB: 'TEST B', soMay: '2' }, ketLuan: 'DAT', ky: { kyA: 'TEST A' },
+    vatTu: [{ ten: 'Lọc dầu', qc: 'TEST-LD', dv: 'cái', sl: '6', moi: 3, ben: 'A' }, { ten: 'Nhân công', dv: 'máy', sl: '2', ben: 'B' }, { ten: '', sl: '9' }, { ten: 'X', ben: 'Z' }],
+    dsMuc: [['vs1', 'Vệ sinh két làm mát', '清洁冷却器', 'vs'], ['kt1', 'Áp suất', '压力', 'kt', 'Đạt', '达标', 'bar'], ['', 'bỏ']],
+    muc: { vs1: { dg: 'D', gc: 'TEST sạch' }, kt1: { dg: 'D', so: '7.5' } } };
+  const x = ok(b.call('saveAccept', { loai: 'TN', tenTB: 'TEST Hệ thống 02 máy nén khí', donVi: 'TEST đơn vị bảo dưỡng', sau }, kt)).nghiemThu;
+  assert.equal(x.loai, 'TN');
+  assert.deepEqual(x.sau.vatTu.map((r) => [r.ten, r.sl, r.ben, r.moi]), [['Lọc dầu', '6', 'A', 3], ['Nhân công', '2', 'B', undefined], ['X', '', 'A', undefined]], 'dòng không tên bị bỏ, bên lạ thành A');
+  assert.deepEqual(x.sau.dsMuc.map((r) => r[0] + ':' + r[3]), ['vs1:vs', 'kt1:kt']);
+  assert.deepEqual([x.sau.muc.vs1.dg, x.ketLuan, x.soBB.indexOf('BBNT')], ['D', 'DAT', 0]);
+  // Sửa không gửi loại: giữ loại TN
+  assert.equal(ok(b.call('saveAccept', { id: x.id, tenTB: x.tenTB, sau }, kt)).nghiemThu.loai, 'TN');
+  // Biên bản gửi sửa kiểu cũ: loại trống, không có vatTu
+  const cu = ok(b.call('saveAccept', { tenTB: 'TEST quạt', truoc: { chung: { tenTB: 'TEST quạt' } } }, kt)).nghiemThu;
+  assert.deepEqual([cu.loai, cu.truoc.vatTu], ['', undefined]);
+  // Mẫu: Quản lý lưu, kỹ thuật không lưu được; ai được nghiệm thu thì nhận mẫu
+  err(b.call('saveAcceptTpl', { ten: 'TEST mẫu' }, kt), 'KHONG_QUYEN');
+  err(b.call('saveAcceptTpl', { ten: '' }, ql), 'THIEU_TEN');
+  const m = ok(b.call('saveAcceptTpl', { ten: 'TEST máy nén', vatTu: [['Lọc dầu', 'TEST-LD', 'cái', 3, 'A'], ['Nhân công', '', 'máy', 1, 'B'], ['', '', '', 1, 'A']], vs: [['Vệ sinh', '清洁']], kt: [['Áp suất', '压力', 'Đạt', '达标', 'bar']] }, ql)).ntMau;
+  assert.deepEqual(m.map((y) => [y.ten, y.vatTu.length, y.vs.length, y.kt.length]), [['TEST máy nén', 2, 1, 1]]);
+  assert.deepEqual(ok(b.call('data', {}, kt)).ntMau.map((y) => y.ten), ['TEST máy nén'], 'kỹ thuật nhận mẫu để lập biên bản');
+  ok(b.call('saveAcceptTpl', { ten: 'TEST máy nén', vatTu: [['Lọc khí', '', 'cái', 1, 'A']] }, ql));
+  assert.deepEqual(ok(b.call('data', {}, ql)).ntMau.map((y) => [y.ten, y.vatTu[0][0]]), [['TEST máy nén', 'Lọc khí']], 'trùng tên thì ghi đè');
+  assert.deepEqual(ok(b.call('saveAcceptTpl', { ten: 'TEST máy nén', bo: true }, ql)).ntMau, [], 'xoá mẫu');
+  // Mẫu quá dài (Script Properties ≤ 9 KB) thì báo, không ghi
+  const dai = []; for (let i = 0; i < 30; i++) dai.push(['Vật tư rất dài số ' + i + ' '.repeat(5) + 'ữ'.repeat(120), 'ữ'.repeat(70), 'cái', 1, 'A']);
+  err(b.call('saveAcceptTpl', { ten: 'TEST dài', vatTu: dai }, ql), 'MAU_DAI');
+});
+
+test('máy nén khí (v2.79): biên bản bảo dưỡng thuê ngoài kết luận Đạt → giờ bảo dưỡng từng máy về 0, mỗi máy một lần; giờ sai thì không ghi gì', () => {
+  const b = setupMNK(), id1 = b.id(1), id2 = b.id(2);
+  ok(b.call('compHour', { mnkID: id1, ngay: '2026-10-01', gio: 2950 }, b.kt));
+  ok(b.call('compHour', { mnkID: id2, ngay: '2026-10-01', gio: 3100 }, b.kt));
+  const sau = (kl) => ({ chung: { dsMay: id1 + ',' + id2, soMay: '2' }, ketLuan: kl, vatTu: [{ ten: 'Lọc dầu', sl: '6', ben: 'A' }] });
+  const mn = (u) => ok(b.call('data', {}, u)).mayNen.reduce((o, x) => { o[x.id] = x.gioBD; return o; }, {});
+  // Chưa đạt: không đặt lại
+  const x = ok(b.call('saveAccept', { loai: 'TN', ngayNT: '2026-10-05', tenTB: 'TEST 2 máy nén khí', sau: sau(''), mnkBD: [{ mnkID: id1, gio: 3000 }] }, b.kt)).nghiemThu;
+  assert.deepEqual([mn(b.kt)[id1], mn(b.kt)[id2]], [0, 0], 'chưa có kết luận Đạt thì giờ giữ nguyên');
+  // Một máy ghi giờ nhỏ hơn lần ghi trước: báo lỗi có tên máy, không máy nào bị đặt lại, biên bản không đổi
+  const e = b.call('saveAccept', { id: x.id, loai: 'TN', ngayNT: '2026-10-05', tenTB: x.tenTB, sau: sau('DAT'), mnkBD: [{ mnkID: id1, gio: 3000 }, { mnkID: id2, gio: 3000 }] }, b.kt);
+  err(e, 'GIO_GIAM');
+  assert.match(e.message, /^Máy nén khí số 2: /);
+  assert.deepEqual([mn(b.kt)[id1], mn(b.kt)[id2]], [0, 0]);
+  assert.equal(ok(b.call('data', {}, b.kt)).nghiemThu.find((y) => y.id === x.id).ketLuan, '', 'biên bản không lưu khi giờ sai');
+  // Đúng: hai máy về 0 tính từ số giờ đồng hồ, sổ giờ chạy ghi lần bảo dưỡng theo biên bản
+  const r = ok(b.call('saveAccept', { id: x.id, loai: 'TN', ngayNT: '2026-10-05', tenTB: x.tenTB, sau: sau('DAT'), mnkBD: [{ mnkID: id1, gio: 3005.5 }, { mnkID: id2, gio: 3120 }] }, b.kt));
+  assert.deepEqual([mn(b.kt)[id1], mn(b.kt)[id2]], [3005.5, 3120], 'giờ bảo dưỡng tính lại từ đồng hồ lúc bảo dưỡng');
+  assert.deepEqual(r.gioChay.map((g) => [g.mnkID, g.gio, g.nguon, g.ngay]), [[id1, 3005.5, 'BD', '2026-10-05'], [id2, 3120, 'BD', '2026-10-05']]);
+  assert.match(r.gioChay[0].ghiChu, /biên bản BBNT2026\.10\.05\/1/);
+  assert.deepEqual([r.nghiemThu.sau.chung['bd:' + id1], r.nghiemThu.sau.chung['bd:' + id2]], ['3005.5', '3120']);
+  assert.ok(r.mayNen.length, 'trả danh sách máy nén khí mới');
+  // Lưu lại biên bản (app gửi thiếu khoá bd:) — không đặt lại lần nữa, khoá vẫn giữ
+  const r2 = ok(b.call('saveAccept', { id: x.id, loai: 'TN', ngayNT: '2026-10-05', tenTB: x.tenTB, sau: sau('DAT'), mnkBD: [{ mnkID: id1, gio: 3010 }] }, b.kt));
+  assert.equal(r2.gioChay, undefined, 'máy đã đặt lại theo biên bản này thì không ghi lần nữa');
+  assert.equal(r2.nghiemThu.sau.chung['bd:' + id1], '3005.5');
+  assert.equal(ok(b.call('data', {}, b.kt)).gioChay.filter((g) => g.nguon === 'BD').length, 2);
+  // Máy lạ
+  err(b.call('saveAccept', { loai: 'TN', tenTB: 'TEST', sau: sau('DAT'), mnkBD: [{ mnkID: 'MNK999', gio: 10 }] }, b.kt), 'KHONG_CO_MAY_NEN');
+});

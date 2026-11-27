@@ -1536,8 +1536,12 @@ await page.click('#mnOk'); await wait(1200);
 assert.match(await text('#barTitle'), /Máy nén khí/, 'ghi xong quay lại danh sách');
 assert.equal(await page.evaluate((id) => mnkDS().find((m) => m.id === id).gio, idQua), Math.round(qua21[0].gio + 30));
 // Bảo dưỡng xong: đặt lại mốc giờ, đếm lại từ 0
-await page.click(`[data-act="mnkGhiMay"][data-id="${idQua}"][data-bd="1"]`); await wait(700);
-assert.equal(await page.isChecked('#mnBD'), true, 'mở từ nút Bảo dưỡng xong thì tích sẵn');
+// v2.79: nút trên thẻ máy là "Bảo dưỡng xong · lập biên bản" (bước 71); ghi nhanh không biên bản: Ghi giờ chạy → tích "Lần này là bảo dưỡng"
+assert.equal(await page.locator(`[data-act="ntbdNew"][data-mnk="${idQua}"]`).count(), 1, 'thẻ máy có nút bảo dưỡng xong · lập biên bản');
+await page.click(`[data-act="mnkGhiMay"][data-id="${idQua}"]:not([data-bd])`); await wait(700);
+assert.equal(await page.isChecked('#mnBD'), false, 'ghi giờ thường thì chưa tích bảo dưỡng');
+await page.check('#mnBD'); await wait(400);
+assert.equal(await page.isChecked('#mnBD'), true, 'tích "Lần này là bảo dưỡng"');
 await page.fill('#mnGio', String(Math.round(qua21[0].gio + 40)));
 await page.click('.mnMocI[data-i="0"]');
 await page.click('#mnOk'); await wait(1200);
@@ -3761,6 +3765,130 @@ assert.deepEqual([g69.gap, g69.ngoai], [g69.xanh, g69.can], 'chỉ bày chuyền
 const e69 = await page.evaluate(async () => { const sh = await readXlsx(await ndXlsx(30).arrayBuffer()); return (await sh[1].rows()).map((r) => (r || []).join('|')).join('\n'); });
 assert.match(e69, /Trạng thái[\s\S]*Đã xử lý \/ đã ổn[\s\S]*Đã ổn: 14 ngày không có sự cố mới/, 'Excel có trạng thái đã xử lý / đã ổn');
 ok('Bản 2.77: nhận định chuyền — vấn đề đã giải quyết (tự ổn hoặc bấm Đã xử lý) không hiện lại, không tính điểm; có số liệu mới thì báo lại; chuyền ổn định gập lại');
+
+// 70. Biên bản nghiệm thu bảo dưỡng thuê ngoài (máy nén khí): mẫu có sẵn 3 lọc dầu + 1 lọc khí + 80 lít dầu BS46 mỗi máy,
+//     chọn 2 máy thì nhân đôi; mỗi dòng vật tư ghi bên cung cấp (A nhà máy / B thuê ngoài); nhân viên tích hạng mục vệ sinh;
+//     lưu & xuất Excel song ngữ để ký; lưu làm mẫu (mã lọc điền một lần)
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('ngt'); }); await wait(600);
+assert.equal(await page.locator('[data-act="ntbdNew"]').count(), 1, 'mục Nghiệm thu có nút biên bản bảo dưỡng thuê ngoài');
+await page.click('[data-act="ntbdNew"]'); await wait(700);
+const v70 = await page.evaluate(() => topV().p.f.vatTu.map((r) => [r.ten.split(' · ')[0], r.sl, r.dv, r.ben]));
+assert.deepEqual(v70, [['Lọc dầu', '3', 'cái', 'A'], ['Lọc khí', '1', 'cái', 'A'], ['Dầu máy nén khí BS46', '80', 'lít', 'A'], ['Nhân công bảo dưỡng', '1', 'máy', 'B']], 'mẫu máy nén khí: mỗi máy 3 lọc dầu, 1 lọc khí, 80 lít dầu BS46');
+// Chọn 2 máy nén khí → số lượng nhân đôi, tên thiết bị tự ghi
+const may70 = await page.locator('[data-act="ntbdMay"]').count();
+if (may70 >= 2) { await page.click('[data-act="ntbdMay"] >> nth=0'); await wait(300); await page.click('[data-act="ntbdMay"] >> nth=1'); await wait(400); }
+else { await page.fill('[data-nc="soMay"]', '2'); await page.locator('[data-nc="soMay"]').dispatchEvent('change'); await wait(400); }
+assert.deepEqual(await page.evaluate(() => topV().p.f.vatTu.map((r) => r.sl)), ['6', '2', '160', '2'], 'hai máy: 6 lọc dầu, 2 lọc khí, 160 lít dầu');
+if (may70 >= 2) assert.match(await page.evaluate(() => topV().p.f.tenTB), /^Hệ thống 02 máy nén khí: /, 'tên thiết bị theo máy đã chọn');
+else await page.fill('[data-nf="tenTB"]', 'TEST Hệ thống 02 máy nén khí');
+// Bên B, mã lọc, bên cung cấp từng dòng
+await page.fill('[data-nf="donVi"]', 'TEST Đơn vị bảo dưỡng'); await page.fill('[data-nc="nguoiB"]', 'TEST Người bên B'); await page.fill('[data-nc="chucVuB"]', 'Kỹ thuật viên');
+await page.fill('[data-vt="0"][data-k="qc"]', 'TEST-LD-01'); await page.fill('[data-vt="1"][data-k="qc"]', 'TEST-LK-01');
+await page.click('[data-act="ntbdBen"][data-i="2"][data-v="B"]'); await wait(300);
+assert.deepEqual(await page.evaluate(() => topV().p.f.vatTu.map((r) => r.ben)), ['A', 'A', 'B', 'B'], 'chọn bên cung cấp từng dòng');
+await page.click('[data-act="ntbdBen"][data-i="2"][data-v="A"]'); await wait(300);
+// Vệ sinh: tích hết rồi bỏ một mục; thêm mục riêng; kiểm tra sau bảo dưỡng; kết luận
+await page.click('[data-act="ntbdTichHet"]'); await wait(300);
+await page.click('[data-act="ntbdDg"][data-k="vs3"][data-v="K"]'); await wait(300);
+await page.fill('#ntbdMucMoi', 'TEST vệ sinh bình tách dầu'); await page.click('[data-act="ntbdMucThem"]'); await wait(300);
+await page.click('[data-act="ntbdDg"][data-k="vs8"][data-v="D"]'); await wait(300);
+await page.fill('[data-m="kt1"][data-s="so"]', '7.5'); await page.click('[data-act="ntbdDg"][data-k="kt1"][data-v="D"]'); await wait(300);
+await page.click('[data-act="ntbdKl"][data-v="DAT"]'); await wait(300);
+assert.match(await text('#main'), /Hạng mục vệ sinh \(Bên B thực hiện\)[\s\S]*7\/8/, 'đếm hạng mục vệ sinh đã tích');
+assert.match(await text('.ntkt'), /Tiêu chuẩn[^\n]*Đạt áp suất cài đặt/, 'kiểm tra: tiêu chuẩn đúng cột');
+await page.evaluate(() => window.scrollTo(0, document.querySelector('.ntvt').getBoundingClientRect().top + window.scrollY - 240)); await wait(300);
+await shot('107-nghiem-thu-bao-duong-thue-ngoai');
+// Lưu & xuất Excel (v2.79: kết luận Đạt có máy nén khí thì cần giờ đồng hồ, hỏi lại trước khi đặt lại giờ bảo dưỡng)
+if (await page.evaluate(() => { const f = topV().p.f, ms = ntbdMayChon(f); ms.forEach((m) => { if (!String(f.chung['gio:' + m.id] || '').trim()) f.chung['gio:' + m.id] = '1000'; }); render(); return ms.length; })) page.once('dialog', (d) => d.accept());
+await page.evaluate(() => { window.__saveFile0 = window.__saveFile0 || saveFile; saveFile = async (b, n) => { window.__xuat = { b, n }; }; });
+await page.click('[data-act="ntbdXuat"]'); await wait(1500);
+const x70 = await page.evaluate(async () => {
+  const p = topV().p, x = ngtGet(p.id), r = await (await readXlsx(await window.__xuat.b.arrayBuffer()))[0].rows();
+  return { loai: x.loai, kl: x.ketLuan, n: window.__xuat.n, t: r.map((y) => (y || []).join('|')).join('\n') };
+});
+assert.deepEqual([x70.loai, x70.kl], ['TN', 'DAT'], 'lưu biên bản bảo dưỡng thuê ngoài');
+assert.match(x70.n, /^Bien-ban-nghiem-thu_BBNT\d{4}\.\d\d\.\d\d-\d+\.xlsx$/, 'tên file theo số biên bản: ' + x70.n);
+assert.match(x70.t, /BIÊN BẢN NGHIỆM THU BẢO DƯỠNG, SỬA CHỮA THIẾT BỊ[\s\S]*设备维修保养验收记录表/, 'tiêu đề song ngữ');
+assert.match(x70.t, /Bên A — Bên sử dụng thiết bị[\s\S]*CREDIBLE VIỆT NAM[\s\S]*Bên B — Đơn vị bảo dưỡng, sửa chữa[\s\S]*TEST Đơn vị bảo dưỡng/, 'hai bên');
+assert.match(x70.t, /Bên cung cấp\n提供方/, 'cột bên cung cấp');
+assert.match(x70.t, /Lọc dầu · 机油滤芯\|TEST-LD-01\|cái\|6\|Bên A \(Credible\)/, 'lọc dầu: mã, 6 cái, Bên A cấp');
+assert.match(x70.t, /Dầu máy nén khí BS46[^\n]*\|lít\|160\|Bên A/, 'dầu BS46 160 lít');
+assert.match(x70.t, /Nhân công bảo dưỡng[^\n]*\|máy\|2\|Bên B/, 'nhân công Bên B');
+assert.match(x70.t, /HẠNG MỤC VỆ SINH \(BÊN B THỰC HIỆN\)[\s\S]*☑ Đã làm[\s\S]*☐ Đã làm 已完成\n☑ Chưa làm[\s\S]*TEST vệ sinh bình tách dầu/, 'vệ sinh: đã làm / chưa làm, mục thêm riêng');
+assert.match(x70.t, /KIỂM TRA SAU BẢO DƯỠNG[\s\S]*7\.5 bar\|Đạt 合格/, 'kiểm tra sau bảo dưỡng');
+assert.match(x70.t, /☑ Đạt — đưa thiết bị vào vận hành[\s\S]*ĐẠI DIỆN BÊN A[\s\S]*ĐẠI DIỆN BÊN B[\s\S]*TEST Người bên B/, 'kết luận, chỗ ký hai bên');
+// Lưu làm mẫu: số lượng tính cho MỘT máy, giữ mã lọc → lần sau chọn mẫu là có
+await page.click('[data-act="ntbdMauMo"]'); await wait(400);
+await page.click('[data-act="ntbdMauLuu"]:not([data-bo])'); await wait(1200);
+const m70 = await page.evaluate(() => (S.base.ntMau || []).find((m) => m.ten === 'Máy nén khí trục vít'));
+assert.deepEqual(m70.vatTu.slice(0, 2).map((r) => [r[1], r[3]]), [['TEST-LD-01', 3], ['TEST-LK-01', 1]], 'mẫu lưu mã lọc, số lượng một máy');
+assert.equal(m70.vs.length, 8, 'mẫu giữ cả hạng mục vệ sinh thêm riêng');
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('ntbd'); }); await wait(600);
+assert.deepEqual(await page.evaluate(() => topV().p.f.vatTu.slice(0, 2).map((r) => [r.qc, r.sl])), [['TEST-LD-01', '3'], ['TEST-LK-01', '1']], 'biên bản mới dùng mẫu đã lưu');
+// Danh sách nghiệm thu: nhãn BD thuê ngoài, mở lại đúng màn (bỏ lọc các bước trước để lại)
+await page.evaluate(() => { while (S.stack.length > 1) back(); S.f.ngtLoc = 'all'; go('ngt'); }); await wait(600);
+const id70 = await page.evaluate(() => ngtDS().find((x) => x.loai === 'TN' && x.donVi === 'TEST Đơn vị bảo dưỡng').id);
+assert.match(await text(`[data-act="ngtMoBB"][data-id="${id70}"]`), /BD thuê ngoài[\s\S]*Đạt/, 'danh sách ghi loại và kết quả');
+await page.click(`[data-act="ngtMoBB"][data-id="${id70}"]`); await wait(600);
+assert.equal(await page.evaluate(() => topV().v + ':' + topV().p.f.vatTu[0].sl), 'ntbd:6', 'mở lại biên bản để sửa');
+// Màn Máy nén khí cũng lập được biên bản
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('mnk'); }); await wait(600);
+assert.equal(await page.locator('#main [data-act="ntbdNew"]:not([data-mnk])').count(), 1, 'màn máy nén khí có nút biên bản bảo dưỡng');
+assert.equal(await page.locator('#main [data-act="ntbdNew"][data-mnk]').count(), await page.evaluate(() => mnkHD().length), 'mỗi thẻ máy có nút bảo dưỡng xong · lập biên bản');
+await page.evaluate(async (id) => {
+  saveFile = window.__saveFile0;
+  ngtApDung(await api('deleteAccept', { id })); S.base.ntMau = (await api('saveAcceptTpl', { ten: 'Máy nén khí trục vít', bo: true })).ntMau;
+  while (S.stack.length > 1) back();
+}, id70); await wait(300);
+ok('Bản 2.78: biên bản nghiệm thu bảo dưỡng thuê ngoài — vật tư ghi bên cung cấp (mẫu máy nén khí), nhân viên tích vệ sinh, xuất Excel để ký, lưu mẫu');
+
+// 71. Máy nén khí: "Bảo dưỡng xong · lập biên bản" trên thẻ máy mở biên bản chọn sẵn máy đó, điền sẵn giờ đồng hồ;
+//     kết luận Đạt thì lưu xong giờ bảo dưỡng của máy về 0; thẻ máy ghi lần bảo dưỡng gần nhất và số biên bản
+const o71 = await page.evaluate(async () => {
+  const m = mnkHD()[0], m2 = mnkHD()[1], g = Math.round(((m.ngayGio ? m.gio : 1000) + 12) * 10) / 10;
+  mergeResult(await api('compHour', { mnkID: m.id, ngay: TODAY(), gio: g }));
+  while (S.stack.length > 1) back(); go('mnk');
+  return { id: m.id, id2: m2.id, ten: m.ten, g };
+}); await wait(700);
+assert.ok(await page.evaluate((id) => mnkOf(id).tuBD > 0, o71.id), 'máy đang có giờ chạy từ lần bảo dưỡng trước');
+await page.click(`[data-act="ntbdNew"][data-mnk="${o71.id}"]`); await wait(700);
+assert.deepEqual(await page.evaluate((id) => { const f = topV().p.f; return [topV().v, f.chung.dsMay, f.chung.soMay, f.chung['gio:' + id]]; }, o71.id), ['ntbd', o71.id, '1', String(o71.g)],
+  'mở biên bản chọn sẵn máy, điền sẵn giờ đồng hồ gần nhất');
+const moc71 = await page.evaluate((id) => { const m = mnkOf(id); return { ds: (m.mocGio || []).map((o) => o.ten), tick: [...document.querySelectorAll(`[data-moc="${id}"]`)].filter((x) => x.checked).map((x) => m.mocGio[+x.dataset.i].ten) }; }, o71.id);
+if (moc71.ds.length) assert.deepEqual(moc71.tick, moc71.ds.filter((v) => /^Thay (dầu|lọc khí)/.test(v)), 'mốc phụ khớp vật tư (dầu, lọc khí) tích sẵn, lọc tách dầu thì không: ' + JSON.stringify(moc71));
+await page.fill(`[data-nc="gio:${o71.id}"]`, String(o71.g + 3));
+await page.fill('[data-nf="donVi"]', 'TEST Đơn vị bảo dưỡng');
+await page.click('[data-act="ntbdTichHet"]'); await wait(300);
+await page.click('[data-act="ntbdKl"][data-v="DAT"]'); await wait(300);
+// Chọn thêm máy thứ hai mà bỏ trống giờ: báo thiếu, không lưu
+await page.click(`[data-act="ntbdMay"][data-id="${o71.id2}"]`); await wait(300);
+await page.fill(`[data-nc="gio:${o71.id2}"]`, '');
+await page.click('#ntbdOk'); await wait(500);
+assert.match(await text('#ntbdErr'), /Ghi giờ trên đồng hồ lúc bảo dưỡng: /, 'kết luận Đạt mà thiếu giờ đồng hồ thì báo');
+assert.equal(await page.evaluate(() => !!topV().p.id), false, 'chưa lưu');
+await page.click(`[data-act="ntbdMay"][data-id="${o71.id2}"]`); await wait(300);
+// Lưu: hỏi lại rồi đặt lại giờ bảo dưỡng
+page.once('dialog', (d) => d.accept());
+await page.click('#ntbdOk'); await wait(1500);
+const r71 = await page.evaluate((id) => { const m = mnkOf(id); return { tuBD: m.tuBD, gioBD: m.gioBD, conLai: m.conLai, ck: m.ck, f: topV().p.f.chung['bd:' + id] }; }, o71.id);
+assert.deepEqual([r71.tuBD, r71.gioBD, r71.conLai], [0, o71.g + 3, r71.ck], 'giờ bảo dưỡng về 0, tính từ số giờ đồng hồ lúc bảo dưỡng');
+assert.match(await text('.ntgio'), /Đã đặt lại giờ bảo dưỡng về 0/, 'biên bản ghi đã đặt lại');
+assert.equal(await page.locator(`[data-nc="gio:${o71.id}"]`).count(), 0, 'đã đặt lại thì không sửa giờ ở biên bản này nữa');
+await page.evaluate(() => window.scrollTo(0, document.querySelector('.ntgio').getBoundingClientRect().top + window.scrollY - 330)); await wait(300);
+await shot('108-bien-ban-dat-lai-gio-may-nen');
+// Lưu lại lần nữa: không đặt lại thêm
+await page.click('#ntbdOk'); await wait(1200);
+assert.equal(await page.evaluate((id) => mnkGcDS().filter((x) => x.mnkID === id && x.nguon === 'BD' && String(x.ghiChu || '').indexOf(topV().p.f.soBB) >= 0).length, o71.id), 1, 'mỗi biên bản chỉ đặt lại một lần');
+// Thẻ máy: lần bảo dưỡng gần nhất + số biên bản; màn máy nén khí có danh sách biên bản
+await page.evaluate(() => { while (S.stack.length > 1) back(); go('mnk'); }); await wait(700);
+const [so71, d71] = await page.evaluate(() => [ngtDS().filter((x) => x.loai === 'TN').sort((a, b) => (a.lucTao < b.lucTao ? 1 : -1))[0].soBB, fmtD(TODAY())]);
+const re71 = (v) => v.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+assert.match(await page.evaluate((id) => document.querySelector(`[data-act="ntbdNew"][data-mnk="${id}"]`).closest('.card').textContent, o71.id),
+  new RegExp('Bảo dưỡng gần nhất[\\s\\S]*' + re71(d71) + '[\\s\\S]*' + re71(so71)), 'thẻ máy ghi lần bảo dưỡng gần nhất và số biên bản');
+assert.ok(await page.locator('.mnkbb [data-act="ngtMoBB"]').count() >= 1, 'màn máy nén khí có danh sách biên bản bảo dưỡng');
+await page.evaluate((id) => { const c = document.querySelector(`[data-act="ntbdNew"][data-mnk="${id}"]`).closest('.card'); window.scrollTo(0, c.getBoundingClientRect().top + window.scrollY - 110); }, o71.id); await wait(300);
+await shot('109-may-nen-khi-bao-duong-gan-nhat');
+ok('Bản 2.79: máy nén khí — bảo dưỡng xong lập biên bản ngay trên thẻ máy; biên bản Đạt thì giờ bảo dưỡng về 0; thẻ máy ghi lần bảo dưỡng gần nhất');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

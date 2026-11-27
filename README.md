@@ -1,4 +1,4 @@
-# Credible Việt Nam CMMS · 设备管理 — v2.77.0
+# Credible Việt Nam CMMS · 设备管理 — v2.79.0
 
 App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết bị, ghi số điện/nước và kho linh kiện cho nhà máy Credible Việt Nam.
 
@@ -11,10 +11,10 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 | File | Dùng để |
 |---|---|
-| `Code.gs-v2.77.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
+| `Code.gs-v2.79.0.txt` | Mã máy chủ, dán vào Apps Script của Google Sheet |
 | `docs/` | Bộ PWA để đăng lên web (GitHub Pages): `index.html` (app thật), `demo.html` (bản xem thử), `sw.js`, `manifest.webmanifest`, `icons/` |
-| `app-v2.77.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
-| `demo-v2.77.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
+| `app-v2.79.0.html` | Giống `docs/index.html`, một file duy nhất (nếu muốn đăng ở chỗ khác) |
+| `demo-v2.79.0.html` | Bản xem thử chạy hoàn toàn trong trình duyệt, có máy chủ giả và dữ liệu mẫu |
 | `src/` | Mã nguồn: `app.html`, `Code.gs`, `sw.js`, `config.json` (link máy chủ, phiên bản), `demo/` |
 | `tools/build.mjs` | Ghép `src/` thành các file trên: `node tools/build.mjs` |
 | `tests/` | Kiểm thử máy chủ (`npm test`) và kiểm thử toàn luồng trên bản xem thử (`npm run e2e`) |
@@ -24,7 +24,7 @@ App quản lý công việc (giao việc, sửa chữa), bảo dưỡng thiết 
 
 ## Xem thử ngay (không cần cài gì)
 
-Mở `docs/demo.html` (hoặc `demo-v2.77.0.html`) bằng trình duyệt. Tài khoản mẫu:
+Mở `docs/demo.html` (hoặc `demo-v2.79.0.html`) bằng trình duyệt. Tài khoản mẫu:
 
 | Mã nhân viên | PIN | Vai trò | Xem được |
 |---|---|---|---|
@@ -40,7 +40,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Nâng cấp máy chủ từ bản cũ (giữ nguyên link)
 
 1. Mở Google Sheet đang dùng → **Tiện ích mở rộng → Apps Script**.
-2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.77.0.txt`, rồi bấm **Lưu**.
+2. Xoá hết mã cũ trong `Code.gs`, dán toàn bộ `Code.gs-v2.79.0.txt`, rồi bấm **Lưu**.
 3. Vào **Triển khai → Quản lý triển khai** → bấm bút chì → **Phiên bản: Phiên bản mới** → **Triển khai**.
    - **Không** chọn "Tùy chọn triển khai mới", vì làm vậy sẽ ra link khác.
 4. Mở app và đăng nhập. Lần tải dữ liệu đầu tiên, máy chủ sẽ tự làm hai việc:
@@ -59,7 +59,7 @@ Bản xem thử không gọi Google Dịch thật, chỉ dịch được các c�
 ## Cài mới từ đầu (chưa có bản cũ)
 
 1. Tạo **Google Sheet mới** (trống) → **Tiện ích mở rộng → Apps Script**.
-2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.77.0.txt` → **Lưu**.
+2. Xoá mã có sẵn, dán toàn bộ `Code.gs-v2.79.0.txt` → **Lưu**.
 3. Chọn hàm `caiDatBanDau` → **Chạy** → cấp quyền khi Google hỏi. Hàm này tạo các trang, 3 tài khoản đầu tiên (NV001/111111 Quản trị, NV002/222222 Quản lý, NV003/333333 Kỹ thuật) và danh sách máy mẫu của nhà máy.
 4. Chọn hàm `thuDich` → **Chạy** để kiểm tra tự dịch.
 5. **Triển khai → Tùy chọn triển khai mới** → loại **Ứng dụng web**; "Thực thi với: **Tôi**", "Người có quyền truy cập: **Bất kỳ ai**" → **Triển khai** → chép link kết thúc bằng `/exec`.
@@ -96,6 +96,36 @@ Cách gợi ý là dùng GitHub Pages, miễn phí và có https (iPhone bắt b
 - Việc chờ gửi chỉ được gửi khi app đang mở và có mạng. iOS không có gửi ngầm.
 - Không xoá icon khỏi màn hình chính khi còn việc chờ gửi. Xoá icon là mất dữ liệu đang lưu trên máy.
 - Đèn flash khi quét QR chỉ hiện khi trình duyệt cho điều khiển. Nhiều iPhone không cho, khi đó nút đèn sẽ bị ẩn.
+
+## Điểm mới của v2.79.0: máy nén khí — bảo dưỡng xong lập biên bản, giờ bảo dưỡng về 0
+
+- Mỗi thẻ máy ở màn **Máy nén khí** có nút **Bảo dưỡng xong · lập biên bản**: mở biên bản nghiệm thu bảo dưỡng thuê ngoài chọn sẵn máy đó (tên thiết bị, số máy, vật tư mẫu đã điền).
+- Trong biên bản, mỗi máy nén khí đã chọn có ô **Giờ trên đồng hồ lúc bảo dưỡng** (điền sẵn số giờ ghi gần nhất, sửa được) và các **mốc phụ làm cùng lần này** (mốc khớp vật tư được tích sẵn: "Thay dầu" ↔ dầu BS46, "Thay lọc khí" ↔ lọc khí; lọc tách dầu không thay thì không tích).
+- Lưu biên bản với kết luận **Đạt** (app hỏi lại) → **giờ bảo dưỡng của các máy đó về 0**, tính từ số giờ đồng hồ đã ghi; mốc phụ đã tích cũng về 0. Sổ giờ chạy ghi một lần *Bảo dưỡng xong* kèm số biên bản. Mỗi máy chỉ đặt lại một lần cho mỗi biên bản (lưu lại, xuất Excel lại không đặt lại thêm).
+- Máy chủ kiểm số giờ của tất cả các máy trước (không nhỏ hơn lần ghi trước, không vượt lần ghi sau): sai một máy thì báo tên máy và **không ghi gì** — biên bản và giờ các máy giữ nguyên.
+- Thẻ máy ghi **Bảo dưỡng gần nhất**: ngày, số giờ đồng hồ, số biên bản (bấm mở). Màn Máy nén khí có danh sách **Biên bản bảo dưỡng máy nén khí** gần đây.
+- Vẫn ghi nhanh được không cần biên bản: *Ghi giờ chạy* → tích "Lần này là bảo dưỡng".
+
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.79.0.txt`). Máy chủ cũ thì nút trên thẻ máy vẫn là "Bảo dưỡng xong" kiểu cũ.
+
+---
+
+## Điểm mới của v2.78.0: biên bản nghiệm thu bảo dưỡng thuê ngoài (máy nén khí)
+
+Biên bản do phía nhà máy lập khi đơn vị ngoài đến bảo dưỡng / sửa chữa tại nhà máy. Mở ở **Nghiệm thu sửa chữa → Biên bản bảo dưỡng thuê ngoài** (hoặc nút cùng tên ở màn **Máy nén khí**).
+
+- **Hai bên**: Bên A — Công ty TNHH Credible Việt Nam (bên sử dụng, nghiệm thu); Bên B — đơn vị bảo dưỡng (gõ tên công ty, app nhớ tên đã dùng). Ghi người đại diện, chức vụ.
+- **Thiết bị**: bấm chọn các máy nén khí (chọn 2 máy thì tên thiết bị tự ghi "Hệ thống 02 máy nén khí …"), hoặc gõ tay tên và số lượng máy.
+- **Vật tư & hạng mục công việc**: mỗi dòng có tên, mã / quy cách, đơn vị, số lượng và **bên cung cấp (Bên A / Bên B)**. Mẫu có sẵn *Máy nén khí trục vít*: mỗi máy **3 lọc dầu, 1 lọc khí, 80 lít dầu BS46** (Bên A cấp) và nhân công bảo dưỡng (Bên B); số lượng tự nhân theo số máy (sửa tay thì giữ số đã sửa).
+- **Hạng mục vệ sinh (Bên B thực hiện)**: nhân viên tích từng mục *Đã làm / Chưa làm* (có nút tích tất cả, thêm mục riêng, ghi chú).
+- **Kiểm tra sau bảo dưỡng**: áp suất, nhiệt độ, rò rỉ, mức dầu, chạy thử, đặt lại bộ đếm giờ — ghi số đo, Đạt / Không đạt. Kết luận và ý kiến.
+- **Lưu & xuất Excel để ký**: file song ngữ đúng dạng biên bản (quốc hiệu, hai bên, bảng vật tư có cột *Bên cung cấp*, bảng vệ sinh ☑ / ☐, kiểm tra, kết luận, chỗ ký Bên A — người nghiệm thu, trưởng bộ phận — và Bên B), khổ A4 dọc.
+- **Lưu làm mẫu** (Quản lý): lưu bảng vật tư (tính cho MỘT máy), hạng mục vệ sinh, kiểm tra — lần sau chọn mẫu là có sẵn. Mã lọc dầu / lọc khí của nhà máy: điền một lần ở cột *Mã / quy cách* rồi bấm Lưu làm mẫu.
+- Danh sách nghiệm thu ghi nhãn *BD thuê ngoài*, bấm mở lại để sửa / xuất lại.
+
+Nâng cấp: **cần dán Code.gs mới** (`Code.gs-v2.78.0.txt`). Trang `NghiemThu` tự thêm cột `Loai`; mẫu lưu trong Script Properties (`NT_MAU`). Máy chủ cũ thì nút biên bản bảo dưỡng thuê ngoài không hiện.
+
+---
 
 ## Điểm mới của v2.77.0: Nghỉ lễ, điểm danh đối chiếu Tăng ca, Nhận định chuyền gọn lại
 

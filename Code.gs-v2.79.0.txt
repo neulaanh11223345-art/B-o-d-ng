@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.77.0';
+var PHIEN_BAN = '2.79.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -115,7 +115,7 @@ var BANG = {
   // So: BBNT + năm.tháng.ngày / số thứ tự trong ngày, vd BBNT2026.10.08/3 — máy chủ tự đánh số, không trùng.
   // Truoc / Sau (JSON): { chung: {...}, muc: { mã mục: {so, A, B, C, gc, dg: D | K | NA} }, vanBan, vanBanDich, ky: {...}, ketLuan: DAT | CHUA | CHO }
   NghiemThu: ['ID', 'SoBB', 'NgayNT', 'STT', 'Ma', 'TenTB', 'DonVi', 'CvId', 'Truoc', 'Sau', 'KetLuan',
-    'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'Xoa', 'DvMay'],
+    'NguoiTao', 'UIDTao', 'LucTao', 'CapNhat', 'Xoa', 'DvMay', 'Loai'],
   // Máy nén khí: mỗi máy một dòng. Danh sách riêng vì nhà máy chỉ có MỘT mã máy "Phòng máy nén khí"
   // trong danh mục, còn giờ chạy thì tính cho từng máy.
   // Ma: mã máy trong danh mục (để trống được) · MaCT: mã công tơ nhánh của máy đó (để trống được)
@@ -437,6 +437,7 @@ function dieuHuong(a, p, req) {
     case 'deleteFault': canQuyen(u, 'may'); return xoaMaLoi(u, p);
     case 'saveAccept': canQuyen(u, 'xacnhan'); return luuNghiemThu(u, p);
     case 'deleteAccept': canQuyen(u, 'xacnhan'); return xoaNghiemThu(u, p);
+    case 'saveAcceptTpl': canQuyen(u, 'xacnhan'); canQuyen(u, 'giaoviec'); return luuNTMau(u, p);
     case 'importMin': canQuyen(u, 'may'); return nhapTonMin(u, p);
     case 'saveTask': canQuyen(u, 'ghiviec'); return luuCongViec(u, p, s(req.opId));
     case 'updateTask': canQuyen(u, 'xacnhan'); return capNhatCongViec(u, p, s(req.opId));
@@ -1030,6 +1031,7 @@ function layDuLieu(u) {
     kiemDinh: coQuyen(u, 'may') ? docKiemDinh().map(sachKD) : [],
     maLoi: coQuyen(u, 'may') ? docMaLoi().map(sachML) : [],
     nghiemThu: docNghiemThu().filter(function (x) { return !x.xoa && x.ngayNT >= tu; }).map(sachNGT),
+    ntMau: coQuyen(u, 'xacnhan') ? docNTMau() : [],
     datMua: coQuyen(u, 'xemhet') ? docDatMua().filter(function (x) { return !x.xoa && x.ngay >= tu; }).map(sachDM) : [],
     // Sản phẩm: thông tin bảo mật, chỉ gửi cho tài khoản có quyền xem sản phẩm
     sanPham: coQuyen(u, 'xemsp') ? docSanPham().filter(function (x) { return !x.xoa; }).map(sachSP) : [],
@@ -1737,26 +1739,7 @@ function ghiGioChay(u, p, opId) {
   var ds = docMayNen(), id = s(p.mnkID).toUpperCase();
   var m = ds.filter(function (x) { return x.id === id; })[0];
   if (!m) throw loi('KHONG_CO_MAY_NEN', 'Không tìm thấy máy nén khí · 找不到空压机');
-  var ngay = ngayStr(p.ngay) || homNayStr();
-  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
-  if (ngay > homNayStr()) throw loi('NGAY_TUONG_LAI', 'Không ghi giờ cho ngày mai · 不能填写未来日期');
-  if (s(p.gio) === '') throw loi('CAN_GIO', 'Cần ghi số giờ trên đồng hồ · 请填写运行小时数');
-  var gio = Number(p.gio);
-  if (isNaN(gio) || gio < 0) throw loi('GIO_SAI', 'Số giờ không hợp lệ · 运行小时数无效');
-  var cuaMay = gc.filter(function (x) { return x.mnkID === id; });
-  var truoc = null, sau = null;
-  cuaMay.forEach(function (x) {
-    if (x.ngayGhi <= ngay && (!truoc || x.ngayGhi > truoc.ngayGhi)) truoc = x;
-    if (x.ngayGhi > ngay && (!sau || x.ngayGhi < sau.ngayGhi)) sau = x;
-  });
-  if (truoc && gio < truoc.gio) {
-    throw loi('GIO_GIAM', 'Giờ chạy không được giảm: ngày ' + ngayVN(truoc.ngayGhi) + ' đã ghi '
-      + truoc.gio + ' h · 运行小时数不能减少：' + truoc.ngayGhi + ' 已记录 ' + truoc.gio + ' 小时');
-  }
-  if (sau && gio > sau.gio) {
-    throw loi('GIO_VUOT', 'Giờ chạy vượt lần ghi sau: ngày ' + ngayVN(sau.ngayGhi) + ' đã ghi '
-      + sau.gio + ' h · 超过后一次记录：' + sau.ngayGhi + ' 已记录 ' + sau.gio + ' 小时');
-  }
+  var ngay = ngayStr(p.ngay) || homNayStr(), gio = mnkKiemGio(gc, id, ngay, p.gio);
   capNhatTieuDe('GioChay');
   var nguon = MNK_NGUON.indexOf(s(p.nguon).toUpperCase()) >= 0 ? s(p.nguon).toUpperCase() : 'GHI';
   if (p.bd) nguon = 'BD';
@@ -1774,6 +1757,30 @@ function ghiGioChay(u, p, opId) {
     ghiNhatKy(u, 'BAO_DUONG_MAY_NEN', 'MayNen', m.id, '', String(gio) + ' h', catChu(p.ghiChu, 200));
   }
   return { ban: sachGC(x), gioChay: [sachGC(x)], mayNen: docMayNen().map(sachMNK) };
+}
+// Kiểm số giờ trên đồng hồ của một máy nén khí ở một ngày: không ghi ngày mai, không nhỏ hơn lần ghi trước,
+// không lớn hơn lần ghi sau. Trả số giờ, sai thì báo lỗi.
+function mnkKiemGio(gc, id, ngay, v) {
+  if (!hopLeNgay(ngay)) throw loi('NGAY_SAI', 'Ngày không hợp lệ · 日期无效');
+  if (ngay > homNayStr()) throw loi('NGAY_TUONG_LAI', 'Không ghi giờ cho ngày mai · 不能填写未来日期');
+  if (s(v) === '') throw loi('CAN_GIO', 'Cần ghi số giờ trên đồng hồ · 请填写运行小时数');
+  var gio = Number(v);
+  if (isNaN(gio) || gio < 0) throw loi('GIO_SAI', 'Số giờ không hợp lệ · 运行小时数无效');
+  var truoc = null, sau = null;
+  gc.forEach(function (x) {
+    if (x.mnkID !== id) return;
+    if (x.ngayGhi <= ngay && (!truoc || x.ngayGhi > truoc.ngayGhi)) truoc = x;
+    if (x.ngayGhi > ngay && (!sau || x.ngayGhi < sau.ngayGhi)) sau = x;
+  });
+  if (truoc && gio < truoc.gio) {
+    throw loi('GIO_GIAM', 'Giờ chạy không được giảm: ngày ' + ngayVN(truoc.ngayGhi) + ' đã ghi '
+      + truoc.gio + ' h · 运行小时数不能减少：' + truoc.ngayGhi + ' 已记录 ' + truoc.gio + ' 小时');
+  }
+  if (sau && gio > sau.gio) {
+    throw loi('GIO_VUOT', 'Giờ chạy vượt lần ghi sau: ngày ' + ngayVN(sau.ngayGhi) + ' đã ghi '
+      + sau.gio + ' h · 超过后一次记录：' + sau.ngayGhi + ' 已记录 ' + sau.gio + ' 小时');
+  }
+  return gio;
 }
 function xoaGioChay(u, p) {
   var gc = docGioChay(), id = s(p.id).toUpperCase();
@@ -2938,7 +2945,9 @@ function xoaMaLoi(u, p) {
 // Một dòng giữ cả hai phần của một lần gửi sửa: TRƯỚC khi sửa và SAU khi sửa, chung một số biên bản.
 // Số biên bản do máy chủ đánh: BBNT + năm.tháng.ngày / số thứ tự trong ngày.
 var NGT_KHOA = ['id', 'soBB', 'ngayNT', 'stt', 'ma', 'tenTB', 'donVi', 'cvId', 'truoc', 'sau', 'ketLuan',
-  'nguoiTao', 'uidTao', 'lucTao', 'capNhat', 'xoa', 'dvMay'];
+  'nguoiTao', 'uidTao', 'lucTao', 'capNhat', 'xoa', 'dvMay', 'loai'];
+// Loai: '' = gửi đi sửa ngoài (biên bản trước / sau); 'TN' = bảo dưỡng, sửa chữa thuê ngoài tại nhà máy (v2.78):
+// một phần (lưu ở Sau) có bảng vật tư ghi bên nào cung cấp, hạng mục vệ sinh bên thuê ngoài làm, kiểm tra sau bảo dưỡng
 // CHO: quạt / động cơ sửa xong đã về nhưng chưa lắp vào máy được — các mục cần chạy thử để N/A, kiểm tra sau
 var NGT_KL = ['DAT', 'CHUA', 'CHO'];
 var NGT_CHU_TOI_DA = 2000;         // mỗi ô chữ trong biên bản
@@ -2991,13 +3000,34 @@ function ngtSachPhan(v) {
   Object.keys(v.ky || {}).slice(0, 10).forEach(function (k) { ky[s(k).slice(0, 30)] = catChu(v.ky[k], 120); });
   var vb = cat(v.vanBan), vbD = s(v.vanBanDich);
   var kl = NGT_KL.indexOf(s(v.ketLuan)) >= 0 ? s(v.ketLuan) : '';
+  // Biên bản bảo dưỡng thuê ngoài (v2.78): bảng vật tư (ben: A = bên sử dụng / nhà máy, B = đơn vị thuê ngoài cung cấp)
+  // và danh sách hạng mục đi kèm biên bản (vệ sinh / kiểm tra) để in đúng những mục đã tích
+  var vt = [], dm = [];
+  (Array.isArray(v.vatTu) ? v.vatTu : []).slice(0, 40).forEach(function (r) {
+    if (!r || typeof r !== 'object') return;
+    var ten = catChu(r.ten, 150);
+    if (!ten) return;
+    var o = { ten: ten, qc: catChu(r.qc, 80), dv: catChu(r.dv, 20), sl: catChu(r.sl, 20), ben: r.ben === 'B' ? 'B' : 'A', gc: catChu(r.gc, 200) };
+    var moi = Number(r.moi);
+    if (moi > 0 && moi < 100000) o.moi = moi;
+    vt.push(o);
+  });
+  (Array.isArray(v.dsMuc) ? v.dsMuc : []).slice(0, 40).forEach(function (r) {
+    if (!Array.isArray(r)) return;
+    var k = s(r[0]).slice(0, 30), ten = catChu(r[1], 150);
+    if (!k || !ten) return;
+    dm.push([k, ten, catChu(r[2], 150), r[3] === 'kt' ? 'kt' : 'vs', catChu(r[4], 150), catChu(r[5], 150), catChu(r[6], 20)]);
+  });
   // Tab chưa ai ghi gì thì coi như chưa có phần đó, đừng tạo phần rỗng
-  var coGi = vb || kl ||
+  var coGi = vb || kl || vt.length || dm.length ||
     Object.keys(chung).some(function (k) { return chung[k] !== ''; }) ||
     Object.keys(ky).some(function (k) { return ky[k] !== ''; }) ||
     Object.keys(muc).some(function (k) { return Object.keys(muc[k]).length > 0; });
   if (!coGi) return null;
-  return { chung: chung, muc: muc, ky: ky, vanBan: vb, vanBanDich: vbD, ketLuan: kl };
+  var ra = { chung: chung, muc: muc, ky: ky, vanBan: vb, vanBanDich: vbD, ketLuan: kl };
+  if (vt.length) ra.vatTu = vt;
+  if (dm.length) ra.dsMuc = dm;
+  return ra;
 }
 function luuNghiemThu(u, p) {
   var ds = docNghiemThu(), id = s(p.id), x = id ? ds.filter(function (r) { return r.id === id; })[0] : null;
@@ -3021,14 +3051,71 @@ function luuNghiemThu(u, p) {
   }
   x.ma = ma; x.tenTB = ten; x.donVi = catChu(p.donVi, 150); x.cvId = s(p.cvId).toUpperCase();
   if (p.dvMay !== undefined) x.dvMay = catChu(p.dvMay, 80);   // quạt nào trong bản ghi gộp của chuyền
+  if (moi || p.loai !== undefined) x.loai = p.loai === 'TN' ? 'TN' : (x.loai || '');
   // Chỉ ghi đè phần nào app gửi lên, để hai người ghi hai phần không đạp lên nhau
+  // Máy nén khí đã đặt lại giờ theo biên bản này (khoá chung "bd:<mã máy nén>"): máy chủ giữ, app gửi thiếu cũng không mất
+  var bdCu = {};
+  if (x.sau && x.sau.chung) Object.keys(x.sau.chung).forEach(function (k) { if (k.indexOf('bd:') === 0) bdCu[k] = x.sau.chung[k]; });
   if (p.truoc !== undefined) x.truoc = ngtSachPhan(p.truoc);
   if (p.sau !== undefined) x.sau = ngtSachPhan(p.sau);
+  if (x.sau) Object.keys(bdCu).forEach(function (k) { x.sau.chung[k] = bdCu[k]; });
   x.ketLuan = (x.sau && x.sau.ketLuan) || '';
+  // Biên bản bảo dưỡng máy nén khí kết luận Đạt (v2.79): giờ bảo dưỡng của từng máy về 0, tính từ số giờ trên đồng hồ
+  // lúc bảo dưỡng. Mỗi máy một lần cho mỗi biên bản. Kiểm hết số giờ trước rồi mới ghi, sai một máy thì không ghi gì.
+  var bdMoi = [];
+  if (x.loai === 'TN' && x.ketLuan === 'DAT' && Array.isArray(p.mnkBD) && p.mnkBD.length) {
+    var gcDs = docGioChay(), dsMN = docMayNen();
+    p.mnkBD.slice(0, 20).forEach(function (o) {
+      var id = s(o && o.mnkID).toUpperCase();
+      if (!id || bdCu['bd:' + id] !== undefined || bdMoi.some(function (b) { return b.mnkID === id; })) return;
+      var mn = dsMN.filter(function (y) { return y.id === id; })[0];
+      if (!mn) throw loi('KHONG_CO_MAY_NEN', 'Không tìm thấy máy nén khí · 找不到空压机');
+      try { bdMoi.push({ mnkID: id, gio: mnkKiemGio(gcDs, id, x.ngayNT, o.gio), mocLam: Array.isArray(o.mocLam) ? o.mocLam : [] }); }
+      catch (e) { e.message = mn.ten + ': ' + e.message; throw e; }
+    });
+  }
   x.capNhat = bay;
+  var gcMoi = [];
+  bdMoi.forEach(function (b) {
+    var r = ghiGioChay(u, { mnkID: b.mnkID, ngay: x.ngayNT, gio: b.gio, bd: true, mocLam: b.mocLam, ghiChu: 'Bảo dưỡng theo biên bản ' + x.soBB + ' · 按验收单保养' }, '');
+    gcMoi.push(r.ban);
+    x.sau.chung['bd:' + b.mnkID] = String(b.gio);
+  });
   if (moi) themDong('NghiemThu', ngtThanhDong(x)); else suaDong('NghiemThu', x._r, ngtThanhDong(x));
   ghiNhatKy(u, moi ? 'THEM_NGHIEM_THU' : 'SUA_NGHIEM_THU', 'NghiemThu', x.id, '', x.soBB + ' · ' + x.tenTB, '');
-  return { nghiemThu: sachNGT(x) };
+  var ra = { nghiemThu: sachNGT(x) };
+  if (gcMoi.length) { ra.gioChay = gcMoi; ra.mayNen = docMayNen().map(sachMNK); }
+  return ra;
+}
+// ----- Mẫu biên bản bảo dưỡng thuê ngoài (v2.78) -----
+// Mỗi mẫu: vật tư cho MỘT máy [tên, mã/quy cách, đơn vị, số lượng, bên cấp A/B], hạng mục vệ sinh [vi, zh],
+// kiểm tra sau bảo dưỡng [vi, zh, tiêu chuẩn vi, tiêu chuẩn zh, đơn vị]. Lưu ở Script Properties (ngắn, ≤ 9 KB).
+function docNTMau() {
+  try { var v = JSON.parse(PropertiesService.getScriptProperties().getProperty('NT_MAU') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+}
+function luuNTMau(u, p) {
+  var ten = catChu(p.ten, 80);
+  if (!ten) throw loi('THIEU_TEN', 'Chưa nhập tên mẫu · 请输入模板名称');
+  var ds = docNTMau().filter(function (x) { return x.ten !== ten; });
+  if (!p.bo) {
+    var m = { ten: ten, tenZh: catChu(p.tenZh, 80), vatTu: [], vs: [], kt: [], nguoi: catChu(u.ten, 60), capNhat: thoiGianStr() };
+    (Array.isArray(p.vatTu) ? p.vatTu : []).slice(0, 30).forEach(function (r) {
+      if (!Array.isArray(r) || !catChu(r[0], 150)) return;
+      m.vatTu.push([catChu(r[0], 150), catChu(r[1], 80), catChu(r[2], 20), Math.max(0, Math.round((Number(r[3]) || 0) * 1000) / 1000), r[4] === 'B' ? 'B' : 'A']);
+    });
+    (Array.isArray(p.vs) ? p.vs : []).slice(0, 30).forEach(function (r) { if (Array.isArray(r) && catChu(r[0], 150)) m.vs.push([catChu(r[0], 150), catChu(r[1], 150)]); });
+    (Array.isArray(p.kt) ? p.kt : []).slice(0, 30).forEach(function (r) {
+      if (Array.isArray(r) && catChu(r[0], 150)) m.kt.push([catChu(r[0], 150), catChu(r[1], 150), catChu(r[2], 150), catChu(r[3], 150), catChu(r[4], 20)]);
+    });
+    ds.unshift(m);
+  }
+  ds = ds.slice(0, 20);
+  var j = JSON.stringify(ds);
+  // Script Properties: mỗi giá trị tối đa 9 KB (tính theo byte UTF-8)
+  if (encodeURIComponent(j).replace(/%[0-9A-F]{2}/g, 'x').length > 8800) throw loi('MAU_DAI', 'Mẫu quá dài, bớt mẫu cũ hoặc bớt dòng · 模板过长，请删除旧模板或减少行数');
+  PropertiesService.getScriptProperties().setProperty('NT_MAU', j);
+  ghiNhatKy(u, p.bo ? 'XOA_MAU_NT' : 'LUU_MAU_NT', 'NghiemThu', ten, '', '', 'Mẫu biên bản bảo dưỡng thuê ngoài · 外包保养验收模板');
+  return { ntMau: ds };
 }
 function xoaNghiemThu(u, p) {
   var x = docNghiemThu().filter(function (r) { return r.id === s(p.id); })[0];
