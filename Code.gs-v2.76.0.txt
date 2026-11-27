@@ -17,7 +17,7 @@
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.75.1';
+var PHIEN_BAN = '2.76.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -95,7 +95,8 @@ var BANG = {
   PhanCa: ['TuNgay', 'Nhom', 'Ca', 'NguoiID', 'Ten', 'TenZh', 'DienThoai', 'Nguoi', 'CapNhat'],
   // Điểm danh hằng ngày (v2.75): mỗi ngày một dòng. TrangThai (JSON) {uid: mã} chỉ ghi người KHÁC mặc định —
   // ngày thường mặc định đi làm, Chủ nhật mặc định nghỉ tuần. Mã: X đi làm (Chủ nhật) · M đi muộn · P nghỉ phép ·
-  // KP nghỉ không phép · O nghỉ ốm. Người nghỉ (P / KP / O) không còn trong lịch trực của ngày đó.
+  // KP nghỉ không phép · O nghỉ ốm · TC tăng ca Chủ nhật (người có ghi tăng ca Chủ nhật app tự hiện TC).
+  // Người nghỉ (P / KP / O) không còn trong lịch trực của ngày đó.
   DiemDanh: ['Ngay', 'TrangThai', 'GhiChu', 'Nguoi', 'CapNhat'],
   // Sổ kiểm định thiết bị. NghiemNgat = 1: thuộc danh mục máy, thiết bị có yêu cầu nghiêm ngặt về an toàn, vệ sinh lao động.
   // Ma: mã máy / chuyền trong danh mục (để trống nếu thiết bị không nằm trong danh mục máy, vd xe nâng, bình khí).
@@ -411,6 +412,8 @@ function dieuHuong(a, p, req) {
     case 'archiveInfo': canQuyen(u, 'caidat'); return { nam: demLuuTru(), luuTru: docLuuTru() };
     case 'archiveRun': canQuyen(u, 'caidat'); return luuTruNam(u, p);
     case 'photo': return docAnh(p);
+    case 'photos': return docNhieuAnh(p);
+    case 'productThumbs': canQuyen(u, 'xemsp'); canQuyen(u, 'suasp'); return spAnhNhoLo(u, p);
     case 'audit': canQuyen(u, 'nhatky'); return docNhatKy(p);
     case 'saveMeter': canQuyen(u, 'may'); return luuCongTo(u, p);
     case 'saveParams': canQuyen(u, 'thongso'); return luuThongSo(p);
@@ -1090,7 +1093,7 @@ function gioHM(v) {
 }
 function docLichTruc() { return docTho('LichTruc').map(ltTuDong).filter(function (x) { return x.ngay; }); }
 // ----- Điểm danh (v2.75) -----
-var DD_MA = ['X', 'M', 'P', 'KP', 'O'];
+var DD_MA = ['X', 'M', 'P', 'KP', 'O', 'TC'];   // TC: tăng ca Chủ nhật (chỉ ghi ngày Chủ nhật, v2.75.2)
 function docDiemDanh() {
   return docTho('DiemDanh').map(function (r, i) {
     return { _r: i + 2, ngay: ngayStr(r[0]), tt: docJson(r[1], {}), ghiChu: s(r[2]), nguoi: s(r[3]), capNhat: tgStr(r[4]) };
@@ -1128,7 +1131,7 @@ function luuDiemDanh(u, p) {
   var cn = new Date(ngay + 'T00:00:00Z').getUTCDay() === 0;
   Object.keys(vao).slice(0, 500).forEach(function (k) {
     var v = s(vao[k]).toUpperCase();
-    if (!co[k] || DD_MA.indexOf(v) < 0 || (!cn && v === 'X')) return;
+    if (!co[k] || DD_MA.indexOf(v) < 0 || (!cn && (v === 'X' || v === 'TC'))) return;
     tt[k] = v;
   });
   var x = docDiemDanh().filter(function (r) { return r.ngay === ngay; })[0], cu = x ? x.tt : {};
@@ -3153,14 +3156,51 @@ function spThongSo(ds) {
   });
   return out;
 }
+// Mỗi ảnh: {id, nho} — nho là ảnh nhỏ (~360px, ~25 KB) để danh sách / thẻ chuyền tải nhanh; bấm xem mới tải ảnh gốc (v2.76)
+var SP_ANH_NHO_TOI_DA = 200000;   // ký tự dataURL ảnh nhỏ
+function spAnhIdHopLe(v) { v = s(v); return /^[A-Za-z0-9_-]{10,80}$/.test(v) ? v : ''; }
+function spAnhNhoLuu(d, ten) {
+  d = String(d || '');
+  if (d.indexOf('data:image/') !== 0 || d.length > SP_ANH_NHO_TOI_DA) return '';
+  var r = luuAnhDrive(d, ten);
+  return r ? r.id : '';
+}
 function spAnh(anh, ma) {
-  var out = [];
+  var out = [], goc = 'SP_' + ma.replace(/[^\w.-]+/g, '_') + '_';
   (Array.isArray(anh) ? anh : []).slice(0, SP_ANH_TOI_DA).forEach(function (a, i) {
     if (!a) return;
-    if (a.data && String(a.data).indexOf('data:') === 0) { var r = luuAnhDrive(a.data, 'SP_' + ma.replace(/[^\w.-]+/g, '_') + '_' + (i + 1) + '.jpg'); if (r) out.push({ id: r.id }); }
-    else if (a.id && /^[A-Za-z0-9_-]{10,80}$/.test(s(a.id))) out.push({ id: s(a.id) });
+    var o = null;
+    if (a.data && String(a.data).indexOf('data:') === 0) { var r = luuAnhDrive(a.data, goc + (i + 1) + '.jpg'); if (r) o = { id: r.id }; }
+    else if (spAnhIdHopLe(a.id)) o = { id: s(a.id) };
+    if (!o) return;
+    var nho = spAnhIdHopLe(a.nho) || spAnhNhoLuu(a.nho, goc + (i + 1) + '_nho.jpg');
+    if (nho) o.nho = nho;
+    out.push(o);
   });
   return out;
+}
+// Tạo ảnh nhỏ cho ảnh đã lưu từ bản cũ: app tải ảnh gốc, thu nhỏ rồi gửi lên theo lô.
+// ds = [{id: ID sản phẩm, nho: [dataURL | '' theo thứ tự ảnh]}]. Chỉ điền chỗ còn thiếu, không đụng ảnh gốc.
+function spAnhNhoLo(u, p) {
+  var vao = Array.isArray(p.ds) ? p.ds.slice(0, 60) : [];
+  if (!vao.length) return { dsSanPham: [] };
+  capNhatTieuDe('SanPham');
+  var theoId = {}, sua = [];
+  docSanPham().forEach(function (x) { if (!x.xoa) theoId[x.id] = x; });
+  vao.forEach(function (o) {
+    var x = o && theoId[s(o.id)];
+    if (!x || !Array.isArray(o.nho)) return;
+    var doi = false;
+    (x.anh || []).forEach(function (a, i) {
+      if (!a || !a.id || a.nho || !o.nho[i]) return;
+      var n = spAnhNhoLuu(o.nho[i], 'SP_' + x.ma.replace(/[^\w.-]+/g, '_') + '_' + (i + 1) + '_nho.jpg');
+      if (n) { a.nho = n; doi = true; }
+    });
+    if (doi && sua.indexOf(x) < 0) sua.push(x);
+  });
+  sua.forEach(function (x) { suaDong('SanPham', x._r, spThanhDong(x)); });
+  if (sua.length) ghiNhatKy(u, 'ANH_NHO_SAN_PHAM', 'SanPham', '', '', sua.length + ' sản phẩm', '');
+  return { dsSanPham: sua.map(sachSP) };
 }
 function spGan(x, p, u) {
   if (p.nhom !== undefined) x.nhom = catChu(p.nhom, 60);
@@ -4748,17 +4788,39 @@ function docNhatKy(p) {
 }
 
 // ----- Ảnh công tơ / ảnh bảo dưỡng: đọc qua máy chủ (file Drive để riêng tư) -----
-function docAnh(p) {
-  var id = s(p.id);
-  if (!/^[A-Za-z0-9_-]{10,80}$/.test(id)) throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片');
+// Trả dataURL của ảnh, hoặc '' nếu không có / không nằm trong thư mục ảnh của app
+// (không cho đọc file Drive khác của chủ sheet)
+function docAnhTep(id, fid) {
+  id = s(id);
+  if (!/^[A-Za-z0-9_-]{10,80}$/.test(id)) return '';
   var f;
-  try { f = DriveApp.getFileById(id); } catch (e) { throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片'); }
-  // Chỉ trả ảnh nằm trong thư mục ảnh của app (không cho đọc file Drive khác của chủ sheet)
-  var fid = anhFolder().getId(), ok = false, it = f.getParents();
+  try { f = DriveApp.getFileById(id); } catch (e) { return ''; }
+  var ok = false, it = f.getParents();
   while (it.hasNext()) { if (it.next().getId() === fid) { ok = true; break; } }
-  if (!ok) throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片');
+  if (!ok) return '';
   var b = f.getBlob();
-  return { id: id, data: 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()) };
+  return 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes());
+}
+function docAnh(p) {
+  var d = docAnhTep(p.id, anhFolder().getId());
+  if (!d) throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片');
+  return { id: s(p.id), data: d };
+}
+// Nhiều ảnh trong một lần gọi (v2.76): mỗi lần gọi máy chủ mất ~1 giây dù ảnh nhỏ, gộp lại cho danh sách có ảnh.
+// Quá ~4 MB thì dừng, phần còn lại trả trong "con" để app gọi tiếp.
+var ANH_LO_TOI_DA = 30, ANH_LO_KICH_THUOC = 4000000;
+function docNhieuAnh(p) {
+  var ids = Array.isArray(p.ids) ? p.ids.slice(0, ANH_LO_TOI_DA) : [], fid = anhFolder().getId(), ds = [], mat = [], con = [], tong = 0;
+  ids.forEach(function (id) {
+    id = s(id);
+    if (!id) return;
+    if (tong >= ANH_LO_KICH_THUOC) { con.push(id); return; }
+    var d = docAnhTep(id, fid);
+    if (!d) { mat.push(id); return; }
+    tong += d.length;
+    ds.push({ id: id, data: d });
+  });
+  return { ds: ds, mat: mat, con: con };
 }
 function sachAnhCS(anh, tenGoc) {
   var out = [];

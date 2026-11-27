@@ -3521,9 +3521,29 @@ const u66 = await page.evaluate((id) => ddNguoi().find((n) => n.id !== id).id, d
 await page.click(`[data-act="ddDat"][data-id="${u66}"][data-v="M"]`); await wait(900);
 assert.match(await text('#main .card.pad b'), /Đi làm \d+ · Đi muộn 1 · Nghỉ 1/);
 await shot('104-diem-danh');
-// Chủ nhật: mặc định nghỉ, chỉ có Nghỉ CN / Đi làm / Đi muộn
-await page.evaluate(() => { let d = TODAY(); while (wday(d) !== 0) d = addD(d, -1); S.f.ddNgay = d; render(); }); await wait(400);
-assert.deepEqual(await page.evaluate(() => [...new Set([...document.querySelectorAll('[data-act="ddDat"]')].map((b) => b.dataset.v))]), ['CN', 'X', 'M'], 'Chủ nhật: nghỉ CN / đi làm / đi muộn');
+// Chủ nhật: mặc định nghỉ; ai có ghi tăng ca Chủ nhật (phần Tăng ca) tự hiện TC; người không có tài khoản thì bấm TC (v2.75.2)
+const cn66 = await page.evaluate(async (o) => {
+  let d = TODAY(); while (wday(d) !== 0) d = addD(d, -1);
+  mergeResult(await api('saveOT', { id: '', uid: o.uid, ngay: d, ca: 'CN', tu: '08:00', den: '17:00', soGio: 9, lyDo: 'TEST tăng ca Chủ nhật' }));
+  S.f.ddNgay = d; render(); await new Promise((r) => setTimeout(r, 400));
+  return { d, ma: ddMa(d, o.id), nut: [...new Set([...document.querySelectorAll('[data-act="ddDat"]')].map((b) => b.dataset.v))],
+    khoa: !!document.querySelector(`[data-act="ddDat"][data-id="${o.id}"][data-v="CN"]:disabled`), ghi: (document.querySelector(`.ddrow[data-id="${o.id}"] .ddtc`) || {}).textContent || '',
+    khac: ddNguoi().filter((n) => n.id !== o.id && !ddTcCN(d, n.id).length).map((n) => ddMa(d, n.id)) };
+}, d66);
+assert.deepEqual(cn66.nut, ['CN', 'TC'], 'Chủ nhật: nghỉ CN / tăng ca (TC)');
+assert.equal(cn66.ma, 'TC', 'có ghi tăng ca Chủ nhật thì tự là TC');
+assert.ok(cn66.khoa && /08:00–17:00 · 9 giờ/.test(cn66.ghi), 'ghi giờ theo phần Tăng ca, khoá nút Nghỉ CN: ' + cn66.ghi);
+assert.ok(cn66.khac.every((m) => m === 'CN'), 'người không tăng ca vẫn nghỉ CN');
+const kTK66 = await page.evaluate(() => ddNguoi().find((n) => !n.uid).id);
+await page.click(`[data-act="ddDat"][data-id="${kTK66}"][data-v="TC"]`); await wait(900);
+assert.equal(await page.evaluate((o) => ddMa(o.d, o.id), { d: cn66.d, id: kTK66 }), 'TC', 'người không có tài khoản: bấm TC');
+const xTC66 = await page.evaluate(async (o) => {
+  const sh = await readXlsx(await ddXlsx(o.d.slice(0, 7)).arrayBuffer()), r = await sh[0].rows();
+  const n = ddNguoi().find((y) => y.id === o.id), hang = r.find((x) => String(x[2] || '').indexOf(n.ten) === 0);
+  return [hang[3 + (+o.d.slice(8))], r.some((x) => /TC = tăng ca Chủ nhật/.test(String(x[0] || '')))];
+}, { d: cn66.d, id: d66.id });
+assert.deepEqual(xTC66, ['TC', true], 'Excel ghi TC ngày Chủ nhật tăng ca, có chú thích');
+await page.evaluate(async (d) => { mergeResult(await api('attendanceSet', { ngay: d, tt: {} })); }, cn66.d); await wait(300);
 // Lịch tháng: người nghỉ không còn tên trong ô ngày đó
 await page.evaluate((d) => { S.f.trucChe = 'thang'; S.f.trucThang = d.slice(0, 7); render(); }, d66.d); await wait(500);
 assert.ok(!(await page.evaluate((o) => (document.querySelector(`[data-act="trucXep"][data-d="${o.d}"]`) || { textContent: '' }).textContent.includes(o.ten.split(' ').pop()), d66)), 'lịch tháng không còn tên người nghỉ');
@@ -3547,6 +3567,85 @@ assert.match(await text('#main .ddlist'), /Nghỉ phép/, 'nhân viên xem đư�
 await logout(); await login('NV002', '222222');
 await page.evaluate(async (d) => { mergeResult(await api('attendanceSet', { ngay: d, tt: {} })); }, d66.d); await wait(300);
 ok('Bản 2.75: điểm danh hằng ngày trong Lịch trực theo tên người — nghỉ / đi muộn, người nghỉ ra khỏi lịch trực, Excel chấm công tháng, nhân viên chỉ xem');
+
+// 67. Ảnh sản phẩm nhanh: lưu kèm ảnh nhỏ, danh sách dùng ảnh nhỏ (bấm xem mở ảnh gốc), tải gộp nhiều ảnh một lần,
+//     ảnh ẩn chưa tải, lưu đệm từng ảnh trên máy; ảnh cũ chưa có ảnh nhỏ: nút Tạo ảnh nhỏ; chuyển kho đệm bản cũ
+await page.evaluate(() => { while (S.stack.length > 1) back(); }); await wait(300);
+assert.ok(await page.evaluate(() => spDS().filter((x) => x.ma === 'TEST-A100')[0].anh.every((a) => a.id && a.nho)), 'nhập ảnh hàng loạt lưu kèm ảnh nhỏ');
+const sp67 = await page.evaluate(async () => {
+  const jpg = (mau, w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.fillStyle = mau; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.fillRect(w / 4, h / 4, w / 2, h / 2); return c.toDataURL('image/jpeg', 0.8); };
+  const mau = ['#b42318', '#1d4ed8', '#15803d', '#7c3aed', '#b45309'], ids = [];
+  for (let i = 0; i < mau.length; i++) {
+    const d = await api('saveProduct', { ma: 'TEST-ANH' + i, chuyen: 'VKY02', anh: [{ data: jpg(mau[i], 1200, 800), nho: jpg(mau[i], 360, 240) }] });
+    mergeResult(d); ids.push(d.sanPham.id);
+  }
+  // Một sản phẩm ảnh lưu từ bản cũ: chưa có ảnh nhỏ
+  const cu = await api('saveProduct', { ma: 'TEST-ANHCU', chuyen: 'VKY02', anh: [{ data: jpg('#0f766e', 1200, 800) }] }); mergeResult(cu);
+  return { ids, cu: cu.sanPham.id };
+});
+// Xoá bộ nhớ ảnh để xem app tải lại thế nào; đếm số lần gọi máy chủ
+await page.evaluate(async () => {
+  Object.keys(IMG).forEach((k) => delete IMG[k]); IMG_ORDER.length = 0; imgMemTong = 0; Object.keys(IMG_WAIT).forEach((k) => delete IMG_WAIT[k]);
+  await idbAnh.clear(); IMG_MAY.idx = {};
+  window.__api0 = window.__api0 || api; window.__goi = [];
+  api = (a, p, o) => { if (a === 'photo' || a === 'photos') window.__goi.push([a, (p.ids || [p.id]).slice()]); return window.__api0(a, p, o); };
+  window.__an = document.createElement('div'); window.__an.style.display = 'none';
+  window.__an.innerHTML = '<img data-anh-id="ANHAN_KHONGTAI1" alt="">'; document.body.appendChild(window.__an);
+  S.f.spNote = {}; tab('sp');
+}); await wait(2500);
+const g67 = await page.evaluate((ids) => {
+  const x = ids.map((id) => spDS().find((y) => y.id === id));
+  const th = x.map((y) => document.querySelector(`[data-act="spMo"][data-id="${y.id}"] .spthumb`));
+  return { goi: window.__goi, nho: x.map((y) => y.anh[0].nho), full: x.map((y) => y.anh[0].id),
+    th: th.map((im) => im && [im.dataset.anhId, im.dataset.full, im.getAttribute('src').indexOf('data:image/jpeg') === 0]) };
+}, sp67.ids);
+assert.deepEqual(g67.th.map((r) => r && r[0]), g67.nho, 'danh sách dùng ảnh nhỏ');
+assert.deepEqual(g67.th.map((r) => r && r[1]), g67.full, 'bấm xem mở ảnh gốc (data-full)');
+assert.ok(g67.th.every((r) => r && r[2]), 'ảnh nhỏ đã hiện');
+const tatCa67 = g67.goi.reduce((a, r) => a.concat(r[1]), []);
+assert.ok(g67.goi.every((r) => r[0] === 'photos'), 'tải bằng lệnh gộp photos: ' + JSON.stringify(g67.goi.map((r) => r[0])));
+assert.ok(g67.goi.length <= 2 && g67.nho.every((id) => tatCa67.includes(id)), 'nhiều ảnh nhỏ tải trong 1–2 lần gọi: ' + g67.goi.length);
+assert.ok(!g67.full.some((id) => tatCa67.includes(id)), 'danh sách không tải ảnh gốc');
+assert.ok(!tatCa67.includes('ANHAN_KHONGTAI1'), 'ảnh trong phần đang ẩn chưa tải');
+// Lưu đệm trên máy từng ảnh (kho ảnh riêng): xoá bộ nhớ rồi mở lại không gọi máy chủ
+await wait(2300);
+const c67 = await page.evaluate(async (nho) => {
+  const idx = await idbAnh.get('_idx'), co = nho.map((id) => !!(idx && idx[id]));
+  Object.keys(IMG).forEach((k) => delete IMG[k]); IMG_ORDER.length = 0; imgMemTong = 0; Object.keys(IMG_WAIT).forEach((k) => delete IMG_WAIT[k]);
+  window.__goi = [];
+  const d = await napAnh(nho[0]);
+  return { co, goi: window.__goi.length, ok: d.indexOf('data:image/jpeg') === 0, cu: store.get('bd_img', null) };
+}, g67.nho);
+assert.deepEqual(c67.co, g67.nho.map(() => true), 'ảnh đã tải lưu trong kho ảnh trên máy');
+assert.deepEqual([c67.goi, c67.ok, c67.cu], [0, true, null], 'mở lại lấy từ kho trên máy, không gọi máy chủ; không còn kho đệm gộp kiểu cũ');
+// Bấm ảnh nhỏ: mở ảnh gốc
+await page.evaluate(() => { window.__goi = []; }); await wait(100);
+await page.evaluate((id) => go('spXem', { id }), sp67.ids[0]); await wait(1500);
+await page.click('#main .spimg'); await wait(1500);
+assert.equal(await page.evaluate((id) => { const im = document.querySelector('#sheetBg .lkimgbig'); return im && im.dataset.anhId === id && im.getAttribute('src') === IMG[id]; }, g67.full[0]), true, 'xem ảnh lớn là ảnh gốc');
+await page.evaluate(() => closeSheet()); await wait(300);
+// Thẻ chuyền đang sản xuất cũng dùng ảnh nhỏ
+await page.evaluate(async (id) => { mergeResult(await api('setLineProduct', { ma: 'VKY02', spId: id })); while (S.stack.length > 1) back(); go('chuyen', { ma: 'VKY02' }); }, sp67.ids[1]); await wait(1200);
+assert.deepEqual(await page.evaluate(() => { const im = document.querySelector('.chsp .chspimg'); return im && [im.dataset.anhId, im.dataset.full]; }), [g67.nho[1], g67.full[1]], 'thẻ chuyền dùng ảnh nhỏ');
+await page.evaluate(async () => { mergeResult(await api('setLineProduct', { ma: 'VKY02', spId: '' })); while (S.stack.length > 1) back(); tab('sp'); }); await wait(800);
+// Ảnh cũ chưa có ảnh nhỏ: nút Tạo ảnh nhỏ (một lần)
+assert.match(await text('#main .spnho'), /1 sản phẩm có ảnh lưu từ bản cũ, chưa có ảnh nhỏ[\s\S]*Tạo ảnh nhỏ/, 'báo ảnh cũ chưa có ảnh nhỏ');
+await shot('104-anh-nho-san-pham');
+await page.click('[data-act="spTaoNho"]'); await wait(3000);
+const n67 = await page.evaluate((id) => { const a = spDS().find((y) => y.id === id).anh[0]; return [!!a.nho, a.nho !== a.id, !!IMG[a.nho], document.querySelectorAll('#main .spnho').length]; }, sp67.cu);
+assert.deepEqual(n67, [true, true, true, 0], 'tạo ảnh nhỏ cho ảnh cũ, ghi đệm luôn, hết báo');
+// Kho đệm kiểu cũ (một khoá bd_img) chuyển sang kho ảnh riêng
+const m67 = await page.evaluate(async () => {
+  const d = 'data:image/jpeg;base64,' + btoa('TEST-ANH-CU'.repeat(20));
+  store.set('bd_img', { ids: ['TESTOLDIMG01'], d: [d] }); IMG_CACHE_LOAD(); await sleep(300);
+  return [store.get('bd_img', null), await imgMayDoc('TESTOLDIMG01') === d];
+});
+assert.deepEqual(m67, [null, true], 'chuyển ảnh đệm bản cũ sang kho ảnh riêng');
+await page.evaluate(async (ids) => {
+  api = window.__api0; window.__an.remove();
+  for (const id of ids) mergeResult(await api('deleteProduct', { id }));
+}, sp67.ids.concat([sp67.cu])); await wait(300);
+ok('Bản 2.76: ảnh sản phẩm nhanh — ảnh nhỏ cho danh sách, tải gộp, ảnh ẩn chưa tải, lưu đệm từng ảnh, tạo ảnh nhỏ cho ảnh cũ');
 
 assert.deepEqual(errs, [], 'không có lỗi JavaScript');
 await browser.close();

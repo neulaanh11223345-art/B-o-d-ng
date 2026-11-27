@@ -1084,6 +1084,8 @@ table.ctbang td:first-child,table.ctbang th:first-child{white-space:normal;min-w
 .ddchon .chip.on.dd-P,.ddchon .chip.on.dd-O{background:var(--blue);border-color:var(--blue);color:#fff}
 .ddchon .chip.on.dd-KP{background:var(--red);border-color:var(--red);color:#fff}
 .ddchon .chip.on.dd-CN{background:var(--soft);border-color:var(--line);color:var(--ink2)}
+.ddchon .chip.on.dd-TC{background:var(--green);border-color:var(--green);color:#fff}.ddchon .chip:disabled{opacity:.45}
+.ddtc{color:var(--green);margin-top:4px}
 /* Sản phẩm đang sản xuất (v2.74) */
 .chsp{margin-top:12px}.chsph{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .chsph .lb{font-weight:700;color:var(--green)}.chsph .lb .zi{display:inline;margin-left:6px}
@@ -1771,7 +1773,7 @@ const XW = (() => {
 'use strict';
 const API_URL = "";
 const MODE = "demo";
-const APP_VER = "2.75.1";
+const APP_VER = "2.76.0";
 const DemoBackend = (function () {
 // ===== Giả lập dịch vụ Google Apps Script (dùng cho bản xem thử và kiểm tra) =====
 // SpreadsheetApp, CacheService, LockService, PropertiesService, Utilities,
@@ -2170,7 +2172,7 @@ var DriveApp = (function () {
  * Số điện từ file Excel (DL_EXCEL ở cuối file) tự nhập một lần khi app tải dữ liệu lần đầu.
  * Muốn nhập lại tay: chọn hàm nhapLaiSoDienExcel → Chạy (số đã có không bị ghi đè, không tạo trùng).
  */
-var PHIEN_BAN = '2.75.1';
+var PHIEN_BAN = '2.76.0';
 var TZ = 'Asia/Ho_Chi_Minh';
 var HAN_PHIEN_NGAY = 30;           // đăng nhập giữ 30 ngày
 var LUI_TOI_DA = 366;              // xác nhận lùi ngày tối đa
@@ -2248,7 +2250,8 @@ var BANG = {
   PhanCa: ['TuNgay', 'Nhom', 'Ca', 'NguoiID', 'Ten', 'TenZh', 'DienThoai', 'Nguoi', 'CapNhat'],
   // Điểm danh hằng ngày (v2.75): mỗi ngày một dòng. TrangThai (JSON) {uid: mã} chỉ ghi người KHÁC mặc định —
   // ngày thường mặc định đi làm, Chủ nhật mặc định nghỉ tuần. Mã: X đi làm (Chủ nhật) · M đi muộn · P nghỉ phép ·
-  // KP nghỉ không phép · O nghỉ ốm. Người nghỉ (P / KP / O) không còn trong lịch trực của ngày đó.
+  // KP nghỉ không phép · O nghỉ ốm · TC tăng ca Chủ nhật (người có ghi tăng ca Chủ nhật app tự hiện TC).
+  // Người nghỉ (P / KP / O) không còn trong lịch trực của ngày đó.
   DiemDanh: ['Ngay', 'TrangThai', 'GhiChu', 'Nguoi', 'CapNhat'],
   // Sổ kiểm định thiết bị. NghiemNgat = 1: thuộc danh mục máy, thiết bị có yêu cầu nghiêm ngặt về an toàn, vệ sinh lao động.
   // Ma: mã máy / chuyền trong danh mục (để trống nếu thiết bị không nằm trong danh mục máy, vd xe nâng, bình khí).
@@ -2564,6 +2567,8 @@ function dieuHuong(a, p, req) {
     case 'archiveInfo': canQuyen(u, 'caidat'); return { nam: demLuuTru(), luuTru: docLuuTru() };
     case 'archiveRun': canQuyen(u, 'caidat'); return luuTruNam(u, p);
     case 'photo': return docAnh(p);
+    case 'photos': return docNhieuAnh(p);
+    case 'productThumbs': canQuyen(u, 'xemsp'); canQuyen(u, 'suasp'); return spAnhNhoLo(u, p);
     case 'audit': canQuyen(u, 'nhatky'); return docNhatKy(p);
     case 'saveMeter': canQuyen(u, 'may'); return luuCongTo(u, p);
     case 'saveParams': canQuyen(u, 'thongso'); return luuThongSo(p);
@@ -3243,7 +3248,7 @@ function gioHM(v) {
 }
 function docLichTruc() { return docTho('LichTruc').map(ltTuDong).filter(function (x) { return x.ngay; }); }
 // ----- Điểm danh (v2.75) -----
-var DD_MA = ['X', 'M', 'P', 'KP', 'O'];
+var DD_MA = ['X', 'M', 'P', 'KP', 'O', 'TC'];   // TC: tăng ca Chủ nhật (chỉ ghi ngày Chủ nhật, v2.75.2)
 function docDiemDanh() {
   return docTho('DiemDanh').map(function (r, i) {
     return { _r: i + 2, ngay: ngayStr(r[0]), tt: docJson(r[1], {}), ghiChu: s(r[2]), nguoi: s(r[3]), capNhat: tgStr(r[4]) };
@@ -3281,7 +3286,7 @@ function luuDiemDanh(u, p) {
   var cn = new Date(ngay + 'T00:00:00Z').getUTCDay() === 0;
   Object.keys(vao).slice(0, 500).forEach(function (k) {
     var v = s(vao[k]).toUpperCase();
-    if (!co[k] || DD_MA.indexOf(v) < 0 || (!cn && v === 'X')) return;
+    if (!co[k] || DD_MA.indexOf(v) < 0 || (!cn && (v === 'X' || v === 'TC'))) return;
     tt[k] = v;
   });
   var x = docDiemDanh().filter(function (r) { return r.ngay === ngay; })[0], cu = x ? x.tt : {};
@@ -5306,14 +5311,51 @@ function spThongSo(ds) {
   });
   return out;
 }
+// Mỗi ảnh: {id, nho} — nho là ảnh nhỏ (~360px, ~25 KB) để danh sách / thẻ chuyền tải nhanh; bấm xem mới tải ảnh gốc (v2.76)
+var SP_ANH_NHO_TOI_DA = 200000;   // ký tự dataURL ảnh nhỏ
+function spAnhIdHopLe(v) { v = s(v); return /^[A-Za-z0-9_-]{10,80}$/.test(v) ? v : ''; }
+function spAnhNhoLuu(d, ten) {
+  d = String(d || '');
+  if (d.indexOf('data:image/') !== 0 || d.length > SP_ANH_NHO_TOI_DA) return '';
+  var r = luuAnhDrive(d, ten);
+  return r ? r.id : '';
+}
 function spAnh(anh, ma) {
-  var out = [];
+  var out = [], goc = 'SP_' + ma.replace(/[^\w.-]+/g, '_') + '_';
   (Array.isArray(anh) ? anh : []).slice(0, SP_ANH_TOI_DA).forEach(function (a, i) {
     if (!a) return;
-    if (a.data && String(a.data).indexOf('data:') === 0) { var r = luuAnhDrive(a.data, 'SP_' + ma.replace(/[^\w.-]+/g, '_') + '_' + (i + 1) + '.jpg'); if (r) out.push({ id: r.id }); }
-    else if (a.id && /^[A-Za-z0-9_-]{10,80}$/.test(s(a.id))) out.push({ id: s(a.id) });
+    var o = null;
+    if (a.data && String(a.data).indexOf('data:') === 0) { var r = luuAnhDrive(a.data, goc + (i + 1) + '.jpg'); if (r) o = { id: r.id }; }
+    else if (spAnhIdHopLe(a.id)) o = { id: s(a.id) };
+    if (!o) return;
+    var nho = spAnhIdHopLe(a.nho) || spAnhNhoLuu(a.nho, goc + (i + 1) + '_nho.jpg');
+    if (nho) o.nho = nho;
+    out.push(o);
   });
   return out;
+}
+// Tạo ảnh nhỏ cho ảnh đã lưu từ bản cũ: app tải ảnh gốc, thu nhỏ rồi gửi lên theo lô.
+// ds = [{id: ID sản phẩm, nho: [dataURL | '' theo thứ tự ảnh]}]. Chỉ điền chỗ còn thiếu, không đụng ảnh gốc.
+function spAnhNhoLo(u, p) {
+  var vao = Array.isArray(p.ds) ? p.ds.slice(0, 60) : [];
+  if (!vao.length) return { dsSanPham: [] };
+  capNhatTieuDe('SanPham');
+  var theoId = {}, sua = [];
+  docSanPham().forEach(function (x) { if (!x.xoa) theoId[x.id] = x; });
+  vao.forEach(function (o) {
+    var x = o && theoId[s(o.id)];
+    if (!x || !Array.isArray(o.nho)) return;
+    var doi = false;
+    (x.anh || []).forEach(function (a, i) {
+      if (!a || !a.id || a.nho || !o.nho[i]) return;
+      var n = spAnhNhoLuu(o.nho[i], 'SP_' + x.ma.replace(/[^\w.-]+/g, '_') + '_' + (i + 1) + '_nho.jpg');
+      if (n) { a.nho = n; doi = true; }
+    });
+    if (doi && sua.indexOf(x) < 0) sua.push(x);
+  });
+  sua.forEach(function (x) { suaDong('SanPham', x._r, spThanhDong(x)); });
+  if (sua.length) ghiNhatKy(u, 'ANH_NHO_SAN_PHAM', 'SanPham', '', '', sua.length + ' sản phẩm', '');
+  return { dsSanPham: sua.map(sachSP) };
 }
 function spGan(x, p, u) {
   if (p.nhom !== undefined) x.nhom = catChu(p.nhom, 60);
@@ -6901,17 +6943,39 @@ function docNhatKy(p) {
 }
 
 // ----- Ảnh công tơ / ảnh bảo dưỡng: đọc qua máy chủ (file Drive để riêng tư) -----
-function docAnh(p) {
-  var id = s(p.id);
-  if (!/^[A-Za-z0-9_-]{10,80}$/.test(id)) throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片');
+// Trả dataURL của ảnh, hoặc '' nếu không có / không nằm trong thư mục ảnh của app
+// (không cho đọc file Drive khác của chủ sheet)
+function docAnhTep(id, fid) {
+  id = s(id);
+  if (!/^[A-Za-z0-9_-]{10,80}$/.test(id)) return '';
   var f;
-  try { f = DriveApp.getFileById(id); } catch (e) { throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片'); }
-  // Chỉ trả ảnh nằm trong thư mục ảnh của app (không cho đọc file Drive khác của chủ sheet)
-  var fid = anhFolder().getId(), ok = false, it = f.getParents();
+  try { f = DriveApp.getFileById(id); } catch (e) { return ''; }
+  var ok = false, it = f.getParents();
   while (it.hasNext()) { if (it.next().getId() === fid) { ok = true; break; } }
-  if (!ok) throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片');
+  if (!ok) return '';
   var b = f.getBlob();
-  return { id: id, data: 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()) };
+  return 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes());
+}
+function docAnh(p) {
+  var d = docAnhTep(p.id, anhFolder().getId());
+  if (!d) throw loi('KHONG_CO', 'Không tìm thấy ảnh · 找不到照片');
+  return { id: s(p.id), data: d };
+}
+// Nhiều ảnh trong một lần gọi (v2.76): mỗi lần gọi máy chủ mất ~1 giây dù ảnh nhỏ, gộp lại cho danh sách có ảnh.
+// Quá ~4 MB thì dừng, phần còn lại trả trong "con" để app gọi tiếp.
+var ANH_LO_TOI_DA = 30, ANH_LO_KICH_THUOC = 4000000;
+function docNhieuAnh(p) {
+  var ids = Array.isArray(p.ids) ? p.ids.slice(0, ANH_LO_TOI_DA) : [], fid = anhFolder().getId(), ds = [], mat = [], con = [], tong = 0;
+  ids.forEach(function (id) {
+    id = s(id);
+    if (!id) return;
+    if (tong >= ANH_LO_KICH_THUOC) { con.push(id); return; }
+    var d = docAnhTep(id, fid);
+    if (!d) { mat.push(id); return; }
+    tong += d.length;
+    ds.push({ id: id, data: d });
+  });
+  return { ds: ds, mat: mat, con: con };
 }
 function sachAnhCS(anh, tenGoc) {
   var out = [];
@@ -9409,11 +9473,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // store.get đọc từ bộ nhớ (đã nạp sẵn lúc mở app), store.set ghi ngay vào bộ nhớ rồi ghi xuống IndexedDB.
 const MEM = {};
 const IDB_KEYS = ['bd_q', 'bd_snap', 'bd_kho', 'bd_img'];
-const idb = (() => {
+function idbMo(ten) {
   let dbp = null;
   const open = () => dbp || (dbp = new Promise((res, rej) => {
     if (!('indexedDB' in window)) { rej(new Error('no idb')); return; }
-    const r = indexedDB.open('cmms', 1);
+    const r = indexedDB.open(ten, 1);
     r.onupgradeneeded = () => r.result.createObjectStore('kv');
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
   }));
@@ -9427,10 +9491,16 @@ const idb = (() => {
       c.onsuccess = () => { const x = c.result; if (x) { o[x.key] = x.value; x.continue(); } else res(o); };
       c.onerror = () => rej(c.error);
     })),
+    get: (k) => tx('readonly', (st) => st.get(k)),
     set: (k, v) => tx('readwrite', (st) => st.put(v, k)),
-    del: (k) => tx('readwrite', (st) => st.delete(k))
+    del: (k) => tx('readwrite', (st) => st.delete(k)),
+    clear: () => tx('readwrite', (st) => st.clear())
   };
-})();
+}
+const idb = idbMo('cmms');
+// Ảnh lưu đệm để kho riêng (v2.76): mỗi ảnh một khoá, chỉ đọc ảnh cần xem — không nạp hết lúc mở app,
+// không ghi lại cả kho mỗi khi thêm một ảnh. Bản thử dùng kho khác và xoá sạch mỗi lần mở.
+const idbAnh = idbMo(IS_DEMO ? 'cmms_anh_demo' : 'cmms_anh');
 const store = {
   ok: false,          // IndexedDB dùng được
   async init() {
@@ -13291,40 +13361,152 @@ Object.assign(TX, {
 });
 const ANH_TOI_DA = 8;
 // Ảnh trên Drive để riêng tư: app lấy ảnh qua máy chủ (cần đăng nhập), lưu đệm trên máy để xem lại khi mất mạng.
-// <img data-anh-id="…"> được tự nạp ảnh khi xuất hiện trên màn hình.
+// <img data-anh-id="…"> được tự nạp ảnh khi sắp hiện trên màn hình (v2.76: ảnh ở phần đang ẩn / cuộn xa chưa tải).
 const PIX = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 const IMG = {}, IMG_ORDER = [], IMG_WAIT = {};
-function IMG_CACHE_LOAD() { const o = store.get('bd_img', null); if (o && o.ids) o.ids.forEach((id, i) => { IMG[id] = o.d[i]; IMG_ORDER.push(id); }); }
-function imgCacheSave() { const ids = IMG_ORDER.slice(-80); store.set('bd_img', { ids, d: ids.map((id) => IMG[id]) }); }
+// Trong phiên giữ tối đa ~40 MB ảnh (ảnh lâu chưa xem bỏ khỏi bộ nhớ, vẫn còn trong kho trên máy);
+// kho trên máy tối đa ~120 MB, đầy thì bỏ ảnh lâu chưa xem nhất.
+const IMG_MEM_TOI_DA = 40e6, IMG_MAY_TOI_DA = 120e6;
+let imgMemTong = 0;
+function imgGiu(id, d) {
+  const j = IMG_ORDER.indexOf(id);
+  if (j >= 0) IMG_ORDER.splice(j, 1);
+  imgMemTong += d.length - (IMG[id] ? IMG[id].length : 0);
+  IMG[id] = d; IMG_ORDER.push(id);
+  while (imgMemTong > IMG_MEM_TOI_DA && IMG_ORDER.length > 1) { const k = IMG_ORDER.shift(); imgMemTong -= (IMG[k] || '').length; delete IMG[k]; }
+}
+// Kho ảnh trên máy: mục lục {id: [số ký tự, lần xem cuối]} ghi gộp sau 2 giây
+const IMG_MAY = { idx: null, p: null, hen: 0 };
+function imgMayMo() {
+  if (!IMG_MAY.p) IMG_MAY.p = (IS_DEMO ? idbAnh.clear().then(() => null) : idbAnh.get('_idx'))
+    .then((v) => { IMG_MAY.idx = v && typeof v === 'object' ? v : {}; }, () => { IMG_MAY.idx = null; });
+  return IMG_MAY.p;
+}
+function imgMayGhiIdx() {
+  clearTimeout(IMG_MAY.hen);
+  IMG_MAY.hen = setTimeout(() => { if (IMG_MAY.idx) idbAnh.set('_idx', IMG_MAY.idx).catch(() => {}); }, 2000);
+}
+function imgMayDoc(id) {
+  return imgMayMo().then(() => {
+    const idx = IMG_MAY.idx;
+    if (!idx || !idx[id]) return '';
+    return idbAnh.get(id).then((d) => {
+      if (typeof d === 'string' && d) { idx[id][1] = Date.now(); imgMayGhiIdx(); return d; }
+      delete idx[id]; imgMayGhiIdx(); return '';
+    });
+  }).catch(() => '');
+}
+function imgMayLuu(id, d) {
+  return imgMayMo().then(() => {
+    const idx = IMG_MAY.idx;
+    if (!idx || typeof d !== 'string' || d.indexOf('data:') !== 0) return;
+    idx[id] = [d.length, Date.now()];
+    idbAnh.set(id, d).catch(() => { delete idx[id]; });
+    const ks = Object.keys(idx);
+    let tong = ks.reduce((a, k) => a + idx[k][0], 0);
+    if (tong > IMG_MAY_TOI_DA) {
+      ks.sort((a, b) => idx[a][1] - idx[b][1]);
+      for (const k of ks) { if (tong <= IMG_MAY_TOI_DA * 0.85) break; if (k === id) continue; tong -= idx[k][0]; delete idx[k]; idbAnh.del(k).catch(() => {}); }
+    }
+    imgMayGhiIdx();
+  }).catch(() => {});
+}
+// Bản cũ lưu tối đa 80 ảnh trong một khoá (nạp hết lúc mở app, ghi lại hết mỗi lần thêm ảnh): chuyển sang kho ảnh rồi xoá
+function IMG_CACHE_LOAD() {
+  imgMayMo();
+  const o = store.get('bd_img', null);
+  if (o && o.ids) { o.ids.forEach((id, i) => { if (o.d && typeof o.d[i] === 'string') imgMayLuu(id, o.d[i]); }); store.del('bd_img'); }
+}
+// Tải từ máy chủ theo lô: gom ảnh cần trong 30 ms, mỗi lần gọi tối đa 12 ảnh, 2 lần gọi cùng lúc.
+// Máy chủ cũ (chưa có 'photos'): mỗi lần một ảnh, 3 lần cùng lúc.
+const IMG_HANG = [];
+let imgDangGoi = 0, imgHen = 0, imgMot = false;
+function imgXep(id) {
+  return new Promise((ok, ko) => { IMG_HANG.push({ id, ok, ko }); if (!imgHen) imgHen = setTimeout(imgGoi, 30); });
+}
+function imgGoi() {
+  imgHen = 0;
+  const mot = imgMot || srvOld('anhlo');
+  while (imgDangGoi < (mot ? 3 : 2) && IMG_HANG.length) {
+    const lo = IMG_HANG.splice(0, mot ? 1 : 12);
+    imgDangGoi++;
+    imgLayLo(lo, mot).finally(() => { imgDangGoi--; imgGoi(); });
+  }
+}
+function imgLayLo(lo, mot) {
+  const goi = mot ? api('photo', { id: lo[0].id }, { timeout: 40 }).then((d) => ({ ds: [d] }))
+    : api('photos', { ids: lo.map((x) => x.id) }, { timeout: 60 });
+  return goi.then((d) => {
+    const cho = {};
+    lo.forEach((x) => { (cho[x.id] = cho[x.id] || []).push(x); });
+    (d.ds || []).forEach((a) => { (cho[a.id] || []).forEach((x) => x.ok(a.data)); delete cho[a.id]; });
+    // Quá cỡ một lần gọi: phần còn lại xếp lên đầu hàng chờ
+    (d.con || []).filter((id) => cho[id]).reverse().forEach((id) => { IMG_HANG.unshift(...cho[id]); delete cho[id]; });
+    Object.keys(cho).forEach((id) => cho[id].forEach((x) => x.ko({ code: 'KHONG_CO' })));
+  }, (e) => {
+    if (e && e.code === 'KHONG_HIEU') {
+      if (!mot) { imgMot = true; IMG_HANG.unshift(...lo); return; }
+      lo.forEach((x) => x.ok('https://drive.google.com/uc?export=view&id=' + encodeURIComponent(x.id))); return;
+    }
+    lo.forEach((x) => x.ko(e));
+  });
+}
 function anhId(a) { if (!a) return ''; if (typeof a === 'string') return a.indexOf('data:') === 0 ? '' : a; return a.data ? '' : (a.id || ''); }
 function anhSrc(a) {
   if (!a) return '';
   if (typeof a === 'string') return a.indexOf('data:') === 0 ? a : (IMG[a] || PIX);
   if (a.data) return a.data;
-  if (a.id) return IMG[a.id] || PIX;
+  if (a.id) return IMG[a.id] || (a.nho && IMG[a.nho]) || PIX;
   return '';
 }
 // Thẻ <img> cho một ảnh (data hoặc id Drive)
 function anhImg(a, attrs) { const id = anhId(a); return `<img src="${esc(anhSrc(a))}"${id ? ` data-anh-id="${esc(id)}"` : ''} ${attrs || ''} alt="">`; }
+// Danh sách / thẻ nhỏ: dùng ảnh nhỏ (nho, ~25 KB) nếu có; bấm xem mới tải ảnh gốc (data-full)
+function anhNhoImg(a, attrs) {
+  if (!a || typeof a !== 'object' || a.data || !a.id || !a.nho) return anhImg(a, attrs);
+  return `<img src="${esc(IMG[a.nho] || PIX)}" data-anh-id="${esc(a.nho)}" data-full="${esc(a.id)}" ${attrs || ''} alt="">`;
+}
+// Ảnh: bộ nhớ → kho trên máy → máy chủ (theo lô)
 function napAnh(id) {
   if (IMG[id]) return Promise.resolve(IMG[id]);
   if (!IMG_WAIT[id]) {
-    IMG_WAIT[id] = api('photo', { id }, { timeout: 40 }).then((d) => { IMG[id] = d.data; IMG_ORDER.push(id); imgCacheSave(); return d.data; },
-      (e) => { if (e && e.code === 'KHONG_HIEU') return 'https://drive.google.com/uc?export=view&id=' + encodeURIComponent(id); throw e; })
-      .finally(() => { setTimeout(() => { delete IMG_WAIT[id]; }, 30000); });
+    IMG_WAIT[id] = imgMayDoc(id).then((d) => {
+      if (d) { imgGiu(id, d); return d; }
+      return imgXep(id).then((d2) => { if (String(d2).indexOf('data:') === 0) { imgGiu(id, d2); imgMayLuu(id, d2); } return d2; });
+    }).finally(() => { setTimeout(() => { delete IMG_WAIT[id]; }, 30000); });
   }
   return IMG_WAIT[id];
 }
+function napAnhImg(im) {
+  const id = im.dataset.anhId;
+  if (IMG[id]) { if (im.getAttribute('src') !== IMG[id]) im.src = IMG[id]; im.classList.remove('anhcho'); return; }
+  napAnh(id).then((src) => { if (im.dataset.anhId === id) im.src = src; im.classList.remove('anhcho'); })
+    .catch(() => { im.classList.remove('anhcho'); im.classList.add('anhloi'); });
+}
+// Chỉ tải ảnh sắp hiện (cách mép màn hình ~400px); ảnh trong phần đang ẩn / cuộn xa chờ tới khi hiện
+const IMG_THEO = new Set();
+const IMG_IO = 'IntersectionObserver' in window ? new IntersectionObserver((es) => {
+  es.forEach((e) => { if (e.isIntersecting || !e.target.isConnected) { IMG_IO.unobserve(e.target); IMG_THEO.delete(e.target); if (e.target.isConnected) napAnhImg(e.target); } });
+}, { rootMargin: '400px 0px' }) : null;
 function napAnhTrong(root) {
+  IMG_THEO.forEach((im) => { if (!im.isConnected) { IMG_IO.unobserve(im); IMG_THEO.delete(im); } });
   $$('img[data-anh-id]', root).forEach((im) => {
     const id = im.dataset.anhId;
     if (IMG[id]) { if (im.getAttribute('src') !== IMG[id]) im.src = IMG[id]; return; }
-    if (im.dataset.nap) return;
-    im.dataset.nap = '1'; im.classList.add('anhcho');
-    napAnh(id).then((src) => { im.src = src; im.classList.remove('anhcho'); }).catch(() => { im.classList.remove('anhcho'); im.classList.add('anhloi'); });
+    if (im.dataset.nap === id) return;
+    im.dataset.nap = id; im.classList.add('anhcho');
+    if (IMG_IO) { IMG_IO.observe(im); IMG_THEO.add(im); } else napAnhImg(im);
   });
 }
 new MutationObserver((ms) => { if (ms.some((m) => m.addedNodes.length)) napAnhTrong(document); }).observe(document.documentElement, { childList: true, subtree: true });
+// Vừa lưu ảnh lên máy chủ: ghi luôn bản đã nén vào kho ảnh theo id nhận về (khỏi tải lại)
+function anhGhiDem(gui, nhan) {
+  if (!Array.isArray(gui) || !Array.isArray(nhan) || gui.length !== nhan.length) return;
+  gui.forEach((a, i) => {
+    const b = nhan[i]; if (!a || !b) return;
+    [[a.data, b.id], [a.nho, b.nho]].forEach(([d, id]) => { if (id && typeof d === 'string' && d.indexOf('data:') === 0) { imgGiu(id, d); imgMayLuu(id, d); } });
+  });
+}
 function imgCompress(file, maxPx, maxKb) {
   return new Promise(function (resolve, reject) {
     const rd = new FileReader();
@@ -13413,6 +13595,11 @@ Object.assign(ACT, {
     else if (g && g.indexOf('ds:') === 0) { const j = +g.slice(3), x = topV().p && topV().p.ds && topV().p.ds[j]; if (x) { delete x.anhData; x.anh = ''; const cell = document.querySelector('.dsrow[data-i="' + j + '"] .anhds'); if (cell) cell.innerHTML = '<span class="acap">+</span>'; } }
   },
   anhView: (el) => {
+    const goc = el.tagName === 'IMG' && (el.dataset.full || el.dataset.anhId);
+    if (goc) {   // ảnh Drive: mở ngay (ảnh nhỏ / đang tải làm nền), ảnh gốc tự nạp vào
+      openSheet('<div class="grab"></div><img class="lkimgbig" src="' + esc(IMG[goc] || el.getAttribute('src') || PIX) + '" data-anh-id="' + esc(goc) + '" alt=""><div class="btns"><button class="btn ghost" data-act="closeSheet">' + tv('close') + '<span class="zi">' + tz('close') + '</span></button></div>');
+      return;
+    }
     let src = (el.tagName === 'IMG' && el.getAttribute('src')) || '';
     if (!src) {
       const g = el.dataset.g, i = +el.dataset.i;
@@ -20498,7 +20685,7 @@ function spChuyenChuan(v) {
 const spTimTxt = (x) => norm([x.ma, x.nhom, x.chuyen, x.ghiChu].concat((x.thongSo || []).map((r) => r.join(' '))).join(' '));
 function spRow(x) {
   const ts = (x.thongSo || []).slice(0, 2).map((r) => r[2] || r[1]).filter(Boolean).join(' · ');
-  return `<button class="row" data-act="spMo" data-id="${esc(x.id)}">${(x.anh || [])[0] ? anhImg(x.anh[0], 'class="spthumb"') : ''}
+  return `<button class="row" data-act="spMo" data-id="${esc(x.id)}">${(x.anh || [])[0] ? anhNhoImg(x.anh[0], 'class="spthumb"') : ''}
     <div class="main"><div class="nm mono" style="font-size:16px">${esc(x.ma)}</div>
       <div class="sub">${[x.nhom ? esc(x.nhom) : '', spChuyenDS(x).map((c) => `<span class="code">${esc(c)}</span>`).join(' ')].filter(Boolean).join(' · ')}</div>
       ${ts ? `<div class="sub" style="margin-top:2px">${esc(ts.length > 90 ? ts.slice(0, 90) + '…' : ts)}</div>` : ''}</div>
@@ -20515,7 +20702,9 @@ VIEWS.sp = {
         <label class="btn ghost sm filebtn">${IC.dl} ${t('spNhap')}<input type="file" id="spFile" accept=".xlsx,.xlsm,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label>
         <button class="btn ghost sm" data-act="spXuat">${IC.dl} ${t('spXuat')}</button>
         <label class="btn ghost sm filebtn">${IC.cam} ${t('spAnhNhap')}<input type="file" id="spAnhNhieu" accept=".zip,application/zip,image/*" multiple></label></div>
-        <div class="help" style="margin-top:6px">${t('spAnhNhapHelp')}</div>` : ''}</div>`;
+        <div class="help" style="margin-top:6px">${t('spAnhNhapHelp')}</div>` : ''}
+      ${sua && !srvOld('anhlo') && spThieuNho().length ? `<div class="note spnho" style="margin:10px 0 0">${t('spNhoCan', { n: spThieuNho().length })}
+        <div class="btns" style="margin-top:8px"><button class="btn sm" data-act="spTaoNho"${S.spNhoDang ? ' disabled' : ''}>${S.spNhoDang ? esc(S.spNhoDang) : `${IC.img || ''} ${t('spTaoNho')}`}</button></div></div>` : ''}</div>`;
     if (!ds.length) return o + `<div class="card empty" style="margin-top:12px">${t('spTrong')}${sua ? `<div class="help" style="margin-top:6px">${t('spTrongHelp')}</div>` : ''}</div>`;
     o += `<div class="searchbox" style="margin-top:12px">${IC.search}<input class="inp" id="spQ" type="search" value="${esc(p.q || '')}" placeholder="${esc(tp('spTim'))}" autocomplete="off"></div>
       <div class="hscroll" style="margin:10px 0 0">${[['', 'spTatCa']].map(([v, k]) => `<button class="chip${!loc ? ' on' : ''}" data-act="spLoc" data-v="${v}">${t(k)}</button>`).join('')}
@@ -20601,7 +20790,7 @@ VIEWS.spSua = {
     if (fa) fa.addEventListener('change', async () => {
       const file = fa.files && fa.files[0]; fa.value = '';
       if (!file) return;
-      try { const d = await imgCompress(file, 1600, 350); f.anh.push({ data: d }); render(); } catch (e) { toast(errMsg(e), true); }
+      try { const [d, nho] = await Promise.all([imgCompress(file, 1600, 350), imgCompress(file, 360, 28)]); f.anh.push({ data: d, nho }); render(); } catch (e) { toast(errMsg(e), true); }
     });
   }
 };
@@ -20704,6 +20893,7 @@ Object.assign(ACT, {
     try {
       const d = await api('saveProduct', { id: p.id || '', ma: f.ma.trim(), nhom: f.nhom, chuyen: f.chuyen, ngaySX: f.ngaySX, ghiChu: f.ghiChu,
         thongSo: f.thongSo.filter((r) => r[0].trim() && (r[1].trim() || r[2].trim())), anh: f.anh }, { timeout: 90 });
+      anhGhiDem(f.anh, d.sanPham && d.sanPham.anh);
       mergeResult(d);
       back(); toast(t('spDaLuu', { m: d.sanPham.ma }));
     } catch (e) { el.disabled = false; fe.innerHTML = e.code === 'MANG' ? t('needNet') : errMsg(e); fe.hidden = false; }
@@ -20752,6 +20942,10 @@ Object.assign(TX, {
     '导入图片：选择多张图片或一个 .zip 文件；图片名为产品型号（如 "ABC-123.jpg"，第二张 "ABC-123_2.jpg"）。'],
   spAnhKhop: ['{a} ảnh khớp {b} sản phẩm ({c} bản ghi)', '{a} 张图片匹配 {b} 个产品（{c} 条记录）'], spAnhKhongKhop: ['{n} ảnh không khớp mã nào', '{n} 张图片未匹配任何型号'],
   spAnhThay: ['Thay ảnh cũ', '替换旧图片'], spAnhThemVao: ['Thêm vào ảnh cũ (tối đa 3)', '追加（最多3张）'],
+  spNhoCan: ['{n} sản phẩm có ảnh lưu từ bản cũ, chưa có ảnh nhỏ — danh sách tải chậm. Bấm "Tạo ảnh nhỏ" một lần (cần mạng, khoảng 1–2 phút).',
+    '{n} 个产品的图片为旧版保存，尚无缩略图，列表加载较慢。请点击“生成缩略图”一次（需联网，约1–2分钟）。'],
+  spTaoNho: ['Tạo ảnh nhỏ', '生成缩略图'], spNhoDang: ['Đang tạo ảnh nhỏ {i}/{n}…', '正在生成缩略图 {i}/{n}…'],
+  spNhoXong: ['Đã tạo ảnh nhỏ cho {n} sản phẩm', '已为 {n} 个产品生成缩略图'],
   spAnhLuu: ['Lưu ảnh', '保存图片'], spAnhDang: ['Đang lưu ảnh {i}/{n}…', '正在保存图片 {i}/{n}…'], spAnhXong: ['Đã lưu ảnh cho {n} bản ghi', '已为 {n} 条记录保存图片'],
   spAnhTrong: ['Không thấy ảnh nào (jpg, png, webp) trong file đã chọn', '所选文件中没有图片（jpg、png、webp）']
 });
@@ -20805,7 +20999,34 @@ async function spChonAnh(e) {
     <div class="btns"><button class="btn ghost" data-act="closeSheet">${t('cancel')}</button>
       <button class="btn g" data-act="spAnhLuu"${ma.length ? '' : ' disabled'}>${IC.check} ${t('spAnhLuu')}</button></div>`);
 }
+// Ảnh lưu từ bản cũ chưa có ảnh nhỏ: tải ảnh gốc theo lô 6 sản phẩm, thu nhỏ trên máy rồi gửi lên
+const spThieuNho = () => spDS().filter((x) => (x.anh || []).some((a) => a && a.id && !a.nho));
 Object.assign(ACT, {
+  spTaoNho: async () => {
+    const ds = spThieuNho(), n = ds.length;
+    if (!n || S.spNhoDang) return;
+    // Màn có thể vẽ lại giữa chừng (nhận dữ liệu mới): ghi tiến độ vào S để nút vẽ lại vẫn khoá, vẫn hiện tiến độ
+    const tienDo = (txt) => { S.spNhoDang = txt; const b = $('[data-act="spTaoNho"]'); if (b) { b.disabled = true; b.textContent = txt; } };
+    let xong = 0;
+    try {
+      for (let i = 0; i < n; i += 6) {
+        tienDo(tv('spNhoDang', { i: Math.min(i + 6, n), n }));
+        const lo = await Promise.all(ds.slice(i, i + 6).map(async (x) => ({ id: x.id, nho: await Promise.all((x.anh || []).map(async (a) => {
+          if (!a || !a.id || a.nho) return '';
+          try { const goc = await napAnh(a.id); return goc.indexOf('data:') === 0 ? await imgCompress(tlDataBlob(goc), 360, 28) : ''; }
+          catch (e) { if (e && e.code === 'MANG') throw e; return ''; }
+        })) })));
+        const gui = lo.filter((o) => o.nho.some(Boolean));
+        if (!gui.length) continue;
+        const d = await api('productThumbs', { ds: gui }, { timeout: 120 });
+        (d.dsSanPham || []).forEach((x) => { const o = gui.find((g) => g.id === x.id); if (o) anhGhiDem(o.nho.map((v) => ({ nho: v })), (x.anh || []).map((a) => ({ nho: a.nho }))); });
+        mergeResult(d); xong += (d.dsSanPham || []).length;
+      }
+      S.spNhoDang = ''; toast(t('spNhoXong', { n: xong })); render();
+    } catch (e) {
+      S.spNhoDang = ''; toast((xong ? tv('spNhoXong', { n: xong }) + ' · ' : '') + (e && e.code === 'MANG' ? tv('needNet') : errMsg(e)), true); render();
+    }
+  },
   spAnhChe: (el) => { if (S.spAnhNhap) S.spAnhNhap.che = el.dataset.v; $$('[data-act="spAnhChe"]').forEach((b) => b.classList.toggle('on', b === el)); },
   spAnhLuu: async (el) => {
     const r = S.spAnhNhap, fe = $('#spaErr'); if (!r) return;
@@ -20820,8 +21041,10 @@ Object.assign(ACT, {
           const x = spDS().find((y) => y.id === x0.id) || x0, cu = r.che === 'them' ? (x.anh || []).slice() : [];
           if (!moi) {
             const data = [];
-            for (const a of o.anh.slice(0, 3)) data.push({ data: await imgCompress(a.file, 1600, 350) });
-            const d = await api('saveProduct', { id: x.id, ma: x.ma, anh: cu.concat(data).slice(0, 3) }, { timeout: 120 });
+            for (const a of o.anh.slice(0, 3)) data.push({ data: await imgCompress(a.file, 1600, 350), nho: await imgCompress(a.file, 360, 28) });
+            const gui = cu.concat(data).slice(0, 3);
+            const d = await api('saveProduct', { id: x.id, ma: x.ma, anh: gui }, { timeout: 120 });
+            anhGhiDem(gui, d.sanPham && d.sanPham.anh);
             mergeResult(d); xong++;
             moi = (d.sanPham.anh || []).slice(cu.length);
           } else {
@@ -20841,6 +21064,7 @@ Object.assign(ACT, {
 // Chuyền lưu ID sản phẩm (không lưu mã): dữ liệu chuyền tới mọi tài khoản, còn mã / thông số / ảnh sản phẩm chỉ tài khoản
 // có quyền "Xem sản phẩm" mới nhận — người không có quyền không đọc ra được chuyền đang chạy mã nào.
 SRV_PHAN.push(['spdang', '2.74.0', 'srvMissSpDang']);
+SRV_PHAN.push(['anhlo', '2.76.0', 'srvMissAnhLo']);
 Object.assign(TX, {
   chSpDang: ['Đang sản xuất', '正在生产'], chSpChonBtn: ['Chọn sản phẩm', '选择产品'], chSpDoi: ['Đổi sản phẩm', '更换产品'],
   chSpChua: ['Chưa chọn sản phẩm chuyền đang chạy. Bấm "Chọn sản phẩm".', '尚未选择本线在产产品。请点击“选择产品”。'],
@@ -20848,7 +21072,8 @@ Object.assign(TX, {
   chSpTu: ['từ {d}', '自 {d}'], chSpChonTD: ['Chuyền {c} đang sản xuất', '{c} 线在产产品'], chSpKhac: ['Sản phẩm khác', '其他产品'],
   chSpBo: ['Bỏ chọn (chuyền dừng)', '取消（产线停机）'], chSpDaDat: ['{c}: đang sản xuất {m}', '{c}：在产 {m}'], chSpDaBo: ['{c}: đã bỏ chọn sản phẩm', '{c}：已取消在产产品'],
   spNoteBtn: ['Hướng dẫn · Note', '作业说明'], spDangChay: ['Đang chạy', '在产'], spKhongThay2: ['Không thấy sản phẩm', '没有找到产品'],
-  srvMissSpDang: ['Máy chủ chưa lưu được sản phẩm đang sản xuất. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不能保存在产产品。请更新 Code.gs 并重新部署。']
+  srvMissSpDang: ['Máy chủ chưa lưu được sản phẩm đang sản xuất. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚不能保存在产产品。请更新 Code.gs 并重新部署。'],
+  srvMissAnhLo: ['Máy chủ chưa có ảnh nhỏ / tải ảnh gộp (ảnh sản phẩm tải chậm). Cập nhật Code.gs rồi Triển khai lại.', '服务器尚无缩略图 / 批量加载图片（产品图片加载较慢）。请更新 Code.gs 并重新部署。']
 });
 const spById = (id) => (id ? spDS().find((x) => x.id === id) || null : null);
 const chSpDang = (c) => (c && c.spDang ? spById(c.spDang) : null);
@@ -20877,7 +21102,7 @@ function chSpHtml(c) {
   if (srvOld('spdang')) return o + `<div class="help" style="margin-top:6px">${t('srvMissSpDang')}</div></div>`;
   if (!x) return o + `<div class="help" style="margin-top:6px">${t(c.spDang ? 'chSpMat' : 'chSpChua')}</div></div>`;
   S._anhViewArr = (x.anh || []).slice();
-  o += `<div class="chspb">${(x.anh || []).map((a, i) => anhImg(a, `data-act="anhView" data-i="${i}" class="chspimg"`)).join('')}</div>
+  o += `<div class="chspb">${(x.anh || []).map((a, i) => anhNhoImg(a, `data-act="anhView" data-i="${i}" class="chspimg"`)).join('')}</div>
     <div class="chspt"><button class="lnk mono" data-act="spMo" data-id="${esc(x.id)}"><b>${esc(x.ma)}</b></button>
       <div class="sub">${[x.nhom, tu.luc ? tv('chSpTu', { d: fmtD(tu.luc.slice(0, 10)) + ' ' + tu.luc.slice(11, 16) }) : '', tu.ai].filter(Boolean).map(esc).join(' · ')}</div></div>
     <div style="margin-top:8px">${spNoteBtn(k, (x.thongSo || []).length + (x.ghiChu ? 1 : 0))}</div>`;
@@ -20889,7 +21114,7 @@ function chSpChonMo(ma) {
   S.chSpQ = '';
   const ve = () => {
     const c = S.V.chByMa[ma] || {}, q = norm(S.chSpQ || ''), ds = spDS().filter((x) => !q || spTimTxt(x).includes(q));
-    const dong = (x) => `<button type="button" class="row${c.spDang === x.id ? ' on' : ''}" data-act="chSpDat" data-ma="${esc(ma)}" data-id="${esc(x.id)}">${(x.anh || [])[0] ? anhImg(x.anh[0], 'class="spthumb"') : ''}
+    const dong = (x) => `<button type="button" class="row${c.spDang === x.id ? ' on' : ''}" data-act="chSpDat" data-ma="${esc(ma)}" data-id="${esc(x.id)}">${(x.anh || [])[0] ? anhNhoImg(x.anh[0], 'class="spthumb"') : ''}
       <div class="main"><div class="nm mono">${esc(x.ma)}</div><div class="sub">${[x.nhom ? esc(x.nhom) : '', spChuyenDS(x).map((cc) => `<span class="code">${esc(cc)}</span>`).join(' ')].filter(Boolean).join(' · ')}</div></div>
       ${c.spDang === x.id ? `<span class="pill p-ok">${esc(tv('spDangChay'))}</span>` : ''}</button>`;
     const cua = ds.filter((x) => spChuyenDS(x).includes(ma)), khac = ds.filter((x) => !spChuyenDS(x).includes(ma));
@@ -23350,24 +23575,32 @@ SRV_PHAN.push(['diemdanh', '2.75.0', 'srvMissDD']);
 Object.assign(TX, {
   trucCheDD: ['Điểm danh', '考勤'],
   dd_X: ['Đi làm', '出勤'], dd_M: ['Đi muộn', '迟到'], dd_P: ['Nghỉ phép', '事假/年假'], dd_KP: ['Nghỉ không phép', '旷工'], dd_O: ['Nghỉ ốm', '病假'],
-  dd_CN: ['Nghỉ Chủ nhật', '周日休息'],
+  dd_CN: ['Nghỉ Chủ nhật', '周日休息'], dd_TC: ['Tăng ca CN (TC)', '周日加班'], ddKyHieu_TC: ['TC'],
+  ddTheoTC: ['Theo phần Tăng ca: {g} · {h} giờ', '按加班登记：{g} · {h}小时'],
   ddKyHieu_X: ['X'], ddKyHieu_M: ['M'], ddKyHieu_P: ['P'], ddKyHieu_KP: ['KP'], ddKyHieu_O: ['Ô'], ddKyHieu_CN: ['CN'],
   ddHomNay: ['Hôm nay', '今天'], ddTomTat: ['Đi làm {a} · Đi muộn {b} · Nghỉ {c}', '出勤 {a} · 迟到 {b} · 请假 {c}'],
   ddHelp: ['Mặc định ngày thường mọi người đi làm, Chủ nhật nghỉ. Bấm vào người nghỉ để chọn Nghỉ phép / Không phép / Ốm, hoặc Đi muộn. Người nghỉ tự ra khỏi lịch trực ngày đó.',
     '默认工作日全员出勤，周日休息。点击请假人员选择事假/旷工/病假，或迟到。请假人员自动移出当天值班表。'],
-  ddCnHelp: ['Chủ nhật: mặc định nghỉ. Ai đi làm thì bấm Đi làm (hoặc Đi muộn).', '周日：默认休息。上班人员请点击出勤（或迟到）。'],
+  ddCnHelp: ['Chủ nhật: mặc định nghỉ. Ai có ghi tăng ca Chủ nhật ở phần Tăng ca thì tự hiện TC; người không có tài khoản thì bấm Tăng ca CN (TC).',
+    '周日：默认休息。在加班登记中有周日加班的人自动显示TC；无账号人员请点击“周日加班（TC）”。'],
   ddChiXem: ['Bảng điểm danh do Quản lý ghi; bạn chỉ xem.', '考勤由主管录入；您只能查看。'],
   ddTrucHomNay: ['Trực', '值班'], ddNghiTruc: ['Người này {m} ngày này nên không có trong lịch trực. Chọn người khác để trực.', '此人当天{m}，不在值班表中。请另选值班人。'],
   ddMatTruc: ['{n} người trực ngày này đã nghỉ — ngày này cần xếp người trực khác', '当天{n}名值班人请假——需另行安排值班'],
   ddXepLai: ['Xếp lại người trực', '重新安排值班'],
   ddThang: ['Tổng hợp tháng {m}/{y}', '{y}年{m}月汇总'], ddXuat: ['Xuất Excel chấm công tháng', '导出月度考勤Excel'],
-  ddCong: ['Công', '出勤天数'], ddMuon: ['Muộn', '迟到'], ddCnLam: ['CN đi làm', '周日出勤'],
+  ddCong: ['Công', '出勤天数'], ddMuon: ['Muộn', '迟到'], ddCnLam: ['TC Chủ nhật', '周日加班'],
   ddLuu: ['Đã ghi: {t} — {m}', '已记录：{t} — {m}'], ddTuongLai: ['Chưa tới ngày này', '尚未到这一天'],
   srvMissDD: ['Máy chủ chưa có điểm danh. Cập nhật Code.gs rồi Triển khai lại.', '服务器尚无考勤功能。请更新 Code.gs 并重新部署。']
 });
 const DD_NGHI = ['P', 'KP', 'O'];
 // Mã của một người trong một ngày: lưu riêng thì theo mã đó, không thì mặc định (Chủ nhật CN, ngày thường X)
-const ddMa = (ngay, id) => ((S.V && S.V.dd && S.V.dd[ngay]) || {})[id] || (wday(ngay) === 0 ? 'CN' : 'X');
+// Chủ nhật (v2.75.2): người có ghi tăng ca ngày đó ở phần Tăng ca (theo tài khoản đã nối) tự là TC — tăng ca Chủ nhật
+function ddTcCN(ngay, id) {
+  if (wday(ngay) !== 0) return [];
+  const n = ddNguoi().find((x) => x.id === id), uid = n ? n.uid : id;
+  return uid ? ((S.V && S.V.tc) || []).filter((x) => x.uid === uid && x.ngay === ngay) : [];
+}
+const ddMa = (ngay, id) => ((S.V && S.V.dd && S.V.dd[ngay]) || {})[id] || (wday(ngay) === 0 ? (ddTcCN(ngay, id).length ? 'TC' : 'CN') : 'X');
 // Người trong bảng điểm danh (v2.75.1): danh sách theo TÊN do Quản lý lập (không theo tài khoản — tài khoản có thể
 // đặt theo vai trò). Mỗi người có thể nối với một tài khoản app để người nghỉ tự ra khỏi lịch trực.
 const ddNguoi = () => ((S.base && S.base.caiDat && S.base.caiDat.ddNguoi) || []).filter((n) => n && n.ten);
@@ -23382,11 +23615,11 @@ function ddTT(n) {
 }
 const ddSua = () => trucSua() && !srvOld('diemdanh');
 const ddNgayHT = () => S.f.ddNgay || TODAY();
-const DD_PILL = { X: 'p-ok', M: 'p-nay', P: 'p-sap', KP: 'p-qua', O: 'p-sap', CN: 'p-off' };
+const DD_PILL = { X: 'p-ok', M: 'p-nay', P: 'p-sap', KP: 'p-qua', O: 'p-sap', CN: 'p-off', TC: 'p-ok' };
 function ddHtml() {
   const ngay = ddNgayHT(), cn = wday(ngay) === 0, sua = ddSua(), ds = ddNguoi(), today = TODAY();
   const tl = ngay > today, ma = (n) => ddMa(ngay, n.id);
-  const nLam = ds.filter((n) => ['X', 'M'].indexOf(ma(n)) >= 0).length, nMuon = ds.filter((n) => ma(n) === 'M').length;
+  const nLam = ds.filter((n) => ['X', 'M', 'TC'].indexOf(ma(n)) >= 0).length, nMuon = ds.filter((n) => ma(n) === 'M').length;
   const nNghi = ds.filter((n) => DD_NGHI.indexOf(ma(n)) >= 0).length;
   const truc = trucNgayGoc(ngay).filter((x) => x.uid), mat = truc.filter((x) => ddNghi(ngay, x.uid));
   let o = `<div class="caltools"><div class="stepper">
@@ -23404,20 +23637,22 @@ function ddHtml() {
   if (mat.length) o += `<div class="note warn" style="margin-top:10px"><b>${esc(tv('ddMatTruc', { n: mat.length }))}</b> <span class="zi">${esc(tz('ddMatTruc', { n: mat.length }))}</span>
     <div class="sub">${esc(mat.map((x) => ((ddCuaTK(x.uid) || {}).ten || x.ten) + ' · ' + tv('dd_' + ddMaUid(ngay, x.uid))).join(', '))}</div>
     ${trucSua() ? `<div class="btns" style="margin-top:8px"><button class="btn sm" data-act="trucXep" data-d="${esc(ngay)}">${IC.users} ${t('ddXepLai')}</button></div>` : ''}</div>`;
-  const chon = cn ? ['CN', 'X', 'M'] : ['X', 'M', 'P', 'KP', 'O'];
+  const chon = cn ? ['CN', 'TC'] : ['X', 'M', 'P', 'KP', 'O'];
+  const tuTC = (n) => cn && !((S.V.dd || {})[ngay] || {})[n.id] && ddTcCN(ngay, n.id).length > 0;
   o += `<div class="list ddlist" style="margin-top:10px">${ds.map((n) => {
     const m = ma(n), coTruc = !!n.uid && truc.some((x) => x.uid === n.uid), tt = ddTT(n);
     return `<div class="row ddrow" data-id="${esc(n.id)}"><div class="main"><div class="nm">${esc(n.ten)}${tt.tenZh && tt.tenZh !== n.ten ? ` <span class="zi" lang="zh-CN">${esc(tt.tenZh)}</span>` : ''}
         ${coTruc && !DD_NGHI.includes(m) ? `<span class="pill p-ok" style="margin-left:6px">${esc(tv('ddTrucHomNay'))}</span>` : ''}</div>
-      ${sua ? `<div class="ddchon">${chon.map((k) => `<button type="button" class="chip sm${m === k ? ' on dd-' + k : ''}" data-act="ddDat" data-id="${esc(n.id)}" data-v="${k}">${esc(tv('dd_' + k))}</button>`).join('')}</div>`
-        : `<div class="sub mono">${esc([tt.maThe, tt.chucVu].filter(Boolean).join(' · '))}</div>`}</div>
+      ${sua ? `<div class="ddchon">${chon.map((k) => `<button type="button" class="chip sm${m === k ? ' on dd-' + k : ''}" data-act="ddDat" data-id="${esc(n.id)}" data-v="${k}"${tuTC(n) && k === 'CN' ? ' disabled' : ''}>${esc(tv('dd_' + k))}</button>`).join('')}</div>`
+        : `<div class="sub mono">${esc([tt.maThe, tt.chucVu].filter(Boolean).join(' · '))}</div>`}
+      ${tuTC(n) ? `<div class="sub ddtc">${esc(tv('ddTheoTC', { g: ddTcCN(ngay, n.id).map((x) => x.tu + '–' + x.den).join(', '), h: tcSo(tcCong(ddTcCN(ngay, n.id))) }))}</div>` : ''}</div>
       ${sua ? '' : `<div class="end"><span class="pill ${DD_PILL[m]}">${esc(tv('dd_' + m))}</span></div>`}</div>`;
   }).join('')}</div>`;
   // Tổng hợp tháng của ngày đang xem
   const ym = ngay.slice(0, 7), [y, mo] = ym.split('-').map(Number), th = ddThangDS(ym);
   o += sec('ddThang', '', { m: mo, y }) + `<div class="dtwrap ddthang"><table class="dt"><thead><tr><th>${esc(tv('tcHoTen'))}<small>${esc(tz('tcHoTen'))}</small></th>
     ${['ddCong', 'ddMuon', 'dd_P', 'dd_KP', 'dd_O', 'ddCnLam'].map((k) => `<th class="num">${esc(tv(k))}<small>${esc(tz(k))}</small></th>`).join('')}</tr></thead>
-    <tbody>${th.map((r) => `<tr><td><b>${esc(r.n.ten)}</b></td>${['cong', 'M', 'P', 'KP', 'O', 'cnLam'].map((k) => `<td class="num mono">${r[k] || (k === 'cong' ? 0 : '—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <tbody>${th.map((r) => `<tr><td><b>${esc(r.n.ten)}</b></td>${['cong', 'M', 'P', 'KP', 'O', 'TC'].map((k) => `<td class="num mono">${r[k] || (k === 'cong' ? 0 : '—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     <div class="btns" style="margin-top:12px"><button class="btn ghost" data-act="ddXuat" data-m="${ym}">${IC.dl} ${t('ddXuat')}</button></div>`;
   return o;
 }
@@ -23425,13 +23660,14 @@ function ddHtml() {
 function ddThangDS(ym) {
   const [y, mo] = ym.split('-').map(Number), nd = new Date(y, mo, 0).getDate(), today = TODAY();
   return ddNguoi().map((n) => {
-    const r = { n, cong: 0, M: 0, P: 0, KP: 0, O: 0, cnLam: 0, ngay: [] };
+    const r = { n, cong: 0, M: 0, P: 0, KP: 0, O: 0, TC: 0, ngay: [] };
     for (let i = 1; i <= nd; i++) {
       const d = ym + '-' + pad2(i);
       if (d > today) { r.ngay.push(''); continue; }
       const m = ddMa(d, n.id); r.ngay.push(m);
-      if (m === 'X' || m === 'M') { r.cong++; if (wday(d) === 0) r.cnLam++; }
-      if (r[m] !== undefined && m !== 'X') r[m]++;
+      if (wday(d) === 0) { if (m === 'TC' || m === 'X' || m === 'M') r.TC++; continue; }
+      if (m === 'X' || m === 'M') r.cong++;
+      if (r[m] !== undefined && m !== 'X' && m !== 'TC') r[m]++;
     }
     return r;
   });
@@ -23440,14 +23676,14 @@ function ddThangDS(ym) {
 function ddXlsx(ym) {
   const [y, mo] = ym.split('-').map(Number), nd = new Date(y, mo, 0).getDate(), ds = ddThangDS(ym);
   const H = { b: 1, fill: '#1E3A6E', color: '#FFFFFF', align: 'center', valign: 'center', wrap: 1, border: '#5B6B8A' };
-  const CNF = { fill: '#FDECEA' }, MAU = { M: { color: '#B45309', b: 1 }, P: { color: '#1D4ED8', b: 1 }, KP: { color: '#B42318', b: 1 }, O: { color: '#7C3AED', b: 1 } };
+  const CNF = { fill: '#FDECEA' }, MAU = { M: { color: '#B45309', b: 1 }, P: { color: '#1D4ED8', b: 1 }, KP: { color: '#B42318', b: 1 }, O: { color: '#7C3AED', b: 1 }, TC: { color: '#15803D', b: 1 } };
   const c = (v, x) => ({ v: v === undefined || v === null ? '' : v, s: Object.assign({ valign: 'center', align: 'center', border: true }, x || {}) });
   const cd = (S.base && S.base.caiDat) || {}, dem = {};
   ds.forEach((r) => { const b0 = ddTT(r.n).boPhan; if (b0) dem[b0] = (dem[b0] || 0) + 1; });
   const bp0 = Object.keys(dem).sort((a, b) => dem[b] - dem[a])[0] || '';
   const bp = cd.ddBoPhan || bp0, bpZh = cd.ddBoPhan ? cd.ddBoPhanZh || '' : ((ds.find((r) => ddTT(r.n).boPhan === bp0) || {}).n ? ddTT(ds.find((r) => ddTT(r.n).boPhan === bp0).n).boPhanZh : '');
   const ngay = []; for (let i = 1; i <= nd; i++) ngay.push(ym + '-' + pad2(i));
-  const TONG = [['ddCong', 'cong'], ['ddMuon', 'M'], ['dd_P', 'P'], ['dd_KP', 'KP'], ['dd_O', 'O'], ['ddCnLam', 'cnLam']];
+  const TONG = [['ddCong', 'cong'], ['ddMuon', 'M'], ['dd_P', 'P'], ['dd_KP', 'KP'], ['dd_O', 'O'], ['ddCnLam', 'TC']];
   const rows = [[{ v: 'BẢNG CHẤM CÔNG THÁNG ' + mo + '/' + y + ' · ' + y + '年' + mo + '月考勤表', s: { b: 1, sz: 14 } }],
     [{ v: 'Bộ phận · 部门: ' + (bp || '—') + (bpZh ? ' · ' + bpZh : ''), s: { b: 1 } }], [],
     [c('STT\n序号', H), c('Mã thẻ\n工号', H), c('Họ và tên\n姓名', H), c('Chức vụ\n职位', H)].concat(ngay.map((d) => c(+d.slice(8), H)), TONG.map(([k]) => c(tv(k) + '\n' + tz(k), H))),
@@ -23458,7 +23694,7 @@ function ddXlsx(ym) {
       .concat(r.ngay.map((m, j) => c(m ? tv('ddKyHieu_' + m) : '', Object.assign({}, wday(ngay[j]) === 0 ? CNF : {}, MAU[m] || {}))), TONG.map(([, k]) => c(r[k] || 0, { b: 1 }))));
   });
   rows.push([]);
-  rows.push([{ v: 'Ký hiệu · 符号:  X = đi làm 出勤 · M = đi muộn 迟到 · P = nghỉ phép 事假/年假 · KP = nghỉ không phép 旷工 · Ô = nghỉ ốm 病假 · CN = nghỉ Chủ nhật 周日休息', s: { i: 1 } }]);
+  rows.push([{ v: 'Ký hiệu · 符号:  X = đi làm 出勤 · M = đi muộn 迟到 · P = nghỉ phép 事假/年假 · KP = nghỉ không phép 旷工 · Ô = nghỉ ốm 病假 · CN = nghỉ Chủ nhật 周日休息 · TC = tăng ca Chủ nhật 周日加班', s: { i: 1 } }]);
   rows.push([]);
   rows.push([{ v: 'Người lập · 制表', s: { b: 1 } }, '', '', { v: 'Trưởng bộ phận · 部门经理', s: { b: 1 } }]);
   const nCot = 4 + nd + TONG.length, L = (i) => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
